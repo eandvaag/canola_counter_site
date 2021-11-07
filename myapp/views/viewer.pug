@@ -1,0 +1,144 @@
+doctype html
+
+html
+    head
+
+        title="Plant Detection Results Viewer"
+        meta(name="viewport" content="width=device-width, initial-scale=1")
+
+        link(href='/stylesheets/main.css' rel='stylesheet')
+        link(href='/stylesheets/d3.css' rel='stylesheet')
+        link(rel="stylesheet" href="//code.jquery.com/ui/1.13.0/themes/base/jquery-ui.css")
+
+        script(src="https://code.jquery.com/jquery-3.6.0.js")
+        script(src="https://code.jquery.com/ui/1.13.0/jquery-ui.js")
+        script(src="https://d3js.org/d3.v4.js")
+        script(src="/osd/openseadragon.min.js")
+        script(type='text/javascript' src='/javascripts/common.js')
+        script(type='text/javascript' src='/javascripts/count_chart.js')
+        script(type='text/javascript' src='/javascripts/loss_plot.js')
+        script(type='text/javascript' src='/javascripts/metrics_plot.js')
+        script(type='text/javascript' src='/javascripts/viewer.js')
+
+    body
+        div(id="container")
+
+            include ./header.pug
+
+            div(id="body")
+
+                h(class="header2" style="font-size:26px") Results Viewer
+
+                hr
+
+                div(id="metadata_container" class="grid-container-1")
+
+                    div(class="half-round-item-1")
+                        table(class="transparent_table")
+                            tr
+                                td(class="table_head") Trial Name:
+                                td(class="table_text" id="trial_name_entry")
+
+                            tr
+                                td(class="table_head") Mission Date:
+                                td(class="table_text" id="mission_date_entry")
+
+                            tr
+                                td(class="table_head") Inference Dataset:
+                                td(class="table_text" id="dataset_name_entry")
+
+                div(id="view_container" class="grid-container-2")
+
+                    div(class="half-round-item-2" id="left_container")
+
+                        h(class="header2" style="font-size: 26px;") Image: 
+                            span(id="image_name" style="color: white")
+                        
+                        table(class="transparent_table")
+                            tr
+                                td(class="table_head" style="font-size: 20px") Class:
+                                td
+                                    select(id="class_combo" class="dropdown" style="width: 200px")
+
+                                td(style="width: 100%")
+
+                                td
+                                    div(style="width: 145px; text-align: left")
+                                        input(type="checkbox" id="scores_checkbox")
+                                        label(class="selector_label")   Show Scores
+                                        input(type="checkbox" id="patch_coords_checkbox")
+                                        label(class="selector_label")   Show Patches
+
+
+                        div(id="seadragon_viewer")
+
+                    div(class="half-round-item-1" id="right_container")
+
+                        h(class="header2" style="font-size: 26px;") Models
+                        div(id="model_list_container" class="scrollable_area" style="height: 295px")
+                            table(id="model_list")
+
+                        hr
+
+                        h(class="header2" style="font-size: 26px") Predicted Counts
+                        div(id="count_chart" class="scrollable_area" style="overflow-x: hidden; height: 295px;")
+                            div(id="count_chart_tooltip" class="tooltip")
+
+
+
+                div(id="view_container_2" class="grid-container-2")
+                    div(class="half-round-item-1")
+
+
+                        h(class="header2" style="font-size: 26px") Loss Plot
+
+                        div(id="loss_selector")
+                            table(class="transparent_table")
+                                tr
+                                    td
+                                        input(type="radio" id="loss_show_all" class="radio_input" name="loss_radio" value="loss_show_all" checked)
+                                    td(class="selector_label" style="text-align: left")
+                                        div Show All                                
+                                tr
+                                    td
+                                        input(type="radio" id="loss_show_selected"  class="radio_input" name="loss_radio" value="loss_show_selected")
+                                    td(class="selector_label" style="text-align: left")
+                                        div Show Selected
+
+                        
+                        div(id="loss_container" style="padding-top: 5px")
+                            div(id="loss_plot" style="height: 540px")
+                                div(id="loss_plot_tooltip" class="tooltip")
+
+                    div(class="half-round-item-2")
+                        h(class="header2" style="font-size: 26px") Metrics Plot
+
+                        table(class="transparent_table")
+
+                            tr
+                                td(class="table_head" style="text-align: center") Y Axis:
+                                td
+                                    select(id="y_axis_combo" class="dropdown")
+                            tr
+                                td
+                                td
+                                    select(id="y_axis_cls_combo" class="dropdown")
+                            tr
+                                td(class="table_head" style="text-align: center") X Axis:
+                                td
+                                    select(id="x_axis_combo" class="dropdown")
+                            tr
+                                td
+                                td
+                                    select(id="x_axis_cls_combo" class="dropdown")
+
+
+
+                        div(id="metrics_container" style="width: 100%; padding-top: 5px")
+                            div(id="metrics_plot" style="height: 482px;")
+                                div(id="metrics_plot_tooltip" class="tooltip")
+
+
+    script.
+        let data = !{JSON.stringify(data)};
+

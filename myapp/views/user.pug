@@ -1,0 +1,135 @@
+doctype html
+
+html
+    head
+        title="Plant Detection Results Viewer"
+        meta(name="viewport" content="width=device-width, initial-scale=1")
+
+        link(href='/stylesheets/main.css' rel='stylesheet')
+        
+        script(src="https://code.jquery.com/jquery-3.6.0.js")
+        
+        script(type='text/javascript' src='/javascripts/user.js')
+        script(type='text/javascript' src='/javascripts/common.js')
+
+
+    body
+        div(id="container")
+
+            include ./header.pug
+
+
+            div(id="save_modal" class="modal")
+                div(class="modal-content")
+                    div(class="modal-header")
+                        span(class="close" id="save_modal_close") &times;
+                        p Save Group
+
+                    div(class="modal-body")
+
+                        div(class="header2") Save this Group?
+
+                        div(style="width: 50%; margin: 0 auto")
+
+                            button(id="save_yes_button" class="button-hover" style="width: 40%; display: inline-block")
+                                span Yes
+                            button(id="save_no_button" class="button-hover" style="width: 40%; display: inline-block")
+                                span No
+
+
+
+                        div(id="group_configuration" hidden)
+
+                            br
+                            br
+
+
+                            form(action="")
+                                label(class="label" for="group_name" style="text-align: left; padding-left: 5px") Group Name:
+                                input(type="text" id="group_name" name="group_name" maxlength=35 required)
+                                
+                                br
+                                br
+
+                                label(class="label" for="group_description" style="text-align: left; padding-left: 5px") Group Description:
+                                textarea(id="group_description" name="group_description" maxlength=200 rows="3" required)
+
+
+                                button(id="group_save_button" class="button-hover")
+                                    span Save
+
+                            hr
+
+                        p(id="modal_error_message" align="center")
+
+
+                    div(class="modal-footer")
+
+
+            div(id="body")
+                    
+                h(class="header2" style="font-size:26px") Home
+
+                hr
+
+                div(id="home_container")
+                    //- class="grid-container-2")
+                    div(class="half-round-item-1" id="left_panel" style="height: 670px; overflow-y: auto")
+
+                        h(class="header2" style="font-size: 26px; text-align: center;") View Configuration       
+
+                        table(class="transparent_table")
+                            tr
+                                td(class="table_head") Display:
+                                td(style="text-align: center;")
+                                    div(id="display_select" style="display: inline-block; text-align: left")
+                                        input(type="radio" class="radio_input" id="display_models" name="display_radio" value="display_models" checked)
+                                        label(class="radio_label" for="display_models") Models
+                                        br
+                                        input(type="radio" class="radio_input" id="display_user_groups" name="display_radio" value="display_user_groups")
+                                        label(class="radio_label" for="display_user_groups") My Groups
+                                        br
+                                        input(type="radio" class="radio_input" id="display_system_groups" name="display_radio" value="display_system_groups")
+                                        label(class="radio_label" for="display_system_groups") System Groups
+                            tr
+                                td(class="table_head") Trial Name:
+                                td
+                                    select(id="trial_combo" class="dropdown")
+                            tr
+                                td(class="table_head") Mission Date:
+                                td
+                                    select(id="mission_combo" class="dropdown")
+                            tr
+                                td(class="table_head") Inference Dataset:
+                                td
+                                    select(id="dataset_combo" class="dropdown")
+                            tr
+                                td(id="sort_combo_label" class="table_head") Sort Method:
+                                td
+                                    select(id="sort_combo" class="dropdown")
+
+
+
+
+
+                        div
+                            div(class="scrollable_padded_area")
+                                table(id="display_names")
+
+                            hr
+
+                            button(id="submit_button" class="button" style="width: 75%")
+                                span View Predictions
+
+                            p(id="submit_error_message" align="center")
+
+
+
+                    div(class="half-round-item-2" id="right_panel" style="height: 670px; overflow-y: auto")
+
+
+
+
+
+    script.
+        let user_data = !{JSON.stringify(user_data)};

@@ -1,0 +1,578 @@
+html,
+body {
+   margin:0;
+   padding:0;
+   height:100%;
+}
+#container {
+   min-height:100%;
+   position:relative;
+}
+#header {
+   padding:10px;
+}
+#body {
+   padding:10px;
+   padding-bottom:75px;   /* Height of the footer */
+}
+#footer {
+  position:absolute;
+  bottom:0;
+  width:100%;
+  height:75px;            /* Height of the footer */
+  text-align: center;
+  font-size: 12px;
+}
+
+
+
+.center {
+  margin: 0;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  -ms-transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%);
+}
+
+
+
+
+ul {
+   list-style-type: none;
+   padding: 0px;
+}
+
+select {
+  max-width: 90%;
+  font-family: "arial"; /*"Open Sans", sans-serif;*/
+  font-size: 16px;
+}
+
+
+body {
+  background-color: #222621; /*#172027;/*#1d112f;*/
+  color: white;
+  /*font-family: "Open Sans", sans-serif;*/
+  font-family: "arial";
+}
+
+hr {
+   color: white;
+  /*border-top: 1px solid white;*/
+}
+
+.header2 {
+  font-size: 18px; 
+  font-family: "arial";/*"Open Sans", sans-serif;*/
+  color: #ddccbb;
+  font-weight: 400;
+  display: block;
+  margin: 10px 0;
+}
+
+.selector_label {
+  font-size: 18px; /*18px;*/
+  font-family: "arial";
+  color: #ddccbb;
+  font-weight: 400;
+  padding: 4px 0px;
+  text-align: right;
+}
+
+
+.table_head {
+  font-size: 18px; /*18px;*/
+  font-family: "arial";
+  color: #ddccbb;
+  font-weight: 400;
+  padding: 4px 0px;
+  text-align: right;
+}
+
+.table_text {
+  font-size: 18px; /*16px;*/
+  font-family: "arial";
+  color: white;
+  font-weight: 400;
+  padding: 4px 0;
+  text-align: left;
+  padding-left: 20px;
+  max-width: 250px;
+  overflow: auto;
+  white-space: normal;
+}
+
+.combo_label {
+   font-size: 18px; 
+   font-family: "arial"; /*"Open Sans", sans-serif;*/
+   color: #ddccbb;
+   font-weight: 400;   
+   width: 150px;
+   display:inline-block; 
+   text-align: center; /*right;*/
+   padding-right: 10px;
+}
+
+
+.panel {
+  /*margin: auto;*/
+  background-color: #2b3628; /*#172027;*/
+  /*max-width: 450px;
+  min-width: 250px;*/
+  border: 1px solid white;
+  border-style: solid;
+  border-radius: 30px;
+  padding:  30px;
+  text-align: center;
+}
+
+
+#seadragon_viewer {
+    /*
+    margin: auto;
+    */
+    /*width: 50%;*/ /*800px;*/
+    height: 600px;
+    border:  1px solid white;
+    background-color: #222621;
+    margin-top: 10px;
+    /*border-radius: 15px 15px;*/
+}
+
+.table_label {
+   background-color: black;
+   color: white;
+   border-radius: 50px;
+   border: 1px solid white;
+   /*padding: 8px 4px;*/
+   text-align: center;
+   display: inline-block;
+   /*margin: 4px;*/
+   margin: 5px 0px;
+   padding: 10px 10px;
+   cursor: pointer;
+}
+
+.table_header {
+   background-color:  #222621;
+   color: white;
+   /*border-radius: 4px;*/
+   /*width: fit-content;*/
+   text-align: center;
+   font-size: 16px;
+   /*margin: 5px 10px;*/
+   margin: 0px 10px;
+   padding: 5px 10px;
+   /*
+   margin: 0px 10px;
+   padding: 5px;*/
+   border-bottom: 1px solid white;
+}
+
+.table_entry {
+   background-color:  #222621;
+   border: 1px solid white;
+   color: white;
+   border-radius: 4px;
+   /*width: fit-content;*/
+   text-align: center;
+   font-size: 16px;
+   /*margin: 5px 10px;*/
+   margin: 0px 10px;
+   padding: 5px 10px;
+   /*
+   margin: 0px 10px;
+   padding: 5px;*/
+   /*margin:  5px;*/
+   /*padding: 5px 5px;*/
+   /*margin: 15px 15px;*/
+   /*
+   margin: 5px;
+   padding: 5px;*/
+}
+/*
+tr:first-child{ ;}*/
+/*
+.table_checkbox_entry {
+  cursor: pointer;
+}*/
+
+.table_button {
+   width:  fit-content;
+   background-color:  #222621;
+   border: 1px solid white;
+   color: white;
+   font-size: 16px;
+   /*margin: 0px;*/
+   margin: 0px 10px;
+   padding: 5px 10px;
+   /*
+   margin:  0px 10px;
+   padding:  5px;*/
+   /*padding: 5px 5px;*/
+}
+
+.table_button_hover:hover {
+   background-color: rgba(0,0,0,0.8);
+   box-shadow: 0px 0px 10px rgba(255,255,100,1);
+   text-shadow: 0px 0px 10px rgba(255,255,100,1);
+}
+
+
+
+button {
+  display: inline-block;
+  border-radius: 4px;
+  background-color: #998866;
+  border: none;
+  color: white;
+  text-align: center;
+  font-size: 18px;
+  padding: 5px 5px;
+  width: 95%;
+  transition: all 0.5s;
+  cursor: pointer;
+  margin: 5px 5px; 
+}
+
+
+button span {
+  cursor: pointer;
+  display: inline-block;
+  position: relative;
+  transition: 0.5s;
+}
+
+button span:after {
+  content: '\00bb';
+  position: absolute;
+  opacity: 0;
+  top: 0;
+  right: -20px;
+  transition: 0.5s;
+}
+
+/* button hover is a separate class so that hover animation 
+   can be disabled by removing the class in jQuery */
+.button-hover:hover span {
+  padding-right: 25px;
+}
+
+.button-hover:hover span:after {
+  opacity: 1;
+  right: 0;
+}
+
+.button-hover:hover {
+  background-color: #cc9923;
+}
+
+
+.label {
+  font-size: 18px; 
+  font-family: "Open Sans", sans-serif;
+  color: #ddccbb;
+  font-weight: 400;
+  display: block;
+}
+
+
+/* width */
+::-webkit-scrollbar {
+  width: 20px;
+}
+
+/* Track */
+::-webkit-scrollbar-track {
+  box-shadow: inset 0 0 5px grey;
+  border-radius: 10px;
+}
+
+/* Handle */
+::-webkit-scrollbar-thumb {
+  background: #998866;
+  border-radius: 10px;
+}
+
+
+
+.grid-container-2 { 
+  margin: auto;
+  width: 95%;
+  display: grid;
+  grid-gap: 10px; 
+  padding: 5px;  
+  grid-template-columns: repeat(2, minmax(120px, 1fr))
+
+}
+
+
+.grid-container-1 {
+  margin: auto;
+  width: 95%;
+  display: grid;
+  grid-gap: 10px; 
+  padding: 5px;  
+  grid-template-columns: repeat(1, minmax(120px, 1fr))
+
+}
+/* Designing all grid-items */ 
+.grid-container-1 > div { 
+    border: 1px solid white;
+    background-color: #2b3628; 
+    text-align: center; 
+    padding: 25px;
+} 
+
+
+/* Designing all grid-items */ 
+.grid-container-2 > div { 
+    border: 1px solid white;
+    background-color: #2b3628; 
+    text-align: center; 
+    padding: 10px 25px;
+} 
+
+
+.half-round-item-1 { 
+  border-radius:  50px 15px;
+} 
+
+.half-round-item-2 {
+  border-radius:  15px 50px;
+}
+
+
+
+a {
+  color: #eeddbb;
+}
+
+/* Style navigation bar */
+ul.nav {
+  width: 100%;
+  float: left;
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+  background: #998866;
+  overflow: hidden;
+}
+
+li.nav {
+  float: left;
+}
+
+li.nav a {
+  text-align:center;
+  display: block;
+  padding: 8px 12px;
+  outline: none;
+  color: inherit;
+  text-decoration: none;
+  transition: 0.5s;
+}
+
+li.nav a:hover {
+  color: white;
+  transition: 0.5s;
+  background-color:  #dfac36;
+}
+
+
+
+
+.config_head {
+  background-color: #222621;
+  color: white;
+  border: 1px solid white;
+  cursor: pointer;
+  padding: 6px 18px;
+  width: 95%;
+  text-align: left;
+  /*margin: 1px 0px;*/
+  /*outline: none;*/
+  font-size: 14px;
+}
+
+/*
+.active, .collapsible:hover {
+   background-color: rgba(0,0,0,0.8);
+   box-shadow: 0px 0px 10px rgba(255,255,100,1);
+   text-shadow: 0px 0px 10px rgba(255,255,100,1);
+}*/
+
+
+.config_content {
+  padding: 0 18px;
+  display: block;
+  width: 95%;
+  /*overflow: hidden;*/
+  background-color: #222621;
+  /*border:  1px solid white;*/
+  text-align: left;
+}
+/*
+input[type="radio"] {
+   margin: 0 30px 0 30px;
+}*/
+
+.radio_label {
+   margin-right: 40px;
+   margin-left: 5px;
+}
+
+
+.dropdown {
+   background-color: #222621;
+   color:  white;
+   width:  320px;
+   padding: 2px 0px;
+}
+
+
+
+/* modals for 'play' page */
+/* mostly from https://www.w3schools.com/howto/howto_css_modals.asp */
+
+/* the modal background */
+.modal {
+  display: none; /* Hidden by default */
+  position: fixed; /* Stay in place */
+  z-index: 1; /* Sit on top */
+  padding-top: 150px; /* Location of the box */
+  left: 0;
+  top: 0;
+  width: 100%; /* Full width */
+  height: 100%; /* Full height */
+  overflow: auto; /* Enable scroll if needed */
+  background-color: rgb(0,0,0); /* Fallback color */
+  background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+}
+
+/* Modal Content */
+.modal-content {
+  position: relative;
+  background-color: #998866;
+  margin: auto;
+  padding: 0;
+  width: 80%;
+  max-width:  450px;
+  box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2),0 6px 20px 0 rgba(0,0,0,0.19);
+  -webkit-animation-name: animatetop;
+  -webkit-animation-duration: 0.4s;
+  animation-name: animatetop;
+  animation-duration: 0.4s
+}
+
+@-webkit-keyframes animatetop {
+  from {top:-300px; opacity:0} 
+  to {top:0; opacity:1}
+}
+
+@keyframes animatetop {
+  from {top:-300px; opacity:0}
+  to {top:0; opacity:1}
+}
+
+/* the close button */
+.close {
+  color: white;
+  float: right;
+  font-size: 28px;
+  font-weight: bold;
+}
+
+.close:hover,
+.close:focus {
+  color: #000;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.modal-header {
+  margin: 0px;
+  padding: 0px 8px;
+  margin-top: -20px;
+  margin-bottom: -20px;
+  background-color: #998866;
+  color: white;
+  font-size: 22px;
+}
+
+.modal-body {
+  margin: 0px;
+  padding: 8px 8px;
+  background-color: #2b3628;
+  text-align: center;
+}
+
+
+.modal-footer {
+  padding: 0px 8px;
+  margin-bottom: 80px;
+  background-color: #998866;
+  color: white;
+  height: 25px;
+}
+
+table {
+   margin-left: auto;
+   margin-right: auto;
+   background-color: #222621;
+   color: white;
+}
+
+.transparent_table {
+  margin-left: auto;
+  margin-right: auto;
+  background-color: transparent;
+  /*width:  500px;
+  table-layout: fixed;*/
+  /*border-collapse: collapse;*/
+}
+
+.scrollable_area {
+    overflow-y: auto;
+    overflow-x: auto;
+    height: 320px;
+    border: 1px solid white; 
+    background-color: #222621;
+    border-radius: 15px 15px;
+}
+
+.scrollable_padded_area {
+    overflow-y: auto;
+    overflow-x: auto;
+    height: 320px;
+    border: 1px solid white; 
+    background-color: #222621;
+    border-radius: 15px 15px;
+    padding: 10px 25px;
+    margin: 5px 5px;
+}
+
+
+
+textarea, input[type=text], input[type=password] {
+    width: 95%;
+    margin: 5px 0 22px 0;
+    display: inline-block;
+    font-family: 'Montserrat', sans-serif;
+    color: white;
+    background-color: #222621;
+    border: 1px solid white;
+    font-size: 16px;
+}
+
+textarea {
+    resize: none;
+}
+
+.autocomplete {
+  color: white;
+  background-color: #222621;
+  border: 1px solid white;
+  font-size: 16px;
+}
