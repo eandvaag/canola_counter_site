@@ -1,0 +1,61 @@
+version: "3.7"
+services:
+  db:
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_USER: plant_detection_dbuser
+      POSTGRES_PASSWORD: pass
+      POSTGRES_DB: plant_detection_db
+    ports:
+      - '8120:5432'
+    volumes:
+      - plant_detection_db:/var/lib/postgresql/data
+    #healthcheck:
+    #  test: ["CMD-SHELL", "pg_isready -U postgres"]
+    #  interval: 5s
+    #  timeout: 5s
+    #  retries: 5
+    networks: 
+      - container_net
+
+
+  myapp:
+    build: 
+      context: .
+    environment:
+      DB_SCHEMA: plant_detection_db
+      DB_USER: plant_detection_dbuser
+      DB_PASSWORD: pass
+      DB_HOST: db 
+      DB_PORT: 5432 
+      NODE_ENV: 'docker'
+    depends_on:
+      - db
+    #depends_on:
+    #  db:
+    #    condition: service_healthy
+    #links:
+    #  - db
+    ports:
+      - '8110:8110'
+    volumes:
+      - type: bind
+        source: /home/eaa299/Documents/work/2021/plant_detection/detection_results_viewer/myapp/usr
+        target: /opt/app/usr
+    networks: 
+      - container_net
+
+networks:
+  container_net:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.26.0.0/24
+    internal: true
+
+
+
+volumes:
+  plant_detection_db:

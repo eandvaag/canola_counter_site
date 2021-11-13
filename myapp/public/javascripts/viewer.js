@@ -9,8 +9,8 @@ function basename(path) {
 
 function set_sorted_uuids_and_names() {
     items = [];
-    for (let i = 0; i < metadata["model_instance_uuids"].length; i++) {
-        items.push([metadata["model_instance_uuids"][i], metadata["model_instance_names"][i]])
+    for (let i = 0; i < metadata["model_uuids"].length; i++) {
+        items.push([metadata["model_uuids"][i], metadata["model_names"][i]])
     }
     if (metadata["highlighted_param"] == null) {
         items.sort(function(first, second) {
@@ -357,17 +357,17 @@ $(document).ready(function() {
 
     for (let i = 0; i < sorted_model_uuids.length; i++) {
 
-        let model_instance_uuid = sorted_model_uuids[i];
-        let model_instance_name = sorted_model_names[i];
-        let model_color = color_lookup[model_instance_uuid];
-        let config_id = model_instance_uuid + "_conf";
+        let model_uuid = sorted_model_uuids[i];
+        let model_name = sorted_model_names[i];
+        let model_color = color_lookup[model_uuid];
+        let config_id = model_uuid + "_conf";
 
         $("#model_list")
             .append(`<tr><td>` +
                     `<label class="table_label" ` +
                             `style="text-align: left; width: ${label_width}; background-color: ${model_color};">` +
-                    `<input type="checkbox" class="disp_names" value=${model_instance_uuid}>` +
-                    `   ${model_instance_name}</label>` +
+                    `<input type="checkbox" class="disp_names" value=${model_uuid}>` +
+                    `   ${model_name}</label>` +
                     `<td><div class="table_entry" style="width: ${config_width}">` +
                     `<pre id=${config_id} style="font-size: 14px"> --- </pre></div></td>` +
                     `</td></tr>`);

@@ -234,47 +234,6 @@ exports.get_user = function(req, res, next) {
 
 }
 
-/*
-function get_group_data(group_key, group_uuid) {
-    
-    if (group_key == "groups") {
-        console.log("fetching from group_lookup", group_key, group_uuid);
-        let group_lookup_path = path.join(USR_DATA_ROOT, "records", "group_lookup.json");
-        let group_lookup = JSON.parse(fs.readFileSync(group_lookup_path, 'utf8'));
-        return group_lookup["groups"][group_uuid];
-    }
-    else if (group_key == "user_groups") {
-
-        let group_data = {};
-
-        console.log("group_uuid", group_uuid);
-        return models.groups.findOne({
-            where: { 
-                uuid: group_uuid 
-            },
-            order: [ [ 'updatedAt', 'DESC' ]],
-        }).then(group => {
-
-            console.log("group", group);
-            console.log("group_name", group.name);
-
-            group_data["group_name"] = group.name;
-            group_data["group_description"] = group.description;
-            group_data["model_instance_names"] = group.model_instance_names.split(",");
-            group_data["model_instance_uuids"] = group.model_instance_uuids.split(",");
-
-            return group_data;
-        }).catch(err => {
-            console.log(err);
-            return null;
-        });
-    }
-    else {
-        console.log(err);
-        return null;
-    }
-}*/
-
 
 exports.post_user = function(req, res, next) {
 
@@ -320,19 +279,13 @@ exports.post_user = function(req, res, next) {
                     }
                 }).then(group => {
 
-                    console.log("group", group);
-                    console.log("group_name", group.name);
-                    console.log("group_description", group.description);
-                    console.log("model_instance_names", group.model_instance_names);
-                    console.log("model_instance_uuids", group.model_instance_uuids);
-
                     group_data["group_name"] = group.name;
                     group_data["group_description"] = group.description;
                     group_data["trial_name"] = group.trial_name;
                     group_data["mission_date"] = group.mission_date;
                     group_data["dataset_name"] = group.dataset_name;
-                    group_data["model_instance_names"] = (group.model_instance_names).split(",");
-                    group_data["model_instance_uuids"] = (group.model_instance_uuids).split(",");
+                    group_data["model_names"] = (group.model_names).split(",");
+                    group_data["model_uuids"] = (group.model_uuids).split(",");
                     group_data["prediction_dirnames"] = (group.prediction_dirnames).split(",");
 
                     console.log("sending_response");
@@ -400,8 +353,8 @@ exports.post_user = function(req, res, next) {
                 trial_name: trial_name,
                 mission_date: mission_date,
                 dataset_name: dataset_name,
-                model_instance_uuids: req.body.model_instance_uuids,
-                model_instance_names: req.body.model_instance_names,
+                model_uuids: req.body.model_uuids,
+                model_names: req.body.model_names,
                 prediction_dirnames: req.body.prediction_dirnames,
                 system_group: false,
                 highlighted_param: null,
@@ -475,10 +428,21 @@ exports.post_user = function(req, res, next) {
                 let group_config = JSON.parse(fs.readFileSync(group_config_path, 'utf8'));
 
                 console.log("group_config", group_config);
-                let model_info = group_config["model_info"][trial_name][mission_date][dataset_name];
-                let model_instance_uuids = model_info["instance_uuids"];
-                let model_instance_names = model_info["instance_names"];
-                let model_pred_dirnames = model_info["prediction_dirnames"];
+                //let model_info = group_config["model_info"][trial_name][mission_date][dataset_name];
+                let model_uuids = [];
+                let model_names = [];
+                let model_pred_dirnames = [];
+                for (m of group_config["model_info"]) {
+                    for (inference_info of m["inference_info"]) {
+                        if (((inference_info["trial_name"] === trial_name) &&
+                             (inference_info["mission_date"] === mission_date)) &&
+                             (inference_info["dataset_name"] === dataset_name)) {
+                            model_uuids.push(m["model_uuid"]);
+                            model_names.push(m["model_name"]);
+                            model_pred_dirnames.push(inference_info["prediction_dirname"])
+                        }
+                    }
+                }
 
                 console.log("REPLICATIONS", group_config["variation_config"]["replications"]);
 
@@ -501,8 +465,8 @@ exports.post_user = function(req, res, next) {
                     trial_name: trial_name,
                     mission_date: mission_date,
                     dataset_name: dataset_name,
-                    model_instance_uuids: model_instance_uuids.join(","),
-                    model_instance_names: model_instance_names.join(","),
+                    model_uuids: model_uuids.join(","),
+                    model_names: model_names.join(","),
                     prediction_dirnames: model_pred_dirnames.join(","),
                     system_group: true,
                     highlighted_param: higlighted_param_config + "::" + highlighted_param_name,
@@ -570,7 +534,7 @@ exports.get_viewer = function(req, res, next) {
             }
         })
         .then(group => {
-            let model_uuids = group.model_instance_uuids.split(",");
+            let model_uuids = group.model_uuids.split(",");
             let prediction_dirnames = group.prediction_dirnames.split(",");
             let inference_lookup_path = path.join(USR_DATA_ROOT, "records", "inference_lookup.json");
             let inference_lookup = JSON.parse(fs.readFileSync(inference_lookup_path, 'utf8'));
@@ -585,8 +549,8 @@ exports.get_viewer = function(req, res, next) {
                 "dataset_name": group.dataset_name,
                 "group_user_saved": group.user_saved,
                 "system_group": group.system_group,
-                "model_instance_names": group.model_instance_names.split(","),
-                "model_instance_uuids": group.model_instance_uuids.split(","),
+                "model_names": group.model_names.split(","),
+                "model_uuids": group.model_uuids.split(","),
                 "highlighted_param": group.highlighted_param,
                 "replications": group.replications,
                 "class_map": image_set_config["class_map"]
@@ -604,7 +568,7 @@ exports.get_viewer = function(req, res, next) {
             let config_keys = [];
             let configs = {"arch": {}, "training": {}, "inference": {}};
             let loss_records = {};
-            let excluded_keys = ["instance_uuid", "instance_name"];
+            let excluded_keys = ["model_uuid", "model_name"];
             for (let i = 0; i < model_uuids.length; i++) {
                 let model_uuid = model_uuids[i];
                 //let entry = inference_lookup[group.trial_name][group.mission_date][group.dataset_name]["models"][model_uuid];

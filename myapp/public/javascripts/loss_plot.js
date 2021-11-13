@@ -30,8 +30,8 @@ function set_loss_plot_data() {
 
         training_loss_plot_data.push({
 
-            "model_instance_uuid": sorted_model_uuids[i],
-            "model_instance_name": sorted_model_names[i],
+            "model_uuid": sorted_model_uuids[i],
+            "model_name": sorted_model_names[i],
             "color": color_lookup[sorted_model_uuids[i]],
             "line_name": sorted_model_names[i] + "_training_loss",
             "values": model_training_loss_vals.map(function(v, j) {
@@ -44,8 +44,8 @@ function set_loss_plot_data() {
 
         validation_loss_plot_data.push({
 
-            "model_intance_uuid": sorted_model_uuids[i],
-            "model_instance_name": sorted_model_names[i],
+            "model_uuid": sorted_model_uuids[i],
+            "model_name": sorted_model_names[i],
             "color": color_lookup[sorted_model_uuids[i]],
             "line_name": sorted_model_names[i] + "_validation_loss",
             "values": model_validation_loss_vals.map(function(v, j) {
@@ -86,7 +86,7 @@ function draw_loss_plot() {
         });
 
         for (let i = 0; i < training_loss_plot_data.length; i++) {
-            if (displayed_uuids.includes(training_loss_plot_data[i]["model_instance_uuid"])) {
+            if (displayed_uuids.includes(training_loss_plot_data[i]["model_uuid"])) {
                 displayed_training_data.push(training_loss_plot_data[i]);
                 displayed_validation_data.push(validation_loss_plot_data[i]);
             }

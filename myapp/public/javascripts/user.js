@@ -138,7 +138,7 @@ function show_model_config(model_uuid) {
     let dataset_name = $("#dataset_combo").val();
 
     let models_dict = user_data[trial_name][mission_date][dataset_name]["models"];
-    let model_instance_name = models_dict[model_uuid]["instance_name"];
+    let model_name = models_dict[model_uuid]["model_name"];
     let prediction_dirname = models_dict[model_uuid]["prediction_dirname"];
 
     let arch_url = "/usr/data/models/" + model_uuid + "/arch_config.json";
@@ -151,7 +151,7 @@ function show_model_config(model_uuid) {
 
     $("#config_title").append(
         `<h class="header2" style="font-size: 22px; text-align: center; word-wrap: break-word; color: white">` +
-        `${model_instance_name}</h>`);
+        `${model_name}</h>`);
 
     $("#configurations").append(
         `<div class="config_head">ARCHITECTURE CONFIGURATION</div>`+
@@ -329,7 +329,7 @@ function display_model_names() {
     let sorted_vals;
     if (sort_method === "Lexicographic") {
         let items = model_uuids.map(function(model_uuid) {
-            return [model_uuid, models_dict[model_uuid]["instance_name"]];
+            return [model_uuid, models_dict[model_uuid]["model_name"]];
         });
         items.sort(function(first, second) {
             if (first[1] < second[1]) return -1;
@@ -352,7 +352,7 @@ function display_model_names() {
             val = models_dict[model_uuid]["metrics"][metric_dictname][metric_cls_name];
 
             items.push([model_uuid,
-                        models_dict[model_uuid]["instance_name"], 
+                        models_dict[model_uuid]["model_name"], 
                         val]);
         }
 
@@ -465,8 +465,8 @@ function fetch_system_group() {
 
 
 function submit_new_user_group(group_name, group_description) {
-    let model_instance_uuids = [];
-    let model_instance_names = [];
+    let model_uuids = [];
+    let model_names = [];
     let prediction_dirnames = [];
 
     let trial_name = $("#trial_combo").val();
@@ -476,8 +476,8 @@ function submit_new_user_group(group_name, group_description) {
     $(".cur_display_names:checked").each(function(i, e) {
         let model_uuid = $(this).val();
         let models_dict = user_data[trial_name][mission_date][dataset_name]["models"]
-        model_instance_uuids.push(model_uuid);
-        model_instance_names.push(models_dict[model_uuid]["instance_name"]);
+        model_uuids.push(model_uuid);
+        model_names.push(models_dict[model_uuid]["model_name"]);
         prediction_dirnames.push(models_dict[model_uuid]["prediction_dirname"]);
     });
 
@@ -489,8 +489,8 @@ function submit_new_user_group(group_name, group_description) {
         trial_name: trial_name,
         mission_date: mission_date,
         dataset_name: dataset_name,
-        model_instance_uuids: model_instance_uuids.join(","),
-        model_instance_names: model_instance_names.join(","),
+        model_uuids: model_uuids.join(","),
+        model_names: model_names.join(","),
         prediction_dirnames: prediction_dirnames.join(","),
         save_group: save_group,
         group_name: group_name,

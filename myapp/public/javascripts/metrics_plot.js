@@ -93,7 +93,7 @@ function set_metrics_plot_data() {
     for (let i = 0; i < sorted_model_uuids.length; i++) {
 
         metrics_plot_data.push({
-            "model_instance_name": sorted_model_names[i],
+            "model_name": sorted_model_names[i],
             "metrics": predictions[sorted_model_uuids[i]]["metrics"],
             "color": color_lookup[sorted_model_uuids[i]]
         });
@@ -177,7 +177,7 @@ function draw_metrics_plot() {
     let tooltip = d3.select("#metrics_plot_tooltip");
 
     let tip_mouseover = function(d) {
-        let html = d.model_instance_name;
+        let html = d.model_name;
         tooltip.html(html)
                .style("opacity", 1.0);
     }

@@ -37,11 +37,11 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: false,
             type: DataTypes.STRING
         },
-        model_instance_uuids: {
+        model_uuids: {
             allowNull: false,
             type: DataTypes.STRING(4096)
         },
-        model_instance_names: {
+        model_names: {
             allowNull: false,
             type: DataTypes.STRING(4096)
         },        
