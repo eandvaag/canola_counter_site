@@ -378,7 +378,7 @@ $(document).ready(function() {
     viewer = OpenSeadragon({
         id: "seadragon_viewer",
         sequenceMode: true,
-        prefixUrl: "/osd/images/",
+        prefixUrl: "/plant_detection/osd/images/",
         tileSources: dzi_image_paths,
         showNavigator: false,
         maxZoomLevel: 100

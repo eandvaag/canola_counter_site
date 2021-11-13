@@ -624,7 +624,7 @@ exports.get_viewer = function(req, res, next) {
 
                 if (i == 0) {
                     for (image_name in model_predictions["image_predictions"]) {
-                        let dzi_image_path = path.join('..', USR_DATA_ROOT, "image_sets", 
+                        let dzi_image_path = path.join(APP_PREFIX, USR_DATA_ROOT, "image_sets", 
                                                 group.trial_name, group.mission_date, 
                                                 "dzi_images", image_name + ".dzi");
                         dzi_image_paths.push(dzi_image_path)
@@ -688,7 +688,7 @@ function get_annotations(xml_path) {
     for (annotation of annotations["annotation"]["object"]) {
 
         class_name = annotation["name"]["_text"];
-        console.log("class_name", class_name);
+        //console.log("class_name", class_name);
         if (!(class_name in parsed_annotations["class_counts"])) {
             parsed_annotations["class_boxes"][class_name] = [];
             parsed_annotations["class_counts"][class_name] = 0;

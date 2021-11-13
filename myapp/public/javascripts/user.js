@@ -141,9 +141,9 @@ function show_model_config(model_uuid) {
     let model_name = models_dict[model_uuid]["model_name"];
     let prediction_dirname = models_dict[model_uuid]["prediction_dirname"];
 
-    let arch_url = "/usr/data/models/" + model_uuid + "/arch_config.json";
-    let train_url = "/usr/data/models/" + model_uuid + "/training_config.json";
-    let inference_url = "/usr/data/models/" + model_uuid + "/" + prediction_dirname + "/inference_config.json";
+    let arch_url = "/plant_detection/usr/data/models/" + model_uuid + "/arch_config.json";
+    let train_url = "/plant_detection/usr/data/models/" + model_uuid + "/training_config.json";
+    let inference_url = "/plant_detection/usr/data/models/" + model_uuid + "/" + prediction_dirname + "/inference_config.json";
 
     let arch_config = JSON.stringify(get_config(arch_url), null, 4);
     let train_config = JSON.stringify(get_config(train_url), null, 4);
