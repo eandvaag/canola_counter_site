@@ -20,7 +20,7 @@ app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, '/public')));
 app.use('/usr', express.static(path.join(__dirname, 'usr')));
 app.use(session({
   key: 'user_sid',
@@ -32,7 +32,7 @@ app.use(session({
   }
 }));
 
-app.use('/', indexRouter);
+app.use('/plant_detection', indexRouter);
 app.use('/users', usersRouter);
 app.use((req, res, next) => {
   if (req.cookies.user_sid && !req.session.user) {

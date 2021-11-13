@@ -41,7 +41,7 @@ services:
       - '8110:8110'
     volumes:
       - type: bind
-        source: /data/home/erik/plant_detection_viewer/myapp/usr
+        source: /home/eaa299/Documents/work/2021/plant_detection/detection_results_viewer/myapp/usr
         target: /opt/app/usr
     networks: 
       - container_net
@@ -53,7 +53,7 @@ networks:
       driver: default
       config:
         - subnet: 172.26.0.0/24
-    #internal: true
+    internal: true
 
 
 

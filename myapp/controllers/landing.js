@@ -9,8 +9,8 @@ const xml_js_convert = require('xml-js');
 
 const models = require('../models');
 
-
-const USR_DATA_ROOT = 'usr/data/' //'/home/eaa299/Documents/work/2021/plant_detection/plant_detection/src/usr/data'
+const APP_PREFIX = '/plant_detection';
+const USR_DATA_ROOT = 'usr/data/'; //'/home/eaa299/Documents/work/2021/plant_detection/plant_detection/src/usr/data'
 
 
 
@@ -18,7 +18,7 @@ const USR_DATA_ROOT = 'usr/data/' //'/home/eaa299/Documents/work/2021/plant_dete
 
 exports.sessionChecker = function(req, res, next) {
     if (req.session.user && req.cookies.user_sid) {
-        res.redirect('/user');
+        res.redirect(APP_PREFIX + '/user');
     } else {
         next();
     }
@@ -62,7 +62,7 @@ exports.post_sign_in = function(req, res, next) {
             else {
                 console.log("username and pass ok");
                 req.session.user = user.dataValues;
-                response.redirect = "/user";
+                response.redirect = APP_PREFIX + "/user";
                 res.json(response);
             }
         }
@@ -229,7 +229,7 @@ exports.get_user = function(req, res, next) {
         });
     }
     else {
-        res.redirect("/");
+        res.redirect(APP_PREFIX);
     }
 
 }
@@ -362,7 +362,7 @@ exports.post_user = function(req, res, next) {
             })
             .then(group => {
                 console.log("group created, redirecting");
-                response.redirect = "/viewer/" + group_uuid.toString();
+                response.redirect = APP_PREFIX + "/viewer/" + group_uuid.toString();
                 res.json(response);
 
             }).catch(error => {
@@ -394,7 +394,7 @@ exports.post_user = function(req, res, next) {
                     uuid: req.body.group_uuid
                 }
             }).then(group => {
-                response.redirect = "/viewer/" + req.body.group_uuid;
+                response.redirect = APP_PREFIX + "/viewer/" + req.body.group_uuid;
                 res.json(response);
             }).catch(error => {
                 console.log(error);
@@ -472,7 +472,7 @@ exports.post_user = function(req, res, next) {
                     highlighted_param: higlighted_param_config + "::" + highlighted_param_name,
                     replications: replications
                 }).then(group => {
-                    response.redirect = "/viewer/" + view_group_uuid.toString();
+                    response.redirect = APP_PREFIX + "/viewer/" + view_group_uuid.toString();
                     res.json(response);
                 }).catch(error => {
                     console.log(error);
@@ -518,7 +518,7 @@ exports.post_user = function(req, res, next) {
 
     }
     else {        
-        res.redirect("/");
+        res.redirect(APP_PREFIX);
     }
 
 }
@@ -657,7 +657,7 @@ exports.get_viewer = function(req, res, next) {
         });
     }
     else {
-        res.redirect("/");
+        res.redirect(APP_PREFIX);
     }
 
 }
@@ -668,7 +668,7 @@ exports.logout = function(req, res, next) {
     if (req.session.user && req.cookies.user_sid) {
         res.clearCookie('user_sid');
     }
-    res.redirect('/');
+    res.redirect(APP_PREFIX);
 }
 
 
