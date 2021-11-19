@@ -1,3 +1,5 @@
 myapp/usr
 myapp/node_modules
 myapp/config/config.js
+myapp/seeders
+docker-compose.yml

@@ -21,14 +21,14 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: true,
             type: DataTypes.STRING
         },
-        user_saved: {
-            allowNull: false,
-            type: DataTypes.BOOLEAN
-        },
-        trial_name: {
+        farm_name: {
             allowNull: false,
             type: DataTypes.STRING
         },
+        field_name: {
+            allowNull: false,
+            type: DataTypes.STRING
+        },        
         mission_date: {
             allowNull: false,
             type: DataTypes.STRING

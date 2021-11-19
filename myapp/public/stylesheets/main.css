@@ -322,7 +322,7 @@ button span:after {
     border: 1px solid white;
     background-color: #2b3628; 
     text-align: center; 
-    padding: 25px;
+    padding: 10px 25px;
 } 
 
 
@@ -419,7 +419,7 @@ input[type="radio"] {
 }*/
 
 .radio_label {
-   margin-right: 40px;
+   margin-right: 5px; /*40px;*/
    margin-left: 5px;
 }
 

@@ -21,11 +21,11 @@ module.exports = {
                 allowNull: true,
                 type: Sequelize.STRING
             },
-            user_saved: {
+            farm_name: {
                 allowNull: false,
-                type: Sequelize.BOOLEAN
+                type: Sequelize.STRING
             },
-            trial_name: {
+            field_name: {
                 allowNull: false,
                 type: Sequelize.STRING
             },

@@ -9,6 +9,7 @@ html
         link(href='/plant_detection/stylesheets/main.css' rel='stylesheet')
         link(href='/plant_detection/stylesheets/d3.css' rel='stylesheet')
         link(rel="stylesheet" href="//code.jquery.com/ui/1.13.0/themes/base/jquery-ui.css")
+        link(rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css")
 
         script(src="https://code.jquery.com/jquery-3.6.0.js")
         script(src="https://code.jquery.com/ui/1.13.0/jquery-ui.js")
@@ -34,15 +35,16 @@ html
                 div(id="metadata_container" class="grid-container-1")
 
                     div(class="half-round-item-1")
-                        table(class="transparent_table")
+                        table(class="transparent_table" style="float: left;")
                             tr
-                                td(class="table_head") Trial Name:
-                                td(class="table_text" id="trial_name_entry")
-
+                                td(class="table_head") Farm Name:
+                                td(class="table_text" id="farm_name_entry")
+                            tr
+                                td(class="table_head") Field Name:
+                                td(class="table_text" id="field_name_entry")
                             tr
                                 td(class="table_head") Mission Date:
                                 td(class="table_text" id="mission_date_entry")
-
                             tr
                                 td(class="table_head") Inference Dataset:
                                 td(class="table_text" id="dataset_name_entry")
@@ -92,22 +94,30 @@ html
 
                         h(class="header2" style="font-size: 26px") Loss Plot
 
-                        div(id="loss_selector")
+                        div
                             table(class="transparent_table")
                                 tr
+
+                                    td(class="selector_label" style="text-align: right")
+                                        div Show All   
                                     td
-                                        input(type="radio" id="loss_show_all" class="radio_input" name="loss_radio" value="loss_show_all" checked)
-                                    td(class="selector_label" style="text-align: left")
-                                        div Show All                                
+                                        input(type="radio" id="loss_show_all" class="loss_radio" name="loss_radio" value="loss_show_all" checked)                             
                                 tr
-                                    td
-                                        input(type="radio" id="loss_show_selected"  class="radio_input" name="loss_radio" value="loss_show_selected")
-                                    td(class="selector_label" style="text-align: left")
+
+                                    td(class="selector_label" style="text-align: right")
                                         div Show Selected
+                                    td
+                                        input(type="radio" id="loss_show_selected" class="loss_radio" name="loss_radio" value="loss_show_selected")
+
+                                tr
+                                    td(class="selector_label" style="text-align: right") 
+                                        div Training Sequence
+                                    td
+                                        select(id="sequence_combo" class="dropdown" style="width: 100px")
 
                         
                         div(id="loss_container" style="padding-top: 5px")
-                            div(id="loss_plot" style="height: 540px")
+                            div(id="loss_plot" style="height: 536px")
                                 div(id="loss_plot_tooltip" class="tooltip")
 
                     div(class="half-round-item-2")
@@ -135,7 +145,7 @@ html
 
 
                         div(id="metrics_container" style="width: 100%; padding-top: 5px")
-                            div(id="metrics_plot" style="height: 482px;")
+                            div(id="metrics_plot" style="height: 510px;")
                                 div(id="metrics_plot_tooltip" class="tooltip")
 
 

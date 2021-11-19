@@ -1,6 +1,5 @@
 
-let training_loss_plot_data;
-let validation_loss_plot_data;
+let loss_plot_data;
 
 let loss_svg;
 let loss_xScale;
@@ -10,53 +9,76 @@ let loss_chart_y_axis;
 let loss_margin;
 let lines;
 
+function add_training_sequence_options() {
+    seq_options = ["All", "Last"];
+    for (model_uuid of Object.keys(loss_records)) {
+        for (seq_num of Object.keys(loss_records[model_uuid]).sort()) {
+            if (!(seq_options.includes(seq_num))) {
+                seq_options.push(seq_num);
+            }
+        }
+    }
+
+
+    for (seq_option of seq_options) {
+        $("#sequence_combo").append($('<option>', {
+            value: seq_option,
+            text: seq_option
+        }));
+    }
+    $("#sequence_combo").val(seq_options[0]);
+}
+
 
 function set_loss_plot_data() {
 
-
-    training_loss_plot_data = [];
-    validation_loss_plot_data = [];
-    max_num_epochs = 0;
-    max_training_loss_val = 0;
-    max_validation_loss_val = 0;
+    loss_plot_data = {};
 
     let model_training_loss_vals = [];
     let model_validation_loss_vals = [];
 
-    for (let i = 0; i < sorted_model_uuids.length; i++) {
+    for (model_uuid of sorted_model_uuids) {
 
-        model_training_loss_vals = loss_records[sorted_model_uuids[i]]["training_loss"]["values"];
-        model_validation_loss_vals = loss_records[sorted_model_uuids[i]]["validation_loss"]["values"];
+        loss_plot_data[model_uuid] = {};
+        loss_plot_data[model_uuid]["training"] = {};
+        loss_plot_data[model_uuid]["validation"] = {};
+        loss_plot_data[model_uuid]["color"] = color_lookup[model_uuid];
 
-        training_loss_plot_data.push({
+        seq_nums = Object.keys(loss_records[model_uuid]).sort();
+        let seq_num;
+        for (let i = 0; i < seq_nums.length; i++) {
 
-            "model_uuid": sorted_model_uuids[i],
-            "model_name": sorted_model_names[i],
-            "color": color_lookup[sorted_model_uuids[i]],
-            "line_name": sorted_model_names[i] + "_training_loss",
-            "values": model_training_loss_vals.map(function(v, j) {
-                return {
-                    "training_loss_val": v,
-                    "epoch": j
-                };
-            })
-        });
+            seq_num = seq_nums[i];
 
-        validation_loss_plot_data.push({
+            model_training_loss_vals = loss_records[model_uuid][seq_num]["training_loss"]["values"];
+            model_validation_loss_vals = loss_records[model_uuid][seq_num]["validation_loss"]["values"];
 
-            "model_uuid": sorted_model_uuids[i],
-            "model_name": sorted_model_names[i],
-            "color": color_lookup[sorted_model_uuids[i]],
-            "line_name": sorted_model_names[i] + "_validation_loss",
-            "values": model_validation_loss_vals.map(function(v, j) {
-                return {
-                    "validation_loss_val": v,
-                    "epoch": j
-                }
-            })
-        });
+            loss_plot_data[model_uuid]["training"][seq_num] = {"values": model_training_loss_vals, "breaks": []};
+            loss_plot_data[model_uuid]["validation"][seq_num] = {"values": model_validation_loss_vals, "breaks": []};
+
+            if (!("All" in loss_plot_data[model_uuid]["training"])) {
+                loss_plot_data[model_uuid]["training"]["All"] = {"values": [], "breaks": []};
+            }
+            loss_plot_data[model_uuid]["training"]["All"]["breaks"].push(
+                loss_plot_data[model_uuid]["training"]["All"]["values"].length);
+            loss_plot_data[model_uuid]["training"]["All"]["values"].push(...model_training_loss_vals);
+            
+            if (!("All" in loss_plot_data[model_uuid]["validation"])) {
+                loss_plot_data[model_uuid]["validation"]["All"] = {"values": [], "breaks": []};
+            }
+            loss_plot_data[model_uuid]["validation"]["All"]["breaks"].push(
+                loss_plot_data[model_uuid]["validation"]["All"]["values"].length);
+            loss_plot_data[model_uuid]["validation"]["All"]["values"].push(...model_validation_loss_vals);
+
+
+            if (i == seq_nums.length - 1) {
+                loss_plot_data[model_uuid]["training"]["Last"] = {"values": model_training_loss_vals, "breaks": []};
+                loss_plot_data[model_uuid]["validation"]["Last"] = {"values": model_validation_loss_vals, "breaks": []};
+            }
+        }
     }
 }
+
 
 
 function create_label(str) {
@@ -68,31 +90,53 @@ function create_label(str) {
 }
 
 
+function get_cur_loss_plot_data() {
+
+    let show_all = $("#loss_show_all:checked").val();
+    let seq_sel = $("#sequence_combo").val();
+
+    let disp_sel = [];
+    $(".disp_names:checked").each(function(i, e) { 
+        disp_sel.push($(this).val()); 
+    });
+    let training_data = [];
+    let validation_data = [];
+
+    let model_uuid;
+    let model_name;
+    for (let i = 0; i < sorted_model_uuids.length; i++) {
+        model_uuid = sorted_model_uuids[i];
+        model_name = sorted_model_names[i];
+        if ((show_all) || (disp_sel.includes(model_uuid))) {
+            training_data.push({
+                "values": loss_plot_data[model_uuid]["training"][seq_sel]["values"],
+                "breaks": loss_plot_data[model_uuid]["training"][seq_sel]["breaks"],
+                "color": loss_plot_data[model_uuid]["color"],
+                "line_name": model_name + "_training_loss"
+            });
+            validation_data.push({
+                "values": loss_plot_data[model_uuid]["validation"][seq_sel]["values"],
+                "breaks": loss_plot_data[model_uuid]["validation"][seq_sel]["breaks"],
+                "color": loss_plot_data[model_uuid]["color"],
+                "line_name": model_name + "_validation_loss"
+            });
+        }
+    }
+    return {"training_data": training_data, 
+            "validation_data": validation_data};
+}
+
+
 function draw_loss_plot() {
 
-    let displayed_training_data = [];
-    let displayed_validation_data = [];
+    let displayed_training_data;
+    let displayed_validation_data;
 
-    if ($("#loss_show_all:checked").val()) {
-        displayed_training_data = training_loss_plot_data;
-        displayed_validation_data = validation_loss_plot_data;
-    }
-    else {
 
-        let displayed_uuids = [];
-        $(".disp_names:checked").each(function(i, e) {
-            if ($(this).val() !== "Annotations")
-                displayed_uuids.push($(this).val());
-        });
+    cur_data = get_cur_loss_plot_data();
+    displayed_training_data = cur_data["training_data"];
+    displayed_validation_data = cur_data["validation_data"];
 
-        for (let i = 0; i < training_loss_plot_data.length; i++) {
-            if (displayed_uuids.includes(training_loss_plot_data[i]["model_uuid"])) {
-                displayed_training_data.push(training_loss_plot_data[i]);
-                displayed_validation_data.push(validation_loss_plot_data[i]);
-            }
-        }
-
-    }
 
 
     let max_training_loss_val = 0;
@@ -104,14 +148,13 @@ function draw_loss_plot() {
 
     for (let i = 0; i < displayed_training_data.length; i++) {
 
-        model_max_training_val = Math.max.apply(null, displayed_training_data[i]["values"].map(function(val) {
-            return val["training_loss_val"];
-        }));
+        model_max_training_val = Math.max.apply(null, displayed_training_data[i]["values"]);
+
         if (model_max_training_val > max_training_loss_val)
             max_training_loss_val = model_max_training_val;
-        model_max_validation_val = Math.max.apply(null, displayed_validation_data[i]["values"].map(function(val) {
-            return val["validation_loss_val"];
-        }));
+       
+        model_max_validation_val = Math.max.apply(null, displayed_validation_data[i]["values"]);
+
         if (model_max_validation_val > max_validation_loss_val)
             max_validation_loss_val = model_max_validation_val;        
         model_max_epoch_val = displayed_training_data[i]["values"].length - 1;
@@ -120,7 +163,6 @@ function draw_loss_plot() {
     }
     
     let max_loss_val = Math.max.apply(null, [max_training_loss_val, max_validation_loss_val]);
-
 
     let div = $('#loss_plot');
 
@@ -214,8 +256,8 @@ function draw_loss_plot() {
 
 
     let training_line = d3.line()
-        .x(function(d) { return loss_xScale(d["epoch"]); })
-        .y(function(d) { return loss_yScale(d["training_loss_val"]); });
+        .x(function(d, i) { return loss_xScale(i); })
+        .y(function(d) { return loss_yScale(d); });
 
 
     training_lines = loss_svg.selectAll("lines")
@@ -243,10 +285,9 @@ function draw_loss_plot() {
          .on("mouseleave", tip_mouseleave);
     
 
-
     let validation_line = d3.line()
-        .x(function(d) { return loss_xScale(d["epoch"]); })
-        .y(function(d) { return loss_yScale(d["validation_loss_val"]); });
+        .x(function(d, i) { return loss_xScale(i); })
+        .y(function(d) { return loss_yScale(d); });
 
 
     validation_lines = loss_svg.selectAll("lines")

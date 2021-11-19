@@ -223,17 +223,26 @@ function update_containers() {
 function update_higlighted_param(key) {
     let items = key.split("::");
     let config_type = items[0];
-    let config_key = items[1];
+    let config_keys = items[1].split("/");
     $(".disp_names").each(function(i, e) {
         let name = $(this).val();
         if (name !== "Annotations") {
             let config_id = name + "_conf";
             let conf_val;
-            if (!(config_key in configs[config_type][name])) {
+            let key_exists = true;
+            let d = configs[config_type][name];
+            for (config_key of config_keys) {
+                if (!(config_key in d)) {
+                    key_exists = false;
+                    break;
+                }
+                d = d[config_key];
+            }
+            if (!(key_exists)) {
                 conf_val = "---";
             }
             else {
-                conf_val = JSON.stringify(configs[config_type][name][config_key], null, 4);
+                conf_val = JSON.stringify(d, null, 4);
             }
             if ((conf_val[0] === "{") || (conf_val[0] === "[")) {
                 $("#" + config_id).css("text-align", "left");
@@ -292,13 +301,13 @@ $(document).ready(function() {
     cur_img_name = basename(dzi_image_paths[0]);
     cur_img_name = cur_img_name.substring(0, cur_img_name.length-4);
 
-    if (metadata["group_user_saved"] || metadata["system_group"]) {
+    if (metadata["system_group"]) {
         let group_name = metadata["group_name"];
         let group_description = metadata["group_description"];
         $("#metadata_container").removeClass("grid-container-1");
         $("#metadata_container").addClass("grid-container-2");
         $("#metadata_container").append(`<div class="half-round-item-2">` + 
-                                        `<table class="transparent_table" id="group_metadata_table"></table></div>`);
+                                        `<table class="transparent_table" style="float: left;" id="group_metadata_table"></table></div>`);
         $("#group_metadata_table").append(
             `<tr>` +
             `<td class="table_head">Group Name:</td>` + 
@@ -324,7 +333,10 @@ $(document).ready(function() {
 
     update_containers();
     draw_count_chart();
+
+    add_training_sequence_options();
     draw_loss_plot();
+
     add_axis_options();
     add_axis_class_options("#x_axis_combo", "#x_axis_cls_combo");
     add_axis_class_options("#y_axis_combo", "#y_axis_cls_combo");
@@ -332,7 +344,8 @@ $(document).ready(function() {
     draw_metrics_plot();
 
 
-    $("#trial_name_entry").text(metadata["trial_name"]);
+    $("#farm_name_entry").text(metadata["farm_name"]);
+    $("#field_name_entry").text(metadata["field_name"]);
     $("#mission_date_entry").text(metadata["mission_date"]);
     $("#dataset_name_entry").text(metadata["dataset_name"]);
 
@@ -445,7 +458,7 @@ $(document).ready(function() {
         update_overlays();
     });
 
-    $("#loss_selector").change(function() {
+    $(".loss_radio").change(function() {
         draw_loss_plot();
     });
 
@@ -453,4 +466,8 @@ $(document).ready(function() {
         update_overlays();
         update_count_chart();
     });
+
+    $("#sequence_combo").change(function() {
+        draw_loss_plot();
+    })
 });

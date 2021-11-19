@@ -1,7 +1,7 @@
 
 function disable_input() {
 
-    let buttons = ["#submit_button", "#group_button"];
+    let buttons = ["#submit_button"];
 
     for (button of buttons) {
         $(button).prop('disabled', true);
@@ -14,7 +14,7 @@ function disable_input() {
 
 function enable_input() {
 
-    let buttons = ["#submit_button", "#group_button"];
+    let buttons = ["#submit_button"];
 
     for (button of buttons) {
         $(button).prop('disabled', false);
@@ -25,104 +25,32 @@ function enable_input() {
 
 }
 
-
-function delete_group(btn) {
-
-    let btn_id = btn.id;
-    let group_uuid = btn_id.substring(0, btn_id.length-4);
-
-    $.post($(location).attr('href'),
-    {
-        action: "delete_group",
-        group_uuid: group_uuid
-    },
-    
-    function(response, status) {
-
-        if (response.error) {
-            $("#delete_error_message").text(response.message);
-            $("#delete_error_message").show();
-        }
-        else {
-            $("#right_panel").empty();
-
-            let trial_name = $("#trial_combo").val();
-            let mission_date = $("#mission_combo").val();
-            let dataset_name = $("#dataset_combo").val();
-
-            delete user_data[trial_name][mission_date][dataset_name]["user_groups"][group_uuid];
-
-            $("#display_names").empty();
-            display_group_names();
-        }
-    });
-
-}
-
 function show_group_details(group_uuid) {
 
-    let group_key;
-    if ($("#display_user_groups:checked").val()) {
-        group_key = "user_groups";
-    }
-    else {
-        group_key = "groups";
-    }
 
-    $.post($(location).attr('href'),
-    {
-        action: "get_group_data",
-        group_uuid: group_uuid,
-        group_key: group_key
-    },
+    let group_url = "/plant_detection/usr/data/groups/" + group_uuid + ".json";
     
-    function(response, status) {
-        if (response.error) {
-            $("#right_panel").empty();
-            $("#right_panel").append(`<div>An error occurred while fetching the group data: ${response.error}</div>`);
-        }
-        else {
+    let group_config = get_config(group_url);
+    let group_config_str = JSON.stringify(group_config, null, 4);
 
-            let group_data = response.message;
-            let group_name = group_data["group_name"];
-            group_data = JSON.stringify(group_data, null, 4);
+    let group_name = group_config["group_name"];
 
-            $("#right_panel").empty();
+    $("#right_panel").empty();
 
-            let config_area_height;
-            if (group_key === "user_groups") {
-                config_area_height = "520px";
-            }
-            else {
-                config_area_height = "590px";
-            }
-            $("#right_panel").append(`<div id="details_title"></div>`);
-            $("#right_panel").append(`<div id="configurations" class="scrollable_padded_area" ` +
-                                          `style="height: ${config_area_height}";"></div>`);
+    let config_area_height = "590px";
+    
+    $("#right_panel").append(`<div id="details_title"></div>`);
+    $("#right_panel").append(`<div id="configurations" class="scrollable_padded_area" ` +
+                                  `style="height: ${config_area_height}";"></div>`);
 
 
-            $("#details_title").append(
-                `<h class="header2" style="font-size: 22px; text-align: center; word-wrap: break-word; color: white">` +
-                `${group_name}</h>`);            
+    $("#details_title").append(
+        `<h class="header2" style="font-size: 22px; text-align: center; word-wrap: break-word; color: white">` +
+        `${group_name}</h>`);            
 
-            $("#configurations").append(
-                `<div class="config_head">GROUP CONFIGURATION</div>`+
-                `<div class="config_content"><pre>${group_data}</pre></div>`);
-
-            if ($("#display_user_groups:checked").val()) {
-                let delete_btn_id = group_uuid + "_del";
-                $("#right_panel").append(
-                    `<hr>` +
-                    `<div style="text-align: center">` +
-                    `<button id="${delete_btn_id}" class="button button-hover" style="width: 75%" onclick="delete_group(this)">` +
-                    `<span>Delete this Group</span></button>` +
-                    `<p id="delete_error_message" align="center></p>` +
-                    `</div>`);
-            }
-
-
-        }
-    });
+    $("#configurations").append(
+        `<div class="config_head">GROUP CONFIGURATION</div>`+
+        `<div class="config_content"><pre>${group_config_str}</pre></div>`);
 }
 
 
@@ -133,21 +61,20 @@ function show_model_config(model_uuid) {
     $("#right_panel").append(`<div id="config_title"></div>`);
     $("#right_panel").append(`<div id="configurations" class="scrollable_padded_area" style="height: 590px";"></div>`);
 
-    let trial_name = $("#trial_combo").val();
-    let mission_date = $("#mission_combo").val();
-    let dataset_name = $("#dataset_combo").val();
-
-    let models_dict = user_data[trial_name][mission_date][dataset_name]["models"];
-    let model_name = models_dict[model_uuid]["model_name"];
-    let prediction_dirname = models_dict[model_uuid]["prediction_dirname"];
-
     let arch_url = "/plant_detection/usr/data/models/" + model_uuid + "/arch_config.json";
     let train_url = "/plant_detection/usr/data/models/" + model_uuid + "/training_config.json";
-    let inference_url = "/plant_detection/usr/data/models/" + model_uuid + "/" + prediction_dirname + "/inference_config.json";
+    let inference_url = "/plant_detection/usr/data/models/" + model_uuid + "/inference_config.json";
 
-    let arch_config = JSON.stringify(get_config(arch_url), null, 4);
-    let train_config = JSON.stringify(get_config(train_url), null, 4);
-    let inference_config = JSON.stringify(get_config(inference_url), null, 4);
+    let arch_config = get_config(arch_url);
+    let train_config = get_config(train_url);
+    let inference_config = get_config(inference_url)
+
+    let arch_config_str =  JSON.stringify(arch_config, null, 4);
+    let train_config_str = JSON.stringify(train_config, null, 4);
+    let inference_config_str = JSON.stringify(inference_config, null, 4);
+
+    let model_name = arch_config["model_name"];
+
 
     $("#config_title").append(
         `<h class="header2" style="font-size: 22px; text-align: center; word-wrap: break-word; color: white">` +
@@ -155,13 +82,13 @@ function show_model_config(model_uuid) {
 
     $("#configurations").append(
         `<div class="config_head">ARCHITECTURE CONFIGURATION</div>`+
-        `<div class="config_content"><pre>${arch_config}</pre></div>`);
+        `<div class="config_content"><pre>${arch_config_str}</pre></div>`);
     $("#configurations").append(
         `<div class="config_head"">TRAINING CONFIGURATION</div>`+
-        `<div class="config_content"><pre>${train_config}</pre></div>`);
+        `<div class="config_content"><pre>${train_config_str}</pre></div>`);
     $("#configurations").append(
         `<div class="config_head">INFERENCE CONFIGURATION</div>`+
-        `<div class="config_content"><pre>${inference_config}</pre></div>`);
+        `<div class="config_content"><pre>${inference_config_str}</pre></div>`);
 }
 
 
@@ -231,45 +158,44 @@ function add_group_sorting_options() {
 
 function display_group_names() {
 
-    let trial_name = $("#trial_combo").val();
+    let farm_name = $("#farm_combo").val();
+    let field_name = $("#field_combo").val();
     let mission_date = $("#mission_combo").val();
     let dataset_name = $("#dataset_combo").val();
-
     let sort_method = $("#sort_combo").val();
 
-    if ($("#display_user_groups:checked").val()) {
-        group_key = "user_groups";
-    } else {
-        group_key = "groups";
+
+    let displayed_groups = [];
+    let group_uuid;
+    let group_name;
+    let d = user_data[farm_name][field_name][mission_date][dataset_name];
+    for (model_uuid of Object.keys(d)) {
+        group_uuid = d[model_uuid]["group_uuid"];
+        group_name = d[model_uuid]["group_name"];
+        if (!(displayed_groups.includes(group_uuid))) {
+            displayed_groups.push([group_uuid, group_name]);
+        }
     }
-    
-    if ((!(group_key in user_data[trial_name][mission_date][dataset_name])) ||
-        (Object.keys(user_data[trial_name][mission_date][dataset_name][group_key]).length == 0)) {
+
+    if (displayed_groups.length == 0) {
         $("#display_names").append(`<tr>` +
                                   `<th><div class="table_header">No Groups Found</div></th>`+
                                   `</tr>`)
     }
     else {
-        let groups_dict = user_data[trial_name][mission_date][dataset_name][group_key];
-        let group_uuids = Object.keys(groups_dict);
-
-
         let sorted_uuids;
         let sorted_names;
         if (sort_method === "Lexicographic") {
 
-            let items = group_uuids.map(function(group_uuid) {
-                return [group_uuid, groups_dict[group_uuid]["group_name"]];
-            });
-            items.sort(function(first, second) {
+            displayed_groups.sort(function(first, second) {
                 if (first[1] < second[1]) return -1;
                 if (first[1] > second[1]) return 1;
                 return 0;
             });
-            sorted_uuids = items.map(function(tup) {
+            sorted_uuids = displayed_groups.map(function(tup) {
                 return tup[0];
             });
-            sorted_names = items.map(function(tup) {
+            sorted_names = displayed_groups.map(function(tup) {
                 return tup[1];
             });
         }
@@ -299,12 +225,21 @@ function display_group_names() {
     }
 }
 
+function download_counts(btn) {
+
+    let btn_id = btn.id;
+    let model_uuid = btn_id.substring(0, btn_id.length - "_download".length);
+
+    console.log("Downloading counts for", model_uuid);
+
+}
+
 function display_model_names() {
 
-    let trial_name = $("#trial_combo").val();
+    let farm_name = $("#farm_combo").val();
+    let field_name = $("#field_combo").val();
     let mission_date = $("#mission_combo").val();
     let dataset_name = $("#dataset_combo").val();
-
     let sort_method = $("#sort_combo").val();
 
     let key_lookup = {
@@ -321,7 +256,7 @@ function display_model_names() {
         "Per-Patch Inference Time (s) (Asc.)": ["Per-Patch Inference Time (s)", "---", 6]
     };
 
-    let models_dict = user_data[trial_name][mission_date][dataset_name]["models"];
+    let models_dict = user_data[farm_name][field_name][mission_date][dataset_name];
     let model_uuids = Object.keys(models_dict);
 
     let sorted_uuids;
@@ -382,11 +317,13 @@ function display_model_names() {
     let max_name_width = get_max_name_width(sorted_names, "16px arial");
     let name_col_width = Math.max(title_width, max_name_width) + 30 + "px";
 
-    let score_col_width = "120px";
+    let score_col_width = "130px";
+    let excel_col_width = "150px";
 
     $("#display_names").append(`<tr>` +
             `<th><div class="table_header" style="width: ${name_col_width}">Model Name</div></th>` +
             `<th><div class="table_header" style="width: ${score_col_width}">Score</div></th>` +
+            `<th><div class="table_header" style="width: ${excel_col_width}">Download Counts</div></th>` +
             `</tr>`);
 
     for (let i = 0; i < sorted_uuids.length; i++) {
@@ -396,46 +333,24 @@ function display_model_names() {
         if (sort_method !== "Lexicographic") {
             val_div = `<td><div class="table_entry" style="width: ${score_col_width}">` + sorted_vals[i] + `</div></td>`;
         }
+        let download_btn_id = sorted_uuids[i] + "_download";
         $("#display_names").append(`<tr>`+
                 `<td><div class="table_entry" style="text-align: left; width: ${name_col_width}"><label style="cursor: pointer">` +
                 `<input type="checkbox" class="cur_display_names" value="${model_uuid}">` +
                 `   ${model_name}</label></td></div>`+
                 val_div + 
+                `<td><button id=${download_btn_id} class="table_button table_button_hover" onclick="download_counts(this)">` +
+                `<i class="fa fa-download fa-sm" aria-hidden="true"></i></button></td>` +
                 `</tr>`);     
     }
 }
 
 
 
-function fetch_existing_user_group() {
+function view_system_group() {
 
-    let group_uuid;
-    $(".cur_display_names:checked").each(function(i, e) {
-        group_uuid = $(this).val();
-    });
-
-    $.post($(location).attr('href'),
-    {
-        action: "fetch_existing_user_group",
-        group_uuid: group_uuid
-    },
-    
-    function(response, status) {
-
-        if (response.error) { 
-            $("#submit_error_message").text(response.message);
-            $("#submit_error_message").show();
-        }
-        else {
-            window.location.href = response.redirect;
-        }
-    });  
-}
-
-
-function fetch_system_group() {
-
-    let trial_name = $("#trial_combo").val();
+    let farm_name = $("#farm_combo").val();
+    let field_name = $("#field_combo").val();
     let mission_date = $("#mission_combo").val();
     let dataset_name = $("#dataset_combo").val();
     let group_uuid;
@@ -445,9 +360,10 @@ function fetch_system_group() {
 
     $.post($(location).attr('href'),
     {
-        action: "fetch_system_group",
+        action: "view_system_group",
         group_uuid: group_uuid,
-        trial_name: trial_name,
+        farm_name: farm_name,
+        field_name: field_name,
         mission_date: mission_date,
         dataset_name: dataset_name
     },
@@ -464,37 +380,36 @@ function fetch_system_group() {
 
 
 
-function submit_new_user_group(group_name, group_description) {
+function view_user_group() {
     let model_uuids = [];
     let model_names = [];
     let prediction_dirnames = [];
 
-    let trial_name = $("#trial_combo").val();
+    let farm_name = $("#farm_combo").val();
+    let field_name = $("#field_combo").val();
     let mission_date = $("#mission_combo").val();
     let dataset_name = $("#dataset_combo").val();
 
+    let model_uuid;
+    let models_dict;
     $(".cur_display_names:checked").each(function(i, e) {
-        let model_uuid = $(this).val();
-        let models_dict = user_data[trial_name][mission_date][dataset_name]["models"]
+        model_uuid = $(this).val();
+        models_dict = user_data[farm_name][field_name][mission_date][dataset_name];
         model_uuids.push(model_uuid);
         model_names.push(models_dict[model_uuid]["model_name"]);
         prediction_dirnames.push(models_dict[model_uuid]["prediction_dirname"]);
     });
 
-    let save_group = (group_name !== null && group_description !== null);
-
     $.post($(location).attr('href'),
     {
-        action: "submit_new_user_group",
-        trial_name: trial_name,
+        action: "view_user_group",
+        farm_name: farm_name,
+        field_name: field_name,
         mission_date: mission_date,
         dataset_name: dataset_name,
         model_uuids: model_uuids.join(","),
         model_names: model_names.join(","),
-        prediction_dirnames: prediction_dirnames.join(","),
-        save_group: save_group,
-        group_name: group_name,
-        group_description: group_description
+        prediction_dirnames: prediction_dirnames.join(",")
     },
     
     function(response, status) {
@@ -510,108 +425,129 @@ function submit_new_user_group(group_name, group_description) {
 }
 
 
-let cur_display_names = [];
+let cur_checked_names = [];
 
 $(document).ready(function(){
 
     disable_input();
     update_containers();
 
-    for (const trial_name in user_data) {
-        $("#trial_combo").append($('<option>', {
-            value: trial_name,
-            text: trial_name
+    for (const farm_name in user_data) {
+        $("#farm_combo").append($('<option>', {
+            value: farm_name,
+            text: farm_name
         }));
     }
 
-    $("#trial_combo").prop("selectedIndex", -1);
+    $("#farm_combo").prop("selectedIndex", -1);
 
 
     $("#display_select").change(function() {
 
-        let trial_name = $("#trial_combo").val();
+        let farm_name = $("#farm_combo").val();
+        let field_name = $("#field_combo").val();
         let mission_date = $("#mission_combo").val();
-        let dataset_name = $("#dataset_combo").val()
+        let dataset_name = $("#dataset_combo").val();
 
+        $("#sort_combo").empty();
+        $("#display_names").empty();   
         $("#right_panel").empty();
-        cur_display_names = [];
+        cur_checked_names = [];
+        disable_input();
 
-
-        if ($("#display_models:checked").val()) {
-            $("#sort_combo").empty();
-            $("#display_names").empty();
-
-            if ((trial_name && mission_date) && dataset_name) {
+        if (((farm_name && field_name) && mission_date) && dataset_name) {
+            if ($("#display_models:checked").val()) {
                 add_model_sorting_options();
                 display_model_names();
             }
-        }
-        else {
-            $("#sort_combo").empty();
-            $("#display_names").empty();
-
-            if ((trial_name && mission_date) && dataset_name) {
+            else {
                 add_group_sorting_options();
-                display_group_names();
+                display_group_names();                
             }
+
         }
     });
 
-    $("#trial_combo").change(function() {
+    $("#farm_combo").change(function() {
 
-        let trial_name = $(this).val();
+        let farm_name = $(this).val();
+
+        $("#field_combo").empty();
+        $("#mission_combo").empty();
+        $("#dataset_combo").empty();
+        $("#sort_combo").empty();
+        $("#display_names").empty();
+        $("#right_panel").empty();
+        cur_checked_names = [];
+        disable_input();
+
+        for (const field_name in user_data[farm_name]) {
+            $("#field_combo").append($('<option>', {
+                value: field_name,
+                text: field_name
+            }));
+        }
+        $("#field_combo").val($("#field_combo:first").val()).change();
+    });
+
+    $("#field_combo").change(function() {
+
+        let farm_name = $("#farm_combo").val();
+        let field_name = $(this).val();
 
         $("#mission_combo").empty();
         $("#dataset_combo").empty();
         $("#sort_combo").empty();
         $("#display_names").empty();
         $("#right_panel").empty();
-        cur_display_names = [];
+        cur_checked_names = [];
+        disable_input();
 
-        for (const mission_date in user_data[trial_name]) {
+        for (const mission_date in user_data[farm_name][field_name]) {
             $("#mission_combo").append($('<option>', {
                 value: mission_date,
                 text: mission_date
             }));
         }
-
-        $("#mission_combo").prop("selectedIndex", -1);
+        $("#mission_combo").val($("#mission_combo:first").val()).change();
     });
 
 
     $("#mission_combo").change(function() {
 
-        let trial_name = $("#trial_combo").val();
+        let farm_name = $("#farm_combo").val();
+        let field_name = $("#field_combo").val();
         let mission_name = $(this).val();
 
         $("#dataset_combo").empty();
         $("#sort_combo").empty();
         $("#display_names").empty();
         $("#right_panel").empty();
-        cur_display_names = [];
+        cur_checked_names = [];
+        disable_input();
 
-        for (const dataset_name in user_data[trial_name][mission_name]) {
+        for (const dataset_name in user_data[farm_name][field_name][mission_name]) {
             $("#dataset_combo").append($('<option>', {
                 value: dataset_name,
                 text: dataset_name
             }));
         }
-
-        $("#dataset_combo").prop("selectedIndex", -1);
+        $("#dataset_combo").val($("#dataset_combo:first").val()).change();
     });
 
 
     $("#dataset_combo").change(function() {
 
-        let trial_name = $("#trial_combo").val();
+        let farm_name = $("#farm_combo").val();
+        let field_name = $("#field_combo").val();
         let mission_date = $("#mission_combo").val();
         let dataset_name = $(this).val();
 
         $("#sort_combo").empty();
         $("#display_names").empty();
         $("#right_panel").empty();
-        cur_display_names = [];
-
+        cur_checked_names = [];
+        disable_input();
 
         if ($("#display_models:checked").val()) {
             add_model_sorting_options();
@@ -626,7 +562,8 @@ $(document).ready(function(){
     $("#sort_combo").change(function() {
         $("#display_names").empty();
         $("#right_panel").empty();
-        cur_display_names = [];
+        cur_checked_names = [];
+        disable_input();
 
         if ($("#display_models:checked").val()) {
             display_model_names();
@@ -640,15 +577,15 @@ $(document).ready(function(){
 
         $("#right_panel").empty();
 
-        let prev_display_names = cur_display_names;
-        cur_display_names = [];
+        let prev_checked_names = cur_checked_names;
+        cur_checked_names = [];
         let newly_checked = null;
         let name;
 
         $(".cur_display_names:checked").each(function(i, e) {
             name = $(this).val();
-            cur_display_names.push(name);
-            if (!(prev_display_names.includes(name))) {
+            cur_checked_names.push(name);
+            if (!(prev_checked_names.includes(name))) {
                 newly_checked = name;
             }
         });
@@ -662,7 +599,8 @@ $(document).ready(function(){
             }
         }
 
-        if (cur_display_names.length > 0) {
+        console.log("display_names updated");
+        if (cur_checked_names.length > 0) {
             enable_input();
         }
         else {
@@ -675,51 +613,11 @@ $(document).ready(function(){
     $("#submit_button").click(function(e) {
 
         if ($("#display_models:checked").val()) {
-            $("#save_modal").css("display", "block");
-        }
-        else if ($("#display_user_groups:checked").val()) {
-            fetch_existing_user_group()
+            view_user_group();
         }
         else {
-            fetch_system_group();
+            view_system_group();
         }
     });
 
-    $("#save_yes_button").click(function() {
-        $("#group_configuration").show();
-    });
-
-    $("#save_no_button").click(function() {
-        submit_new_user_group(null, null);
-    });
-
-
-
-    $('form').submit(function(e) {
-        e.preventDefault();
-        
-        let group_name = $("#group_name").val();
-        let group_desc = $("#group_description").val();
-        if (group_name.length > 35) {
-            $("#modal_error_message").text("Group name exceeds maximum allowed length.");
-        }
-        else if (group_desc.length > 200) {
-            $("#modal_error_message").text("Group description exceeds maximum allowed length.");
-        }
-        else {
-            submit_new_user_group(group_name, group_desc);
-        }
-    });
-
-    $("#save_modal_close").click(function() {
-        $("#group_configuration").hide();
-        $("#group_name").val('');
-        $("#group_description").val('');
-        $("#modal_error_message").hide();
-        $("#save_modal").css("display", "none");
-    });
-
-    $(window).resize(function() {
-        update_containers();
-    });
 });
