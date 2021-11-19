@@ -225,15 +225,6 @@ function display_group_names() {
     }
 }
 
-function download_counts(btn) {
-
-    let btn_id = btn.id;
-    let model_uuid = btn_id.substring(0, btn_id.length - "_download".length);
-
-    console.log("Downloading counts for", model_uuid);
-
-}
-
 function display_model_names() {
 
     let farm_name = $("#farm_combo").val();
@@ -333,15 +324,16 @@ function display_model_names() {
         if (sort_method !== "Lexicographic") {
             val_div = `<td><div class="table_entry" style="width: ${score_col_width}">` + sorted_vals[i] + `</div></td>`;
         }
-        let download_btn_id = sorted_uuids[i] + "_download";
+        let download_path = "/plant_detection/usr/data/models/" + model_uuid + "/predictions/" + 
+                             models_dict[model_uuid]["prediction_dirname"] + "/results.xlsx";
         $("#display_names").append(`<tr>`+
                 `<td><div class="table_entry" style="text-align: left; width: ${name_col_width}"><label style="cursor: pointer">` +
                 `<input type="checkbox" class="cur_display_names" value="${model_uuid}">` +
                 `   ${model_name}</label></td></div>`+
                 val_div + 
-                `<td><button id=${download_btn_id} class="table_button table_button_hover" onclick="download_counts(this)">` +
-                `<i class="fa fa-download fa-sm" aria-hidden="true"></i></button></td>` +
-                `</tr>`);     
+                `<td><a class="table_button table_button_hover" href=${download_path}>` +
+                `<i class="fa fa-download fa-sm" aria-hidden="true"></i></a></td>` +
+                `</tr>`);
     }
 }
 
@@ -599,7 +591,6 @@ $(document).ready(function(){
             }
         }
 
-        console.log("display_names updated");
         if (cur_checked_names.length > 0) {
             enable_input();
         }

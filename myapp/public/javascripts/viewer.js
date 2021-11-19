@@ -61,12 +61,14 @@ function create_overlay_class(uuid) {
     let style = document.createElement("style");
     style.type = "text/css";
     let className = "overlay_style_" + uuid;
+
+    /*1px auto " + color_lookup[uuid] + "; " +*/
     style.innerHTML = "." + className + " { opacity: 0.7; " +
                                             "filter: alpha(opacity=70); " +
-                                            "outline: 1px auto " + color_lookup[uuid] + "; " +
-                                            "background-color: transparent;" +
-                                            "font-size: 20px;" +
-                                            "font-family: arial;" +
+                                            "outline: " + color_lookup[uuid] + " solid 2px; " + 
+                                            "background-color: transparent; " +
+                                            "font-size: 20px; " +
+                                            "font-family: arial; " +
                                             "color: white; }";
     document.getElementsByTagName("head")[0].appendChild(style);
 }
@@ -350,12 +352,12 @@ $(document).ready(function() {
     $("#dataset_name_entry").text(metadata["dataset_name"]);
 
     let label_width = get_max_name_width(sorted_model_names, "16px Open Sans") + 60 + "px";
-    let config_width = "400px"
+    let config_width = "450px"
 
     $("#model_list").append(
         `<tr><th><div class="table_header" style="width: ${label_width}">Model Name</div></th>`+
         `<th><div class="table_header" style="width: ${config_width}"><div style="display:inline; padding-right: 10px">` +
-        `Highlighted Parameter:</div>` +
+        `Parameter Search:</div>` +
         `<input id="config_search" class="autocomplete"></div></div></th>`+
         `<tr>`);
 
