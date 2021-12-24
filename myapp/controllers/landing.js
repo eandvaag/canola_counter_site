@@ -2,10 +2,11 @@
 
 var session = require('express-session');
 const path = require('path');
-const { exec } = require('child_process');
 const { v4: uuidv4 } = require('uuid');
 const fs = require('fs');
 const xml_js_convert = require('xml-js');
+const nat_orderBy = require('natural-orderby');
+const { exec } = require('child_process');
 
 const models = require('../models');
 
@@ -56,7 +57,7 @@ exports.post_sign_in = function(req, res, next) {
             }
             else {
                 req.session.user = user.dataValues;
-                response.redirect = APP_PREFIX + "/user";
+                response.redirect = APP_PREFIX + "/home";
                 res.json(response);
             }
         }
@@ -81,8 +82,49 @@ function get_subdirs(dir) {
 }
 
 
+exports.get_home = function(req, res, next) {
 
-exports.get_user = function(req, res, next) {
+    if (req.session.user && req.cookies.user_sid) {
+        res.render("home");
+    }
+    else {
+        res.redirect(APP_PREFIX);
+    }
+}
+
+exports.get_upload = function(req, res, next) {
+
+    if (req.session.user && req.cookies.user_sid) {
+        res.render("upload");
+    }
+    else {
+        res.redirect(APP_PREFIX);
+    }
+}
+
+exports.get_train = function(req, res, next) {
+
+    if (req.session.user && req.cookies.user_sid) {
+        res.render("train");
+    }
+    else {
+        res.redirect(APP_PREFIX);
+    }
+}
+
+
+exports.get_predict = function(req, res, next) {
+
+    if (req.session.user && req.cookies.user_sid) {
+        res.render("predict");
+    }
+    else {
+        res.redirect(APP_PREFIX);
+    }
+}
+
+
+exports.get_results = function(req, res, next) {
 
     if (req.session.user && req.cookies.user_sid) {
 
@@ -102,7 +144,7 @@ exports.get_user = function(req, res, next) {
                     creator: req.session.user.username,
                 }
             }).then(() => {
-                res.render("user", {username: req.session.user.username, user_data: user_data});
+                res.render("results", {username: req.session.user.username, user_data: user_data});
 
             }).catch(error => {
                 console.log(error);
@@ -119,7 +161,7 @@ exports.get_user = function(req, res, next) {
 }
 
 
-exports.post_user = function(req, res, next) {
+exports.post_results = function(req, res, next) {
 
     if (req.session.user && req.cookies.user_sid) {
 
@@ -247,6 +289,10 @@ exports.post_user = function(req, res, next) {
 
 }
 
+function dataset_is_annotated(dataset_name) {
+    return (dataset_name !== "all");
+}
+
 function get_dict_keys(d, prefix="", root=true) {
 
     let keys = [];
@@ -296,6 +342,7 @@ exports.get_viewer = function(req, res, next) {
                 "field_name": group.field_name,
                 "mission_date": group.mission_date,
                 "dataset_name": group.dataset_name,
+                "dataset_is_annotated": dataset_is_annotated(group.dataset_name),
                 "group_name": group.name,
                 "group_description": group.description,
                 "system_group": group.system_group,
@@ -303,7 +350,8 @@ exports.get_viewer = function(req, res, next) {
                 "model_uuids": group.model_uuids.split(","),
                 "highlighted_param": group.highlighted_param,
                 "replications": group.replications,
-                "class_map": image_set_config["class_map"]
+                "class_map": image_set_config["class_map"],
+                "prediction_dirnames": prediction_dirnames
             };
 
             let predictions = {};
@@ -383,8 +431,20 @@ exports.get_viewer = function(req, res, next) {
                                                  group.farm_name, group.field_name, group.mission_date,
                                                  "images", image_name + ".xml");
 
-                        let img_annotations = get_annotations(xml_path);
-                        annotations[image_name] = img_annotations;
+                        //path.exists(xml_path, function(exists) {
+                        let exists = true;
+                        try {
+                            fs.accessSync(xml_path, fs.constants.F_OK);
+                        }
+                        catch (e) {
+                            exists = false;
+                        }
+
+                        if (exists) {
+                            let img_annotations = get_annotations(xml_path);
+                            annotations[image_name] = img_annotations;
+                        }
+                        //});
                     }
                 }
             }
@@ -396,7 +456,7 @@ exports.get_viewer = function(req, res, next) {
             data["configs"] = configs;
             data["config_keys"] = config_keys;
             data["loss_records"] = loss_records;
-            data["dzi_image_paths"] = dzi_image_paths.sort();
+            data["dzi_image_paths"] = nat_orderBy.orderBy(dzi_image_paths);
 
             res.render("viewer", {data: data});
 
@@ -408,6 +468,121 @@ exports.get_viewer = function(req, res, next) {
         res.redirect(APP_PREFIX);
     }
 
+}
+exports.post_viewer = function(req, res, next) {
+    console.log("got to post viewer");
+    /*
+    response = {};
+    response.error = false;
+    response.message = "test";
+    res.json(response);*/
+    
+    if (req.session.user && req.cookies.user_sid) {
+
+        let response = {};
+        console.log("generating ensemble uuid");
+        
+        let ensemble_uuid = uuidv4().toString();
+
+        //let ensemble_uuid = req.body.ensemble_uuid;
+        let ensemble_req = {
+            "request_type": "ensemble_predictions",
+            "request_args": {
+                "ensemble_uuid": ensemble_uuid,
+                "model_uuids": req.body.model_uuids.split(","),
+                "prediction_dirnames": req.body.prediction_dirnames.split(","),
+                "ensemble_method": req.body.ensemble_method,
+                "inter_group_iou_thresh": parseFloat(req.body.inter_group_iou_thresh),
+                "intra_group_iou_thresh": parseFloat(req.body.intra_group_iou_thresh)
+            }
+        }
+
+        console.log("ensemble_req", ensemble_req);
+
+        let ensemble_dir = path.join(USR_DATA_ROOT, "ensembles", ensemble_uuid);
+
+        console.log("creating ensemble dir");
+        fs.mkdir(ensemble_dir, (error) => {
+
+            if (error) {
+                response.error = true;
+                response.message = "An error occurred while creating the ensemble.";
+                res.json(response);
+            }
+
+            else {
+                let ensemble_req_path = path.join(ensemble_dir, "request.json");
+
+                console.log("writing request");
+                fs.writeFile(ensemble_req_path, JSON.stringify(ensemble_req), (error) => {
+
+                    if (error) {
+                        fs.rmdir(ensemble_dir, { recursive: true, }, (error) => {
+                            response.error = true;
+                            response.message = "An error occurred while saving the ensemble request.";
+                            res.json(response);
+                        });
+                    }
+
+                    else {
+                        let cmd = "python3 ../../plant_detection/src/main.py " + ensemble_req_path;
+
+                        console.log("creating ensemble");
+                        const result = exec(cmd, {shell: "/bin/bash"}, function (error, stdout, stderr) {
+
+                            if (error) {       
+                                console.log(error.stack);
+                                console.log('Error code: '+error.code);
+                                console.log('Signal received: '+error.signal);
+
+                                fs.rmdir(ensemble_dir, { recursive: true, }, (error) => {
+                                    response.error = true;
+                                    response.message = "An error occurred while generating the ensemble.";
+                                    res.json(response);
+                                });
+                            }
+                            else {
+                                let ensemble_predictions_path = path.join(ensemble_dir, "predictions.json");
+
+                                console.log("reading ensemble results");
+                                fs.readFile(ensemble_predictions_path, "utf8", (error, data) => {
+
+                                    if (error) {
+                                        response.error = true;
+                                        response.message = "An error occurred while retrieving the ensemble.";
+                                        res.json(response);
+                                    }
+                                    else {
+                                        console.log("destroying ensemble dir");
+                                        fs.rmdir(ensemble_dir, { recursive: true, }, (error) => {
+
+                                            if (error) {
+                                                response.error = true;
+                                                response.message = "An error occurred during clean-up of the ensemble.";
+                                                res.json(response);
+                                            }
+                                            else {
+                                                let ensemble_predictions = JSON.parse(data);
+                                                response.error = false;
+                                                response.ensemble_uuid = ensemble_uuid;
+                                                response.predictions = ensemble_predictions;
+                                                response.request = ensemble_req;
+                                                res.json(response);
+
+                                            }
+                                        });
+                                    }
+                                });
+                            }
+                        });
+                    }
+                });
+            }
+        });
+    }
+    else {
+        res.redirect(APP_PREFIX);
+    }
 }
 
 

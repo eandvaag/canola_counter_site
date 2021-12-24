@@ -3,13 +3,18 @@ doctype html
 html
     head
 
-        title="Plant Detection Results Viewer"
+        title="Plant Detection"
         meta(name="viewport" content="width=device-width, initial-scale=1")
 
         link(href='/plant_detection/stylesheets/main.css' rel='stylesheet')
         link(href='/plant_detection/stylesheets/d3.css' rel='stylesheet')
         link(rel="stylesheet" href="//code.jquery.com/ui/1.13.0/themes/base/jquery-ui.css")
-        link(rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css")
+        //- link(rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css")
+        link(rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css")
+
+
+
+
 
         script(src="https://code.jquery.com/jquery-3.6.0.js")
         script(src="https://code.jquery.com/ui/1.13.0/jquery-ui.js")
@@ -19,12 +24,69 @@ html
         script(type='text/javascript' src='/plant_detection/javascripts/count_chart.js')
         script(type='text/javascript' src='/plant_detection/javascripts/loss_plot.js')
         script(type='text/javascript' src='/plant_detection/javascripts/metrics_plot.js')
+        script(type='text/javascript' src='/plant_detection/javascripts/boxplot.js')
         script(type='text/javascript' src='/plant_detection/javascripts/viewer.js')
 
     body
         div(id="container")
 
             include ./header.pug
+
+            div(id="ensemble_modal" class="modal")
+                div(class="modal-content")
+                    div(class="modal-header")
+                        span(class="close close-hover" id="ensemble_modal_close") &times;
+                        p Add Ensemble
+                    div(class="modal-body")
+                        form(action="")
+
+                            table(class="transparent_table")
+                                tr
+                                    td(style="padding: 0px 40px")
+
+                                        label(for="ensemble_name" class="label") Name
+                                        input(id="ensemble_name" name="ensemble_name" type="text" maxlength=15 required)
+
+                                    td(style="padding: 0px 40px")
+
+                                        label(for="ensemble_color" class="label") Colour
+                                        input(id="ensemble_color" name="ensemble_color" type="color" value="#AD0093")
+
+                            br
+
+                            label(for="modal_model_area" class="label" style="text-align: left; padding-left: 5px") Models
+                            div(id="modal_model_area" name="modal_model_area" class="scrollable_padded_area" style="height: 150px;")
+                                table(id="modal_model_list")
+
+                            br
+
+                            table(class="transparent_table")
+                                tr
+                                    td(style="padding: 0px 40px")
+                                        label(for="ensemble_method_combo" class="label") Method
+                                        select(id="ensemble_method_combo" name="ensemble_method_combo" class="dropdown" style="width: 140px")
+                                            option(value="consensus") Consensus
+                                            option(value="unanimous") Unanimous
+                                            option(value="affirmative") Affirmative
+                                    td(style="padding: 0px 40px")
+
+                                        label(for="ensemble_iou" class="label") IoU Threshold
+                                        input(id="ensemble_iou" name="ensemble_iou" type="number" class="number_input" min="0" max="1" step="0.05" placeholder="0.25")
+
+
+
+                            br
+                            br
+                            
+
+                            button(id="ensemble_submit_btn" class="std-button std-button-hover")
+                                span Add
+
+                        div(id="ensemble_loader" class="loader")
+                        p(id="modal_error_message" align="center")
+
+                    div(class="modal-footer")
+
 
             div(id="body")
 
@@ -51,10 +113,187 @@ html
 
                 div(id="view_container" class="grid-container-2")
 
-                    div(class="half-round-item-2" id="left_container")
 
-                        h(class="header2" style="font-size: 26px;") Image: 
-                            span(id="image_name" style="color: white")
+                    div(class="half-round-item-1" id="left_container")
+
+
+                        //div(class="tab-bar")
+                        div
+                            ul.nav(style="margin-top: 20px")
+
+
+                                li.nav(id="model-tab-btn" class="tab-btn-active" onclick="show_models()") 
+                                    a.nav
+                                        i(class="fas fa-cube" aria-hidden="true") 
+                                        | 
+                                        | Models
+
+                                li.nav(id="counts-tab-btn" onclick="show_counts()") 
+                                    a.nav
+                                        i(class="fas fa-bar-chart" aria-hidden="true")
+                                        |
+                                        | Counts
+
+                                li.nav(id="loss-tab-btn" onclick="show_loss_plot()")
+                                    a.nav
+                                        i(class="fas fa-chart-area" aria-hidden="true")
+                                        |
+                                        | Loss
+
+                                li.nav(id="metrics-tab-btn" onclick="show_metrics_plot()")
+                                    a.nav
+                                        i(class="far fa-circle" aria-hidden="true")
+                                        |
+                                        | Metrics
+
+                                li.nav(id="boxplot-tab-btn" onclick="show_boxplot()")
+                                    a.nav
+                                        i(class="fa-solid fa-chart-gantt" aria-hidden="true")
+                                        |
+                                        | Box Plots
+
+                            hr
+
+                        div(id="models_tab")
+
+                        
+                            h(class="header2" style="font-size: 26px; text-align: left") Models
+                            div(id="model_list_container" class="scrollable_area" style="height: 285px")
+                                table(id="model_header")
+                                table(id="model_list")
+
+                            br
+
+                            table(class="transparent_table")
+                                tr
+                                    td
+                                        h(class="header2" style="font-size: 26px; text-align: left") Ensembles
+                                    td(style="width: 100%")
+                                    td
+                                        a(id="add_ensemble" class="table_button table_button_hover" style="border-radius: 50px; padding-top: 12px; padding-bottom: 10px; padding-left: 13px; padding-right: 13px; margin: 0px 0px;")
+                                            i(class="fa fa-plus" aria-hidden="true" style="font-size: 18px")
+                            div(id="ensemble_list_container" class="scrollable_area" style="height: 285px")
+                                table(id="ensemble_header")
+                                table(id="ensemble_list")
+
+
+                        div(id="counts_tab" style="display:none")
+                            h(class="header2" style="font-size: 26px; text-align: left") Counts
+
+
+                            //-
+                                table(class="transparent_table")
+
+                                    tr
+                                        td(class="table_head" style="text-align: center") Value: 
+                                        td
+                                            select(id="chart_metric_combo" class="dropdown")
+                                    tr
+                                        td(class="table_head" style="text-align: center") Class: 
+                                        td
+                                            select(id="chart_cls_combo" class="dropdown")
+
+                                br
+
+                            div(id="count_chart" class="scrollable_area" style="overflow-x: hidden; height: 295px;")
+                                div(id="count_chart_tooltip" class="tooltip" style="z-index: 10")
+
+                        div(id="loss_tab" style="display:none")
+
+                            h(class="header2" style="font-size: 26px; text-align: left") Loss
+
+                            div
+                                table(class="transparent_table")
+                                    tr
+
+                                        td(class="selector_label" style="text-align: right")
+                                            div Show All   
+                                        td
+                                            input(type="radio" id="loss_show_all" class="loss_radio" name="loss_radio" value="loss_show_all" checked)                             
+                                    tr
+
+                                        td(class="selector_label" style="text-align: right")
+                                            div Show Selected
+                                        td
+                                            input(type="radio" id="loss_show_selected" class="loss_radio" name="loss_radio" value="loss_show_selected")
+
+                                    tr
+                                        td(class="selector_label" style="text-align: right") 
+                                            div Training Sequence
+                                        td
+                                            select(id="sequence_combo" class="dropdown" style="width: 100px")
+
+                            
+                            div(id="loss_container" style="padding-top: 5px")
+                                div(id="loss_plot" style="height: 536px")
+                                    div(id="loss_plot_tooltip" class="tooltip" style="z-index: 10")
+
+                        div(id="metrics_tab" style="display:none")
+
+                            h(class="header2" style="font-size: 26px; text-align: left") Metrics Plot
+
+                            table(class="transparent_table")
+
+                                tr
+                                    td(class="table_head" style="text-align: center") Y Axis:
+                                    td
+                                        select(id="y_axis_combo" class="dropdown")
+                                tr
+                                    td
+                                    td
+                                        select(id="y_axis_cls_combo" class="dropdown")
+                                tr
+                                    td(class="table_head" style="text-align: center") X Axis:
+                                    td
+                                        select(id="x_axis_combo" class="dropdown")
+                                tr
+                                    td
+                                    td
+                                        select(id="x_axis_cls_combo" class="dropdown")
+
+
+
+                            div(id="metrics_container" style="width: 100%; padding-top: 5px")
+                                div(id="metrics_plot" style="height: 510px;")
+                                    div(id="metrics_plot_tooltip" class="tooltip" style="z-index: 10")
+
+                        div(id="boxplot_tab" style="display:none")
+                            h(class="header2" style="font-size: 26px; text-align: left") Box Plot
+
+                            table(class="transparent_table")
+
+                                tr
+                                    td(class="table_head" style="text-align: center") Metric: 
+                                    td
+                                        select(id="boxplot_metric_combo" class="dropdown")
+                                tr
+                                    td(class="table_head" style="text-align: center") Class: 
+                                    td
+                                        select(id="boxplot_class_combo" class="dropdown")
+
+                            br
+
+                            div(id="boxplot" class="scrollable_area" style="overflow-x: hidden; height: 295px;")
+                                div(id="boxplot_tooltip" class="tooltip" style="z-index: 10")                                
+
+
+                    div(class="half-round-item-2" id="right_container")
+
+                        table(class="transparent_table")
+                            tr
+
+                                td
+                                    div(style="width: 220px; text-align: left")
+                                        h(class="header2" style="font-size: 26px;") Image: 
+                                            span(id="image_name" style="color: white")
+                                td(style="width: 100%")
+                                td
+                                    div(style="width: 150px; text-align: center")
+                                        a(id="prev-button" class="table_button table_button_hover" style="border-radius: 50px; padding-left: 12px; padding-right: 12px; padding-top: 5px; padding-bottom: 5px; margin: 0px 10px;")
+                                            i(class="fas fa-caret-left" aria-hidden="true" style="font-size: 26px")
+                                        a(id="next-button" class="table_button table_button_hover" style="border-radius: 50px; padding-left: 12px; padding-right: 12px; padding-top: 5px; padding-bottom: 5px; margin: 0px 0px;")
+                                            i(class="fas fa-caret-right" aria-hidden="true" style="font-size: 26px")
+
                         
                         table(class="transparent_table")
                             tr
@@ -73,81 +312,6 @@ html
 
 
                         div(id="seadragon_viewer")
-
-                    div(class="half-round-item-1" id="right_container")
-
-                        h(class="header2" style="font-size: 26px;") Models
-                        div(id="model_list_container" class="scrollable_area" style="height: 295px")
-                            table(id="model_list")
-
-                        hr
-
-                        h(class="header2" style="font-size: 26px") Predicted Counts
-                        div(id="count_chart" class="scrollable_area" style="overflow-x: hidden; height: 295px;")
-                            div(id="count_chart_tooltip" class="tooltip")
-
-
-
-                div(id="view_container_2" class="grid-container-2")
-                    div(class="half-round-item-1")
-
-
-                        h(class="header2" style="font-size: 26px") Loss Plot
-
-                        div
-                            table(class="transparent_table")
-                                tr
-
-                                    td(class="selector_label" style="text-align: right")
-                                        div Show All   
-                                    td
-                                        input(type="radio" id="loss_show_all" class="loss_radio" name="loss_radio" value="loss_show_all" checked)                             
-                                tr
-
-                                    td(class="selector_label" style="text-align: right")
-                                        div Show Selected
-                                    td
-                                        input(type="radio" id="loss_show_selected" class="loss_radio" name="loss_radio" value="loss_show_selected")
-
-                                tr
-                                    td(class="selector_label" style="text-align: right") 
-                                        div Training Sequence
-                                    td
-                                        select(id="sequence_combo" class="dropdown" style="width: 100px")
-
-                        
-                        div(id="loss_container" style="padding-top: 5px")
-                            div(id="loss_plot" style="height: 536px")
-                                div(id="loss_plot_tooltip" class="tooltip")
-
-                    div(class="half-round-item-2")
-                        h(class="header2" style="font-size: 26px") Metrics Plot
-
-                        table(class="transparent_table")
-
-                            tr
-                                td(class="table_head" style="text-align: center") Y Axis:
-                                td
-                                    select(id="y_axis_combo" class="dropdown")
-                            tr
-                                td
-                                td
-                                    select(id="y_axis_cls_combo" class="dropdown")
-                            tr
-                                td(class="table_head" style="text-align: center") X Axis:
-                                td
-                                    select(id="x_axis_combo" class="dropdown")
-                            tr
-                                td
-                                td
-                                    select(id="x_axis_cls_combo" class="dropdown")
-
-
-
-                        div(id="metrics_container" style="width: 100%; padding-top: 5px")
-                            div(id="metrics_plot" style="height: 510px;")
-                                div(id="metrics_plot_tooltip" class="tooltip")
-
 
     script.
         let data = !{JSON.stringify(data)};

@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "start": "if [[ $NODE_ENV == 'production' ]]; then node ./bin/www; else nodemon ./bin/www; fi"
+    "start": "if [[ $NODE_ENV == 'production' ]]; then node ./bin/www; else node ./bin/www; fi"
   },
   "dependencies": {
     "bcrypt": "^5.0.1",
@@ -13,6 +13,7 @@
     "express-session": "^1.17.2",
     "http-errors": "~1.6.3",
     "morgan": "~1.9.1",
+    "natural-orderby": "^2.0.3",
     "openseadragon": "^2.4.2",
     "pg": "^8.7.1",
     "pug": "2.0.0-beta11",

@@ -17,7 +17,7 @@ function set_count_chart_data() {
     
     let annotated_count;
     let pred_count;
-    for (image_name of Object.keys(annotations)) {
+    for (image_name of Object.keys(predictions[Object.keys(predictions)[0]]["image_predictions"])) {
 
         count_chart_data[image_name] = {};
         
@@ -25,17 +25,20 @@ function set_count_chart_data() {
 
 
             count_chart_data[image_name][class_name] = [];
-            if (class_name in annotations[image_name]["class_counts"]) {
-                annotated_count = annotations[image_name]["class_counts"][class_name];
+
+            if (metadata["dataset_is_annotated"]) {
+                if (class_name in annotations[image_name]["class_counts"]) {
+                    annotated_count = annotations[image_name]["class_counts"][class_name];
+                }
+                else {
+                    annotated_count = 0;
+                }
+                count_chart_data[image_name][class_name].push({
+                    name: "Annotations",
+                    count: annotated_count,
+                    color: color_lookup["Annotations"]
+                });
             }
-            else {
-                annotated_count = 0;
-            }
-            count_chart_data[image_name][class_name].push({
-                name: "Annotations",
-                count: annotated_count,
-                color: color_lookup["Annotations"]
-            });
 
 
             for (let i = 0; i < sorted_model_uuids.length; i++) {
@@ -52,6 +55,23 @@ function set_count_chart_data() {
                     count: pred_count,
                     color: color_lookup[sorted_model_uuids[i]]
                 });
+            }
+
+            for (let i = 0; i < ensemble_uuids.length; i++) {
+
+                if (class_name in ensemble_predictions[ensemble_uuids[i]]["image_predictions"][image_name]["pred_class_counts"]) {
+                    pred_count = ensemble_predictions[ensemble_uuids[i]]["image_predictions"][image_name]["pred_class_counts"][class_name];
+                }
+                else {
+                    pred_count = 0;
+                }
+
+                count_chart_data[image_name][class_name].push({
+                    name: ensemble_names[i],
+                    count: pred_count,
+                    color: color_lookup[ensemble_uuids[i]]
+                });
+
             }
         }
     }
@@ -73,7 +93,7 @@ function draw_count_chart() {
 
     let div = $('#count_chart');
 
-    let div_width = $("#right_container").width();
+    let div_width = $("#left_container").width();
     let div_height = $('#count_chart').height();
 
     if (count_svg) {
@@ -86,7 +106,13 @@ function draw_count_chart() {
 
     count_margin = 58;
 
-    let num_bars = sorted_model_uuids.length + 1;
+    let num_bars;
+    if (metadata["dataset_is_annotated"]) {
+        num_bars = sorted_model_uuids.length + ensemble_uuids.length + 1;
+    }
+    else {
+        num_bars = sorted_model_uuids.length + ensemble_uuids.length;
+    }
 
     let chart_width = div_width;
     let min_bar_size_lmt = 30;
@@ -190,6 +216,9 @@ function draw_count_chart() {
 function update_count_chart() {
 
     let sel_class = $("#class_combo").val();
+    // console.log("count_chart_data", count_chart_data);
+    // console.log("cur_img_name", cur_img_name);
+    // console.log("sel_class", sel_class);
 
     d3.selectAll(".bar")
         .data(count_chart_data[cur_img_name][sel_class])

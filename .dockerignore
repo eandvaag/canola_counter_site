@@ -1,4 +1,7 @@
-.git
-.gitignore
-myapp/node_modules/
-myapp/usr/
+plant_detection_viewer/.git
+plant_detection_viewer/.gitignore
+plant_detection_viewer/myapp/node_modules/
+plant_detection_viewer/myapp/usr/
+plant_detection/.git
+plant_detection/.gitignore
+plant_detection/src/usr

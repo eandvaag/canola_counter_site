@@ -32,7 +32,7 @@ services:
     volumes:
       - type: bind
         source: /data/home/erik/plant_detection_viewer/myapp/usr
-        target: /opt/app/usr
+        target: /opt/app/plant_detection/myapp/usr
     networks: 
       - container_net
 

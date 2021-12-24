@@ -2,14 +2,14 @@ doctype html
 
 html
     head
-        title="Plant Detection Results Viewer"
+        title="Plant Detection"
         meta(name="viewport" content="width=device-width, initial-scale=1")
 
         link(href='/plant_detection/stylesheets/main.css' rel='stylesheet')
         
         script(src="https://code.jquery.com/jquery-3.6.0.js")
         
-        script(type='text/javascript' src='/plant_detection/javascripts/user.js')
+        script(type='text/javascript' src='/plant_detection/javascripts/results.js')
         script(type='text/javascript' src='/plant_detection/javascripts/common.js')
 
 
@@ -21,7 +21,7 @@ html
 
             div(id="body")
                     
-                h(class="header2" style="font-size:26px") Home
+                h(class="header2" style="font-size:26px") Results
 
                 hr
 
@@ -69,7 +69,7 @@ html
 
                             hr
 
-                            button(id="submit_button" class="button" style="width: 75%")
+                            button(id="submit_button" class="std-button" style="width: 75%")
                                 span View Predictions
 
                             p(id="submit_error_message" align="center")

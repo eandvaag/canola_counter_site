@@ -13,14 +13,21 @@ const range_lookup = {
     "Image Mean Abs. Diff. in Count": [0.0, null],
     "Image Mean Sq. Diff. in Count": [0.0, null],
     "Image R Squared": [null, 1.0],
+    "Image Non-Zero Mean Abs. Diff. in Count": [0.0, null],
     "Image PASCAL VOC mAP": [0.0, 1.0],
     "Image MS COCO mAP": [0.0, 1.0],
     "Patch Mean Abs. Diff. in Count": [0.0, null],
     "Patch Mean Sq. Diff. in Count": [0.0, null],
     "Patch R Squared": [null, 1.0],
+    "Patch Non-Zero Mean Abs. Diff. in Count": [0.0, null],
+    "Mean Confidence Score": [0.0, 1.0],
+    "Max Confidence Score": [0.0, 1.0],
+    "Min Box Area": [0.0, null],
+    "Mean Box Area": [0.0, null],
+    "Max Box Area": [0.0, null],
     "Total Inference Time (s)": [0.0, null],
-    "Per-Image Inference Time (s)": [0.0, null],
-    "Per-Patch Inference Time (s)": [0.0, null]     
+    "Per Image Inference Time (s)": [0.0, null],
+    "Per Patch Inference Time (s)": [0.0, null]
 };
 
 
@@ -63,8 +70,21 @@ function add_axis_class_options(axis_combo_id, axis_cls_combo_id) {
 function add_axis_options(sel_metric) {
 
     let sorting_options = Object.keys(range_lookup);
+    let valid_options = [];
 
     for (sorting_option of sorting_options) {
+        valid = true;
+        for (model_uuid of sorted_model_uuids) {
+            if (!(sorting_option in predictions[model_uuid]["metrics"]["point"])) {
+                valid = false;
+            }
+        }
+        if (valid) {
+            valid_options.push(sorting_option);
+        }
+    }
+
+    for (sorting_option of valid_options) {
         $("#y_axis_combo").append($('<option>', {
             value: sorting_option,
             text: sorting_option
@@ -76,8 +96,8 @@ function add_axis_options(sel_metric) {
 
     }
 
-    $("#y_axis_combo").val(sorting_options[0]);
-    $("#x_axis_combo").val(sorting_options[sorting_options.length - 1]);
+    $("#y_axis_combo").val(valid_options[0]);
+    $("#x_axis_combo").val(valid_options[valid_options.length - 1]);
 
 }
 
@@ -94,7 +114,7 @@ function set_metrics_plot_data() {
 
         metrics_plot_data.push({
             "model_name": sorted_model_names[i],
-            "metrics": predictions[sorted_model_uuids[i]]["metrics"],
+            "metrics": predictions[sorted_model_uuids[i]]["metrics"]["point"],
             "color": color_lookup[sorted_model_uuids[i]]
         });
     }

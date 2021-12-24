@@ -37,3 +37,10 @@ function get_max_name_width(names, font) {
     }
     return max_text_width;
 }
+
+function basename(path) {
+    if (path.slice(-1) === "/") {
+        path = path.substring(0, path.length - 1);
+    }
+    return path.split('/').reverse()[0];
+}

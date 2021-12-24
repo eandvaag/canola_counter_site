@@ -94,11 +94,15 @@ function get_cur_loss_plot_data() {
 
     let show_all = $("#loss_show_all:checked").val();
     let seq_sel = $("#sequence_combo").val();
-
+/*
     let disp_sel = [];
     $(".disp_names:checked").each(function(i, e) { 
-        disp_sel.push($(this).val()); 
-    });
+    for (model_uuid of sorted_model_uuids) {
+        if ($("#" + model_uuid + "_label").is(":checked")) {
+            disp_sel.push(model_uuid); 
+        }
+    }
+    });*/
     let training_data = [];
     let validation_data = [];
 
@@ -107,7 +111,7 @@ function get_cur_loss_plot_data() {
     for (let i = 0; i < sorted_model_uuids.length; i++) {
         model_uuid = sorted_model_uuids[i];
         model_name = sorted_model_names[i];
-        if ((show_all) || (disp_sel.includes(model_uuid))) {
+        if ((show_all) || ($("#" + model_uuid + "_label").is(":checked"))) {
             training_data.push({
                 "values": loss_plot_data[model_uuid]["training"][seq_sel]["values"],
                 "breaks": loss_plot_data[model_uuid]["training"][seq_sel]["breaks"],

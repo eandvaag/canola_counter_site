@@ -62,6 +62,7 @@ hr {
   /*border-top: 1px solid white;*/
 }
 
+
 .header2 {
   font-size: 18px; 
   font-family: "arial";/*"Open Sans", sans-serif;*/
@@ -133,7 +134,7 @@ hr {
     margin: auto;
     */
     /*width: 50%;*/ /*800px;*/
-    height: 600px;
+    height: 650px;
     border:  1px solid white;
     background-color: #222621;
     margin-top: 10px;
@@ -208,6 +209,7 @@ tr:first-child{ ;}*/
    margin: 0px 10px;
    padding: 5px 10px;
    transition: all 0.5s;
+   cursor: pointer;
    /*
    margin:  0px 10px;
    padding:  5px;*/
@@ -222,7 +224,7 @@ tr:first-child{ ;}*/
 
 
 
-button {
+.std-button {
   display: inline-block;
   border-radius: 4px;
   background-color: #998866;
@@ -238,14 +240,14 @@ button {
 }
 
 
-button span {
+.std-button span {
   cursor: pointer;
   display: inline-block;
   position: relative;
   transition: 0.5s;
 }
 
-button span:after {
+.std-button span:after {
   content: '\00bb';
   position: absolute;
   opacity: 0;
@@ -256,16 +258,16 @@ button span:after {
 
 /* button hover is a separate class so that hover animation 
    can be disabled by removing the class in jQuery */
-.button-hover:hover span {
+.std-button-hover:hover span {
   padding-right: 25px;
 }
 
-.button-hover:hover span:after {
+.std-button-hover:hover span:after {
   opacity: 1;
   right: 0;
 }
 
-.button-hover:hover {
+.std-button-hover:hover {
   background-color: #cc9923;
 }
 
@@ -321,7 +323,7 @@ button span:after {
 /* Designing all grid-items */ 
 .grid-container-1 > div { 
     border: 1px solid white;
-    background-color: #2b3628; 
+    background-color: #2b3628;
     text-align: center; 
     padding: 10px 25px;
 } 
@@ -330,7 +332,7 @@ button span:after {
 /* Designing all grid-items */ 
 .grid-container-2 > div { 
     border: 1px solid white;
-    background-color: #2b3628; 
+    background-color: #2b3628;
     text-align: center; 
     padding: 10px 25px;
 } 
@@ -346,7 +348,7 @@ button span:after {
 
 
 
-a {
+a.nav {
   color: #eeddbb;
 }
 
@@ -365,7 +367,7 @@ li.nav {
   float: left;
 }
 
-li.nav a {
+li.nav a.nav {
   text-align:center;
   display: block;
   padding: 8px 12px;
@@ -375,13 +377,17 @@ li.nav a {
   transition: 0.5s;
 }
 
-li.nav a:hover {
+li.nav a.nav:hover {
   color: white;
   transition: 0.5s;
   background-color:  #dfac36;
+  cursor:  pointer;
 }
 
-
+.tab-btn-active {
+  color:  white;
+  background-color:  #dfac36;
+}
 
 
 .config_head {
@@ -419,6 +425,22 @@ input[type="radio"] {
    margin: 0 30px 0 30px;
 }*/
 
+input[type="color"] {
+  -webkit-appearance: none;
+  border: none;
+  width: 48px;
+  height: 21px;
+  margin-bottom: 22px;
+  margin-top: 5px;
+  cursor: pointer;
+}
+input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+input[type="color"]::-webkit-color-swatch {
+  border: none;
+}
+
 .radio_label {
    margin-right: 5px; /*40px;*/
    margin-left: 5px;
@@ -432,6 +454,38 @@ input[type="radio"] {
    padding: 2px 0px;
 }
 
+.nonfixed_dropdown {
+   background-color: #222621;
+   color:  white;
+   width:  100%;
+   padding: 2px 0px;
+   margin: 2px 0px;
+}
+
+.number_input {
+   background-color: #222621;
+   color:  white;
+   padding: 2px 0px;
+   font-size:  16px;
+   border: 1px solid grey;
+   padding-left: 5px;
+}
+
+.nonfixed_number_input {
+  background-color: #222621;
+  color:  white;
+  padding: 2px 0px;
+  padding-left:  3px;
+  font-size:  16px;
+  border: 1px solid grey;
+  width:  89%;
+  margin: 2px 0px;
+}
+
+::placeholder { /* Chrome, Firefox, Opera, Safari 10.1+ */
+  color: white;
+  opacity: 1; /* Firefox */
+}
 
 
 /* modals for 'play' page */
@@ -485,8 +539,7 @@ input[type="radio"] {
   font-weight: bold;
 }
 
-.close:hover,
-.close:focus {
+.close-hover:hover {
   color: #000;
   text-decoration: none;
   cursor: pointer;
@@ -535,8 +588,9 @@ table {
 }
 
 .scrollable_area {
-    overflow-y: auto;
     overflow-x: auto;
+    overflow-y: auto;
+    
     height: 320px;
     border: 1px solid white; 
     background-color: #222621;
@@ -553,8 +607,15 @@ table {
     padding: 10px 25px;
     margin: 5px 5px;
 }
+/*
+.head_area {*/
+    /*overflow-x:  auto;*/
+    /*border: 1px solid white;
+    background-color: #222621;
+    border-radius: 15px 15px;*/
+    /*margin-bottom: -32px;*/
 
-
+/*}*/
 
 textarea, input[type=text], input[type=password] {
     width: 95%;
@@ -576,4 +637,123 @@ textarea {
   background-color: #222621;
   border: 1px solid white;
   font-size: 16px;
+}
+/*
+.tab-btn,.tab-button {
+  font-size:  18px;
+  width: fit-content;
+  border:none;
+  display:inline-block;
+  padding:8px 16px;
+  vertical-align:middle;
+  overflow:hidden;
+  text-decoration:none;
+  color:inherit;
+  background-color:inherit;
+  text-align:center;
+  cursor:pointer;
+  white-space:nowrap
+}
+*/
+.tab-btn {
+  font-size: 16px;
+  padding: 8px 8px;
+  /*float: left;*/
+  outline: 0;
+  border:none;
+  background-color: #998866;
+  color: white;
+  text-decoration: none;
+  transition: 0.5s;
+  cursor: pointer;
+  /*align:  left;*/
+  /*display: block;*/
+}
+
+.loader {
+  margin: 0 auto;
+  border: 4px solid white;
+  border-top: 4px solid #dfac36;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/*
+.disabled-cls {
+  cursor:  default;
+}*/
+
+.collapsible {
+  padding: 5px;
+  background-color: #998866;
+  color:  white;
+  cursor: pointer;
+  width: 100%;
+  border: none;
+  text-align: left;
+  outline: none;
+  font-size: 16px;
+  border-bottom: 1px solid white;
+}
+
+.active, .collapsible:hover {
+  background-color: #cc9923;
+  transition: 0.5s;
+}
+
+.content {
+  padding: 18px 18px;
+  display: none;
+  overflow: hidden;
+  background-color: #222621;
+  border:  1px solid white;
+
+}
+
+
+
+.col_left {
+  float: left;
+  width: 35%;
+  text-align:  right;
+  margin-top: 2px;
+}
+
+.col_right {
+  float: left;
+  width: 65%;
+}
+
+.col_label {
+   font-size: 18px; 
+   font-family: "arial"; /*"Open Sans", sans-serif;*/
+   color: #ddccbb;
+   font-weight: 400;
+
+   /*text-align: right;
+   padding-right: 10px;*/
+}
+
+/* Clear floats after the columns */
+.row:after {
+  content: "";
+  display: table;
+  clear: both;
+}
+
+@media screen and (max-width: 800px) {
+  .col_left, .col_right {
+    width: 100%;
+    margin-top: 0;
+  }
+  .col_left {
+    text-align:  left;
+  }
 }
