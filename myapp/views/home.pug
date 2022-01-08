@@ -9,6 +9,8 @@ html
         
         script(src="https://code.jquery.com/jquery-3.6.0.js")
 
+        script(type='text/javascript' src='/plant_detection/javascripts/home.js')
+        script(type='text/javascript' src='/plant_detection/javascripts/common.js')
 
     body
         div(id="container")
@@ -22,3 +24,37 @@ html
 
                 
                 hr
+
+
+                div(id="home_container")
+                    div(class="half-round-item-1" id="left_panel" style="height: 670px; overflow-y: auto;")
+
+                        h(class="header2" style="font-size: 26px; text-align: center;") Image Sets
+
+                        div(class="content" style="display:block")
+
+                            div(class="row")
+                                div(class="col_left")
+                                    div(class="col_label") Farm Name:
+                                div(class="col_right")
+                                    select(id="farm_combo" class="nonfixed_dropdown")
+
+
+                            div(class="row")
+                                div(class="col_left")
+                                    div(class="col_label") Field Name:
+                                div(class="col_right")
+                                    select(id="field_combo" class="nonfixed_dropdown")
+
+
+                            div(class="row")
+                                div(class="col_left")
+                                    div(class="col_label") Mission Date:
+                                div(class="col_right")
+                                    select(id="mission_combo" class="nonfixed_dropdown")                            
+                
+
+                    div(class="half-round-item-2" id="right_panel" style="height: 670px; overflow-y: auto")
+
+    script.
+        let image_sets_data = !{JSON.stringify(image_sets_data)};

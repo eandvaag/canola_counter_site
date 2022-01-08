@@ -44,3 +44,24 @@ function basename(path) {
     }
     return path.split('/').reverse()[0];
 }
+
+
+
+function get_json(url) {
+    let json;
+    $.ajax({
+        url: url,
+        async: false,
+        dataType: 'json',
+        success: function (ret_json) {
+            json = ret_json;
+        }
+    });
+    return json;
+}
+
+
+function natsort(arr) {
+    let collator = new Intl.Collator(undefined, {numeric: true, sensitivity: 'base'});
+    return arr.sort(collator.compare);
+}

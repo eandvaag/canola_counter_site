@@ -292,12 +292,12 @@ function show_model_config(model_uuid) {
 function update_containers() {
     let width = $(window).width();
     if (width < 1000) {
-        $("#home_container").removeClass("grid-container-2");
-        $("#home_container").addClass("grid-container-1");
+        $("#results_container").removeClass("grid-container-2");
+        $("#results_container").addClass("grid-container-1");
     }
     else {
-        $("#home_container").removeClass("grid-container-1");
-        $("#home_container").addClass("grid-container-2");     
+        $("#results_container").removeClass("grid-container-1");
+        $("#results_container").addClass("grid-container-2");     
     }
 }
 

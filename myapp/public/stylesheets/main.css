@@ -9,21 +9,23 @@ body {
    position:relative;
 }
 #header {
-   padding:10px;
+   padding-right:5px;
+   padding-top: 10px;
 }
 #body {
-   padding:10px;
-   padding-bottom:75px;   /* Height of the footer */
+   padding:5px;
+   /*padding-bottom:75px;*/   /* Height of the footer */
 }
+/*
 #footer {
   position:absolute;
   bottom:0;
   width:100%;
-  height:75px;            /* Height of the footer */
+  height:75px;            
   text-align: center;
   font-size: 12px;
 }
-
+*/
 
 
 .center {
@@ -137,7 +139,7 @@ hr {
     height: 650px;
     border:  1px solid white;
     background-color: #222621;
-    margin-top: 10px;
+    /*margin-top: 10px;*/
     /*border-radius: 15px 15px;*/
 }
 
@@ -200,13 +202,14 @@ tr:first-child{ ;}*/
 }*/
 
 .table_button {
-   width:  fit-content;
+   /*width:  fit-content;*/
    background-color:  #222621;
    border: 1px solid white;
    color: white;
    font-size: 16px;
    /*margin: 0px;*/
-   margin: 0px 10px;
+   /*
+   margin: 0px 10px;*/
    padding: 5px 10px;
    transition: all 0.5s;
    cursor: pointer;
@@ -471,7 +474,7 @@ input[type="color"]::-webkit-color-swatch {
    padding-left: 5px;
 }
 
-.nonfixed_number_input {
+.nonfixed_input {
   background-color: #222621;
   color:  white;
   padding: 2px 0px;
@@ -481,6 +484,7 @@ input[type="color"]::-webkit-color-swatch {
   width:  89%;
   margin: 2px 0px;
 }
+
 
 ::placeholder { /* Chrome, Firefox, Opera, Safari 10.1+ */
   color: white;
@@ -584,8 +588,12 @@ table {
   background-color: transparent;
   /*width:  500px;
   table-layout: fixed;*/
+  border-spacing: 0;
+  border-collapse:  collapse;
   /*border-collapse: collapse;*/
 }
+
+
 
 .scrollable_area {
     overflow-x: auto;
@@ -717,7 +725,11 @@ textarea {
 
 }
 
-
+.dark-bg {
+  padding: 8px 8px;
+  background-color: #222621;
+  border:  1px solid white;
+}
 
 .col_left {
   float: left;
@@ -756,4 +768,161 @@ textarea {
   .col_left {
     text-align:  left;
   }
+}
+
+.dropzone {
+  /*width: 100px;*/
+  height: 360px;
+  border: 1px solid white;
+  /*border-style: dashed;*/
+  min-height: 0px !important;
+  overflow-y:  auto;
+
+}
+
+.disabled_dropzone {
+  pointer-events: none;
+  cursor: default;
+}
+
+.dz-max-files-reached {
+  pointer-events: none;
+  cursor: default;
+}
+
+/*
+
+svg.a9s-annotationlayer .a9s-handle .a9s-handle-outer {
+  display:none;
+}
+
+svg.a9s-annotationlayer .a9s-selection .a9s-outer,
+svg.a9s-annotationlayer .a9s-annotation .a9s-outer {
+  display: none;
+}
+
+
+svg.a9s-annotationlayer .a9s-selection .a9s-inner,
+svg.a9s-annotationlayer .a9s-annotation .a9s-inner {
+  stroke-width:2;
+  stroke:#0080C0;
+}
+
+
+
+svg.a9s-annotationlayer .a9s-annotation.editable:hover .a9s-inner {
+  fill:transparent;
+}
+
+
+svg.a9s-annotationlayer .a9s-handle .a9s-handle-inner {
+  fill:#0080C0;
+  stroke:#0080C0;
+}*/
+
+/** Enable the dim mask, black with 60% transparency **/
+/*
+svg.a9s-annotationlayer .a9s-selection-mask {
+  fill:rgba(0, 0, 0, 0.6);
+}*/
+
+
+
+
+
+
+
+
+
+
+
+
+
+.a9s-annotationlayer .a9s-annotation .a9s-outer, 
+.a9s-annotationlayer .a9s-selection .a9s-outer {
+  /*
+  stroke-width:2px;
+  stroke:#000;  */
+  display: none;
+}
+
+.a9s-annotationlayer .a9s-annotation .a9s-inner,
+.a9s-annotationlayer .a9s-selection .a9s-inner {
+  stroke-width:2px;
+  stroke:#fff !important;  
+}
+
+.a9s-annotationlayer .a9s-annotation .a9s-inner {
+  stroke:#0080C0 !important;
+}
+
+.a9s-annotationlayer .a9s-annotation.editable.selected .a9s-inner,
+.a9s-annotationlayer .a9s-annotation:hover .a9s-inner  {
+  stroke:#0080C0 !important;
+}
+
+
+.a9s-annotationlayer circle.a9s-handle-inner {
+  display:none;
+}
+
+.a9s-annotationlayer .a9s-annotation.editable .a9s-inner:hover {
+  fill:transparent;
+}
+
+
+
+
+
+
+/* The sidepanel menu */
+.sidepanel {
+  height: 500px; /* Specify a height */
+  width: 0; /* 0 width - change this with JavaScript */
+  position: fixed; /* Stay in place */
+  z-index: 1; /* Stay on top */
+  top: 0;
+  left: 0;
+  background-color: #111; /* Black*/
+  overflow-x: hidden; /* Disable horizontal scroll */
+  padding-top: 60px; /* Place content 60px from the top */
+  transition: 0.5s; /* 0.5 second transition effect to slide in the sidepanel */
+}
+
+/* The sidepanel links */
+.sidepanel a {
+  padding: 8px 8px 8px 32px;
+  text-decoration: none;
+  font-size: 25px;
+  color: #818181;
+  display: block;
+  transition: 0.3s;
+}
+
+/* When you mouse over the navigation links, change their color */
+.sidepanel a:hover {
+  color: #f1f1f1;
+}
+
+/* Position and style the close button (top right corner) */
+.sidepanel .closebtn {
+  position: absolute;
+  top: 0;
+  right: 25px;
+  font-size: 36px;
+  margin-left: 50px;
+}
+
+/* Style the button that is used to open the sidepanel */
+.openbtn {
+  font-size: 20px;
+  cursor: pointer;
+  background-color: #111;
+  color: white;
+  padding: 10px 15px;
+  border: none;
+}
+
+.openbtn:hover {
+  background-color: #444;
 }

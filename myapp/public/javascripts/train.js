@@ -188,7 +188,7 @@ function add_patch_extraction_config(content_id, dataset_name) {
             `<div class="col_label">Size: </div>` +
         `</div>` +
         `<div class="col_right">` +
-            `<input type="number" id=${size_id} class="nonfixed_number_input" ` +
+            `<input type="number" id=${size_id} class="nonfixed_input" ` +
                 `min=50 max=2000 step=10></input>` +
         `</div>` +
     `</div>` +
@@ -199,7 +199,7 @@ function add_patch_extraction_config(content_id, dataset_name) {
         `</div>` +
         `<div class="col_right">` +
             `<input type="number" id=${additional_input_id} ` +
-                `class="nonfixed_number_input" disabled="true"></input>` +
+                `class="nonfixed_input" disabled="true"></input>` +
         `</div>` +
 
     `</div>`);
@@ -281,7 +281,7 @@ function add_training_loop_configuration(content_id) {
             `<div class="col_label">Batch Size: </div>` +
         `</div>` +
         `<div class="col_right">` +
-            `<input type="number" id=${batch_size_id} class="nonfixed_number_input" ` +
+            `<input type="number" id=${batch_size_id} class="nonfixed_input" ` +
                 `min=1 max=16 step=1></input>` +
             `</select>` +
         `</div>` +
@@ -291,7 +291,7 @@ function add_training_loop_configuration(content_id) {
             `<div class="col_label">Min Number of Epochs: </div>` +
         `</div>` +
         `<div class="col_right">` +
-            `<input type="number" id=${min_epochs_id} class="nonfixed_number_input" ` +
+            `<input type="number" id=${min_epochs_id} class="nonfixed_input" ` +
                 `min=1 max=500 step=1></input>` +
             `</select>` +
         `</div>` +
@@ -301,7 +301,7 @@ function add_training_loop_configuration(content_id) {
             `<div class="col_label">Max Number of Epochs: </div>` +
         `</div>` +
         `<div class="col_right">` +
-            `<input type="number" id=${max_epochs_id} class="nonfixed_number_input" ` +
+            `<input type="number" id=${max_epochs_id} class="nonfixed_input" ` +
                 `min=1 max=500 step=1></input>` +
             `</select>` +
         `</div>` +
@@ -311,7 +311,7 @@ function add_training_loop_configuration(content_id) {
             `<div class="col_label">Learning Rate: </div>` +
         `</div>` +
         `<div class="col_right">` +
-            `<input type="number" id=${learning_rate_id} class="nonfixed_number_input" ` +
+            `<input type="number" id=${learning_rate_id} class="nonfixed_input" ` +
                 `min=0.0000001 max=0.1 step=0.0000001></input>` +
             `</select>` +
         `</div>` +
@@ -321,7 +321,7 @@ function add_training_loop_configuration(content_id) {
             `<div class="col_label">Val. Loss Early Stop Tolerance (Epochs)</div>` +
         `</div>` +
         `<div class="col_right">` +
-            `<input type="number" id=${early_stopping_tolerance_id} class="nonfixed_number_input" ` +
+            `<input type="number" id=${early_stopping_tolerance_id} class="nonfixed_input" ` +
                 `min=1 max=500 step=1></input>` +
             `</select>` +
         `</div>` +

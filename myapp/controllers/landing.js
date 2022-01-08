@@ -7,6 +7,7 @@ const fs = require('fs');
 const xml_js_convert = require('xml-js');
 const nat_orderBy = require('natural-orderby');
 const { exec } = require('child_process');
+const sanitize = require('sanitize-filename');
 
 const models = require('../models');
 
@@ -81,16 +82,205 @@ function get_subdirs(dir) {
     return subdirs;
 }
 
+function fpath_exists(fpath) {
+    let exists = true;
+    try {
+        fs.accessSync(fpath, fs.constants.F_OK);
+    }
+    catch (e) {
+        exists = false;
+    }
+    return exists;
+}
 
 exports.get_home = function(req, res, next) {
 
     if (req.session.user && req.cookies.user_sid) {
-        res.render("home");
+
+        console.log("gathering image_sets data");
+
+        let image_sets_data = {};
+        let image_sets_root = path.join(USR_DATA_ROOT, "image_sets");
+        let farm_names = get_subdirs(image_sets_root);
+
+        console.log("farm_names", farm_names);
+        for (farm_name of farm_names) {
+            image_sets_data[farm_name] = {};
+            let farm_root = path.join(image_sets_root, farm_name);
+            let field_names = get_subdirs(farm_root);
+            console.log("field_names", field_names);
+
+            for (field_name of field_names) {
+                //image_sets_data[farm_name][field_name] = {};
+                let field_root = path.join(farm_root, field_name);
+                let mission_dates = get_subdirs(field_root);
+                console.log("mission_dates", mission_dates);
+
+                image_sets_data[farm_name][field_name] = mission_dates;
+                /*
+                for (mission_date of mission_dates) {
+                    
+                    console.log("Checking", mission_date);
+                    let mission_date_root = path.join(field_root, mission_date);
+                    let image_set_config_path = path.join(mission_date_root, "image_set_config.json");
+                    let exists = true;
+                    try {
+                        fs.accessSync(image_set_config_path, fs.constants.F_OK);
+                    }
+                    catch (e) {
+                        exists = false;
+                    }
+
+                    if (exists) {
+                        let image_set_config = JSON.parse(fs.readFileSync(image_set_config_path, 'utf8'));
+                        image_sets_data[farm_name][field_name][mission_date] = image_set_config;
+                    }
+                }*/
+            }
+        }
+
+        res.render("home", {image_sets_data: image_sets_data});
     }
     else {
         res.redirect(APP_PREFIX);
     }
 }
+
+exports.get_annotate = function(req, res, next) {
+
+    if (req.session.user && req.cookies.user_sid) {
+        
+        let farm_name = req.params.farm_name;
+        let field_name = req.params.field_name;
+        let mission_date = req.params.mission_date;
+
+        let image_set_root = path.join(USR_DATA_ROOT, "image_sets", farm_name,
+                                            field_name, mission_date);
+        let image_set_data_path = path.join(image_set_root, "image_set_data.json");
+        let images_dir = path.join(image_set_root, "images");
+        let dzi_images_dir = path.join(image_set_root, "dzi_images");
+
+
+        let image_set_data = JSON.parse(fs.readFileSync(image_set_data_path, 'utf8'));        
+
+
+        let dzi_image_paths = [];
+        for (image_name of Object.keys(image_set_data["images"])) {
+            let dzi_image_path = path.join(APP_PREFIX, dzi_images_dir, image_name + ".dzi");
+            dzi_image_paths.push(dzi_image_path);
+
+        }
+
+        let annotations_path = path.join(image_set_root, "annotations", "annotations_w3c.json");
+        let annotations;
+        if (fpath_exists(annotations_path)) {
+            console.log("loading annotations");
+            try {
+                annotations = fs.readFileSync(annotations_path, 'utf8');
+            }
+            catch (error) {
+                console.log(error);
+            }
+            annotations = JSON.parse(annotations);
+            console.log("annotations", annotations);
+        }
+        else {
+            console.log("annotations not found");
+            annotations = null;
+        }
+
+        
+
+        let metadata = {
+            "farm_name": farm_name,
+            "field_name": field_name,
+            "mission_date": mission_date
+        }
+
+        console.log("ready to render");
+        let data = {};
+        data["metadata"] = metadata;
+        data["image_set_data"] = image_set_data;
+        data["dzi_image_paths"] = nat_orderBy.orderBy(dzi_image_paths);
+        data["annotations"] = annotations;
+        res.render("annotate", {data: data});
+    }
+    else {
+        res.redirect(APP_PREFIX);
+    }
+
+}
+
+exports.post_annotate = function(req, res, next) {
+
+    if (req.session.user && req.cookies.user_sid) {
+
+        console.log("post_annotate");
+        let response = {};
+        /*
+        console.log("req.body", req.body);
+
+        let annotations =  JSON.parse(req.body.annotations);
+        console.log(annotations);*/
+
+        let farm_name = req.params.farm_name;
+        let field_name = req.params.field_name;
+        let mission_date = req.params.mission_date;
+
+        let image_set_root = path.join(USR_DATA_ROOT, "image_sets", farm_name,
+                                            field_name, mission_date);
+
+        let annotations_path = path.join(image_set_root, "annotations", "annotations_w3c.json")
+
+
+        try {
+            fs.writeFileSync(annotations_path, req.body.annotations);
+        }
+        catch (error) {
+            console.log(error);
+        }
+
+        let image_set_data_path = path.join(image_set_root, "image_set_data.json");
+        /*
+        let image_set_data;
+        try {
+            image_set_data = JSON.parse(fs.readFileSync(image_set_data_path, 'utf8'));
+        }
+        catch (error) {
+            console.log(error);
+        }
+        console.log("read in image_set_data", image_set_data);
+        for (img_name of Object.keys(annotations)) {
+            let num_annotations = annotations[img_name].length;
+            let prev_status = image_set_data["images"][img_name]["status"];
+            if (num_annotations == 0) {
+                image_set_data["images"][img_name]["status"] = "unannoted";
+            }
+            else if ((num_annotations > 0) && (prev_status === "unannotated")) {
+                image_set_data["images"][img_name]["status"] = "started";
+            }
+        }*/
+        //console.log("writing image_set_data", image_set_data);
+        try {
+            fs.writeFileSync(image_set_data_path, req.body.image_set_data);
+        }
+        catch (error) {
+            console.log(error);
+        }
+
+        response.error = false;
+        //response.image_set_data = image_set_data;
+        res.json(response);
+        /*
+        let parsed = JSON.parse(req.body);
+        console.log("parsed", parsed);
+        console.log("annotations", parsed["annotations"]);*/
+    }
+    else {
+        res.redirect(APP_PREFIX);
+    } 
+}
+
 
 exports.get_upload = function(req, res, next) {
 
@@ -102,6 +292,223 @@ exports.get_upload = function(req, res, next) {
     }
 }
 
+exports.post_upload = function(req, res, next) {
+    if (req.session.user && req.cookies.user_sid) {
+        console.log("post_upload!");
+        console.log("req.files.length", req.files.length);
+        let farm_name;
+        if (req.files.length > 1) {
+            farm_name = req.body.farm_name[0];
+            field_name = req.body.field_name[0];
+            mission_date = req.body.mission_date[0];
+        }
+        else {
+            farm_name = req.body.farm_name;
+            field_name = req.body.field_name;
+            mission_date = req.body.mission_date;
+        }
+        console.log("farm_name is", farm_name);
+        console.log("req.files", req.files);
+        console.log("req.body", req.body);
+
+        for (file of req.files) {
+            if (!(file.mimetype.startsWith('image/'))) {
+                return res.status(422).json({
+                    error: "One or more provided files is not an image."
+                });
+            }
+        }
+
+        let image_sets_root = path.join(USR_DATA_ROOT, "image_sets");
+        let farm_dir = path.join(image_sets_root, farm_name);
+        let field_dir = path.join(farm_dir, field_name);
+        let mission_dir = path.join(field_dir, mission_date);
+        let images_dir = path.join(mission_dir, "images");
+        let patches_dir = path.join(mission_dir, "patches");
+        let dzi_images_dir = path.join(mission_dir, "dzi_images");
+        let conversion_tmp_dir = path.join(dzi_images_dir, "conversion_tmp");
+        let annotations_dir = path.join(mission_dir, "annotations");
+
+        if (!(fpath_exists(mission_dir))) {
+
+            fs.mkdirSync(images_dir, { recursive: true });
+            fs.mkdirSync(dzi_images_dir, { recursive: true });
+            fs.mkdirSync(conversion_tmp_dir, { recursive: true });
+            fs.mkdirSync(patches_dir, { recursive: true });
+            fs.mkdirSync(annotations_dir, { recursive: true });
+
+            let image_set_data_path = path.join(mission_dir, "image_set_data.json");
+            let image_set_data = {};
+
+            console.log("adding image names to image_set_data");
+            image_set_data["images"] = {};
+            for (file of req.files) {
+                let sanitized_fname = sanitize(file.originalname);
+                let extensionless_fname = sanitized_fname.substring(0, sanitized_fname.length-4);
+                console.log("adding", extensionless_fname);
+                image_set_data["images"][extensionless_fname] = {
+                    "status": "unannotated"
+                };
+            }
+
+            image_set_data["class_map"] = {"plant": 0};
+            image_set_data["num_classes"] = 1;
+            image_set_data["annotation_counts"] = {"plant": 0};
+            image_set_data["num_images"] = req.files.length;
+
+            console.log("image_set_data", image_set_data);
+            console.log("writing image_set_data to", image_set_data_path);
+            try {
+                fs.writeFileSync(image_set_data_path, JSON.stringify(image_set_data));
+            }
+            catch (error) {
+                console.log(error);
+            }
+            for (file of req.files) {
+                console.log("Writing", file.originalname);
+                let sanitized_fname = sanitize(file.originalname);
+                let extensionless_fname = sanitized_fname.substring(0, sanitized_fname.length-4);
+                console.log("extensionless_fname", extensionless_fname);
+                let extension = sanitized_fname.substring(sanitized_fname.length-4);
+                console.log("extension", extension);
+                let fpath = path.join(images_dir, sanitized_fname);
+                console.log("fpath", fpath);
+                try {
+                    fs.writeFileSync(fpath, file.buffer);
+                }
+                catch (error) {
+                    console.log(error);
+                }
+
+                let img_dzi_path = path.join(dzi_images_dir, extensionless_fname);
+
+                if (extension !== ".jpg" && extension !== ".png") {
+                    let tmp_path = path.join(conversion_tmp_dir, extensionless_fname + ".jpg");
+                    let conv_cmd = "convert " + fpath + " " + tmp_path;
+                    let slice_cmd = "./MagickSlicer/magick-slicer.sh " + tmp_path + " " + img_dzi_path;
+                    let result = exec(conv_cmd, {shell: "/bin/bash"}, function (error, stdout, stderr) {
+                        if (error) {
+                            console.log(error.stack);
+                            console.log('Error code: '+error.code);
+                            console.log('Signal received: '+error.signal);
+                        }
+                        else {
+                            let result = exec(slice_cmd, {shell: "/bin/bash"}, function (error, stdout, stderr) {
+                                if (error) {
+                                    console.log(error.stack);
+                                    console.log('Error code: '+error.code);
+                                    console.log('Signal received: '+error.signal);                                    
+                                }
+                                else {
+                                    try {
+                                        fs.unlinkSync(tmp_path);
+                                    }
+                                    catch (error) {
+                                        console.log(error);
+                                    }
+                                }
+                            });
+
+                        }
+                    });
+                }
+                else {
+                    let slice_cmd = "./MagickSlicer/magick-slicer.sh " + fpath + " " + img_dzi_path;
+                    let result = exec(slice_cmd, {shell: "/bin/bash"}, function (error, stdout, stderr) {
+                        if (error) {
+                            console.log(error.stack);
+                            console.log('Error code: '+error.code);
+                            console.log('Signal received: '+error.signal);                                    
+                        }
+                    });
+                }
+            }
+            console.log("all done!");
+            return res.sendStatus(200); //.send(req.file);
+            //res.status(200).send(req.files);
+            /*
+            response.error = false;
+            response.message = "Image set has been successfully registered";
+            res.json(response);*/
+
+        }
+        else {
+            console.log("image set with that name already exists");
+            //res.sendStatus()
+            return res.status(422).json({
+                error: "The provided farm-field-mission combination already exists."
+            });
+            /*
+            response.error = true;
+            response.message = "The provided farm-field-mission combination already exists";
+            res.json(response);*/
+        }
+    }
+    else {        
+        res.redirect(APP_PREFIX);
+    }
+}
+/*
+exports.post_upload = function(req, res, next) {
+    if (req.session.user && req.cookies.user_sid) {
+        let response = {};
+
+        let farm_name = req.body.farm_name;
+        let field_name = req.body.field_name;
+        let mission_date = req.body.mission_date;
+        let image_names = req.body.image_names;
+
+        let image_sets_root = path.join(USR_DATA_ROOT, "image_sets");
+        let farm_dir = path.join(image_sets_root, farm_name);
+        let field_dir = path.join(farm_dir, field_name);
+        let mission_dir = path.join(field_dir, mission_date);
+
+        if (!(fpath_exists(mission_dir))) {
+
+            fs.mkdirSync(mission_dir, { recursive: true });
+
+            let image_set_data_path = path.join(mission_dir, "image_set_data.json");
+            let image_set_data = {};
+
+
+            image_set_data["images"] = [];
+            for (image_name of image_names) {
+                image_set_data["images"][image_name] = {
+                    "status": "not_annotated"
+                };
+            }
+
+            image_set_data["class_map"] = {"plant": 0};
+            image_set_data["num_classes"] = 1;
+            image_set_data["annotation_counts"] = {"plant": 0};
+
+            fs.writeFile("image_set_data.json", image_set_data, (error) => {
+                if (error) {
+                    // clean up, return error
+                }
+                else {
+                    response.error = false;
+                    response.message = "Image set has been successfully registered";
+                    res.json(response);
+                }
+
+            });
+
+        }
+        else {
+            response.error = true;
+            response.message = "The provided farm-field-mission combination already exists";
+            res.json(response);
+        }
+
+
+
+    }
+    else {        
+        res.redirect(APP_PREFIX);
+    }
+}
+*/
 exports.get_train = function(req, res, next) {
 
     if (req.session.user && req.cookies.user_sid) {

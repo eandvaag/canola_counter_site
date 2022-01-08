@@ -5,10 +5,13 @@ html
         title="Plant Detection"
         meta(name="viewport" content="width=device-width, initial-scale=1")
 
+        script(src="https://code.jquery.com/jquery-3.6.0.js")
+        script(src="https://unpkg.com/dropzone@6.0.0-beta.1/dist/dropzone-min.js")
+        link(href="https://unpkg.com/dropzone@6.0.0-beta.1/dist/dropzone.css" rel="stylesheet" type="text/css")
+
         link(href='/plant_detection/stylesheets/main.css' rel='stylesheet')
         
-        script(src="https://code.jquery.com/jquery-3.6.0.js")
-
+        script(type='text/javascript' src='/plant_detection/javascripts/upload.js')
 
     body
         div(id="container")
@@ -16,9 +19,84 @@ html
             include ./header.pug
 
 
+            div(id="result_modal" class="modal")
+                div(class="modal-content")
+                    div(class="modal-header")
+                        span(class="close close-hover" id="modal_close") &times;
+                        p(id="modal_header_text" style="white-space: pre-line;")
+                    div(class="modal-body")
+                        p(id="modal_message" align="center")
+                    div(class="modal-footer")
+
             div(id="body")
                     
                 h(class="header2" style="font-size:26px") Upload
 
                 
                 hr
+
+
+
+                div(id="home_container")
+                    div(class="half-round-item-1" id="left_panel" style="height: 670px; overflow-y: auto;")
+
+                        h(class="header2" style="font-size: 26px; text-align: center;") Image Set Upload
+
+
+                        // form(action="/target" class="dropzone" id="my-form")
+
+                        //form(id="file-drop" action="" method="post" enctype="multipart/form-data" class="dropzone")
+
+                        form(action="")
+
+                            div(class="content" style="display:block")
+                                //div(class="scrollable_padded_area" style="height: 500px;")
+
+                                div(class="row")
+                                    div(class="col_left")
+                                        div(class="col_label") Farm Name:
+                                    div(class="col_right")
+                                        input(id="farm_input" class="nonfixed_input")
+
+
+                                div(class="row")
+                                    div(class="col_left")
+                                        div(class="col_label") Field Name:
+                                    div(class="col_right")
+                                        input(id="field_input" class="nonfixed_input")
+
+
+                                div(class="row")
+                                    div(class="col_left")
+                                        div(class="col_label") Mission Date:
+                                    div(class="col_right")
+                                        input(id="mission_input" class="nonfixed_input")
+
+
+                                br
+
+                                div(id="file-drop" class="dropzone")
+
+                                    div(class="dz-message data-dz-message")
+                                        span Drop Images Here
+                                //-
+                                    form(action="" id="upload_form")
+                                        input(name="username")
+                                        div(id="file-drop" class="dropzone")
+                                        //input(type="file" id="file_drop" class="dropzone")
+                                        // method="post" enctype="multipart/form-data")
+
+
+                            hr
+
+                            button(id="upload_button" class="std-button std-button-hover" type="submit")
+                                span Upload
+
+                            div(id="upload_loader" class="loader")
+                            //p(id="upload_message" align="center")
+
+
+ 
+                
+
+                    div(class="half-round-item-2" id="right_panel" style="height: 670px; overflow-y: auto")                

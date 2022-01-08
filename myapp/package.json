@@ -2,21 +2,25 @@
   "name": "myapp",
   "version": "0.0.0",
   "private": true,
+  
   "scripts": {
-    "start": "if [[ $NODE_ENV == 'production' ]]; then node ./bin/www; else node ./bin/www; fi"
+    "start": "node ./bin/www"
   },
   "dependencies": {
     "bcrypt": "^5.0.1",
     "cookie-parser": "~1.4.4",
     "debug": "~2.6.9",
+    "dropzone": "^6.0.0-beta.2",
     "express": "~4.16.1",
     "express-session": "^1.17.2",
     "http-errors": "~1.6.3",
     "morgan": "~1.9.1",
+    "multer": "^1.4.4",
     "natural-orderby": "^2.0.3",
     "openseadragon": "^2.4.2",
     "pg": "^8.7.1",
     "pug": "2.0.0-beta11",
+    "sanitize-filename": "^1.6.3",
     "sequelize": "^6.7.0",
     "sequelize-cli": "^6.2.0",
     "uuid": "^8.3.2",

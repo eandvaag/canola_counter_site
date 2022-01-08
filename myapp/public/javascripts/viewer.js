@@ -573,6 +573,7 @@ let svg_overlay;
 let cur_img_name;
 
 
+
 $(document).ready(function() {
 
     metadata = data["metadata"];
@@ -627,7 +628,7 @@ $(document).ready(function() {
     add_axis_class_options("#x_axis_combo", "#x_axis_cls_combo");
     add_axis_class_options("#y_axis_combo", "#y_axis_cls_combo");
 
-
+    
     $("#farm_name_entry").text(metadata["farm_name"]);
     $("#field_name_entry").text(metadata["field_name"]);
     $("#mission_date_entry").text(metadata["mission_date"]);
@@ -644,10 +645,12 @@ $(document).ready(function() {
         tileSources: dzi_image_paths,
         showNavigator: false,
         maxZoomLevel: 100,
+        zoomPerClick: 1,
         nextButton: "next-button",
         previousButton: "prev-button",
         showNavigationControl: false
     });
+
 
     viewer.addHandler("open", function(event) {
         let img_files_name = basename(event.source);
