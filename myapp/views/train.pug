@@ -8,8 +8,9 @@ html
         link(href='/plant_detection/stylesheets/main.css' rel='stylesheet')
         
         script(src="https://code.jquery.com/jquery-3.6.0.js")
-        
-        script(type='text/javascript' src='/plant_detection/javascripts/train.js')
+
+        //script(type='text/javascript' src='/plant_detection/javascripts/home.js')
+        script(type='text/javascript' src='/plant_detection/javascripts/common.js')
 
     body
         div(id="container")
@@ -21,122 +22,38 @@ html
                     
                 h(class="header2" style="font-size:26px") Train
 
+                
                 hr
 
-                div(id="train_container")
-                    div(class="half-round-item-1" id="left_panel" style="height: 720px; overflow-y: auto;")
 
-                        h(class="header2" style="font-size: 26px; text-align: center;") Architecture Configuration
+                div(id="home_container")
+                    div(class="panel" style="max-width: 1000px")
+
+                        h(class="header2" style="font-size: 26px; text-align: center;") Configuration
 
                         div(class="content" style="display:block")
 
                             div(class="row")
                                 div(class="col_left")
-                                    div(class="col_label") Model Type:
+                                    div(class="col_label") Farm Name:
                                 div(class="col_right")
-                                    select(id="model_type" class="nonfixed_dropdown")
-
-                            div(class="row")
-                                div(class="col_left")
-                                    div(class="col_label") Backbone Type:
-                                div(class="col_right")
-                                    select(id="backbone_type" class="nonfixed_dropdown")                                    
-
-                            div(class="row")
-                                div(class="col_left")
-                                    div(class="col_label") Neck Type:
-                                div(class="col_right")
-                                    select(id="neck_type" class="nonfixed_dropdown")
+                                    select(id="farm_combo" class="nonfixed_dropdown")
 
 
                             div(class="row")
                                 div(class="col_left")
-                                    div(class="col_label") Network Input Size:
+                                    div(class="col_label") Field Name:
                                 div(class="col_right")
-                                    input(id="network_input_width_height" type="number" class="nonfixed_input" min="128" max="1024" step="32")
+                                    select(id="field_combo" class="nonfixed_dropdown")
 
 
                             div(class="row")
                                 div(class="col_left")
-                                    div(class="col_label") Max Detections Per Patch:
+                                    div(class="col_label") Mission Date:
                                 div(class="col_right")
-                                    input(id="max_detections_per_patch" type="number" class="nonfixed_input" min="10" max="100" step="10")
+                                    select(id="mission_combo" class="nonfixed_dropdown")
 
-
-                        //-
-
-                            table(class="transparent_table")
-
-                                tr
-                                    td(class="table_head") Model Type:
-                                    td
-                                        select(id="model_type" class="small_dropdown")
-
-                                tr
-                                    td(class="table_head") Backbone Type:
-                                    td
-                                        select(id="backbone_type" class="small_dropdown")
-
-                                tr
-                                    td(class="table_head") Neck Type:
-                                    td
-                                        select(id="neck_type" class="small_dropdown")
-
-                                tr
-                                    td(class="table_head") Network Input Width/Height:
-                                    td
-                                        input(id="network_input_width_height" type="number" class="small_number_input" min="128" max="1024" step="32")
-                                        //- select(id="network_input_width_height" class="dropdown")
-
-                                tr
-                                    td(class="table_head") Max Detections Per Patch:
-                                    td
-                                        input(id="max_detections_per_patch" type="number" class="small_number_input" min="10" max="100" step="10")
-
-
-                        hr
-
-                        h(class="header2" style="font-size: 26px; text-align: center;") Training Configuration
-
-
-
-
-                        div(id="train_sequence_container")
-
-                            ul.nav(id="sequence_select")
-
-
-                                //-
-                                    li.nav(id="default_tab_btn" class="tab-btn-active" onclick="show_tab(this.id)") 
-                                        a.nav
-                                            div Shared/Default
-
-                                li.nav(id="sequence_1_tab_btn" class="tab-btn-active" onclick="show_tab(this.id)") 
-                                    a.nav
-                                        div 1
-
-                                li.nav(id="add_seq_btn" onclick="add_sequence()" style="float: right") 
-                                    a.nav
-                                        i(class="fa fa-plus" aria-hidden="true")
-                                            
-                                li.nav(id="rm_seq_btn" onclick="remove_sequence()" style="float: right; opacity: 0.5") 
-                                    a.nav
-                                        i(class="fa fa-minus" aria-hidden="true")
-                                            
-
+                            br
                             hr
-
-                            div(id="scrollable_training_area" class="scrollable_area" style="height: 300px; overflow-x: auto; overflow-y: auto;")
-                                div(id="sequence_1_tab")
-
-
-                        hr
-                        button(id="submit_button" class="std-button" style="width: 75%")
-                            span Submit Train Request
-
-                        p(id="submit_error_message" align="center")
-
-
-
-
-                    div(class="half-round-item-2" id="right_panel" style="height: 720px; overflow-y: auto")
+                            br
+                            div(id="training_details" style="display:block; height: 300px")

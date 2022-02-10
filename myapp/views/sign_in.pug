@@ -14,32 +14,36 @@ html
 
         div(id="container")
 
-            div(id="body" class="center")
+            div(id="body")
+                // class="center")
 
-                div(class="panel" style="width: 310px; height: 350px")
+                div(class="panel_center")
+                    div(class="sign_in_panel" style="width: 310px; padding: 10px 20px;") 
+                        // style="width: 310px; height: 350px")
 
-                    h(class="header2" style="font-size:26px") Sign In
-
-                    br
-                    br
-
-                    form(action="")
-
-                        label(for="username" class="label" style="text-align: left; padding-left: 5px") Username
-
-                        input(id="username" name="username" type="text" required)
-
-                        label(for="password" class="label" style="text-align: left; padding-left: 5px") Password
-
-                        input(id="password" name="password" type="password" required)
+                        h(class="header2" style="font-size:26px") Sign In
 
                         br
                         br
 
-                        button(class="std-button std-button-hover")
-                            span Sign In
+                        form(action="")
 
-                        hr
+                            label(for="username" class="label" style="text-align: left; padding-left: 5px") Username
 
-                        p(id="error_message" align="center")
+                            input(id="username" name="username" type="text" required)
+
+                            label(for="password" class="label" style="text-align: left; padding-left: 5px") Password
+
+                            input(id="password" name="password" type="password" required)
+
+                            br
+                            br
+
+                            button(class="std-button std-button-hover")
+                                span Sign In
+
+                            hr
+
+                            div(style="height:50px")
+                                p(id="error_message" align="center")
 

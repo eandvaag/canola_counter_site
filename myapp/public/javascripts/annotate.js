@@ -6,7 +6,7 @@
 
 
 let metadata;
-let image_set_data;
+//let image_set_data;
 let dzi_image_paths;
 let annotations;
 
@@ -29,14 +29,12 @@ function update_containers() {
 }*/
 
 
-/* Set the width of the sidebar to 250px (show it) */
-function openNav() {
-  document.getElementById("sidepanel").style.width = "250px";
+function show_help_modal() {
+    $("#help_modal").css("display", "block");
 }
 
-/* Set the width of the sidebar to 0 (hide it) */
-function closeNav() {
-  document.getElementById("sidepanel").style.width = "0";
+function close_help_modal() {
+    $("#help_modal").css("display", "none");
 }
 
 
@@ -59,32 +57,19 @@ function create_image_set_table() {
             //`<th><div class="table_header" style="width: ${image_dataset_col_width}">Assigned Dataset</div></th>` +
             `</tr>`);*/
     for (dzi_image_path of dzi_image_paths) {
-        let img_name = basename(dzi_image_path)
-        let extensionless_name = img_name.substring(0, img_name.length - 4);
+        let image_name = basename(dzi_image_path)
+        let extensionless_name = image_name.substring(0, image_name.length - 4);
 
-        let img_status = image_set_data["images"][extensionless_name]["status"];
+        //let img_status = image_set_data["images"][extensionless_name]["status"];
+        let image_status = annotations[extensionless_name]["status"]
         $("#image_set_table").append(`<tr>` +
-            `<td><a class="table_button table_button_hover"` +
-                 `onclick="change_image('${dzi_image_path}')">${extensionless_name}</a></td>` +
+            `<td><div class="table_button table_button_hover"` +
+                 `onclick="change_image('${dzi_image_path}')">${extensionless_name}</div></td>` +
             //`<td><div>${extensionless_name}</div></td>` +
-            `<td><div class="table_entry">${img_status}</div></td>` +
+            `<td><div class="table_entry">${image_status}</div></td>` +
             //`<td><div class="table_entry">${img_dataset}</div></td>` +
             `</tr>`);
     }
-}
-
-function initialize_annotations_record() {
-    annotations = {};
-    for (dzi_image_path of dzi_image_paths) {
-        let img_name = basename(dzi_image_path)
-        let extensionless_name = img_name.substring(0, img_name.length - 4);
-        annotations[extensionless_name] = [];
-    }
-}
-
-function save_annotations_request() {
-
-    console.log("saving");
 }
 
 
@@ -119,8 +104,8 @@ function update_px_str_to_fit_image_bounds(px_str) {
 }
 
 function update_image_status() {
-    let prev_status = image_set_data["images"][cur_img_name]["status"];
-    let num_annotations = annotations[cur_img_name].length;
+    let prev_status = annotations[cur_img_name]["status"];
+    let num_annotations = annotations[cur_img_name]["annotations"].length;
     let new_status = prev_status;
     if (prev_status === "unannotated" && num_annotations > 0) {
         new_status = "started";
@@ -128,13 +113,13 @@ function update_image_status() {
     else if (prev_status === "started" && num_annotations == 0) {
         new_status = "unannotated";
     }
-    image_set_data["images"][cur_img_name]["status"] = new_status;
+    annotations[cur_img_name]["status"] = new_status;
 }
 
 function set_image_status_combo() {
 
-    let cur_status = image_set_data["images"][cur_img_name]["status"];
-    let num_annotations = annotations[cur_img_name].length;
+    let cur_status = annotations[cur_img_name]["status"];
+    let num_annotations = annotations[cur_img_name]["annotations"].length;
     let image_status_options;
     if (cur_status === "completed") {
         if (num_annotations > 0) {
@@ -167,7 +152,7 @@ $(document).ready(function() {
     console.log("data", data);
 
     metadata = data["metadata"];
-    image_set_data = data["image_set_data"];
+    //image_set_data = data["image_set_data"];
     dzi_image_paths = data["dzi_image_paths"];
     annotations = data["annotations"];
 
@@ -177,9 +162,7 @@ $(document).ready(function() {
                               metadata["mission_date"]);
 
     create_image_set_table();
-    if (annotations == null) {
-        initialize_annotations_record();
-    }
+
     /*
     $("#farm_name_entry").text(metadata["farm_name"]);
     $("#field_name_entry").text(metadata["field_name"]);
@@ -219,7 +202,7 @@ $(document).ready(function() {
         set_image_status_combo();
 
 
-        for (annotation of annotations[cur_img_name]) {
+        for (annotation of annotations[cur_img_name]["annotations"]) {
             anno.addAnnotation(annotation);
         }
         //update_overlays();
@@ -239,7 +222,7 @@ $(document).ready(function() {
         console.log(annotation);
         console.log('Created!');
 
-        annotations[cur_img_name] = anno.getAnnotations();
+        annotations[cur_img_name]["annotations"] = anno.getAnnotations();
 
         update_image_status();
         set_image_status_combo();
@@ -313,12 +296,12 @@ $(document).ready(function() {
         await anno.updateSelected(annotation);
         anno.saveSelected();
 
-        annotations[cur_img_name] = anno.getAnnotations();
+        annotations[cur_img_name]["annotations"] = anno.getAnnotations();
         $("#save_icon").css("color", "#ed452b");
 
         anno.clearAnnotations();
 
-        for (annotation of annotations[cur_img_name]) {
+        for (annotation of annotations[cur_img_name]["annotations"]) {
             anno.addAnnotation(annotation);
         }
     });
@@ -367,7 +350,7 @@ $(document).ready(function() {
         $.post($(location).attr('href'),
         {
             annotations: JSON.stringify(annotations),
-            image_set_data: JSON.stringify(image_set_data)
+            //image_set_data: JSON.stringify(image_set_data)
         },
         
         function(response, status) {
@@ -393,10 +376,11 @@ $(document).ready(function() {
             let selected = anno.getSelected();
             anno.removeAnnotation(selected);
 
-            annotations[cur_img_name] = anno.getAnnotations();
+            annotations[cur_img_name]["annotations"] = anno.getAnnotations();
             update_image_status();
             set_image_status_combo();
             create_image_set_table();
+            $("#save_icon").css("color", "#ed452b");
 
         }
 
@@ -405,7 +389,7 @@ $(document).ready(function() {
 
     $("#status_combo").change(function() {
 
-        image_set_data["images"][cur_img_name]["status"] = $("#status_combo").val();
+        annotations[cur_img_name]["status"] = $("#status_combo").val();
         set_image_status_combo();
         $("#save_icon").css("color", "#ed452b");
         create_image_set_table();
@@ -414,5 +398,14 @@ $(document).ready(function() {
     $(window).resize(function() {
         update_containers();
     });*/
+
+    $("#help_button").click(function() {
+        show_help_modal();
+    })
+
+    $("#help_modal_close").click(function() {
+        close_help_modal();
+    });
+
 
 });

@@ -1,4 +1,7 @@
 
+let dropzone_handler;
+let errors = [];
+
 function clear_form() {
     $("#farm_input").val("");
     $("#field_input").val("");
@@ -18,7 +21,7 @@ function disable_input() {
 
     for (button of buttons) {
         $(button).prop('disabled', true);
-        $(button).removeClass("std-button-hover");
+        $(button).removeClass("table_button_hover");
         $(button).css("opacity", 0.5);
         $(button).css("cursor", "default");
     }
@@ -40,7 +43,7 @@ function disable_submit() {
 
     for (button of buttons) {
         $(button).prop('disabled', true);
-        $(button).removeClass("std-button-hover");
+        $(button).removeClass("table_button_hover");
         $(button).css("opacity", 0.5);
         $(button).css("cursor", "default");
     }
@@ -54,7 +57,7 @@ function enable_input() {
 
     for (button of buttons) {
         $(button).prop('disabled', false);
-        $(button).addClass("std-button-hover");
+        $(button).addClass("table_button_hover");
         $(button).css("opacity", 1);
         $(button).css("cursor", "pointer");
     }
@@ -78,7 +81,7 @@ function enable_submit() {
 
     for (button of buttons) {
         $(button).prop('disabled', false);
-        $(button).addClass("std-button-hover");
+        $(button).addClass("table_button_hover");
         $(button).css("opacity", 1);
         $(button).css("cursor", "pointer");
     }
@@ -105,54 +108,42 @@ function update_submit() {
         disable_submit();
     }
 }
-//const { Dropzone } = require("dropzone");
 
 
-function update_containers() {
-    let width = $(window).width();
-    if (width < 1000) {
-        $("#home_container").removeClass("grid-container-2");
-        $("#home_container").addClass("grid-container-1");
-    }
-    else {
-        $("#home_container").removeClass("grid-container-1");
-        $("#home_container").addClass("grid-container-2");     
-    }
-}
 
-let dropzone_handler;
-let errors = [];
+function show_upload() {
+    $("#main_area").empty();
 
-$(document).ready(function() {
+    $("#main_area").append(`<form id="upload_form" action=""></form>`)
+    $("#upload_form").append(`<br>`);
 
-    update_containers();
+    $("#upload_form").append(`<div class="row"></div>`);
+    $("#upload_form").append(`<div class="col_left"><div class="col_label">Farm Name:</div></div>`);
+    $("#upload_form").append(`<div class="col_right"><input id="farm_input" class="nonfixed_input"></input></div>`);
 
+    $("#upload_form").append(`<div class="row"></div>`);
+    $("#upload_form").append(`<div class="col_left"><div class="col_label">Field Name:</div></div>`);
+    $("#upload_form").append(`<div class="col_right"><input id="field_input" class="nonfixed_input"></input></div>`);
+
+    $("#upload_form").append(`<div class="row"></div>`);
+    $("#upload_form").append(`<div class="col_left"><div class="col_label">Mission Date:</div></div>`);
+    $("#upload_form").append(`<div class="col_right"><input id="mission_input" class="nonfixed_input"></input></div>`);
+    
+    $("#upload_form").append(`<br>`);
+    $("#upload_form").append(`<br>`);
+    $("#upload_form").append(`<br>`);
+
+    $("#upload_form").append(`<hr style="margin: 0px 0px">`);
+    $("#upload_form").append(`<div id="file-drop" class="dropzone"></div>`);
+    $("#file-drop").append(`<div class="dz-message data-dz-message"><span>Drop Images Here</span></div>`);
+    
+    $("#upload_form").append(`<hr>`);
+    $("#upload_form").append(`<button id="upload_button" class="table_button" type="submit" style="width: 200px"><span>Upload</span></button>`);
+
+
+    $("#file-drop").append(`<div id="upload_loader" class="loader"></div>`);
     disable_submit();
     $("#upload_loader").hide();
-    //$("#file_drop").dropzone({ 
-    /*
-    dropzone_handler = new Dropzone("#file_drop",
-    {
-        url: "/plant_detection/upload_images",
-        //acceptedFiles: [".png", ".PNG", ".jpg", ".JPG"],
-        autoProcessQueue: false,
-        addRemoveLinks: true
-    });
-
-    //let myDropzone = Dropzone("#my-element", {  options  });
-    dropzone_handler.on("addedfile", file => {
-      console.log("A file has been added");
-    });*/
-    /*
-    let myDropzone = new Dropzone("#my-form");
-    */
-    /*
-    $("#file_drop").on("addedfile", file => {
-        console.log(`file added: ${file.name}`);
-    });*/
-
-
-    //$("#submit_button").click(function(e) {
 
     dropzone_handler = new Dropzone("#file-drop", { 
         url: "/plant_detection/upload",
@@ -181,10 +172,19 @@ $(document).ready(function() {
             console.log("All done!");
             $("#modal_header_text").html("Success!");
             $("#modal_message").html("Your image set was successfully uploaded!" +
-                                     "<br>The image set should now appear on the Home page.");
+                                     "<br>The image set should now appear in the <i>Browse</i> tab.");
             $("#result_modal").css("display", "block");
-
-            //$("#upload_message").html("Success!");
+            console.log($("#farm_input").val());
+            let uploaded_farm = $("#farm_input").val();
+            let uploaded_field = $("#field_input").val();
+            let uploaded_mission = $("#mission_input").val();
+            if (!(uploaded_farm in image_sets_data)) {
+                image_sets_data[uploaded_farm] = {};
+            }
+            if (!(uploaded_field in image_sets_data[uploaded_farm])) {
+                image_sets_data[uploaded_farm][uploaded_field] = {};
+            }
+            image_sets_data[uploaded_farm][uploaded_field][uploaded_mission] = [];
         }
         clear_form();
         enable_input();
@@ -197,30 +197,6 @@ $(document).ready(function() {
         console.log("response.code", response.code);
         console.log("file", file);
         dropzone_handler.removeFile(file);
-
-
-
-        /*
-        if (response == 422) {
-            console.log(response.error);
-        }*/
-/*
-      if(response.code == 501){ // succeeded
-        return file.previewElement.classList.add("dz-success"); // from source
-      }else if (response.code == 403){  //  error
-        // below is from the source code too
-        var node, _i, _len, _ref, _results;
-        var message = response.msg // modify it to your error message
-        file.previewElement.classList.add("dz-error");
-        _ref = file.previewElement.querySelectorAll("[data-dz-errormessage]");
-        _results = [];
-        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-          node = _ref[_i];
-          _results.push(node.textContent = message);
-        }
-        return _results;
-      }*/
-
     });
 
     dropzone_handler.on("error", function(files, response) {
@@ -238,10 +214,6 @@ $(document).ready(function() {
     dropzone_handler.on("addedfile", function() {
         console.log("added file!");
         $("form").change();
-        /*
-        if (form_is_complete()) {
-            enable_input();
-        }*/
     });
 
     dropzone_handler.on('sending', function(file, xhr, formData) {
@@ -249,6 +221,7 @@ $(document).ready(function() {
         formData.append('field_name', $("#field_input").val());
         formData.append('mission_date', $("#mission_input").val());
     });
+
 
     $("#upload_button").click(function(e) {
         e.preventDefault();
@@ -259,53 +232,6 @@ $(document).ready(function() {
 
         dropzone_handler.processQueue();
     });
-
-
-    /*
-    Dropzone.options.fileDrop = {
-        url: "/plant_detection/upload_images",
-        autoProcessQueue: false,
-        paramName: function(n) { return 'source_file[]'; },
-        uploadMultiple: true,
-        parallelUploads: 4,
-
-        init: function() {
-            var myDropzone = this;
-            this.on("completemultiple", function(files, response) {
-                console.log("complete!");
-            });
-
-            this.on("addedfile", function() {
-                console.log("added file!");
-                enable_input();
-            });
-
-            $("#upload_button").click(function(e) {
-                console.log("now uploading!");
-
-                e.preventDefault();
-                e.stopPropagation();
-
-                myDropzone.processQueue();
-            })
-        }
-    }*/
-
-/*
-    dropzone_handler = new Dropzone("#file-drop",
-    {
-        url: "/plant_detection/upload_images",
-    });*/
-
-
-    /*
-    $("#upload_form").submit(function(e) {
-        e.preventDefault();
-        console.log("now submitting");
-
-        dropzone_handler.processQueue();
-    });*/
-
 
     $("#farm_input").on("input", function(e) {
         update_submit();
@@ -319,7 +245,8 @@ $(document).ready(function() {
         update_submit();
     });
 
-    $("form").change(function() {
+    $("#upload_form").change(function() {
+        console.log("updating submit");
         update_submit();
     });
 
@@ -327,9 +254,4 @@ $(document).ready(function() {
         console.log("closing modal");
         close_modal();
     });
-
-    $(window).resize(function() {
-        update_containers();
-    });
-
-});
+}

@@ -8,10 +8,9 @@ html
         link(href='/plant_detection/stylesheets/main.css' rel='stylesheet')
         
         script(src="https://code.jquery.com/jquery-3.6.0.js")
-        
+
         script(type='text/javascript' src='/plant_detection/javascripts/results.js')
         script(type='text/javascript' src='/plant_detection/javascripts/common.js')
-
 
     body
         div(id="container")
@@ -23,64 +22,43 @@ html
                     
                 h(class="header2" style="font-size:26px") Results
 
+                
                 hr
 
-                div(id="results_container")
-                    div(class="half-round-item-1" id="left_panel" style="height: 670px; overflow-y: auto")
 
-                        h(class="header2" style="font-size: 26px; text-align: center;") View Configuration       
+                div(id="home_container")
+                    div(class="panel" style="max-width: 1100px")
 
-                        table(class="transparent_table")
-                            tr
-                                td(class="table_head") Display:
-                                td(style="text-align: center;")
-                                    div(id="display_select" style="display: inline-block; width: 100%;")
-                                        div(style="float: left; margin-left: 60px")
-                                            input(type="radio" class="radio_input" id="display_models" name="display_radio" value="display_models" checked)
-                                            label(class="radio_label" for="display_models") Models
-                                        div(style="float: right; margin-right: 60px")
-                                            input(type="radio" class="radio_input" id="display_system_groups" name="display_radio" value="display_system_groups")
-                                            label(class="radio_label" for="display_system_groups") Groups
-                            tr
-                                td(class="table_head") Farm Name:
-                                td
-                                    select(id="farm_combo" class="dropdown")
-                            tr
-                                td(class="table_head") Field Name:
-                                td
-                                    select(id="field_combo" class="dropdown")        
-                            tr
-                                td(class="table_head") Mission Date:
-                                td
-                                    select(id="mission_combo" class="dropdown")
-                            tr
-                                td(class="table_head") Inference Dataset:
-                                td
-                                    select(id="dataset_combo" class="dropdown")
-                            tr
-                                td(id="sort_combo_label" class="table_head") Sort Method:
-                                td
-                                    select(id="sort_combo" class="dropdown")
+                        h(class="header2" style="font-size: 26px; text-align: center;") Image Sets
+
+                        div(class="content" style="display:block")
+
+                            div(class="row")
+                                div(class="col_left")
+                                    div(class="col_label") Farm Name:
+                                div(class="col_right")
+                                    select(id="farm_combo" class="nonfixed_dropdown")
 
 
-                        div
-                            div(class="scrollable_padded_area")
-                                table(id="display_names")
+                            div(class="row")
+                                div(class="col_left")
+                                    div(class="col_label") Field Name:
+                                div(class="col_right")
+                                    select(id="field_combo" class="nonfixed_dropdown")
 
+
+                            div(class="row")
+                                div(class="col_left")
+                                    div(class="col_label") Mission Date:
+                                div(class="col_right")
+                                    select(id="mission_combo" class="nonfixed_dropdown")
+
+                            br
                             hr
-
-                            button(id="submit_button" class="std-button" style="width: 75%")
-                                span View Predictions
-
-                            p(id="submit_error_message" align="center")
-
-
-
-                    div(class="half-round-item-2" id="right_panel" style="height: 670px; overflow-y: auto")
-
-
-
-
+                            br
+                            div(class="scrollable_area" style="height: 390px; border:none")
+                                table(id="image_set_table")
+                            //div(id="image_set_details" style="display:block; height: 300px")
 
     script.
-        let user_data = !{JSON.stringify(user_data)};
+        let results_data = !{JSON.stringify(results_data)};

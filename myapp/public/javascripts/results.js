@@ -1,593 +1,59 @@
 
-function disable_input() {
 
-    let buttons = ["#submit_button"];
-
-    for (button of buttons) {
-        $(button).prop('disabled', true);
-        $(button).removeClass("std-button-hover");
-        $(button).css("opacity", 0.5);
-        $(button).css("cursor", "default");
-    }
-
-}
-
-function enable_input() {
-
-    let buttons = ["#submit_button"];
-
-    for (button of buttons) {
-        $(button).prop('disabled', false);
-        $(button).addClass("std-button-hover");
-        $(button).css("opacity", 1);
-        $(button).css("cursor", "pointer");
-    }
-
-}
-
-function show_group_details(group_uuid) {
-
-
-    let group_url = "/plant_detection/usr/data/groups/" + group_uuid + ".json";
-    
-    let group_config = get_config(group_url);
-    let group_config_str = JSON.stringify(group_config, null, 4);
-
-    let group_name = group_config["group_name"];
-
-    $("#right_panel").empty();
-
-    let config_area_height = "590px";
-    
-    $("#right_panel").append(`<div id="details_title"></div>`);
-    $("#right_panel").append(`<div id="configurations" class="scrollable_padded_area" ` +
-                                  `style="height: ${config_area_height}";"></div>`);
-
-
-    $("#details_title").append(
-        `<h class="header2" style="font-size: 22px; text-align: center; word-wrap: break-word; color: white">` +
-        `${group_name}</h>`);            
-
-    $("#configurations").append(
-        `<div class="config_head">GROUP CONFIGURATION</div>`+
-        `<div class="config_content"><pre>${group_config_str}</pre></div>`);
-}
 
 function show_image_set_details() {
-
-    console.log("showing image set details")
     let farm_name = $("#farm_combo").val();
     let field_name = $("#field_combo").val();
     let mission_date = $("#mission_combo").val();
 
-    let img_set_url = "/plant_detection/usr/data/image_sets/" + 
-                        farm_name + "/" + field_name + "/" + mission_date + "/" +
-                        "image_set_config.json";
-    cur_img_set_config = get_config(img_set_url);
+    console.log("found groups", results_data[farm_name][field_name][mission_date]);
 
-    let image_set_name = farm_name + "  |  " + field_name + "  |  " + mission_date;
+    let group_col_width = "300px";
+    let started_col_width = "100px";
+    let finished_col_width = "100px";
 
-    $("#right_panel").empty()
-
-    $("#right_panel").append(`<div><h class="header2" `+
-                           `style="font-size: 22px; text-align: center; white-space: pre-wrap; color: white">`+
-                           `${image_set_name}</h></div>`);
-    $("#right_panel").append(`<div id="img_set_config" class="scrollable_padded_area" style="height: 390px";"></div>`);
-
+    $("#image_set_table").empty();
+    $("#image_set_table").append(`<tr>` +
+            `<th><div class="table_header" style="width: ${group_col_width};">Groups</div></th>` +
+            `<th><div class="table_header" style="width: ${started_col_width};">Started</div></th>` +
+            `<th><div class="table_header" style="width: ${finished_col_width};">Finished</div></th>` +
+            `<tr>`);
+    for (const group_uuid of results_data[farm_name][field_name][mission_date]) {
+        let group_url = "/plant_detection/usr/data/groups/" + group_uuid + ".json";
     
-    $("#img_set_config").append(`<div><h class="header2" `+
-                               `style="font-size: 22px; text-align: center; word-wrap: break-word; color: white">`+
-                               `Metadata</h></div>`);
-    $("#img_set_config").append(`<br>`);
-    $("#img_set_config").append(`<table id="img_set_metadata_table"></table>`);
+        let group_config = get_config(group_url);
+        let group_config_str = JSON.stringify(group_config, null, 4);
 
+        let group_name = group_config["group_name"];
+        let start_time = group_config["start_time"];
+        let end_time = group_config["end_time"];
+        $("#image_set_table").append(`<tr>` +
+        `<td><div class="table_button table_button_hover"` +
+             `onclick="view_group('${group_uuid}')">${group_name}</div></td>` +
+             `<td><div class="table_entry">${start_time}</div></td>` +   
+             `<td><div class="table_entry">${end_time}</div></td>` +             
+        //`<td><div>${extensionless_name}</div></td>` +
+        //`<td><div class="table_entry">${image_status}</div></td>` +
+        //`<td><div class="table_entry">${img_dataset}</div></td>` +
+        `</tr>`);
 
-    let field_col_width = "265px";
-    let val_col_width = "225px";
-
-
-    let fields = ["Number of Images", "Number of Annotated Images", "Number of Classes"];
-    let vals = [cur_img_set_config["num_images"], cur_img_set_config["num_annotated_images"], 
-                Object.keys(cur_img_set_config["class_map"]).length];
-
-    let max_width_fields = get_max_name_width(fields, "16px arial") + "px";
-    let max_width_vals = get_max_name_width(vals, "16px arial") + "px";
-    for (let i = 0; i < fields.length; i++) {
-        $("#img_set_metadata_table").append(`<tr>` +
-            `<td style="width: ${field_col_width}">` +
-                `<div style="width: ${max_width_fields}; margin: 0 auto; text-align: left">${fields[i]}</div></td>`+
-            `<td style="width: ${val_col_width}">` +
-                `<div style="width: ${max_width_vals}; margin: 0 auto; text-align: right">${vals[i]}</div></td>`+
-            `</tr>`);
-    }
-
-    /*
-    $("#img_set_config").append(`<div id="img_set_metadata" style="padding-left: 50px; text-align: left"></div>`);
-    $("#img_set_metadata").append(`<div>Number of Images: ${cur_img_set_config["num_images"]}</div>`);
-    $("#img_set_metadata").append(`<div>Classes: ${Object.keys(cur_img_set_config["class_map"])}</div>`);*/
-    $("#img_set_config").append(`<br><hr><br>`);
-
-    $("#img_set_config").append(`<div><h class="header2" `+
-                               `style="font-size: 22px; text-align: center; word-wrap: break-word; color: white">`+
-                               `Annotation Breakdown</h></div>`);
-    $("#img_set_config").append(`<br>`);
-    $("#img_set_config").append(`<table id="img_set_table"></table>`);
-/*
-         class="transparent_table" style="float: left;">` +
-                             `<tr>`+
-                                `<td class="table_head">All:</td>`+
-                                `<td class="table_text" id="img_set_all_boxes"></td></tr>` +
-                             `<tr>`+
-                                `<td class="table_head">Training:</td>`+
-                                `<td class="table_text" id="img_set_training_boxes"></td></tr>` +
-                             `<tr>`+
-                                `<td class="table_head">Validation:</td>`+
-                                `<td class="table_text" id="img_set_validation_boxes"></td></tr>` +
-                             `<tr>`+
-                                `<td class="table_head">Test:</td>`+
-                                `<td class="table_text" id="img_set_test_boxes"></td></tr>` +
-                                `</table>`);*/
-    /*
-    table(class="transparent_table" style="float: left;")
-                            tr
-                                td(class="table_head") Farm Name:
-                                td(class="table_text" id="farm_name_entry")*/
-
-
-    let dataset_name_col_width = "140px";
-    let img_count_col_width = "100px";
-    let box_count_col_width = "250px";
-
-    let class_combo_width = get_max_name_width(Object.keys(cur_img_set_config["class_map"]), "16px arial") + 30 + "px";
-    $("#img_set_table").append(`<tr>` +
-            `<th><div class="table_header" style="width: ${dataset_name_col_width};">Dataset Name</div></th>` +
-            `<th><div class="table_header" style="width: ${img_count_col_width}">Images</div></th>` +
-            `<th><div class="table_header" style="width: ${box_count_col_width}">` +
-                `<select class="dropdown" id="box_count_combo" onchange="update_box_counts()"` +
-                `style="width: ${class_combo_width}; margin: 0px 10px; padding: 0px 0px"><select> Boxes`+
-                `</div></th>` +
-            `</tr>`);
-
-
-    /*
-    let dataset_tuples = [
-                             
-                            ["training", cur_img_set_config["num_training_images"]], 
-                            ["validation", cur_img_set_config["num_validation_images"]], 
-                            ["test", cur_img_set_config["num_test_images"]],
-                            ["total", cur_img_set_config["num_annotated_images"]],
-                         ];
-    */
-   
-    let dataset_name;
-    let dataset_img_count;
-    let box_count_id;
-    let dataset_names = ["training", "validation", "test", "total"];
-    let max_width_dataset_name = get_max_name_width(dataset_names, "bold 16px arial") + "px";
-    let img_counts = [cur_img_set_config["num_training_images"],
-                      cur_img_set_config["num_validation_images"],
-                      cur_img_set_config["num_test_images"],
-                      cur_img_set_config["num_annotated_images"]];
-    let max_width_img_count = get_max_name_width(img_counts, "bold 16px arial") + "px";
-
-    let dataset_name_style;
-    let img_count_style;
-    let box_count_style;
-    for (let i = 0; i < dataset_names.length; i++) {
-        dataset_name = dataset_names[i];
-        dataset_img_count = img_counts[i];
-        box_count_id = dataset_name + "_box_count";
-        dataset_name_style = "width: " + max_width_dataset_name + "; margin: 0 auto; text-align: left;";
-        img_count_style = "width: " + max_width_img_count + "; margin: 0 auto; text-align: right;";
-        box_count_style = "margin: 0 auto; text-align: right;";
-
-        if (i == dataset_names.length - 1) {
-            dataset_name_style = dataset_name_style + " font-weight: bold";
-            img_count_style = img_count_style + " font-weight: bold";
-            box_count_style = box_count_style + " font-weight: bold";
-        }
-        $("#img_set_table").append(`<tr>` +
-            `<td><div style="${dataset_name_style}">${dataset_name}</div></td>` +
-            `<td><div style="${img_count_style}">${dataset_img_count}</div></td>` +
-            `<td><div style="${box_count_style}" id=${box_count_id}></div></td>` +
-            `</tr>`);
-         /*       
-        $("#img_set_table").append(`<tr>` +
-            `<td><div style="width: ${max_width_dataset_name}; margin: 0 auto; text-align: left">${dataset_name}</div></td>` +
-            `<td><div style="width: ${max_width_img_count}; margin: 0 auto; text-align: right">${dataset_img_count}</div></td>` +
-            `<td><div style="margin: 0 auto; text-align: right" id=${box_count_id}></div></td>` +
-            `</tr>`);*/
-    }
-
-    //console.log("image_set_config", image_set_config);
-    /*
-    let training_image_names = [];
-    for (image_path of image_set_config["training_image_paths"]) {
-        training_image_names.push(basename(image_path));
-    }*/
-    //let training_images = image_set_config["training_image_paths"];
-    //console.log("training_images", training_images);
-    //$("#img_set_training_info").html(image_set_config["training_image_paths"].length);
-
-    //$("#")
-
-
-
-    //$("#img_set_training_info").html(image_set_config["validation_image_paths"].length);
-    for (class_name of Object.keys(cur_img_set_config["class_map"])) {
-        $("#box_count_combo").append($('<option>', {
-            value: class_name,
-            text: class_name
-        }));
-    }
-    //$("#box_count_combo").change();
-    $("#box_count_combo").val(Object.keys(cur_img_set_config["class_map"])[0]).change();
-}
-
-function update_box_counts() {
-    console.log("UPDATE!");
-    let selected_class = $("#box_count_combo").val();
-    let dataset_names = ["training", "validation", "test", "total"];
-    
-    let box_counts = [
-        cur_img_set_config["box_counts"]["training"][selected_class],
-        cur_img_set_config["box_counts"]["validation"][selected_class],
-        cur_img_set_config["box_counts"]["test"][selected_class],
-        cur_img_set_config["box_counts"]["all"][selected_class]
-    ];
-    let max_width_box_count = get_max_name_width(box_counts, "bold 16px arial") + "px";
-
-    let box_count_div_id;
-    for (let i = 0; i < dataset_names.length; i++) {
-        box_count_div_id = dataset_names[i] + "_box_count";
-        $("#" + box_count_div_id).css("width", max_width_box_count);
-        $("#" + box_count_div_id).html(box_counts[i]);
-
-    }
-/*
-    cur_img_set_config["box_counts"]["training"][selected_class]);
-    $("#validation_box_count").html(cur_img_set_config["box_counts"]["validation"][selected_class]);
-    $("#test_box_count").html(cur_img_set_config["box_counts"]["test"][selected_class]);
-    $("#total_box_count").html(cur_img_set_config["box_counts"]["all"][selected_class]);*/
-}
-
-function show_model_config(model_uuid) {
-
-
-    $("#right_panel").empty();
-    $("#right_panel").append(`<div id="config_title"></div>`);
-    $("#right_panel").append(`<div id="configurations" class="scrollable_padded_area" style="height: 590px";"></div>`);
-
-    let arch_url = "/plant_detection/usr/data/models/" + model_uuid + "/arch_config.json";
-    let train_url = "/plant_detection/usr/data/models/" + model_uuid + "/training_config.json";
-    let inference_url = "/plant_detection/usr/data/models/" + model_uuid + "/inference_config.json";
-
-    let arch_config = get_config(arch_url);
-    let train_config = get_config(train_url);
-    let inference_config = get_config(inference_url)
-
-    let arch_config_str =  JSON.stringify(arch_config, null, 4);
-    let train_config_str = JSON.stringify(train_config, null, 4);
-    let inference_config_str = JSON.stringify(inference_config, null, 4);
-
-    let model_name = arch_config["model_name"];
-
-
-    $("#config_title").append(
-        `<h class="header2" style="font-size: 22px; text-align: center; word-wrap: break-word; color: white">` +
-        `${model_name}</h>`);
-
-    $("#configurations").append(
-        `<div class="config_head">ARCHITECTURE CONFIGURATION</div>`+
-        `<div class="config_content"><pre>${arch_config_str}</pre></div>`);
-    $("#configurations").append(
-        `<div class="config_head"">TRAINING CONFIGURATION</div>`+
-        `<div class="config_content"><pre>${train_config_str}</pre></div>`);
-    $("#configurations").append(
-        `<div class="config_head">INFERENCE CONFIGURATION</div>`+
-        `<div class="config_content"><pre>${inference_config_str}</pre></div>`);
-}
-
-
-function update_containers() {
-    let width = $(window).width();
-    if (width < 1000) {
-        $("#results_container").removeClass("grid-container-2");
-        $("#results_container").addClass("grid-container-1");
-    }
-    else {
-        $("#results_container").removeClass("grid-container-1");
-        $("#results_container").addClass("grid-container-2");     
     }
 }
 
-function get_config(url) {
-    let config;
-    $.ajax({
-        url: url,
-        async: false,
-        dataType: 'json',
-        success: function (r_config) {
-            config = r_config;
-        }
-    });
-    return config;
-}
+function view_group(group_uuid) {
+    console.log("request to view group", group_uuid);
 
-function add_model_sorting_options() {
-
-    let sorting_options = ["Lexicographic",
-                           "Image Mean Abs. Diff. in Count (Asc.)",
-                           "Image Mean Sq. Diff. in Count (Asc.)",
-                           "Image R Squared (Desc.)",
-                           "Image PASCAL VOC mAP (Desc.)",
-                           "Image MS COCO mAP (Desc.)",
-                           "Patch Mean Abs. Diff. in Count (Asc.)",
-                           "Patch Mean Sq. Diff. in Count (Asc.)",
-                           "Patch R Squared (Desc.)",
-                           "Total Inference Time (s) (Asc.)",
-                           "Per-Image Inference Time (s) (Asc.)",
-                           "Per-Patch Inference Time (s) (Asc.)"];
-
-    for (sorting_option of sorting_options) {
-        $("#sort_combo").append($('<option>', {
-            value: sorting_option,
-            text: sorting_option
-        }));
-    }
-    $("#sort_combo").val(sorting_options[0]).change();
-}
-
-
-function add_group_sorting_options() {
-
-    let sorting_options = ["Lexicographic"];
-
-    for (sorting_option of sorting_options) {
-        $("#sort_combo").append($('<option>', {
-            value: sorting_option,
-            text: sorting_option
-        }));
-    }
-    $("#sort_combo").val(sorting_options[0]).change();
-}
-
-
-function display_group_names() {
-
-    let farm_name = $("#farm_combo").val();
-    let field_name = $("#field_combo").val();
-    let mission_date = $("#mission_combo").val();
-    let dataset_name = $("#dataset_combo").val();
-    let sort_method = $("#sort_combo").val();
-
-
-    let displayed_groups = [];
-    let found_uuids = [];
-    let group_uuid;
-    let group_name;
-    let d = user_data[farm_name][field_name][mission_date][dataset_name];
-    for (model_uuid of Object.keys(d)) {
-        group_uuid = d[model_uuid]["group_uuid"];
-        group_name = d[model_uuid]["group_name"];
-        if (!(found_uuids.includes(group_uuid))) {
-            found_uuids.push(group_uuid)
-            displayed_groups.push([group_uuid, group_name]);
-        }
-    }
-
-    if (displayed_groups.length == 0) {
-        $("#display_names").append(`<tr>` +
-                                  `<th><div class="table_header">No Groups Found</div></th>`+
-                                  `</tr>`)
-    }
-    else {
-        let sorted_uuids;
-        let sorted_names;
-        if (sort_method === "Lexicographic") {
-
-            displayed_groups.sort(function(first, second) {
-                if (first[1] < second[1]) return -1;
-                if (first[1] > second[1]) return 1;
-                return 0;
-            });
-            sorted_uuids = displayed_groups.map(function(tup) {
-                return tup[0];
-            });
-            sorted_names = displayed_groups.map(function(tup) {
-                return tup[1];
-            });
-        }
-        else {
-            // TODO
-        }
-
-
-        let title_width = Math.round(get_text_width("Group Name", "bold 16px arial"));
-        let max_name_width = get_max_name_width(sorted_names, "16px arial");
-        let name_col_width = Math.max(title_width, max_name_width) + 30 + "px";
-
-        $("#display_names").append(`<tr>` +
-            `<th><div class="table_header" style="text-align:center; width: ${name_col_width}">Group Name</div></th>` +
-            `</tr>`);
-
-        for (let i = 0; i < sorted_uuids.length; i++) {
-            let group_uuid = sorted_uuids[i];
-            let group_name = sorted_names[i];
-
-            $("#display_names").append(`<tr>`+
-                    `<td><div class="table_entry" style="text-align: left; width: ${name_col_width}"><label style="cursor: pointer">` +
-                    `<input type="radio" class="cur_display_names" name="display_groups" value="${group_uuid}">` +
-                    `   ${group_name}</label></div></td>`+
-                    `</tr>`);
-        }
-    }
-}
-
-function display_model_names() {
-
-    let farm_name = $("#farm_combo").val();
-    let field_name = $("#field_combo").val();
-    let mission_date = $("#mission_combo").val();
-    let dataset_name = $("#dataset_combo").val();
-    let sort_method = $("#sort_combo").val();
-
-    let key_lookup = {
-        "Image Mean Abs. Diff. in Count (Asc.)": ["Image Mean Abs. Diff. in Count", "Cross-Class Weighted Average", 2],
-        "Image Mean Sq. Diff. in Count (Asc.)": ["Image Mean Sq. Diff. in Count", "Cross-Class Weighted Average", 2],
-        "Image R Squared (Desc.)": ["Image R Squared", "Cross-Class Weighted Average", 2],
-        "Image PASCAL VOC mAP (Desc.)": ["Image PASCAL VOC mAP", "---", 2],
-        "Image MS COCO mAP (Desc.)": ["Image MS COCO mAP", "---", 2],
-        "Patch Mean Abs. Diff. in Count (Asc.)": ["Patch Mean Abs. Diff. in Count", "Cross-Class Weighted Average", 2],
-        "Patch Mean Sq. Diff. in Count (Asc.)": ["Patch Mean Sq. Diff. in Count", "Cross-Class Weighted Average", 2],
-        "Patch R Squared (Desc.)": ["Patch R Squared", "Cross-Class Weighted Average", 2],
-        "Total Inference Time (s) (Asc.)": ["Total Inference Time (s)", "---", 2],
-        "Per-Image Inference Time (s) (Asc.)": ["Per-Image Inference Time (s)", "---", 2],
-        "Per-Patch Inference Time (s) (Asc.)": ["Per-Patch Inference Time (s)", "---", 6]
-    };
-
-    let models_dict = user_data[farm_name][field_name][mission_date][dataset_name];
-    let model_uuids = Object.keys(models_dict);
-
-    let sorted_uuids;
-    let sorted_names;
-    let sorted_vals;
-    if (sort_method === "Lexicographic") {
-        let items = model_uuids.map(function(model_uuid) {
-            return [model_uuid, models_dict[model_uuid]["model_name"]];
-        });
-        items.sort(function(first, second) {
-            if (first[1] < second[1]) return -1;
-            if (first[1] > second[1]) return 1;
-            return 0;
-        });
-        sorted_uuids = items.map(function(tup) {
-            return tup[0];
-        });
-        sorted_names = items.map(function(tup) {
-            return tup[1];
-        });
-    }
-    else {
-        let metric_dictname = key_lookup[sort_method][0];
-        let metric_cls_name = key_lookup[sort_method][1];
-        let val;
-        let unsortable_items = [];
-        let items = [];
-        for (model_uuid of model_uuids) {
-            if ((!(metric_dictname in models_dict[model_uuid]["metrics"])) || 
-                (!(metric_cls_name in models_dict[model_uuid]["metrics"][metric_dictname]))) {
-                unsortable_items.push([model_uuid, models_dict[model_uuid]["model_name"], " --- "]);
-            }
-            else {
-                val = models_dict[model_uuid]["metrics"][metric_dictname][metric_cls_name];
-
-                items.push([model_uuid,
-                            models_dict[model_uuid]["model_name"], 
-                            val]);
-            }
-        }
-
-        items.sort(function(first, second) {
-            return second[2] - first[2];
-        });
-
-        if (sort_method.substring(sort_method.length - 6) === "(Asc.)") {
-            items.reverse();
-        }
-
-        sorted_uuids = items.map(function(item) {
-            return item[0];
-        });
-        sorted_names = items.map(function(item) {
-            return item[1];
-        });
-        sorted_vals = items.map(function(item) {
-            let round = key_lookup[sort_method][2];
-            return (Math.round(item[2] * (10**round)) / (10**round)).toFixed(round);
-        });
-
-
-        unsortable_items.sort(function(first, second) {
-            if (first[1] < second[1]) return -1;
-            if (first[1] > second[1]) return 1;
-            return 0;
-        });
-        additional_sorted_uuids = unsortable_items.map(function(tup) {
-            return tup[0];
-        });
-        additional_sorted_names = unsortable_items.map(function(tup) {
-            return tup[1];
-        });
-        additional_sorted_vals = unsortable_items.map(function(tup) {
-            return tup[2];
-        });
-
-        sorted_uuids.push(...additional_sorted_uuids);
-        sorted_names.push(...additional_sorted_names);
-        sorted_vals.push(...additional_sorted_vals);
-
-    }
-
-    let title_width = Math.round(get_text_width("Model Name", "bold 16px arial"));
-    let max_name_width = get_max_name_width(sorted_names, "16px arial");
-    let name_col_width = Math.max(title_width, max_name_width) + 30 + "px";
-
-    let score_col_width = "130px";
-    let excel_col_width = "150px";
-
-    $("#display_names").append(`<tr>` +
-            `<th><div class="table_header" style="width: ${name_col_width}">Model Name</div></th>` +
-            `<th><div class="table_header" style="width: ${score_col_width}">Score</div></th>` +
-            `<th><div class="table_header" style="width: ${excel_col_width}">Download Counts</div></th>` +
-            `</tr>`);
-
-    for (let i = 0; i < sorted_uuids.length; i++) {
-        let model_uuid = sorted_uuids[i];
-        let model_name = sorted_names[i];
-        let val_div = `<td><div class="table_entry" style="width: ${score_col_width}">` + " --- " + `</div></td>`;
-        if (sort_method !== "Lexicographic") {
-            val_div = `<td><div class="table_entry" style="width: ${score_col_width}">` + sorted_vals[i] + `</div></td>`;
-        }
-        let download_path = "/plant_detection/usr/data/models/" + model_uuid + "/predictions/" + 
-                             models_dict[model_uuid]["prediction_dirname"] + "/results.xlsx";
-        $("#display_names").append(`<tr>`+
-                `<td><div class="table_entry" style="text-align: left; width: ${name_col_width}"><label style="cursor: pointer">` +
-                `<input type="checkbox" class="cur_display_names" value="${model_uuid}">` +
-                `   ${model_name}</label></td></div>`+
-                val_div + 
-                `<td><a class="table_button table_button_hover" href=${download_path}>` +
-                `<i class="fa fa-download fa-sm" aria-hidden="true"></i></a></td>` +
-                `</tr>`);
-    }
-}
-
-
-
-function view_system_group() {
-
-    let farm_name = $("#farm_combo").val();
-    let field_name = $("#field_combo").val();
-    let mission_date = $("#mission_combo").val();
-    let dataset_name = $("#dataset_combo").val();
-    let group_uuid;
-    $(".cur_display_names:checked").each(function(i, e) {
-        group_uuid = $(this).val();
-    });
 
     $.post($(location).attr('href'),
     {
-        action: "view_system_group",
+        farm_name: $("#farm_combo").val(),
+        field_name: $("#field_combo").val(),
+        mission_date: $("#mission_combo").val(),
         group_uuid: group_uuid,
-        farm_name: farm_name,
-        field_name: field_name,
-        mission_date: mission_date,
-        dataset_name: dataset_name
     },
     function(response, status) {
         if (response.error) { 
-            $("#submit_error_message").text(response.message);
-            $("#submit_error_message").show();
+            console.log("error occurred", response.error);
         }
         else {
             window.location.href = response.redirect;
@@ -595,115 +61,31 @@ function view_system_group() {
     });
 }
 
+$(document).ready(function() {
 
+    //update_containers();
 
-function view_user_group() {
-    let model_uuids = [];
-    let model_names = [];
-    let prediction_dirnames = [];
+    console.log("results_data", results_data);
 
-    let farm_name = $("#farm_combo").val();
-    let field_name = $("#field_combo").val();
-    let mission_date = $("#mission_combo").val();
-    let dataset_name = $("#dataset_combo").val();
-
-    let model_uuid;
-    let models_dict;
-    $(".cur_display_names:checked").each(function(i, e) {
-        model_uuid = $(this).val();
-        models_dict = user_data[farm_name][field_name][mission_date][dataset_name];
-        model_uuids.push(model_uuid);
-        model_names.push(models_dict[model_uuid]["model_name"]);
-        prediction_dirnames.push(models_dict[model_uuid]["prediction_dirname"]);
-    });
-
-    $.post($(location).attr('href'),
-    {
-        action: "view_user_group",
-        farm_name: farm_name,
-        field_name: field_name,
-        mission_date: mission_date,
-        dataset_name: dataset_name,
-        model_uuids: model_uuids.join(","),
-        model_names: model_names.join(","),
-        prediction_dirnames: prediction_dirnames.join(",")
-    },
-    
-    function(response, status) {
-
-        if (response.error) {        
-            $("#modal_error_message").text(response.message);
-            $("#modal_error_message").show();
-        }
-        else {
-            window.location.href = response.redirect;
-        }
-    });
-}
-
-
-let cur_checked_names = [];
-let cur_img_set_config = [];
-
-$(document).ready(function(){
-
-    disable_input();
-    update_containers();
-
-    for (const farm_name in user_data) {
+    for (const farm_name in results_data) {
         $("#farm_combo").append($('<option>', {
             value: farm_name,
             text: farm_name
         }));
     }
-
     $("#farm_combo").prop("selectedIndex", -1);
 
 
-    $("#display_select").change(function() {
-
-        let farm_name = $("#farm_combo").val();
-        let field_name = $("#field_combo").val();
-        let mission_date = $("#mission_combo").val();
-        let dataset_name = $("#dataset_combo").val();
-
-        $("#sort_combo").empty();
-        $("#display_names").empty();   
-        $("#right_panel").empty();
-        cur_checked_names = [];
-        disable_input();
-
-        if ((farm_name && field_name) && mission_date) {
-            show_image_set_details();
-            if (dataset_name) {
-                if ($("#display_models:checked").val()) {
-                    console.log("displaying model names");
-                    add_model_sorting_options();
-                    //display_model_names();
-                }
-                else {
-                    add_group_sorting_options();
-                    //display_group_names();                
-                }
-
-            }
-        }
-    });
-
     $("#farm_combo").change(function() {
+        console.log("farm combo changed");
 
         let farm_name = $(this).val();
 
         $("#field_combo").empty();
         $("#mission_combo").empty();
-        $("#dataset_combo").empty();
-        $("#sort_combo").empty();
-        $("#display_names").empty();
         $("#right_panel").empty();
-        cur_checked_names = [];
-        disable_input();
 
-        for (const field_name in user_data[farm_name]) {
+        for (const field_name in results_data[farm_name]) {
             $("#field_combo").append($('<option>', {
                 value: field_name,
                 text: field_name
@@ -718,14 +100,9 @@ $(document).ready(function(){
         let field_name = $(this).val();
 
         $("#mission_combo").empty();
-        $("#dataset_combo").empty();
-        $("#sort_combo").empty();
-        $("#display_names").empty();
         $("#right_panel").empty();
-        cur_checked_names = [];
-        disable_input();
 
-        for (const mission_date in user_data[farm_name][field_name]) {
+        for (const mission_date in results_data[farm_name][field_name]) {
             $("#mission_combo").append($('<option>', {
                 value: mission_date,
                 text: mission_date
@@ -734,125 +111,7 @@ $(document).ready(function(){
         $("#mission_combo").val($("#mission_combo:first").val()).change();
     });
 
-
     $("#mission_combo").change(function() {
-
-        let farm_name = $("#farm_combo").val();
-        let field_name = $("#field_combo").val();
-        let mission_name = $(this).val();
-
-        $("#dataset_combo").empty();
-        $("#sort_combo").empty();
-        $("#display_names").empty();
-        $("#right_panel").empty();
-        cur_checked_names = [];
-        disable_input();
-
-        //show_image_set_details();
-        for (const dataset_name in user_data[farm_name][field_name][mission_name]) {
-            $("#dataset_combo").append($('<option>', {
-                value: dataset_name,
-                text: dataset_name
-            }));
-        }
-        $("#dataset_combo").val($("#dataset_combo:first").val()).change();
-    });
-
-
-    $("#dataset_combo").change(function() {
-
-        let farm_name = $("#farm_combo").val();
-        let field_name = $("#field_combo").val();
-        let mission_date = $("#mission_combo").val();
-        let dataset_name = $(this).val();
-
-        $("#sort_combo").empty();
-        $("#display_names").empty();
-        $("#right_panel").empty();
-        cur_checked_names = [];
-        disable_input();
-
-        //show_image_set_details();
-        if ($("#display_models:checked").val()) {
-            add_model_sorting_options();
-            //display_model_names();
-        }
-        else {
-            add_group_sorting_options();
-            //display_group_names();
-        }
-    });
-
-    $("#sort_combo").change(function() {
-        $("#display_names").empty();
-        $("#right_panel").empty();
-        cur_checked_names = [];
-        disable_input();
-
-        console.log("sort combo change");
-
         show_image_set_details();
-        if ($("#display_models:checked").val()) {
-            display_model_names();
-        }
-        else {
-            display_group_names();
-        }
-    });
-
-    $("#display_names").change(function() {
-
-        $("#right_panel").empty();
-
-        let prev_checked_names = cur_checked_names;
-        cur_checked_names = [];
-        let newly_checked = null;
-        let name;
-
-        $(".cur_display_names:checked").each(function(i, e) {
-            name = $(this).val();
-            cur_checked_names.push(name);
-            if (!(prev_checked_names.includes(name))) {
-                newly_checked = name;
-            }
-        });
-
-        if (newly_checked !== null) {
-            if ($("#display_models:checked").val()) {
-                show_model_config(newly_checked);
-            }
-            else {
-                show_group_details(newly_checked);
-            }
-        }
-        else {
-            show_image_set_details();
-        }
-
-        if (cur_checked_names.length > 0) {
-            enable_input();
-        }
-        else {
-            //console.log("display names change");
-            
-            disable_input();
-        }
-    });
-
-
-
-    $("#submit_button").click(function(e) {
-
-        if ($("#display_models:checked").val()) {
-            view_user_group();
-        }
-        else {
-            view_system_group();
-        }
-    });
-
-
-    $(window).resize(function() {
-        update_containers();
     });
 });

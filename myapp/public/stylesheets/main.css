@@ -38,7 +38,9 @@ body {
 }
 
 
-
+a {
+  text-decoration: none;
+}
 
 ul {
    list-style-type: none;
@@ -64,6 +66,14 @@ hr {
   /*border-top: 1px solid white;*/
 }
 
+.title {
+  font-size: 26px;
+  font-family: "arial";
+  color: #ddccbb;
+  font-weight: 400;
+  display: block;
+  /*margin: 10px 0;*/
+}
 
 .header2 {
   font-size: 18px; 
@@ -118,7 +128,7 @@ hr {
 }
 
 
-.panel {
+.dep_panel {
   /*margin: auto;*/
   background-color: #2b3628; /*#172027;*/
   /*max-width: 450px;
@@ -130,6 +140,43 @@ hr {
   text-align: center;
 }
 
+
+.panel_center {
+  display: flex;
+  justify-content:  center;
+  align-items: center;
+  height: 800px;
+}
+
+.panel {
+  margin: 0 auto;
+  /*
+  background-color: #2b3628;
+  border: 1px solid white;
+  border-style: solid;
+  border-radius: 30px;
+  padding: 0px 30px;*/
+
+  /*
+  padding-top: 10px;
+  padding-bottom: 15px;
+  padding-right: 25px;
+  padding-left: 25px;  */
+  text-align: center;
+}
+
+.sign_in_panel {
+  margin: 0 auto;
+  background-color: #2b3628;
+  border: 1px solid white;
+  border-style: solid;
+  border-radius: 30px;
+
+  width: 310px; 
+  padding: 10px 20px;
+
+  text-align: center; 
+}
 
 #seadragon_viewer {
     /*
@@ -146,14 +193,15 @@ hr {
 .table_label {
    background-color: black;
    color: white;
-   border-radius: 50px;
+   border-radius: 4px;
    border: 1px solid white;
    /*padding: 8px 4px;*/
-   text-align: center;
+   text-align: left;
    display: inline-block;
    /*margin: 4px;*/
-   margin: 5px 0px;
-   padding: 10px 10px;
+   margin: 0px 0px;
+   /*padding: 10px 10px;*/
+   padding: 5px 10px;
    cursor: pointer;
 }
 
@@ -184,6 +232,7 @@ hr {
    /*margin: 5px 10px;*/
    margin: 0px 10px;
    padding: 5px 10px;
+
    /*
    margin: 0px 10px;
    padding: 5px;*/
@@ -350,10 +399,10 @@ tr:first-child{ ;}*/
 }
 
 
-
+/*
 a.nav {
   color: #eeddbb;
-}
+}*/
 
 /* Style navigation bar */
 ul.nav {
@@ -362,7 +411,8 @@ ul.nav {
   list-style-type: none;
   margin: 0;
   padding: 0;
-  background: #998866;
+  background: #2b3628;
+  /*background: #998866;*/
   overflow: hidden;
 }
 
@@ -383,13 +433,13 @@ li.nav a.nav {
 li.nav a.nav:hover {
   color: white;
   transition: 0.5s;
-  background-color:  #dfac36;
+  background-color:  #45633d;
   cursor:  pointer;
 }
 
 .tab-btn-active {
   color:  white;
-  background-color:  #dfac36;
+  background-color:  #45633d;
 }
 
 
@@ -478,10 +528,10 @@ input[type="color"]::-webkit-color-swatch {
   background-color: #222621;
   color:  white;
   padding: 2px 0px;
-  padding-left:  3px;
+  /*padding-left:  3px;*/
   font-size:  16px;
   border: 1px solid grey;
-  width:  89%;
+  width:  90%;
   margin: 2px 0px;
 }
 
@@ -717,11 +767,15 @@ textarea {
 }
 
 .content {
-  padding: 18px 18px;
+  padding: 0px; /*18px 18px;*/
   display: none;
   overflow: hidden;
   background-color: #222621;
+  
   border:  1px solid white;
+  /*
+  border-right:  1px solid white;*/
+  /*border-radius: 30px;*/
 
 }
 
@@ -735,7 +789,8 @@ textarea {
   float: left;
   width: 35%;
   text-align:  right;
-  margin-top: 2px;
+ /* margin-top: 2px;*/
+  margin: 4px 0px;
 }
 
 .col_right {
@@ -772,8 +827,10 @@ textarea {
 
 .dropzone {
   /*width: 100px;*/
-  height: 360px;
-  border: 1px solid white;
+  /*height: 390px;*/
+  height: 370px;
+  /*border-top: 1px solid white;*/
+  /*border-bottom: 1px solid white;*/
   /*border-style: dashed;*/
   min-height: 0px !important;
   overflow-y:  auto;
@@ -840,9 +897,6 @@ svg.a9s-annotationlayer .a9s-selection-mask {
 
 .a9s-annotationlayer .a9s-annotation .a9s-outer, 
 .a9s-annotationlayer .a9s-selection .a9s-outer {
-  /*
-  stroke-width:2px;
-  stroke:#000;  */
   display: none;
 }
 
@@ -869,6 +923,218 @@ svg.a9s-annotationlayer .a9s-selection-mask {
 .a9s-annotationlayer .a9s-annotation.editable .a9s-inner:hover {
   fill:transparent;
 }
+
+
+.a9s-annotationlayer .a9s-annotation.COLOR_0 .a9s-inner {
+  stroke:#0080C0 !important;
+}
+
+.a9s-annotationlayer .a9s-annotation.COLOR_0.editable.selected .a9s-inner,
+.a9s-annotationlayer .a9s-annotation.COLOR_0:hover .a9s-inner  {
+  stroke:#0080C0 !important;
+}
+
+
+.a9s-annotationlayer .a9s-annotation.COLOR_1 .a9s-inner {
+  stroke:#FF4040 !important;
+}
+
+.a9s-annotationlayer .a9s-annotation.COLOR_1.editable.selected .a9s-inner,
+.a9s-annotationlayer .a9s-annotation.COLOR_1:hover .a9s-inner  {
+  stroke:#FF4040 !important;
+}
+
+.a9s-annotationlayer .a9s-annotation.COLOR_2 .a9s-inner {
+  stroke:#FFC040 !important;
+}
+
+.a9s-annotationlayer .a9s-annotation.COLOR_2.editable.selected .a9s-inner,
+.a9s-annotationlayer .a9s-annotation.COLOR_2:hover .a9s-inner  {
+  stroke:#FFC040 !important;
+}
+
+
+.a9s-annotationlayer .a9s-annotation.COLOR_3 .a9s-inner {
+  stroke:#40C040 !important;
+}
+
+.a9s-annotationlayer .a9s-annotation.COLOR_3.editable.selected .a9s-inner,
+.a9s-annotationlayer .a9s-annotation.COLOR_3:hover .a9s-inner  {
+  stroke:#40C040 !important;
+}
+
+.a9s-annotationlayer .a9s-annotation.COLOR_4 .a9s-inner {
+  stroke:#C080C0 !important;
+}
+
+.a9s-annotationlayer .a9s-annotation.COLOR_4.editable.selected .a9s-inner,
+.a9s-annotationlayer .a9s-annotation.COLOR_4:hover .a9s-inner  {
+  stroke:#C080C0 !important;
+}
+
+.a9s-annotationlayer .a9s-annotation.COLOR_5 .a9s-inner {
+  stroke:#00C0C0 !important;
+}
+
+.a9s-annotationlayer .a9s-annotation.COLOR_5.editable.selected .a9s-inner,
+.a9s-annotationlayer .a9s-annotation.COLOR_5:hover .a9s-inner  {
+  stroke:#00C0C0 !important;
+}
+
+.a9s-annotationlayer .a9s-annotation.COLOR_6 .a9s-inner {
+  stroke:#C0C080 !important;
+}
+
+.a9s-annotationlayer .a9s-annotation.COLOR_6.editable.selected .a9s-inner,
+.a9s-annotationlayer .a9s-annotation.COLOR_6:hover .a9s-inner  {
+  stroke:#C0C080 !important;
+}
+
+.a9s-annotationlayer .a9s-annotation.COLOR_7 .a9s-inner {
+  stroke:#FFC0C0 !important;
+}
+
+.a9s-annotationlayer .a9s-annotation.COLOR_7.editable.selected .a9s-inner,
+.a9s-annotationlayer .a9s-annotation.COLOR_7:hover .a9s-inner  {
+  stroke:#FFC0C0 !important;
+}
+
+.a9s-annotationlayer .a9s-annotation.COLOR_8 .a9s-inner {
+  stroke:#408040 !important;
+}
+
+.a9s-annotationlayer .a9s-annotation.COLOR_8.editable.selected .a9s-inner,
+.a9s-annotationlayer .a9s-annotation.COLOR_8:hover .a9s-inner  {
+  stroke:#408040 !important;
+}
+
+.a9s-annotationlayer .a9s-annotation.COLOR_9 .a9s-inner {
+  stroke:#C08040 !important;
+}
+
+.a9s-annotationlayer .a9s-annotation.COLOR_9.editable.selected .a9s-inner,
+.a9s-annotationlayer .a9s-annotation.COLOR_9:hover .a9s-inner  {
+  stroke:#C08040 !important;
+}
+
+.a9s-annotationlayer .a9s-annotation.COLOR_10 .a9s-inner {
+  stroke:#FF8040 !important;
+}
+
+.a9s-annotationlayer .a9s-annotation.COLOR_10.editable.selected .a9s-inner,
+.a9s-annotationlayer .a9s-annotation.COLOR_10:hover .a9s-inner  {
+  stroke:#FF8040 !important;
+}
+
+.a9s-annotationlayer .a9s-annotation.COLOR_DEFAULT .a9s-inner {
+  stroke:#FF8040 !important;
+}
+
+.a9s-annotationlayer .a9s-annotation.COLOR_DEFAULT.editable.selected .a9s-inner,
+.a9s-annotationlayer .a9s-annotation.COLOR_DEFAULT:hover .a9s-inner  {
+  stroke:#FF8040 !important;
+}
+
+
+
+/*
+    #toolbar, .a9s-toolbar, .tag-selector, .tag-selector ul, .tag-selector li {
+      display:inline;
+    }
+  
+    .toolbar-wrapper {
+      display: flex;
+      align-items: center;
+      padding-bottom:10px;
+    }
+
+    .toolbar-wrapper ul {
+      padding:0;
+      margin:0;
+    }
+
+    .toolbar-wrapper .tag-selector button {
+      outline:none;
+      border:none;
+      height:45px;
+      vertical-align:middle;
+      margin-right:8px;
+      padding:0 14px;
+      border-radius:4px;
+      cursor:pointer;
+      background-color:transparent;
+      font-weight:bold;
+      color:#838282;
+    }
+
+    .toolbar-wrapper .tag-selector .green.active button {
+      color:#fff;
+      background-color:#00ab00;
+    }
+
+    .toolbar-wrapper .tag-selector .orange.active button {
+      color:#fff;
+      background-color:orange;
+    }
+
+    .a9s-annotationlayer .a9s-annotation .a9s-outer, 
+    .a9s-annotationlayer .a9s-selection .a9s-outer {
+      stroke-width:6px;
+      stroke:#000;  
+    }
+
+    .a9s-annotationlayer .a9s-annotation .a9s-inner,
+    .a9s-annotationlayer .a9s-selection .a9s-inner {
+      stroke-width:4px;
+      stroke:#fff !important;  
+    }
+
+    .a9s-annotationlayer .a9s-annotation.GREEN .a9s-inner {
+      stroke:#00ab00 !important;
+    }
+
+    .a9s-annotationlayer .a9s-annotation.GREEN.editable.selected .a9s-inner,
+    .a9s-annotationlayer .a9s-annotation.GREEN:hover .a9s-inner  {
+      stroke:#00e000 !important;
+    }
+
+    .a9s-annotationlayer .a9s-annotation.ORANGE .a9s-inner {
+      stroke:rgb(204, 133, 1) !important;
+    }
+
+    .a9s-annotationlayer .a9s-annotation.ORANGE.editable.selected .a9s-inner,
+    .a9s-annotationlayer .a9s-annotation.ORANGE:hover .a9s-inner  {
+      stroke:orange !important;
+    }
+
+    .a9s-annotationlayer circle.a9s-handle-inner {
+      display:none;
+    }
+
+    .a9s-annotationlayer .a9s-annotation.editable .a9s-inner:hover {
+      fill:transparent;
+
+
+
+
+
+*/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

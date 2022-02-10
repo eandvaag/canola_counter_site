@@ -30,19 +30,33 @@ html
 
             include ./header.pug
 
-            div(id="sidepanel" class="sidepanel")
-                a(href="javascript:void(0)" class="closebtn" onclick="closeNav()") &times;
+            div(id="help_modal" class="modal")
+                div(class="modal-content")
+                    div(class="modal-header")
+                        span(class="close close-hover" id="help_modal_close") &times;
+                        p Help
+                    div(class="modal-body")
+
+                        p(style="text-align: justify") Hold the <i>SHIFT</i> key and drag the mouse to create a new annotation.<br><br>Use the <i>DELETE</i> key to remove annotations.<br><br>Don't forget to save your work! 
+
+                    div(class="modal-footer")
+
+
 
             div(id="body")
                     
-                h(class="header2" style="font-size:26px") Annotate
+                //h(class="header2" style="font-size:26px") Annotate
+                //hr
 
-                hr
+                br
+                br
 
                 div(id="annotate_container" class="grid-container-1")
 
                     //
                         div(class="half-round-item-1" id="left_panel" style="height: 720px; overflow-y: auto;")
+
+
 
                             h(id="image_set_name" class="header2" style="font-size: 22px; text-align: center; white-space: pre-wrap; color: white")
 
@@ -56,7 +70,6 @@ html
                                 button(id="save_button" class="table_button table_button_hover")
 
                                     i(id="save_icon" class="fa-solid fa-floppy-disk" style="padding-right: 8px; color: white")
-                                    |
                                     | Save All Changes
 
 
@@ -68,15 +81,22 @@ html
 
                     div(class="half-round-item-1")
 
+                        table(class="transparent_table")
+                            tr
+                                td
+                                    button(style="width: 100px" id="help_button" class="table_button table_button_hover")
+                                        i(id="help_icon" class="fa-solid fa-circle-info" style="padding-right: 8px; color: white") 
+                                        | Help
 
-                        h(id="image_set_name" class="header2" style="font-size: 22px; text-align: center; white-space: pre-wrap; color: white")
+                                td(style="width:100%")
+                                    h(id="image_set_name" class="header2" style="font-size: 22px; text-align: center; white-space: pre-wrap; color: white")
+
 
                         table(class="transparent_table")
 
                             tr
                                 td(class="dark-bg" style="vertical-align:top")
-                                    div(style="width: 250px;")
-                                        //button(class="table_button table_button_hover" onclick="openNav()") &#9776; Toggle Image List
+                                    div(style="width: 280px;")
 
                                         table(class="transparent_table")
                                             tr
