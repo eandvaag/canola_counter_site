@@ -21,7 +21,7 @@ function disable_input() {
 
     for (button of buttons) {
         $(button).prop('disabled', true);
-        $(button).removeClass("table_button_hover");
+        $(button).removeClass("std-button-hover");
         $(button).css("opacity", 0.5);
         $(button).css("cursor", "default");
     }
@@ -43,7 +43,7 @@ function disable_submit() {
 
     for (button of buttons) {
         $(button).prop('disabled', true);
-        $(button).removeClass("table_button_hover");
+        $(button).removeClass("std-button-hover");
         $(button).css("opacity", 0.5);
         $(button).css("cursor", "default");
     }
@@ -57,7 +57,7 @@ function enable_input() {
 
     for (button of buttons) {
         $(button).prop('disabled', false);
-        $(button).addClass("table_button_hover");
+        $(button).addClass("std-button-hover");
         $(button).css("opacity", 1);
         $(button).css("cursor", "pointer");
     }
@@ -81,7 +81,7 @@ function enable_submit() {
 
     for (button of buttons) {
         $(button).prop('disabled', false);
-        $(button).addClass("table_button_hover");
+        $(button).addClass("std-button-hover");
         $(button).css("opacity", 1);
         $(button).css("cursor", "pointer");
     }
@@ -90,7 +90,8 @@ function enable_submit() {
 function form_is_complete() {
     let inputs_to_check = ["farm_input", "field_input", "mission_input"];
     for (input of inputs_to_check) {
-        if ($("#" + input).val() === "") {
+        let input_length = ($("#" + input).val()).length;
+        if ((input_length < 3) || (input_length > 20)) {
             return false;
         }
     }
@@ -112,11 +113,33 @@ function update_submit() {
 
 
 function show_upload() {
+
+    let left_col_width = "100px";
+    let right_col_width = "250px";
+
     $("#main_area").empty();
 
     $("#main_area").append(`<form id="upload_form" action=""></form>`)
-    $("#upload_form").append(`<br>`);
+    $("#upload_form").append(`<br><br><br>`);
 
+
+    $("#upload_form").append(`<table class="transparent_table" id="input_table"></table>`);
+    $("#input_table").append(`<tr>` +
+        `<th><div class="table_head" style="width: ${left_col_width};">Farm Name:</div></th>` +
+        `<th><div style="width: ${right_col_width};"><input id="farm_input" class="nonfixed_input"></div></th>` +
+    `<tr>`);
+
+    $("#input_table").append(`<tr>` +
+        `<th><div class="table_head" style="width: ${left_col_width};">Field Name:</div></th>` +
+        `<th><div style="width: ${right_col_width};"><input id="field_input" class="nonfixed_input"></div></th>` +
+    `<tr>`);
+
+    $("#input_table").append(`<tr>` +
+    `<th><div class="table_head" style="width: ${left_col_width};">Mission Date:</div></th>` +
+    `<th><div style="width: ${right_col_width};"><input id="mission_input" class="nonfixed_input"></div></th>` +
+    `<tr>`);
+
+    /*
     $("#upload_form").append(`<div class="row"></div>`);
     $("#upload_form").append(`<div class="col_left"><div class="col_label">Farm Name:</div></div>`);
     $("#upload_form").append(`<div class="col_right"><input id="farm_input" class="nonfixed_input"></input></div>`);
@@ -128,17 +151,20 @@ function show_upload() {
     $("#upload_form").append(`<div class="row"></div>`);
     $("#upload_form").append(`<div class="col_left"><div class="col_label">Mission Date:</div></div>`);
     $("#upload_form").append(`<div class="col_right"><input id="mission_input" class="nonfixed_input"></input></div>`);
-    
+    */
+   
     $("#upload_form").append(`<br>`);
+    /*
     $("#upload_form").append(`<br>`);
-    $("#upload_form").append(`<br>`);
+    $("#upload_form").append(`<br>`);*/
 
     $("#upload_form").append(`<hr style="margin: 0px 0px">`);
     $("#upload_form").append(`<div id="file-drop" class="dropzone"></div>`);
     $("#file-drop").append(`<div class="dz-message data-dz-message"><span>Drop Images Here</span></div>`);
     
     $("#upload_form").append(`<hr>`);
-    $("#upload_form").append(`<button id="upload_button" class="table_button" type="submit" style="width: 200px"><span>Upload</span></button>`);
+    $("#upload_form").append(`<button id="upload_button" class="std-button std-button-hover" `+
+                                `style="width: 200px; height: 40px;" type="submit"><span>Upload</span></button>`);
 
 
     $("#file-drop").append(`<div id="upload_loader" class="loader"></div>`);

@@ -5,6 +5,7 @@ var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 var logger = require('morgan');
 var session = require('express-session');
+var favicon = require('serve-favicon');
 
 var indexRouter = require('./routes/index');
 
@@ -18,6 +19,7 @@ app.set('view engine', 'pug');
 app.use('/plant_detection/osd', express.static(__dirname + '/node_modules/openseadragon3'));
 app.use('/plant_detection/annotorious', express.static(__dirname + '/node_modules/annotorious'));
 
+app.use(favicon(__dirname + '/public/images/favicon.ico'));
 
 app.use(logger('dev'));
 //app.use(express.json());

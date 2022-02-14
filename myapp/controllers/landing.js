@@ -6,15 +6,17 @@ const { v4: uuidv4 } = require('uuid');
 const fs = require('fs');
 const xml_js_convert = require('xml-js');
 const nat_orderBy = require('natural-orderby');
-const { exec } = require('child_process');
+const { spawn, exec } = require('child_process');
 const sanitize = require('sanitize-filename');
 
 const models = require('../models');
+const { response } = require('express');
 
 const APP_PREFIX = '/plant_detection';
 const USR_DATA_ROOT = 'usr/data/'; //'/home/eaa299/Documents/work/2021/plant_detection/plant_detection/src/usr/data'
 
-
+const AsyncLock = require('async-lock');
+const job_lock = new AsyncLock();
 
 
 
@@ -123,8 +125,8 @@ exports.get_home = function(req, res, next) {
                     
                     results_dir = path.join(results_root, farm_name, field_name, mission_date);
                     if (fs.existsSync(results_dir)) {
-                        let groups = get_subdirs(results_dir);
-                        image_sets_data[farm_name][field_name][mission_date] = groups;
+                        let jobs = get_subdirs(results_dir);
+                        image_sets_data[farm_name][field_name][mission_date] = jobs;
                     }
                     else {
                         image_sets_data[farm_name][field_name][mission_date] = [];
@@ -316,10 +318,17 @@ exports.post_upload = function(req, res, next) {
     console.log("req.files", req.files);
     console.log("req.body", req.body);
 
+    let format = /[ `!@#$%^&*()+\=\[\]{};':"\\|,<>\/?~]/;
     for (file of req.files) {
         if (!(file.mimetype.startsWith('image/'))) {
             return res.status(422).json({
                 error: "One or more provided files is not an image."
+            });
+        }
+        if (format.test(file.originalname)) {
+        //if (!(file.originalname.match(/^[^a-zA-Z0-9.]+$/))) {
+            return res.status(422).json({
+                error: "One or more provided filenames contains illegal characters."
             });
         }
     }
@@ -407,7 +416,7 @@ exports.post_upload = function(req, res, next) {
             if (!(no_convert_extensions.includes(extension))) {
                 let tmp_path = path.join(conversion_tmp_dir, extensionless_fname + ".jpg");
                 let conv_cmd = "convert " + fpath + " " + tmp_path;
-                let slice_cmd = "./MagickSlicer/magick-slicer.sh " + tmp_path + " " + img_dzi_path;
+                let slice_cmd = "./MagickSlicer/magick-slicer.sh '" + tmp_path + "' '" + img_dzi_path + "'";
                 let result = exec(conv_cmd, {shell: "/bin/bash"}, function (error, stdout, stderr) {
                     if (error) {
                         console.log(error.stack);
@@ -435,7 +444,7 @@ exports.post_upload = function(req, res, next) {
                 });
             }
             else {
-                let slice_cmd = "./MagickSlicer/magick-slicer.sh " + fpath + " " + img_dzi_path;
+                let slice_cmd = "./MagickSlicer/magick-slicer.sh '" + fpath + "' '" + img_dzi_path + "'";
                 let result = exec(slice_cmd, {shell: "/bin/bash"}, function (error, stdout, stderr) {
                     if (error) {
                         console.log(error.stack);
@@ -552,7 +561,7 @@ exports.get_predict = function(req, res, next) {
     }
 }
 
-
+/*
 exports.get_results_dep = function(req, res, next) {
 
     if (req.session.user && req.cookies.user_sid) {
@@ -587,9 +596,9 @@ exports.get_results_dep = function(req, res, next) {
         res.redirect(APP_PREFIX);
     }
 
-}
+}*/
 
-
+/*
 exports.post_results_dep = function(req, res, next) {
 
     if (req.session.user && req.cookies.user_sid) {
@@ -717,7 +726,7 @@ exports.post_results_dep = function(req, res, next) {
     }
 
 }
-
+*/
 function dataset_is_annotated(dataset_name) {
     return (dataset_name !== "all");
 }
@@ -746,7 +755,7 @@ function get_dict_keys(d, prefix="", root=true) {
     return keys;
 }
 
-
+/*
 exports.get_viewer_dep = function(req, res, next) {
 
     if (req.session.user && req.cookies.user_sid) {
@@ -900,11 +909,6 @@ exports.get_viewer_dep = function(req, res, next) {
 }
 exports.post_viewer_dep = function(req, res, next) {
     console.log("got to post viewer");
-    /*
-    response = {};
-    response.error = false;
-    response.message = "test";
-    res.json(response);*/
     
     if (req.session.user && req.cookies.user_sid) {
 
@@ -1013,7 +1017,7 @@ exports.post_viewer_dep = function(req, res, next) {
         res.redirect(APP_PREFIX);
     }
 }
-
+*/
 
 /*
 
@@ -1090,14 +1094,228 @@ exports.get_results = function(req, res, next) {
 exports.post_home = function(req, res, next) {
 
     if (req.session.user && req.cookies.user_sid) {
-        let group_uuid = req.body.group_uuid;        
-        let farm_name = req.body.farm_name;
-        let field_name = req.body.field_name;
-        let mission_date = req.body.mission_date;
-        response = {};
-        response.redirect = APP_PREFIX + "/viewer/" + group_uuid + "/" + 
-                            farm_name + "/" + field_name + "/" + mission_date;
-        res.json(response);
+        let action = req.body.action;
+        let response = {};
+        if (action === "delete_image_set") {
+            let farm_name = req.body.farm_name;
+            let field_name = req.body.field_name;
+            let mission_date = req.body.mission_date;
+
+            let mission_dir = path.join(USR_DATA_ROOT, "image_sets", farm_name, field_name, mission_date);
+            console.log("removing mission dir")
+            fs.rmSync(mission_dir, { recursive: true, force: true });
+            let field_dir = path.join(USR_DATA_ROOT, "image_sets", farm_name, field_name);
+            let missions = get_subdirs(field_dir);
+            if (missions.length == 0) {
+                console.log("removing field dir");
+                fs.rmSync(field_dir, { recursive: true, force: true });
+                let farm_dir = path.join(USR_DATA_ROOT, "image_sets", farm_name);
+                let fields = get_subdirs(farm_dir);
+                if (fields.length == 0) {
+                    console.log("removing farm dir");
+                    fs.rmSync(farm_dir, { recursive: true, force: true });
+                }
+            }
+
+            response.error = false;
+            response.redirect = APP_PREFIX + "/home";
+            res.json(response);
+        }
+        else if (action === "view_job") {
+            let job_uuid = req.body.job_uuid;        
+            let farm_name = req.body.farm_name;
+            let field_name = req.body.field_name;
+            let mission_date = req.body.mission_date;
+            response.error = false;
+            response.redirect = APP_PREFIX + "/viewer/" + job_uuid + "/" + 
+                                farm_name + "/" + field_name + "/" + mission_date;
+            res.json(response);
+        }
+        else if (action === "manage_jobs_request") {
+            response.redirect = APP_PREFIX + "/manage";
+            res.json(response);
+        
+        }
+        else if (action === "submit_training_request") {
+
+            
+
+            let job_uuid = uuidv4().toString();
+            let farm_name = req.body.farm_name;
+            let field_name = req.body.field_name;
+            let mission_date = req.body.mission_date;
+            let job_name = req.body.job_name;
+
+            let format = /[ `!@#$%^&*()+\=\[\]{};':"\\|,<>\/?~]/;
+            if (format.test(job_name)) {
+                response.error = true;
+                response.message = "Group name contains illegal characters.";
+                res.json(response);
+            }
+            else {
+
+
+                
+                let jobs_path = path.join(USR_DATA_ROOT, "jobs", "jobs.json");
+                console.log("acquiring job lock");
+                //let jobs = JSON.parse(fs.readFileSync(jobs_path, 'utf8'));
+                let jobs;
+
+                job_lock.acquire(jobs, function() {
+                    
+                    console.log("job lock acquired");
+                    jobs = JSON.parse(fs.readFileSync(jobs_path, 'utf8'));
+
+                    console.log("jobs", jobs);
+                    if (jobs["num_active_jobs"] >= jobs["max_jobs"]) {
+                    //if (false) {
+                        console.log("too many active jobs!");
+                        //throw new Error("Maximum number of active jobs reached");
+                        response.error = true;
+                        response.message = "Too many active jobs.";
+                    }
+                    else {
+                        //let jobs = {"num_active_jobs": 0, "active_jobs": []};
+                        console.log("adding new job");
+                        jobs["num_active_jobs"] += 1;
+                        jobs["active_jobs"].push(job_uuid);
+                        console.log("updated_jobs", jobs);
+                        try {
+                            console.log("writing jobs");
+                            fs.writeFileSync(jobs_path, JSON.stringify(jobs));
+                            console.log("wrote jobs");
+                            response.error = false;
+                            response.message = "Starting to run job.";
+                        }
+                        catch (error) {
+                            console.log("error occurred");
+                            console.log(error);
+                            response.error = true;
+                            response.message = "File I/O error occurred.";
+                        }
+                    }
+                }).catch(function(error) {
+                    console.log(error.message);
+                    response.message = "Failed to acquire jobs lock.";
+                    response.error = true;
+                    res.json(response);
+                });
+                if (!(response.error)) {
+                    console.log("executing job");
+                    //let cmd = "python3 ../../plant_detection/src/main.py " + ensemble_req_path;
+                    //let cmd = "sleep 10";
+                    /*
+                    let cmd = "python3 ../../plant_detection/src/main.py " + farm_name + " " +
+                                field_name + " " + mission_date + " " + job_name + " &";
+                    */
+                    let subprocess = spawn("python3", ["../../plant_detection/src/main.py", 
+                                            farm_name, field_name, mission_date, job_uuid, job_name]);
+                    //let subprocess = spawn("sleep", ["15"]);
+                    subprocess.on('close', (code) => {
+                        console.log("Process finished.");
+                        console.log("code", code);
+
+
+                        //let jobs_path = path.join("usr", "jobs", "jobs.json");
+                        //let jobs = JSON.parse(fs.readFileSync(jobs_path, 'utf8'));
+                        job_lock.acquire(jobs, function() {
+                            jobs = JSON.parse(fs.readFileSync(jobs_path, 'utf8'));
+                            jobs["num_active_jobs"] -= 1;
+                            let index = jobs["active_jobs"].indexOf(job_uuid);
+                            if (index > -1) {
+                                jobs["active_jobs"].splice(index, 1); // 2nd parameter means remove one item only
+                            }
+                            try {
+                                fs.writeFileSync(jobs_path, JSON.stringify(jobs));
+                            }
+                            catch (error) {
+                                console.log(error);
+                            }
+                        }).catch(function(error) {
+                            console.log(error);
+                        });
+                    })
+                    
+                    subprocess.stderr.on('data', (data) => {
+                        /* for some reason listening on stderr is required for files to be 
+                            output correctly by the subprocess ?? */
+                        //console.error(`subprocess stderr: ${data}`);
+                    });
+                    subprocess.stdout.on('data', (data) => {
+                        //console.log(`subprocess stdout: ${data}`);
+                    });
+                    
+                    subprocess.on('error', (err) => {
+                        console.log("Failed to start subprocess.");
+                        job_lock.acquire(jobs, function() {
+                            jobs = JSON.parse(fs.readFileSync(jobs_path, 'utf8'));
+                            jobs["num_active_jobs"] -= 1;
+                            let index = jobs["active_jobs"].indexOf(job_uuid);
+                            if (index > -1) {
+                                jobs["active_jobs"].splice(index, 1); // 2nd parameter means remove one item only
+                            }
+                            try {
+                                fs.writeFileSync(jobs_path, JSON.stringify(jobs));
+                            }
+                            catch (error) {
+                                console.log(error);
+                            }
+                        }).catch(function(error) {
+                            console.log(error);
+                        });
+
+
+
+                    });
+
+                    //});
+
+                    /*
+                    const result = exec(cmd, {shell: "/bin/bash"}, function (error, stdout, stderr) {
+
+                        if (error) {       
+                            console.log(error.stack);
+                            console.log('Error code: '+error.code);
+                            console.log('Signal received: '+error.signal);
+                        
+                        }
+                        console.log("now the job is done");
+                        let jobs_path = path.join("usr", "jobs", "jobs.json");
+                        let jobs = JSON.parse(fs.readFileSync(jobs_path, 'utf8'));
+                        job_lock.acquire(jobs, function() {
+                            jobs = JSON.parse(fs.readFileSync(jobs_path, 'utf8'));
+                            jobs["num_active_jobs"] -= 1;
+                            let index = jobs["active_jobs"].indexOf(job_uuid);
+                            if (index > -1) {
+                                jobs["active_jobs"].splice(index, 1); // 2nd parameter means remove one item only
+                            }
+                            try {
+                                fs.writeFileSync(jobs_path, JSON.stringify(jobs));
+                                //response.error = false;
+                                //response.message = "Finished job";
+                            }
+                            catch (error) {
+                                console.log(error);
+                                //response.error = true;
+                                //response.message = "File I/O error";
+                            }
+                        });
+                    });*/
+                    console.log("returning immediately before job is done");
+
+                    res.json(response);
+                }
+                else {
+                    res.json(response);
+                }
+            }
+        }
+        else {
+            console.log("invalid action", action);
+            response.message = "Invalid action specified.";
+            response.error = true;
+            res.json(response);
+        }
     }
     else {
         res.redirect(APP_PREFIX);
@@ -1106,15 +1324,15 @@ exports.post_home = function(req, res, next) {
 }
 exports.get_viewer = function(req, res, next) {
     if (req.session.user && req.cookies.user_sid) {
-        let group_uuid = req.params.group_uuid;
+        let job_uuid = req.params.job_uuid;
         let farm_name = req.params.farm_name;
         let field_name = req.params.field_name;
         let mission_date = req.params.mission_date;
 
-        let group_config;
-        let group_config_path = path.join(USR_DATA_ROOT, "groups", group_uuid + ".json");
+        let job_config;
+        let job_config_path = path.join(USR_DATA_ROOT, "jobs", job_uuid + ".json");
         try {
-            group_config = JSON.parse(fs.readFileSync(group_config_path, 'utf8'));
+            job_config = JSON.parse(fs.readFileSync(job_config_path, 'utf8'));
         }
         catch (error) {
             console.log(error);
@@ -1123,10 +1341,12 @@ exports.get_viewer = function(req, res, next) {
         let predictions = {};
         let overlays = {};
 
-        let results_dirname = group_uuid;
+        let results_dirname = job_uuid;
         let results_dir = path.join(USR_DATA_ROOT, "results", 
                                     farm_name, field_name, mission_date, results_dirname);
-        for (model_info of group_config["model_info"]) {
+
+        console.log("getting model predictions");
+        for (model_info of job_config["model_info"]) {
             let model_uuid = model_info["model_uuid"];
             let model_name = model_info["model_name"];
 
@@ -1136,21 +1356,21 @@ exports.get_viewer = function(req, res, next) {
             let model_predictions;
             try {
                 model_predictions = JSON.parse(fs.readFileSync(predictions_path, 'utf8'));
+                predictions[model_uuid] = model_predictions;
             }
             catch (error) {
                 console.log(error);
             }
             try {
                 model_predictions_w3c = JSON.parse(fs.readFileSync(predictions_w3c_path, 'utf8'));
+                overlays[model_uuid] = model_predictions_w3c;
             }
             catch (error) {
                 console.log(error);
-            }
-
-            predictions[model_uuid] = model_predictions;
-            overlays[model_uuid] = model_predictions_w3c;
+            }   
 
         }
+        console.log("getting annotations");
         let image_set_root = path.join(USR_DATA_ROOT, "image_sets",
                                       farm_name, field_name, mission_date);
         let annotations_path = path.join(image_set_root, "annotations", "annotations_w3c.json");
@@ -1183,7 +1403,7 @@ exports.get_viewer = function(req, res, next) {
 
         let data = {};
         data["metadata"] = metadata;
-        data["group_config"] = group_config;
+        data["job_config"] = job_config;
         data["overlays"] = overlays;
         data["predictions"] = predictions;
         data["dzi_dir"] = path.join(APP_PREFIX, dzi_images_dir);
@@ -1199,6 +1419,115 @@ exports.post_viewer = function(req, res, next) {
 
 }
 
+exports.get_manage = function(req, res, next) {
+
+    if (req.session.user && req.cookies.user_sid) {
+        let job_configs = {};
+        let jobs_dir = path.join(USR_DATA_ROOT, "jobs");
+        let list = fs.readdirSync(jobs_dir);
+        list.forEach(function(file) {
+            console.log("file", file);
+            if (file !== "jobs.json") {
+                job_config = JSON.parse(fs.readFileSync(path.join(jobs_dir, file), 'utf8'));
+                job_configs[job_config["job_uuid"]] = job_config;
+            }
+        });
+
+
+        // job_configs.sort(function(a, b) {
+        //     let keyA = new Date(a.start_time);
+        //     let keyB = new Date(b.start_time);
+
+        //     if (keyA < keyB) return -1;
+        //     if (keyA > keyB) return 1;
+        //     return 0;
+        // });
+
+
+        res.render("manage", {job_configs: job_configs});
+
+
+    }
+    else {
+        res.redirect(APP_PREFIX);
+    }
+}
+
+exports.post_manage = function(req, res, next) {
+    
+    if (req.session.user && req.cookies.user_sid) {
+        let response = {};
+        let action = req.body.action;
+        if (action === "get_loss_records") {
+            let model_uuids = req.body.model_uuids.split(",");
+            console.log("model_uuids", model_uuids);
+            loss_records = {};
+            for (model_uuid of model_uuids) {
+                loss_records_dir = path.join(USR_DATA_ROOT, "models", model_uuid, "loss_records");
+
+                loss_records[model_uuid] = [];
+                let list = fs.readdirSync(loss_records_dir);
+                list.sort();
+                list.forEach(function(file) {
+                    loss_record = JSON.parse(fs.readFileSync(path.join(loss_records_dir, file), 'utf8'));
+                    console.log("loss_record", loss_record);
+                    loss_records[model_uuid].push(loss_record);
+                });
+            }
+
+            response.error = false;
+            response.loss_records = JSON.stringify(loss_records);
+            res.json(response);
+        }
+        else if (action === "destroy_job") {
+            let job_uuid = req.body.job_uuid;
+
+            let job_config_path = path.join(USR_DATA_ROOT, "jobs", job_uuid + ".json");
+            job_config = JSON.parse(fs.readFileSync(job_config_path, 'utf8'));
+            console.log("destroying results...");
+            for (image_set of job_config["inference_config"]["image_sets"]) {
+                let farm_name = image_set["farm_name"];
+                let field_name = image_set["field_name"];
+                let mission_date = image_set["mission_date"];
+                results_dir = path.join(USR_DATA_ROOT, "results", farm_name, field_name, mission_date, job_uuid);
+                if (fs.existsSync(results_dir)) {
+                    fs.rmSync(results_dir, { recursive: true, force: true });
+                }
+            }
+            console.log("destroying models...");
+            for (model_info of job_config["model_info"]) {
+                let model_uuid = model_info["model_uuid"];
+                let model_dir = path.join(USR_DATA_ROOT, "models", model_uuid);
+                if (fs.existsSync(model_dir)) {
+                    fs.rmSync(model_dir, { recursive: true, force: true });
+                }
+            }
+            console.log("destroying job...");
+            try {
+                fs.unlinkSync(job_config_path);
+            }
+            catch (error) {
+                console.log(error);
+            }
+            console.log("job has been fully destroyed");
+            response.error = false;
+            res.json(response);
+
+        }
+        else {
+            console.log("invalid action", action)
+            response.error = true;
+            res.json(response);
+        }
+        
+
+
+    }
+    else {
+        res.redirect(APP_PREFIX);
+    }
+
+}
 
 exports.logout = function(req, res, next) {
     if (req.session.user && req.cookies.user_sid) {

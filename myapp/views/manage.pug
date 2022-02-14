@@ -1,0 +1,73 @@
+doctype html
+
+html
+    head
+        title="SeedlingVision"
+        meta(name="viewport" content="width=device-width, initial-scale=1")
+
+        
+        //script(src="https://unpkg.com/dropzone@6.0.0-beta.1/dist/dropzone-min.js")
+        
+        //link(href="https://unpkg.com/dropzone@6.0.0-beta.1/dist/dropzone.css" rel="stylesheet" type="text/css")
+        link(href='/plant_detection/stylesheets/main.css' rel='stylesheet')
+        link(href='/plant_detection/stylesheets/d3.css' rel='stylesheet')
+        
+        script(src="https://code.jquery.com/jquery-3.6.0.js")
+        script(src="https://d3js.org/d3.v4.js")
+        //script(type='text/javascript' src='/plant_detection/javascripts/home.js')
+        //script(type='text/javascript' src='/plant_detection/javascripts/common.js')
+        //
+        script(type='text/javascript' src='/plant_detection/javascripts/manage.js')
+        script(type='text/javascript' src='/plant_detection/javascripts/loss_chart.js')
+        
+
+    body
+        div(id="container")
+
+            include ./header.pug
+
+            div(id="body")
+
+                br
+                br
+
+                div(id="home_container")
+                    div(class="panel" style="width: 1500px;")
+
+                        div(class="content" style="display:block; height: 750px")
+
+                            table(class="transparent_table")
+                                tr
+                                    td(style="width: 1000px; vertical-align: top;")
+                                        //div(style="text-align: center")
+
+                                        br
+                                        table(class="transparent_table")
+                                            tr
+                                                th
+                                                    div(class="table_head" style="width: 100px; font-weight: bold") Job Filter:
+                                                th 
+                                                    div(style="width: 250px")
+                                                        select(id="filter_combo" class="nonfixed_dropdown")
+                                                            option All 
+                                                            option Running 
+                                                            option Stopped 
+                                                            option Finished
+                                        br
+                                        table(class="transparent_table" id="jobs_table_head")
+                                        div(class="scrollable_area" style="height: 650px; border: none")
+                                            table(class="transparent_table" id="jobs_table_content")
+                                    td(style="width: 500px; border-left: 1px solid white; height: 750px")
+
+                                        div(id="job_name" style="height: 25px; font-size: 20px")
+                                        div(id="loss_chart" style="height: 345px; border:none")
+                                        
+                                        div(id="job_info" class="scrollable_area" style="height: 325px; width: 500px; border: none")
+                                             
+                                            // style="width: 400px")
+                                        
+                                        div(id="loader_area" style="height: 25px")
+
+
+    script.
+        job_configs = !{JSON.stringify(job_configs)};

@@ -1,6 +1,6 @@
 
 let metadata;
-let group_config;
+let job_config;
 let overlays;
 let predictions;
 let dzi_dir;
@@ -24,7 +24,7 @@ function overlay_initialization() {
     sorted_overlay_names = [];
     sorted_overlay_ids = [];
 
-    let model_items = group_config["model_info"]
+    let model_items = job_config["model_info"]
     model_items.sort(function(first, second) {
         if (first["model_name"] < second["model_name"]) return -1;
         if (first["model_name"] > second["model_name"]) return 1;
@@ -123,7 +123,7 @@ function create_image_set_table(image_names) {
             `<td><div class="table_button table_button_hover"` +
                  `onclick="change_image('${dzi_image_path}')">${image_name}</div></td>` +
             //`<td><div>${extensionless_name}</div></td>` +
-            `<td><div class="table_entry">${image_status}</div></td>` +
+            `<td><div class="table_entry" style="border: 1px solid white">${image_status}</div></td>` +
             //`<td><div class="table_entry">${img_dataset}</div></td>` +
             `</tr>`);
     }
@@ -160,7 +160,7 @@ function update_overlays() {
 
 function assemble_datasets() {
     dataset_images = {};
-    for (image_set of group_config["inference_config"]["image_sets"]) {
+    for (image_set of job_config["inference_config"]["image_sets"]) {
         if ((image_set["farm_name"] === metadata["farm_name"] &&
              image_set["field_name"] === metadata["field_name"]) &&
              image_set["mission_date"] === metadata["mission_date"]) {
@@ -177,7 +177,7 @@ function assemble_datasets() {
 $(document).ready(function() {
     
     metadata = data["metadata"];
-    group_config = data["group_config"];
+    job_config = data["job_config"];
     overlays = data["overlays"];
     predictions = data["predictions"];
     dzi_dir = data["dzi_dir"];

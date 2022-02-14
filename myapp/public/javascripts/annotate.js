@@ -66,7 +66,7 @@ function create_image_set_table() {
             `<td><div class="table_button table_button_hover"` +
                  `onclick="change_image('${dzi_image_path}')">${extensionless_name}</div></td>` +
             //`<td><div>${extensionless_name}</div></td>` +
-            `<td><div class="table_entry">${image_status}</div></td>` +
+            `<td><div class="table_entry" style="border: 1px solid white">${image_status}</div></td>` +
             //`<td><div class="table_entry">${img_dataset}</div></td>` +
             `</tr>`);
     }

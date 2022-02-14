@@ -14,10 +14,12 @@ router.get('/upload', landing.get_upload);
 router.post('/upload', upload_files.array('source_file[]'), landing.post_upload);
 router.get('/train', landing.get_train);
 router.get('/predict', landing.get_predict);
+router.get('/manage', landing.get_manage);
+router.post('/manage', landing.post_manage);
 //router.get('/results', landing.get_results);
 
-router.get('/viewer/:group_uuid/:farm_name/:field_name/:mission_date', landing.get_viewer);
-router.post('/viewer/:group_uuid/:farm_name/:field_name/:mission_date', landing.post_viewer);
+router.get('/viewer/:job_uuid/:farm_name/:field_name/:mission_date', landing.get_viewer);
+router.post('/viewer/:job_uuid/:farm_name/:field_name/:mission_date', landing.post_viewer);
 router.get('/logout', landing.logout);
 
 module.exports = router;

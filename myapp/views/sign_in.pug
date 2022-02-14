@@ -2,7 +2,7 @@ doctype html
 
 html
     head
-        title="Plant Detection"
+        title="SeedlingVision"
         meta(name="viewport" content="width=device-width, initial-scale=1")
 
         link(href='/plant_detection/stylesheets/main.css' rel='stylesheet')
@@ -18,32 +18,36 @@ html
                 // class="center")
 
                 div(class="panel_center")
-                    div(class="sign_in_panel" style="width: 310px; padding: 10px 20px;") 
+                    div(class="sign_in_panel") 
+                        // style="width: 310px; padding: 10px 20px;") 
                         // style="width: 310px; height: 350px")
 
-                        h(class="header2" style="font-size:26px") Sign In
 
-                        br
-                        br
+                        div(style="height:70px")
+                            h(class="title" style="font-size:26px") SeedlingVision
 
-                        form(action="")
+                        //br
 
-                            label(for="username" class="label" style="text-align: left; padding-left: 5px") Username
+                        div(class="dark-bg" style="padding: 10px 20px; border: none; border-top: 1px solid white; border-bottom: 1px solid white;")
+                            form(action="")
 
-                            input(id="username" name="username" type="text" required)
+                                label(for="username" class="label" style="text-align: left; padding-left: 5px") Username
 
-                            label(for="password" class="label" style="text-align: left; padding-left: 5px") Password
+                                input(id="username" name="username" type="text" required)
 
-                            input(id="password" name="password" type="password" required)
+                                label(for="password" class="label" style="text-align: left; padding-left: 5px") Password
 
+                                input(id="password" name="password" type="password" required)
+
+                                br
+                                br
+
+                                button(class="std-button std-button-hover")
+                                    span Sign In
+
+                                //hr
+
+                        div(style="height:50px; display: block")
                             br
-                            br
-
-                            button(class="std-button std-button-hover")
-                                span Sign In
-
-                            hr
-
-                            div(style="height:50px")
-                                p(id="error_message" align="center")
+                            span(id="error_message" style="text-align: center;")
 

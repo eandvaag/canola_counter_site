@@ -2,7 +2,7 @@ doctype html
 
 html
     head
-        title="Plant Detection"
+        title="SeedlingVision"
         meta(name="viewport" content="width=device-width, initial-scale=1")
 
         script(src="https://code.jquery.com/jquery-3.6.0.js")
@@ -15,6 +15,7 @@ html
         script(type='text/javascript' src='/plant_detection/javascripts/home.js')
         script(type='text/javascript' src='/plant_detection/javascripts/common.js')
         script(type='text/javascript' src='/plant_detection/javascripts/upload.js')
+        script(type='text/javascript' src='/plant_detection/javascripts/train.js')
 
     body
         div(id="container")
@@ -26,7 +27,7 @@ html
                     div(class="modal-header")
                         span(class="close close-hover" id="modal_close") &times;
                         p(id="modal_header_text" style="white-space: pre-line;")
-                    div(class="modal-body")
+                    div(class="modal-body" id="modal_body")
                         p(id="modal_message" align="center")
                     div(class="modal-footer")
 
@@ -39,28 +40,28 @@ html
                 br
 
                 div(id="home_container")
-                    div(class="panel" style="max-width: 1200px;")
+                    div(class="panel" style="width: 1500px;")
 
                         //h(class="header2" style="font-size: 26px; text-align: center;") Image Sets
 
-                        div(class="content" style="display:block; height: 600px")
+                        div(class="content" style="display:block; height: 700px")
 
                             ul(class="nav" id="browse_upload")
                                 li(id="browse_tab_btn" class="nav tab-btn-active" onclick="show_tab(this.id)")
                                     a(class="nav")
                                         span
-                                            i(class="fa-solid fa-seedling")
+                                            i(class="fa-solid fa-seedling" style="margin-right:3px")
                                             |
                                             | Browse
 
                                 li(id="upload_tab_btn" class="nav " onclick="show_tab(this.id)")
                                     a(class="nav")
                                         span
-                                            i(class="fa-solid fa-upload")
+                                            i(class="fa-solid fa-upload" style="margin-right:3px")
                                             |
                                             | Upload
 
-                            hr
+                            //hr
 
 
                             //
