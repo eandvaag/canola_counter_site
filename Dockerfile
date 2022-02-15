@@ -4,6 +4,7 @@ RUN apt update && apt install -y curl
 RUN curl -fsSL https://deb.nodesource.com/setup_14.x | bash -
 RUN apt install -y libgl1
 RUN apt-get install -y libglib2.0-0
+RUN apt update && apt-get install -y linux-libc-dev
 RUN apt install -y nodejs
 RUN apt install python3
 RUN apt install -y python3-pip

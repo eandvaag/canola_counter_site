@@ -2,7 +2,7 @@ doctype html
 
 html
     head
-        title="SeedlingVision"
+        title="Canola Counter"
         meta(name="viewport" content="width=device-width, initial-scale=1")
 
         
@@ -47,7 +47,7 @@ html
                                                 th
                                                     div(class="table_head" style="width: 100px; font-weight: bold") Job Filter:
                                                 th 
-                                                    div(style="width: 250px")
+                                                    div(style="width: 100px")
                                                         select(id="filter_combo" class="nonfixed_dropdown")
                                                             option All 
                                                             option Running 
@@ -57,16 +57,13 @@ html
                                         table(class="transparent_table" id="jobs_table_head")
                                         div(class="scrollable_area" style="height: 650px; border: none")
                                             table(class="transparent_table" id="jobs_table_content")
-                                    td(style="width: 500px; border-left: 1px solid white; height: 750px")
+                                    td(style="vertical-align: top; border-left: 1px solid white;")
+                                        div(style="width: 500px; height: 750px"  id="job_details_container")
 
-                                        div(id="job_name" style="height: 25px; font-size: 20px")
-                                        div(id="loss_chart" style="height: 345px; border:none")
-                                        
-                                        div(id="job_info" class="scrollable_area" style="height: 325px; width: 500px; border: none")
-                                             
-                                            // style="width: 400px")
-                                        
-                                        div(id="loader_area" style="height: 25px")
+                                        //div(id="job_name" style="height: 25px; font-size: 20px")
+                                        //div(id="loss_chart" style="height: 345px; border:none")
+                                        //div(id="job_info" style="height: 325px; width: 500px")
+                                        //div(id="loader_area" style="height: 25px")
 
 
     script.

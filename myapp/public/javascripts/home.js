@@ -29,7 +29,6 @@ function delete_request() {
 }
 
 function confirm_delete_request() {
-    console.log("really deleting the image set");
     $.post($(location).attr('href'),
     {
         action: "delete_image_set",
@@ -42,7 +41,6 @@ function confirm_delete_request() {
             console.log("error occurred", response.error);
         }
         else {
-            console.log("successful deletion!");
             window.location.href = response.redirect;
         }
     });
@@ -62,23 +60,6 @@ function annotate_request() {
 
     window.location.href = "/plant_detection/annotate/" + farm_name + "/" +
                            field_name + "/" + mission_date;
-
-/*
-    $.post($(location).attr('href'),
-    {
-        farm_name: farm_name,
-        field_name: field_name,
-        mission_date: mission_date
-    },
-    function(response, status) {
-        if (response.error) { 
-            console.log(response.error);
-        }
-        else {
-            window.location.href = response.redirect;
-        }
-    });
-*/
 }
 
 function show_browse() {
@@ -134,7 +115,6 @@ function show_browse() {
 
 
     $("#farm_combo").change(function() {
-        console.log("farm combo changed");
 
         let farm_name = $(this).val();
 
@@ -174,7 +154,6 @@ function show_browse() {
 
 
     $("#modal_close").click(function() {
-        console.log("closing modal");
         $("#modal_button_container").remove();
         close_modal();
     });
@@ -210,7 +189,6 @@ function show_tab(sel_tab_btn_id) {
 function show_image_set_tab(sel_tab_btn_id) {
 
     //let tab_btn_id = tab_btn.id;
-    console.log("sel_tab_btn_id", sel_tab_btn_id);
     let image_set_tab_ids = [
         "overview_tab_btn",
         "train_tab_btn",
@@ -258,8 +236,6 @@ function show_overview() {
         
     let annotations = get_config(job_url);
     //annotations = JSON.stringify(annotations, null, 4);
-
-    console.log("annotations", annotations);
     let total_annotations = 0;
     let total_images = 0;
     let completed = 0;
@@ -330,11 +306,12 @@ function show_overview() {
     $("#annotate_section").append(
         `<button class="std-button std-button-hover" style="width: 220px; height: 50px;" onclick="annotate_request()">`+
             `<span><i class="fa-regular fa-clone" style="margin-right:8px"></i> Annotate</span></button>`);
+    /*
     $("#annotate_section").append(`<br><br>`);
     $("#annotate_section").append(
         `<button class="x-button x-button-hover" style="width: 220px; height: 35px;" onclick="delete_request()">`+
             `<span><i class="fa-regular fa-circle-xmark" style="margin-right:8px"></i> Delete Image Set</span></button>`);
-
+    */
 }
 
 
@@ -357,8 +334,6 @@ function show_results() {
     let farm_name = $("#farm_combo").val();
     let field_name = $("#field_combo").val();
     let mission_date = $("#mission_combo").val();
-
-    console.log("found jobs", image_sets_data[farm_name][field_name][mission_date]);
 
     let job_col_width = "200px";
     let started_col_width = "180px";
@@ -388,24 +363,27 @@ function show_results() {
     $("#tab_details").empty();
     $("#tab_details").append(`<div style="height: 120px"></div>`);
     //$("#tab_details").append(`<br>`);
+    //job_recs = [{"job_uuid": "fake", "job_name": "fake", "start_time": "fake", "end_time": "fake"}];
     if (job_recs.length > 0) {
-        $("#tab_details").append(`<table class="transparent_table" style="height: 380px" id="image_set_table"></table>`);
-        $("#image_set_table").append(`<tr>` +
+        $("#tab_details").append(`<table class="transparent_table" id="image_set_table_head"></table>`);
+        $("#image_set_table_head").append(`<tr>` +
                 `<th><div class="table_header" style="width: ${job_col_width};">Job Name</div></th>` +
                 `<th><div class="table_header" style="width: ${started_col_width};">Started</div></th>` +
                 `<th><div class="table_header" style="width: ${finished_col_width};">Finished</div></th>` +
                 `<tr>`);
 
+        $("#tab_details").append(`<div class="scrollable_area" style="height: 380px; border: none">` +
+                                `<table class="transparent_table" id="image_set_table_content"></table></div>`);
         for (job_rec of job_recs) {
             let job_uuid = job_rec["job_uuid"];
             let job_name = job_rec["job_name"];
             let start_time = job_rec["start_time"];
             let end_time = job_rec["end_time"];
-            $("#image_set_table").append(`<tr>` +
-            `<td><button class="std-button std-button-hover" ` +
-                    `onclick="view_job('${job_uuid}')"><span>${job_name}</span></button></td>` +
-                    `<td><div class="table_center_text">${start_time}</div></td>` +   
-                    `<td><div class="table_center_text">${end_time}</div></td>` +
+            $("#image_set_table_content").append(`<tr>` +
+            `<td><div class="std-button std-button-hover" style="width: ${job_col_width};" ` +
+                    `onclick="view_job('${job_uuid}')"><span>${job_name}</span></div></td>` +
+                    `<td><div class="table_entry" style="width: ${started_col_width};">${start_time}</div></td>` +   
+                    `<td><div class="table_entry" style="width: ${finished_col_width};">${end_time}</div></td>` +
             `</tr>`);
         }
     }
@@ -416,8 +394,6 @@ function show_results() {
 }
 
 function view_job(job_uuid) {
-    console.log("request to view job", job_uuid);
-
 
     $.post($(location).attr('href'),
     {
@@ -502,8 +478,6 @@ function show_image_set_details() {
 $(document).ready(function() {
 
     //update_containers();
-
-    console.log("image_sets_data", image_sets_data);
 
     show_browse();
 

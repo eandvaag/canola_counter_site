@@ -219,47 +219,7 @@ hr {
    cursor: pointer;
 }
 
-.table_header {
-   background-color:  #222621;
-   color: white;
-   /*border-radius: 4px;*/
-   /*width: fit-content;*/
-   text-align: center;
-   font-size: 16px;
-   /*margin: 5px 10px;*/
-   margin: 0px 10px;
-   padding: 5px 10px;
-   /*
-   margin: 0px 10px;
-   padding: 5px;*/
-   border-bottom: 1px solid white;
-}
 
-.table_entry {
-   background-color:  #222621;
-   /*
-   border: 1px solid white;
-   color: white;
-   border-radius: 4px;
-   */
-   /*width: fit-content;*/
-   text-align: center;
-   font-size: 16px;
-   /*margin: 5px 10px;*/
-
-   margin: 0px 10px;
-   padding: 5px 10px;
-
-   /*
-   margin: 0px 10px;
-   padding: 5px;*/
-   /*margin:  5px;*/
-   /*padding: 5px 5px;*/
-   /*margin: 15px 15px;*/
-   /*
-   margin: 5px;
-   padding: 5px;*/
-}
 /*
 tr:first-child{ ;}*/
 /*
@@ -267,30 +227,82 @@ tr:first-child{ ;}*/
   cursor: pointer;
 }*/
 
+.table_entry_container {
+  margin: 0px 5px;
+  padding: 5px;
+}
+
+
+.table_header {
+  background-color:  #222621;
+  color: white;
+  /*border-radius: 4px;*/
+  /*width: fit-content;*/
+  text-align: center;
+  font-size: 16px;
+  /*margin: 5px 10px;*/
+  /*
+  margin: 0px 10px;
+  padding: 5px 10px;*/
+  
+  /*
+  margin: 0px 10px;*/
+  margin: 0px 5px;
+  padding: 5px;
+  border-bottom: 1px solid white;
+}
+
+.table_entry {
+  background-color:  #222621;
+  /*
+  border: 1px solid white;
+  color: white;
+  border-radius: 4px;
+  */
+  /*width: fit-content;*/
+  text-align: center;
+  font-size: 16px;
+  /*margin: 5px 10px;*/
+  margin: 0px 5px;
+  padding: 5px;
+
+  /*
+  margin: 0px 10px;
+  padding: 5px;*/
+  /*margin:  5px;*/
+  /*padding: 5px 5px;*/
+  /*margin: 15px 15px;*/
+  /**/
+  /*
+  margin: 0px 5px;
+  padding: 5px;*/
+}
+
 .table_button {
-   /*width:  fit-content;*/
-   background-color:  #222621;
-   border: 1px solid white;
-   color: white;
-   font-size: 16px;
-   /*margin: 0px;*/
-   
-   margin: 0px 10px;
-   padding: 5px 10px;
-   transition: all 0.5s;
-   cursor: pointer;
-   /*
-   margin:  0px 10px;
-   padding:  5px;*/
-   /*padding: 5px 5px;*/
+  /*width:  fit-content;*/
+  background-color:  #222621;
+  border: 1px solid white;
+  color: white;
+  font-size: 16px;
+  /*margin: 0px;*/
+  /*
+  margin: 0px 10px;
+  padding: 5px 10px;*/
+  transition: all 0.5s;
+  cursor: pointer;
+  padding: 5px;
+  margin: 0px 5px;
+  /*
+  margin:  0px 10px;
+  padding:  5px;*/
+  /*padding: 5px 5px;*/
 }
 
 .table_button_hover:hover {
-   background-color: rgba(0,0,0,0.8);
-   box-shadow: 0px 0px 10px rgba(255,255,100,1);
-   text-shadow: 0px 0px 10px rgba(255,255,100,1);
+  background-color: rgba(0,0,0,0.8);
+  box-shadow: 0px 0px 10px rgba(255,255,100,1);
+  text-shadow: 0px 0px 10px rgba(255,255,100,1);
 }
-
 
 
 .std-button {
@@ -301,11 +313,13 @@ tr:first-child{ ;}*/
   color: white;
   text-align: center;
   font-size: 18px;
-  padding: 5px 5px;
+  /*padding: 5px 5px;*/
+  padding: 5px;
+  margin: 0px 5px;
   width: 95%;
   transition: all 0.5s;
   cursor: pointer;
-  margin: 5px 5px;
+  /*margin: 5px 5px;*/
 }
 
 
@@ -386,6 +400,56 @@ tr:first-child{ ;}*/
 .x-button-hover:hover {
   background-color:rgb(143, 24, 15); /*#cc9923;*/
 }
+
+
+.stop-button {
+  display: inline-block;
+  border-radius: 30px;
+  background-color:  #2b3628; /*#998866;*/
+  border: 1px solid white; /*none;*/
+  color: white;
+  text-align: center;
+  font-size: 18px;
+  padding: 5px 5px;
+  width: 95%;
+  transition: all 0.5s;
+  cursor: pointer;
+  margin: 5px 5px; 
+}
+
+
+.stop-button span {
+  cursor: pointer;
+  display: inline-block;
+  position: relative;
+  transition: 0.5s;
+}
+
+.stop-button span:after {
+  content: '\00bb';
+  position: absolute;
+  opacity: 0;
+  top: 0;
+  right: -20px;
+  transition: 0.5s;
+}
+
+/* button hover is a separate class so that hover animation 
+   can be disabled by removing the class in jQuery */
+.stop-button-hover:hover span {
+  padding-right: 25px;
+}
+
+.stop-button-hover:hover span:after {
+  opacity: 1;
+  right: 0;
+}
+
+.stop-button-hover:hover {
+  background-color:#45633d; /*#cc9923;*/
+}
+
+
 
 .label {
   font-size: 18px; 

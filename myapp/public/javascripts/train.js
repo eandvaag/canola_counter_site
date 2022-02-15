@@ -63,20 +63,15 @@ function submit_training_request() {
     },
     function(response, status) {
         if (response.error) { 
-            console.log("error occurred");
-            console.log(response.message);
             $("#modal_header_text").html("Error");
             $("#modal_message").html("An error occurred:<br><br>" +
                                      response.message);
             $("#result_modal").css("display", "block");
         }
         else {
-            console.log("job is running");
             $("#modal_header_text").html("Success!");
             $("#modal_message").html("The training job has been successfully started.");
             $("#result_modal").css("display", "block");
-            //console.log("successful deletion!");
-            // window.location.href = response.redirect;
         }
     });
 }
@@ -90,17 +85,8 @@ function manage_jobs_request() {
         if (response.error) { 
             console.log("error occurred");
             console.log(response.message);
-            //$("#modal_header_text").html("Error");
-            //$("#modal_message").html("An error occurred:<br><br>" +
-            //                         response.message);
-            //$("#result_modal").css("display", "block");
         }
         else {
-            console.log("job is running");
-            //$("#modal_header_text").html("Success!");
-            //$("#modal_message").html("The training job has been successfully started.");
-            //$("#result_modal").css("display", "block");
-            //console.log("successful deletion!");
             window.location.href = response.redirect;
         }
     });    
@@ -114,7 +100,7 @@ function show_train() {
     let right_col_width = "220px";
 
     $("#tab_details").empty();
-    //$("#tab_details").append(`<div style="height: 150px"></div>`);
+
     $("#tab_details").append(`<table class="transparent_table" style="height: 500px" id="train_table"></table>`);
 
     $("#train_table").append(`<tr>`+
@@ -124,7 +110,7 @@ function show_train() {
 
     $("#manage_section").append(
         `<button class="std-button std-button-hover" style="width: 220px; height: 50px;" onclick="manage_jobs_request()">`+
-            `<span><i class="fa-regular fa-clone" style="margin-right:8px"></i> Manage Jobs</span></button>`);
+            `<span><i class="fa-solid fa-bars-progress" style="margin-right:8px"></i> Manage Jobs</span></button>`);
 
     $("#train_section").append(`<form id="train_form" action=""></form>`)
 
@@ -138,7 +124,7 @@ function show_train() {
 
     $("#train_form").append(`<br><br>`);
     $("#train_form").append(`<button id="train_button" class="std-button std-button-hover" `+
-                             `style="width: 200px; height: 40px;"><span id="train_button_text">Train</span></button>`);
+                             `style="width: 200px; height: 50px;"><span id="train_button_text"><i class="fa-solid fa-play" style="margin-right:3px"></i> Train</span></button>`);
 
 
     disable_training_submit();

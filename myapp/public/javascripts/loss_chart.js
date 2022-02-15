@@ -9,6 +9,7 @@ function draw_loss_chart(loss_records) {
     let training_loss_vals = [];
     let validation_loss_vals = [];
 
+    console.log("loss_records",loss_records);
     let model_loss_records = loss_records[model_uuid];
     for (loss_record of model_loss_records) {
         for (training_loss_val of loss_record["training_loss"]["values"]) {
@@ -48,7 +49,7 @@ function draw_loss_chart(loss_records) {
     let chart_width = $("#loss_chart").width();
     let chart_height = $("#loss_chart").height();
 
-    $("#loss_chart").empty();
+    //$("#loss_chart").empty();
     $("#loss_chart").append(`<div id="loss_chart_tooltip" class="tooltip" style="z-index: 10"></div>`);
     let loss_svg = d3.select("#loss_chart")
         .append("svg")
@@ -186,10 +187,12 @@ function draw_loss_chart(loss_records) {
 
     let legend_data = [{
         "text": "Training",
-        "stroke-dasharray": 0
+        "stroke-dasharray": 0,
+        "stroke": "#0080C0"
     }, {
         "text": "Validation",
-        "stroke-dasharray": ("8, 8")
+        "stroke-dasharray": ("8, 8"),
+        "stroke": "#FF4040"
     }];
 
     let legend = loss_svg.selectAll(".legend")
@@ -209,7 +212,9 @@ function draw_loss_chart(loss_records) {
         return d["stroke-dasharray"];
       })
       .attr("stroke-width", 2)
-      .style("stroke", "white");
+      .style("stroke", function(d) {
+          return d["stroke"];
+      });
 
     legend.append("text")
       .attr("x", chart_width - 84)
