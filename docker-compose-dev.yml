@@ -32,7 +32,7 @@ services:
     volumes:
       - type: bind
         source: /home/eaa299/Documents/work/2021/plant_detection/plant_detection_viewer/myapp/usr
-        target: /opt/app/plant_detection/myapp/usr
+        target: /opt/app/plant_detection_viewer/myapp/usr
     networks: 
       - container_net
 

@@ -16,6 +16,7 @@ services:
 
 
   myapp:
+    user: "${UID}:${GID}"
     build: 
       context: .
     environment:
@@ -31,8 +32,8 @@ services:
       - '8110:8110'
     volumes:
       - type: bind
-        source: /data/home/erik/plant_detection_viewer/myapp/usr
-        target: /opt/app/plant_detection/myapp/usr
+        source: /data/home/erik/plant_detection/plant_detection/src/usr
+        target: /opt/app/plant_detection/src/usr
     networks: 
       - container_net
 

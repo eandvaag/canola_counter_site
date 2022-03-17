@@ -73,8 +73,17 @@ function create_image_set_table() {
 }
 
 
-function update_px_str_to_fit_image_bounds(px_str) {
+function snap_to_boundaries(min_x, min_y, w, h) {
 
+
+    //console.log("selection2", selection);
+
+
+}
+
+
+
+function resize_px_str(px_str) {
     console.log(px_str);
     px_str = px_str.substring(11);
     let px_lst = px_str.split(",").map(x => parseFloat(x));
@@ -84,7 +93,6 @@ function update_px_str_to_fit_image_bounds(px_str) {
     console.log(px_str);
     console.log(px_lst);
     console.log("img_dims", img_dims);
-    //console.log("selection2", selection);
 
     let box_min_x = Math.max(px_lst[0], 0);
     let box_min_y = Math.max(px_lst[1], 0);
@@ -92,8 +100,51 @@ function update_px_str_to_fit_image_bounds(px_str) {
     let box_max_x = Math.min(px_lst[0] + px_lst[2], img_w);
     let box_max_y = Math.min(px_lst[1] + px_lst[3], img_h);
 
+
+    let box_centre_x = (box_max_x + box_min_x) / 2;
+    let box_centre_y = (box_max_y + box_min_y) / 2;
+
     let box_w = box_max_x - box_min_x;
     let box_h = box_max_y - box_min_y;
+
+    let min_dim = 4;
+    if (box_w < min_dim) {
+
+        let tentative_box_min_x = box_centre_x - Math.floor(min_dim / 2);
+        let tentative_box_max_x = box_centre_x + Math.floor(min_dim / 2);
+        if (tentative_box_min_x < 0) {
+            box_min_x = 0;
+            box_max_x = min_dim;
+        }
+        else if (tentative_box_max_x > img_w) {
+            box_min_x = (img_w) - min_dim;
+            box_max_x = img_w;
+        }
+        else {
+            box_min_x = tentative_box_min_x;
+            box_max_x = tentative_box_max_x;
+        }
+        
+    }
+    if (box_h < min_dim) {
+        let tentative_box_min_y = box_centre_y - Math.floor(min_dim / 2);
+        let tentative_box_max_y = box_centre_y + Math.floor(min_dim / 2);
+        if (tentative_box_min_y < 0) {
+            box_min_y = 0;
+            box_max_y = min_dim;
+        }
+        else if (tentative_box_max_y > img_h) {
+            box_min_y = (img_h) - min_dim;
+            box_max_y = img_h;
+        }
+        else {
+            box_min_y = tentative_box_min_y;
+            box_max_y = tentative_box_max_y;
+        }
+    }
+
+    box_w = box_max_x - box_min_x;
+    box_h = box_max_y - box_min_y;
 
     let updated_px_str = "xywh=pixel:" + box_min_x + "," + box_min_y +
                          "," + box_w + "," + box_h;
@@ -189,6 +240,24 @@ $(document).ready(function() {
         disableEditor: true
     });
 
+    //document.getElementById('seadragon_viewer').querySelector('.openseadragon-canvas').focus();
+
+    viewer.innerTracker.keyDownHandler = function(e) {
+
+        if (e.keyCode == 46) {
+            let selected = anno.getSelected();
+            anno.removeAnnotation(selected);
+
+            annotations[cur_img_name]["annotations"] = anno.getAnnotations();
+            update_image_status();
+            set_image_status_combo();
+            create_image_set_table();
+            $("#save_icon").css("color", "#ed452b");
+
+        }
+
+    }
+
     viewer.addHandler("open", function(event) {
         anno.clearAnnotations();
 
@@ -220,7 +289,6 @@ $(document).ready(function() {
     //anno.addHandler('createAnnotation', function(annotation, overrideId) {
     //anno.on('handleAnnotationCreated', function(annotation, overrideId) {  
         console.log(annotation);
-        console.log('Created!');
 
         annotations[cur_img_name]["annotations"] = anno.getAnnotations();
 
@@ -230,24 +298,9 @@ $(document).ready(function() {
         create_image_set_table();
     });
 
-
-
-    anno.on('clickAnnotation', function(annotation) {
-        console.log("clicked on annotation");
-    });
-
     anno.on('createSelection', async function(selection) {
 
-        console.log("createSelection");
-        console.log(window.location.href);
-        console.log("selection1", selection);
-        console.log(window.location.href);
-
         selection.target.source = window.location.href;
-
-        console.log("selection2", selection);
-        /*
-        anno.saveSelected();*/
 
         selection.body = [{
             type: 'TextualBody',
@@ -256,7 +309,7 @@ $(document).ready(function() {
         }];
 
         let px_str = selection.target.selector.value;
-        let updated_px_str = update_px_str_to_fit_image_bounds(px_str);
+        let updated_px_str = resize_px_str(px_str);
 
         selection.target.selector.value = updated_px_str;
 
@@ -289,7 +342,7 @@ $(document).ready(function() {
     anno.on('updateAnnotation', async function(annotation, previous) {
         console.log("updateAnnotation");
         let px_str = annotation.target.selector.value;
-        let updated_px_str = update_px_str_to_fit_image_bounds(px_str);
+        let updated_px_str = resize_px_str(px_str);
 
         annotation.target.selector.value = updated_px_str;
 
@@ -324,7 +377,7 @@ $(document).ready(function() {
         let px_str = selection.target.selector.value;
         console.log("px_str", px_str);
         
-        let updated_px_str = update_px_str_to_fit_image_bounds(px_str);
+        let updated_px_str = resize_px_str(px_str);
         console.log(updated_px_str);
         
         selection.target.selector.value = updated_px_str;
@@ -368,10 +421,10 @@ $(document).ready(function() {
         });
     });
 
-
+    /*
     $("#seadragon_viewer").keypress(function(e) {
         //console.log(e);
-        if (e.which == 127) {
+        if ((e.which == 46) || (e.which == 127)) {
             console.log('pressed delete');
             let selected = anno.getSelected();
             anno.removeAnnotation(selected);
@@ -384,7 +437,7 @@ $(document).ready(function() {
 
         }
 
-    });
+    });*/
 
 
     $("#status_combo").change(function() {

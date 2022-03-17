@@ -20,7 +20,11 @@ RUN pip3 install -r ./plant_detection/src/requirements.txt
 WORKDIR ./plant_detection_viewer/myapp
 RUN npm install
 RUN apt install -y postgresql-client
+#COPY --chown=app ./node_modules/annotorious ./node_modules/annotorious
+#COPY --chown=app ./node_modules/openseadragon3 ./node_modules/openseadragon3
 USER app
+#RUN chown -R app:app /opt/app/plant_detection/src/usr
+RUN ln -s /opt/app/plant_detection/src/usr /opt/app/plant_detection_viewer/myapp/usr
 RUN chmod +x myapp-init.sh
 CMD /bin/sh /opt/app/plant_detection_viewer/myapp/myapp-init.sh
 EXPOSE 8110

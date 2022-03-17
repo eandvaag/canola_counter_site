@@ -180,8 +180,8 @@ function show_upload() {
         field_name: '',
         mission_date: '',
         //addRemoveLinks : true,
-        parallelUploads: 100,
-        maxUploads: 100
+        parallelUploads: 10000,
+        maxUploads: 10000
     });
 
     dropzone_handler.on("queuecomplete", function(files, response) {

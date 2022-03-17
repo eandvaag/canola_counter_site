@@ -1150,14 +1150,28 @@ exports.post_home = function(req, res, next) {
 
 
                 
-                let jobs_path = path.join(USR_DATA_ROOT, "jobs", "jobs.json");
+                let job_manager_path = path.join(USR_DATA_ROOT, "jobs", "jobs.json");
+                let job_config_path = path.join(USR_DATA_ROOT, "jobs", job_uuid + ".json");
+                let job_config = {
+                    "job_uuid": job_uuid,
+                    "job_name": job_name,
+                    "target_farm_name": farm_name,
+                    "target_field_name": field_name,
+                    "target_mission_date": mission_date,
+                    "source_construction_params": {
+                        "method": "even_subset",
+                        "size": 5000
+                    }
+                }
+
+
                 
                 //let jobs = JSON.parse(fs.readFileSync(jobs_path, 'utf8'));
 
                 job_lock.acquire(jobs, function() {
                     
                     
-                    jobs = JSON.parse(fs.readFileSync(jobs_path, 'utf8'));
+                    jobs = JSON.parse(fs.readFileSync(job_manager_path, 'utf8'));
 
                     if (jobs["num_active_jobs"] >= jobs["max_jobs"]) {
                     //if (false) {
@@ -1171,7 +1185,8 @@ exports.post_home = function(req, res, next) {
                         jobs["num_active_jobs"] += 1;
                         jobs["active_jobs"].push(job_uuid);
                         try {
-                            fs.writeFileSync(jobs_path, JSON.stringify(jobs));
+                            fs.writeFileSync(job_manager_path, JSON.stringify(jobs));
+                            fs.writeFileSync(job_config_path, JSON.stringify(job_config));
                             response.error = false;
                             response.message = "Starting to run job.";
                         }
@@ -1181,6 +1196,7 @@ exports.post_home = function(req, res, next) {
                             response.error = true;
                             response.message = "File I/O error occurred.";
                         }
+
                     }
                 }).catch(function(error) {
                     console.log(error.message);
@@ -1189,15 +1205,9 @@ exports.post_home = function(req, res, next) {
                     res.json(response);
                 });
                 if (!(response.error)) {
-                    //let cmd = "python3 ../../plant_detection/src/main.py " + ensemble_req_path;
-                    //let cmd = "sleep 10";
-                    /*
-                    let cmd = "python3 ../../plant_detection/src/main.py " + farm_name + " " +
-                                field_name + " " + mission_date + " " + job_name + " &";
-                    */
 
                     let subprocess = spawn("python3", ["../../plant_detection/src/main.py", 
-                                farm_name, field_name, mission_date, job_uuid, job_name]);
+                                            job_uuid]);
 
                     console.log("adding subprocess");
                     job_lock.acquire(active_subprocesses, function() {
@@ -1220,14 +1230,14 @@ exports.post_home = function(req, res, next) {
                         //let jobs_path = path.join("usr", "jobs", "jobs.json");
                         //let jobs = JSON.parse(fs.readFileSync(jobs_path, 'utf8'));
                         job_lock.acquire(jobs, function() {
-                            jobs = JSON.parse(fs.readFileSync(jobs_path, 'utf8'));
+                            jobs = JSON.parse(fs.readFileSync(job_manager_path, 'utf8'));
                             jobs["num_active_jobs"] -= 1;
                             let index = jobs["active_jobs"].indexOf(job_uuid);
                             if (index > -1) {
                                 jobs["active_jobs"].splice(index, 1); // 2nd parameter means remove one item only
                             }
                             try {
-                                fs.writeFileSync(jobs_path, JSON.stringify(jobs));
+                                fs.writeFileSync(job_manager_path, JSON.stringify(jobs));
                             }
                             catch (error) {
                                 console.log(error);
@@ -1266,14 +1276,14 @@ exports.post_home = function(req, res, next) {
                     subprocess.on('error', (err) => {
                         console.log("Failed to start subprocess.");
                         job_lock.acquire(jobs, function() {
-                            jobs = JSON.parse(fs.readFileSync(jobs_path, 'utf8'));
+                            jobs = JSON.parse(fs.readFileSync(job_manager_path, 'utf8'));
                             jobs["num_active_jobs"] -= 1;
                             let index = jobs["active_jobs"].indexOf(job_uuid);
                             if (index > -1) {
                                 jobs["active_jobs"].splice(index, 1); // 2nd parameter means remove one item only
                             }
                             try {
-                                fs.writeFileSync(jobs_path, JSON.stringify(jobs));
+                                fs.writeFileSync(job_manager_path, JSON.stringify(jobs));
                             }
                             catch (error) {
                                 console.log(error);
@@ -1290,40 +1300,6 @@ exports.post_home = function(req, res, next) {
                             console.log(error);
                         });
                     });
-
-                    //});
-
-                    /*
-                    const result = exec(cmd, {shell: "/bin/bash"}, function (error, stdout, stderr) {
-
-                        if (error) {       
-                            console.log(error.stack);
-                            console.log('Error code: '+error.code);
-                            console.log('Signal received: '+error.signal);
-                        
-                        }
-                        console.log("now the job is done");
-                        let jobs_path = path.join("usr", "jobs", "jobs.json");
-                        let jobs = JSON.parse(fs.readFileSync(jobs_path, 'utf8'));
-                        job_lock.acquire(jobs, function() {
-                            jobs = JSON.parse(fs.readFileSync(jobs_path, 'utf8'));
-                            jobs["num_active_jobs"] -= 1;
-                            let index = jobs["active_jobs"].indexOf(job_uuid);
-                            if (index > -1) {
-                                jobs["active_jobs"].splice(index, 1); // 2nd parameter means remove one item only
-                            }
-                            try {
-                                fs.writeFileSync(jobs_path, JSON.stringify(jobs));
-                                //response.error = false;
-                                //response.message = "Finished job";
-                            }
-                            catch (error) {
-                                console.log(error);
-                                //response.error = true;
-                                //response.message = "File I/O error";
-                            }
-                        });
-                    });*/
 
                     res.json(response);
                 }

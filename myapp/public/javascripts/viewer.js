@@ -135,8 +135,48 @@ let formatter = function(annotation) {
   });
 
   if (highlightBody)
-    return highlightBody.value;
+    return { className: highlightBody.value };
 };
+
+
+//const ShapeLabelsFormatter = config => annotation => {
+let ShapeLabelsFormatter = function(annotation) {
+
+    const bodies = Array.isArray(annotation.body) ?
+      annotation.body : [ annotation.body ];
+  
+    const scoreTag = bodies.find(b => b.purpose == 'score');
+    const highlightBody = bodies.find(b => b.purpose == 'highlighting');
+
+
+    if (scoreTag && highlightBody) {
+      const foreignObject = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject');
+  
+      // Overflow is set to visible, but the foreignObject needs >0 zero size,
+      // otherwise FF doesn't render...
+      foreignObject.setAttribute('width', '1px');
+      foreignObject.setAttribute('height', '1px');
+  
+      foreignObject.innerHTML = `
+        <div xmlns="http://www.w3.org/1999/xhtml" class="a9s-shape-label-wrapper">
+          <div class="a9s-shape-label">
+            ${scoreTag.value}
+          </div>
+        </div>`;
+        
+      return {
+        element: foreignObject,
+        className: scoreTag.value + " " + highlightBody.value,
+      };
+    }
+    if (highlightBody) {
+        return {
+            className: highlightBody.value
+        }
+    }
+  }
+  
+
 
 
 function update_overlays() {
@@ -146,6 +186,15 @@ function update_overlays() {
         if ($("#" + overlay_id).is(":checked")) {
             for (annotation of overlays[overlay_id][cur_img_name]["annotations"]) {
                 //annotation["body"].push({"value": "COLOR_1", "purpose": "highlighting"})
+                /*
+                let tag = {
+                    purpose: "score",
+                    type: "TextualBody",
+                    value: "0.94" //"MyTag"
+                }
+                annotation.body.push(tag);*/
+                //annotation["TAG"] = "MY TEXT"
+                //console.log(annotation)
                 anno.addAnnotation(annotation);
             }
         }
@@ -160,7 +209,7 @@ function update_overlays() {
 
 function assemble_datasets() {
     dataset_images = {};
-    for (image_set of job_config["inference_config"]["image_sets"]) {
+    for (image_set of job_config["inference_config"]["datasets"]){ //image_sets"]) {
         if ((image_set["farm_name"] === metadata["farm_name"] &&
              image_set["field_name"] === metadata["field_name"]) &&
              image_set["mission_date"] === metadata["mission_date"]) {
@@ -219,8 +268,17 @@ $(document).ready(function() {
         disableEditor: true,
         disableSelect: true,
         readOnly: true,
-        formatter: formatter
+        formatter: ShapeLabelsFormatter //formatter, //[formatter, ShapeLabelsFormatter], //[ShapeLabelsFormatter(), formatter], //formatter,
+        //formatter: ShapeLabelsFormatter()
+        /*messages: {"hello": "test"},*/
+        /*locale: 'auto',*/
+        /*widgets: [
+            'TAG'
+        ]*/
     });
+    //anno.addFormatter(ShapeLabelsFormatter);
+    //anno.formatter.push(ShapeLabelsFormatter); //[...anno.formatters, ShapeLabelsFormatter()], //formatter]; //, ShapeLabelsFormatter()]
+    //anno.setVisible(true);
 
     viewer.addHandler("open", function(event) {
         
