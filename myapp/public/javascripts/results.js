@@ -18,11 +18,19 @@ function show_image_set_details() {
             `<th><div class="table_header" style="width: ${started_col_width};">Started</div></th>` +
             `<th><div class="table_header" style="width: ${finished_col_width};">Finished</div></th>` +
             `<tr>`);
+    let group_configs = [];
     for (const group_uuid of results_data[farm_name][field_name][mission_date]) {
         let group_url = "/plant_detection/usr/data/groups/" + group_uuid + ".json";
     
         let group_config = get_config(group_url);
-        let group_config_str = JSON.stringify(group_config, null, 4);
+        group_configs.push(group_config);
+    }
+    group_configs.sort(function(a, b) {
+        return a["end_time"] - b["end_time"];
+    });
+    console.log("showing group_configs");
+    for (group_config of group_configs) {
+        //let group_config_str = JSON.stringify(group_config, null, 4);
 
         let group_name = group_config["group_name"];
         let start_time = group_config["start_time"];

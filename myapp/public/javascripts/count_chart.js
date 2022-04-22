@@ -17,7 +17,7 @@ function set_count_chart_data() {
     /*
     let annotated_count;
     let pred_count;*/
-
+    let slider_val = Number.parseFloat($("#confidence_slider").val()).toFixed(2);
 
     for (image_name of Object.keys(overlays["annotations"])) {
         count_chart_data[image_name] = {};
@@ -34,122 +34,52 @@ function set_count_chart_data() {
         }
     }
 
-
-    for (let i = 0; i < sorted_overlay_ids.length; i++) {
-        let overlay_id = sorted_overlay_ids[i];
-        for (image_name of Object.keys(overlays[overlay_id])) {
-            for (annotation of overlays[overlay_id][image_name]["annotations"]) {
-                let class_name = annotation["body"][0]["value"];
-                count_chart_data[image_name][class_name][i]["count"]++;
+    let metric = $("#chart_combo").val();
+    if (metric === "Raw counts") {
+        for (let i = 0; i < sorted_overlay_ids.length; i++) {
+            let overlay_id = sorted_overlay_ids[i];
+            for (image_name of Object.keys(overlays[overlay_id])) {
+                for (annotation of overlays[overlay_id][image_name]["annotations"]) {
+                    //let class_name = annotation["body"][0]["value"];
+                    let class_name = annotation["body"].find(b => b.purpose == "class").value;
+                    let score_el = annotation["body"].find(b => b.purpose == 'score');
+                    if (!score_el || score_el.value >= slider_val) {
+                        count_chart_data[image_name][class_name][i]["count"]++;
+                    }
+                }
             }
         }
-    }
-    /*
-
-    //for (overlay_name of Object.keys(overlays)) {
-    for (let i = 0; i < sorted_overlay_ids.length; i++) {
-        count_chart_data[overlay_name] = {};
-
-        for (image_name of Object.keys(overlays[overlay_name])) {
-            count_chart_data[overlay_name][image_name] = {};
-            for (annotation of overlays[overlay_name][image_name]) {
-                let class_name = annotation["body"][0]["value"];
-                if (!(class_name in count_chart_data[overlay_name][image_name])) {
-                    //count_chart_data[overlay_name][image_name][class_name] = 1;
-
-
-                    count_chart_data.push({
-                        name: sorted_overlay_names[i],
-                        count: 0,
-                        color: color_lookup[sorted_overlay_names[i]]
-                    });
-
-                }
-                else {
-                    //count_chart_data[overlay_name][image_name][class_name]++;
-                    count_chart_data.push({
-                        name: sorted_overlay_names[i],
-                        count: 0,
-                        color: color_lookup[sorted_overlay_names[i]]
-                    });
-
+        max_count = 0;
+        for (image_name of Object.keys(count_chart_data)) {
+            for (class_name of Object.keys(job_config["arch_config"]["class_map"])) {
+                for (entry of count_chart_data[image_name][class_name]) {
+                    if (entry.count > max_count) {
+                        max_count = entry.count
+                    }
                 }
             }
         }
     }
-
-
-
-
-        //predictions[Object.keys(predictions)[0]]["image_predictions"])) {
-
-        count_chart_data[image_name] = {};
-        
-        for (class_name of Object.keys(metadata["class_map"])) {
-
-
-            count_chart_data[image_name][class_name] = [];
-
-            if (metadata["dataset_is_annotated"]) {
-                if (class_name in annotations[image_name]["class_counts"]) {
-                    annotated_count = annotations[image_name]["class_counts"][class_name];
-                }
-                else {
-                    annotated_count = 0;
-                }
-                count_chart_data[image_name][class_name].push({
-                    name: "Annotations",
-                    count: annotated_count,
-                    color: color_lookup["Annotations"]
-                });
-            }
-
-
-            for (let i = 0; i < sorted_model_uuids.length; i++) {
-
-                if (class_name in predictions[sorted_model_uuids[i]]["image_predictions"][image_name]["pred_class_counts"]) {
-                    pred_count = predictions[sorted_model_uuids[i]]["image_predictions"][image_name]["pred_class_counts"][class_name];
-                }
-                else {
-                    pred_count = 0;
-                }
-
-                count_chart_data[image_name][class_name].push({
-                    name: sorted_model_names[i],
-                    count: pred_count,
-                    color: color_lookup[sorted_model_uuids[i]]
-                });
-            }
-*/
-            /*
-            for (let i = 0; i < ensemble_uuids.length; i++) {
-
-                if (class_name in ensemble_predictions[ensemble_uuids[i]]["image_predictions"][image_name]["pred_class_counts"]) {
-                    pred_count = ensemble_predictions[ensemble_uuids[i]]["image_predictions"][image_name]["pred_class_counts"][class_name];
-                }
-                else {
-                    pred_count = 0;
-                }
-
-                count_chart_data[image_name][class_name].push({
-                    name: ensemble_names[i],
-                    count: pred_count,
-                    color: color_lookup[ensemble_uuids[i]]
-                });
-            }
+    else {
+        let key_map = {
+            "MS COCO mAP": "Image MS COCO mAP",
+            "PASCAL VOC mAP": "Image PASCAL VOC mAP"
+        }
+        for (let i = 0; i < sorted_overlay_ids.length; i++) {
+            let overlay_id = sorted_overlay_ids[i];
             
-        }
-    }*/
-
-    max_count = 0;
-    for (image_name of Object.keys(count_chart_data)) {
-        for (class_name of Object.keys(job_config["arch_config"]["class_map"])) {
-            for (entry of count_chart_data[image_name][class_name]) {
-                if (entry.count > max_count) {
-                    max_count = entry.count
+            if (overlay_id !== "annotations") {
+                for (image_name of Object.keys(metrics[overlay_id]["image"])) {
+                    if (Object.keys(metrics[overlay_id]["image"][image_name]).length > 0) {
+                        count_chart_data[image_name]["plant"][i]["count"] = metrics[overlay_id]["image"][image_name][key_map[metric]].toFixed(2);
+                    }
+                    else {
+                        count_chart_data[image_name]["plant"][i]["count"] = 0;
+                    }
                 }
             }
         }
+        max_count = 100;
     }
 }
 
@@ -192,7 +122,7 @@ function draw_count_chart() {
 
 
 
-    count_chart_axis.call(d3.axisTop(count_xScale).ticks(chart_width / 100));
+    count_chart_axis.call(d3.axisTop(count_xScale).ticks(chart_width / 100).tickFormat(d3.format("d")));
 
 
     let tooltip = d3.select("#count_chart_tooltip");
@@ -265,7 +195,12 @@ function draw_count_chart() {
 
 function update_count_chart() {
 
+    let chart_width = $("#count_chart").width() - 10;
+
     let sel_class = "plant"; //$("#class_combo").val();
+
+    count_xScale.domain([0, max_count]);
+    count_chart_axis.transition().duration(1000).call(d3.axisTop(count_xScale).ticks(chart_width / 100).tickFormat(d3.format("d")));
 
     d3.selectAll(".bar")
         .data(count_chart_data[cur_img_name][sel_class])

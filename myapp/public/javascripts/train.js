@@ -26,6 +26,9 @@ function enable_training_submit() {
 }
 
 function training_form_is_complete() {
+    // currently disabled
+    return false;
+    /*
     let inputs_to_check = ["job_name_input"];
     for (input of inputs_to_check) {
         let input_length = ($("#" + input).val()).length;
@@ -34,6 +37,7 @@ function training_form_is_complete() {
         }
     }
     return true;
+    */
 }
 
 function update_training_submit() {
@@ -130,7 +134,8 @@ function show_train() {
     disable_training_submit();
     $("#train_button").click(function(e) {
         e.preventDefault();
-        submit_training_request()
+        // currently disabled
+        /* submit_training_request() */
     });
 
     $("#job_name_input").on("input", function(e) {

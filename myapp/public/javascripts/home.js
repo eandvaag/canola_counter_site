@@ -347,7 +347,7 @@ function show_results() {
         let job_config = get_config(job_url);
 
         if ("end_time" in job_config) {
-            let job_config_str = JSON.stringify(job_config, null, 4);
+            //let job_config_str = JSON.stringify(job_config, null, 4);
 
             let job_rec = {
                 "job_uuid": job_config["job_uuid"],
@@ -374,6 +374,11 @@ function show_results() {
 
         $("#tab_details").append(`<div class="scrollable_area" style="height: 380px; border: none">` +
                                 `<table class="transparent_table" id="image_set_table_content"></table></div>`);
+
+        console.log("sorting job recs");
+        job_recs.sort(function(a, b) {
+            return new Date(b["end_time"]) - new Date(a["end_time"]);
+        });                 
         for (job_rec of job_recs) {
             let job_uuid = job_rec["job_uuid"];
             let job_name = job_rec["job_name"];

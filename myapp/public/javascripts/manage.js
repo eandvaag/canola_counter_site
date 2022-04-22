@@ -26,6 +26,15 @@ function inspect_unstopped_job(job_status) {
 
     let job_config = job_configs[inspected_job];
 
+    /*
+    let model_combo_val;
+    if ($("#model_combo").length) {
+        model_combo_val = $("#model_combo").val();
+    }
+    else {
+        model_combo_val = null;
+    }*/
+
     $("#job_details_container").empty();
     $("#job_details_container").append(`<div id="job_name" style="height: 30px; font-size: 20px"></div>`);
     $("#job_details_container").append(`<div id="loss_chart" style="height: 345px; border:none"></div>`);
@@ -65,7 +74,7 @@ function inspect_unstopped_job(job_status) {
     //$("#job_info").append(`<table class="transparent_table" id="job_info_table_content"></table>`)
 
     //let model_uuids = [];
-    //let cur_running = null;
+    let cur_running = null;
     for (model_rec of job_config["model_info"]) {
         let model_uuid = model_rec["model_uuid"];
         let model_name = model_rec["model_name"];
@@ -79,14 +88,26 @@ function inspect_unstopped_job(job_status) {
             value: model_uuid,
             text: model_name
         }));
-        /*
+        
         if (model_stage == "Training" || model_stage == "Predicting") {
             cur_running = model_uuid;
-        }*/
+        }
+
     }
-
-    $("#model_combo").prop("selectedIndex", job_config["model_info"].length-1);
-
+    /*
+    if (model_combo_val === null) {
+        console.log("model_combo_val is null");
+        $("#model_combo").prop("selectedIndex", 0); //job_config["model_info"].length-1);
+        //$("#model_combo").val(job_config["model_info"][0]["model_uuid"]);
+    }
+    else {
+        console.log("model_combo_val is not null");
+        $("#model_combo").val(model_combo_val);
+    }*/
+    if (cur_running == null)
+        $("#model_combo").prop("selectedIndex", 0);
+    else
+        $("#model_combo").val(cur_running);
     /* FIX selected_model_name may come from previously inspected job. This doesn't work */
     /*
     if (selected_model_name == null) {
@@ -101,11 +122,15 @@ function inspect_unstopped_job(job_status) {
     else {
         $("#model_combo").val(selected_model_name);
     }*/
-
     $("#model_combo").change(function() {
-        selected_model_name = $("#model_combo").val();
-        inspect_job();
+        //selected_model_name = $("#model_combo").val();
+        if (loss_records !== null) { 
+            $("#loss_chart").empty();
+            draw_loss_chart(loss_records);
+        }
+        //inspect_job();
     });
+
 
     if (loss_records !== null) { 
         draw_loss_chart(loss_records);
@@ -360,5 +385,6 @@ $(document).ready(function() {
     $("#filter_combo").change(function() {
         fill_jobs_table();
     });
+
 
 });

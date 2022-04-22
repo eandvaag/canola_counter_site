@@ -5,6 +5,7 @@
 function draw_loss_chart(loss_records) {
 
     let model_uuid = $("#model_combo").val();
+    console.log("model_uuid", model_uuid);
 
     let training_loss_vals = [];
     let validation_loss_vals = [];

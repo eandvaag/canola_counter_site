@@ -1,14 +1,24 @@
 
+
 let metadata;
 let job_config;
 let overlays;
-let predictions;
+//let predictions;
+let metrics;
 let dzi_dir;
 let dzi_image_paths;
 let sorted_overlay_names;
 let sorted_overlay_ids;
 let overlay_colors;
 let dataset_images;
+
+let image_names = {
+    "all": [],
+    "completed": [],
+    "unannotated": [],
+    "training/validation": [],
+    "testing": []
+};
 
 let viewer;
 let anno;
@@ -40,8 +50,16 @@ function overlay_initialization() {
     sorted_overlay_ids = ["annotations", ...sorted_overlay_ids];
 
 
-    let colors = ["#0080C0", "#FF4040", "#FFC040", "#40C040", "#C080C0", "#00C0C0", "#C0C080", 
-                  "#FFC0C0", "#408040", "#C08040", "#FF8040"];
+    let colors = ["#0080C0",        
+                  "#FF4040", 
+                  "#f5a70b", 
+                  "#b95fb9", 
+                  "#00695C",
+                  "#00C0C0", 
+                  "#C0C080", 
+                  "#FFC0C0", 
+                  "#C08040", 
+                  "#FF8040"];
     let overflow_color = "#A0A0A0";
 
     overlay_colors = {};
@@ -60,11 +78,13 @@ function overlay_initialization() {
         else
             color_id = "COLOR_DEFAULT";
 
+        //console.log("for loop started");
         for (img_name of Object.keys(overlays[sorted_overlay_ids[i]])) {
             for (annotation of overlays[sorted_overlay_ids[i]][img_name]["annotations"]) {
                 annotation["body"].push({"value": color_id, "purpose": "highlighting"})
             }
         }
+        //console.log("for loop finished");
 
     }
 
@@ -98,7 +118,8 @@ function create_models_table() {
     }
 }
 
-function create_image_set_table(image_names) {
+
+function create_image_set_table(filter) {
 
     let image_name_col_width = "100px";
     let image_status_col_width = "150px";
@@ -112,7 +133,27 @@ function create_image_set_table(image_names) {
             //`<th><div class="table_header" style="width: ${image_dataset_col_width}">Assigned Dataset</div></th>` +
             `</tr>`);*/
     //for (dzi_image_path of dzi_image_paths) {
-    for (image_name of image_names) {
+
+    let filter_val = $("#filter_combo").val();
+    let selected_image_names;
+    if (filter_val === "all") {
+        selected_image_names = image_names["all"];
+    }
+    else if (filter_val === "completed") {
+        selected_image_names = image_names["completed"];
+    }
+    else if (filter_val === "unannotated") {
+        selected_image_names = image_names["unannotated"];
+    }
+    else if (filter_val === "training/validation") {
+        selected_image_names = image_names["training/validation"];
+    }
+    else {
+        selected_image_names = image_names["testing"]
+    }
+
+
+    for (image_name of selected_image_names) {
         //let image_name = basename(dzi_image_path)
         //let extensionless_name = image_name.substring(0, image_name.length - 4);
         let dzi_image_path = dzi_dir + "/" + image_name + ".dzi";
@@ -128,46 +169,34 @@ function create_image_set_table(image_names) {
             `</tr>`);
     }
 }
-
 let formatter = function(annotation) {
-  var highlightBody = annotation.bodies.find(function(b) {
-    return b.purpose == 'highlighting';
-  });
-
-  if (highlightBody)
-    return { className: highlightBody.value };
-};
-
-
-//const ShapeLabelsFormatter = config => annotation => {
-let ShapeLabelsFormatter = function(annotation) {
 
     const bodies = Array.isArray(annotation.body) ?
-      annotation.body : [ annotation.body ];
+    annotation.body : [ annotation.body ];
   
     const scoreTag = bodies.find(b => b.purpose == 'score');
     const highlightBody = bodies.find(b => b.purpose == 'highlighting');
 
+    let is_checked = $("#scores_checkbox").is(":checked");
+    if (is_checked && (scoreTag && highlightBody)) {
+        const foreignObject = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject');
 
-    if (scoreTag && highlightBody) {
-      const foreignObject = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject');
-  
-      // Overflow is set to visible, but the foreignObject needs >0 zero size,
-      // otherwise FF doesn't render...
-      foreignObject.setAttribute('width', '1px');
-      foreignObject.setAttribute('height', '1px');
-  
-      foreignObject.innerHTML = `
+        // Overflow is set to visible, but the foreignObject needs >0 zero size,
+        // otherwise FF doesn't render...
+        foreignObject.setAttribute('width', '1px');
+        foreignObject.setAttribute('height', '1px');
+
+        foreignObject.innerHTML = `
         <div xmlns="http://www.w3.org/1999/xhtml" class="a9s-shape-label-wrapper">
-          <div class="a9s-shape-label">
+            <div class="a9s-shape-label">
             ${scoreTag.value}
-          </div>
+            </div>
         </div>`;
-        
-      return {
-        element: foreignObject,
-        className: scoreTag.value + " " + highlightBody.value,
-      };
+
+        return {
+            element: foreignObject,
+            className: scoreTag.value + " " + highlightBody.value,
+        };
     }
     if (highlightBody) {
         return {
@@ -182,6 +211,7 @@ let ShapeLabelsFormatter = function(annotation) {
 function update_overlays() {
     anno.clearAnnotations();
     console.log("update_overlays");
+    let slider_val = Number.parseFloat($("#confidence_slider").val()).toFixed(2);
     for (overlay_id of sorted_overlay_ids) {
         if ($("#" + overlay_id).is(":checked")) {
             for (annotation of overlays[overlay_id][cur_img_name]["annotations"]) {
@@ -194,8 +224,14 @@ function update_overlays() {
                 }
                 annotation.body.push(tag);*/
                 //annotation["TAG"] = "MY TEXT"
-                //console.log(annotation)
-                anno.addAnnotation(annotation);
+                //console.log(annotation)'
+
+                let bodies = Array.isArray(annotation.body) ?
+                annotation.body : [ annotation.body ];
+                let scoreTag = bodies.find(b => b.purpose == 'score');
+                if (!scoreTag || scoreTag.value >= slider_val) {
+                    anno.addAnnotation(annotation);
+                }
             }
         }
 
@@ -207,6 +243,7 @@ function update_overlays() {
     }*/
 }
 
+/*
 function assemble_datasets() {
     dataset_images = {};
     for (image_set of job_config["inference_config"]["datasets"]){ //image_sets"]) {
@@ -220,7 +257,9 @@ function assemble_datasets() {
     }
     dataset_images["all"] = natsort(Object.keys(data["overlays"]["annotations"]));
 }
+*/
 
+let used_for = {};
 
 
 $(document).ready(function() {
@@ -228,21 +267,61 @@ $(document).ready(function() {
     metadata = data["metadata"];
     job_config = data["job_config"];
     overlays = data["overlays"];
-    predictions = data["predictions"];
+    //predictions = data["predictions"];
+    metrics = data["metrics"];
     dzi_dir = data["dzi_dir"];
     dzi_image_paths = data["dzi_image_paths"];
+
+
+    let download_path = "/plant_detection/usr/data/results/" + job_config["target_farm_name"] + "/" +
+                        job_config["target_field_name"] + "/" + job_config["target_mission_date"] + "/" +
+                        job_config["job_uuid"] + "/results.xlsx";
+    
+    //let download_path = "/plant_detection/usr/data/results.xlsx";
+    console.log("download_path", download_path);
+    $("#download_button").attr("href", download_path);
+
 
     $("#image_set_name").text(metadata["farm_name"] + "  |  " + 
                               metadata["field_name"] + "  |  " + 
                               metadata["mission_date"]);
 
+    image_names["all"] = natsort(Object.keys(data["overlays"]["annotations"]));
+    for (image_name of image_names["all"]) {
+
+        let status = data["overlays"]["annotations"][image_name]["status"];
+        if (status === "completed") {
+            image_names["completed"].push(image_name);
+
+
+            if (job_config["test_reserved_images"].includes(image_name)) {
+                image_names["testing"].push(image_name)
+                used_for[image_name] = "testing";
+            }
+            else if (job_config["training_validation_images"].includes(image_name)) {
+                image_names["training/validation"].push(image_name);
+                used_for[image_name] = "training/validation";
+            }
+            else {
+                used_for[image_name] = "NA";
+            }
+
+        }
+        else if (status === "unannotated") {
+            image_names["unannotated"].push(image_name);
+            used_for[image_name] = "NA";
+        }
+ 
+    }
+    
+
 
     let img_files_name = basename(dzi_image_paths[0]);
     cur_img_name = img_files_name.substring(0, img_files_name.length - 4);
 
-    assemble_datasets();
+    //assemble_datasets();
     overlay_initialization();
-    create_image_set_table(dataset_images["all"]);
+    create_image_set_table(); //dataset_images["all"]);
     create_models_table();
     set_count_chart_data();
     draw_count_chart();
@@ -268,17 +347,8 @@ $(document).ready(function() {
         disableEditor: true,
         disableSelect: true,
         readOnly: true,
-        formatter: ShapeLabelsFormatter //formatter, //[formatter, ShapeLabelsFormatter], //[ShapeLabelsFormatter(), formatter], //formatter,
-        //formatter: ShapeLabelsFormatter()
-        /*messages: {"hello": "test"},*/
-        /*locale: 'auto',*/
-        /*widgets: [
-            'TAG'
-        ]*/
+        formatter: formatter
     });
-    //anno.addFormatter(ShapeLabelsFormatter);
-    //anno.formatter.push(ShapeLabelsFormatter); //[...anno.formatters, ShapeLabelsFormatter()], //formatter]; //, ShapeLabelsFormatter()]
-    //anno.setVisible(true);
 
     viewer.addHandler("open", function(event) {
         
@@ -290,9 +360,11 @@ $(document).ready(function() {
         //console.log("img_status", img_status);
         cur_img_name = img_name;
         let cur_status = overlays["annotations"][cur_img_name]["status"];
+        let use = used_for[cur_img_name];
 
         $("#image_name").text(cur_img_name);
         $("#image_status").text(cur_status);
+        $("#used_for").text(use);
 
 
 
@@ -340,7 +412,26 @@ $(document).ready(function() {
         }
     });
 
+    $("#confidence_slider").change(function() {
+        let slider_val = Number.parseFloat($("#confidence_slider").val()).toFixed(2);
 
+        $("#slider_val").html(slider_val);
+        update_overlays();
+        set_count_chart_data();
+        update_count_chart();
+    });
 
+    $("#scores_checkbox").change(function() {
+        update_overlays();
+    });
+
+    $("#chart_combo").change(function() {
+        set_count_chart_data();
+        update_count_chart();
+    });
+
+    $("#filter_combo").change(function() {
+        create_image_set_table();
+    })
 
 });

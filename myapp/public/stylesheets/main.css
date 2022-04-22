@@ -1039,18 +1039,17 @@ svg.a9s-annotationlayer .a9s-selection-mask {
 
 .a9s-annotationlayer .a9s-formatter-el foreignObject .a9s-shape-label-wrapper .a9s-shape-label {
   display:table;
-  padding:3px 5px;
+  padding: 3px 5px;
   white-space:nowrap;
-  background-color: rgba(255, 255, 255, 0.0);
+  color: black; /*black;*/
+  background-color: rgba(255, 255, 255, 1.0); /* rgba(255, 0, 0, 1.0);*/ /*"red"; /*"#FF4040"; /*rgba(255, 255, 255, 0.0);*/
+  /*opacity: 1.0;*/
   /*background-color: rgba(255, 255, 255, 0.85);*/
-  color: rgb(0, 0, 0);
+  /*color: rgb(0, 0, 0);*/
+  
   border-radius:3px;
   font-size:14px;
 }
-
-
-
-
 
 .a9s-annotationlayer .a9s-annotation .a9s-outer, 
 .a9s-annotationlayer .a9s-selection .a9s-outer {
@@ -1102,31 +1101,31 @@ svg.a9s-annotationlayer .a9s-selection-mask {
 }
 
 .a9s-annotationlayer .a9s-annotation.COLOR_2 .a9s-inner {
-  stroke:#FFC040 !important;
+  stroke:#f5a70b !important;
 }
 
 .a9s-annotationlayer .a9s-annotation.COLOR_2.editable.selected .a9s-inner,
 .a9s-annotationlayer .a9s-annotation.COLOR_2:hover .a9s-inner  {
-  stroke:#FFC040 !important;
+  stroke:#f5a70b !important;
 }
 
 
 .a9s-annotationlayer .a9s-annotation.COLOR_3 .a9s-inner {
-  stroke:#40C040 !important;
+  stroke:#b95fb9 !important;
 }
 
 .a9s-annotationlayer .a9s-annotation.COLOR_3.editable.selected .a9s-inner,
 .a9s-annotationlayer .a9s-annotation.COLOR_3:hover .a9s-inner  {
-  stroke:#40C040 !important;
+  stroke:#b95fb9 !important;
 }
 
 .a9s-annotationlayer .a9s-annotation.COLOR_4 .a9s-inner {
-  stroke:#C080C0 !important;
+  stroke:#00695C !important;
 }
 
 .a9s-annotationlayer .a9s-annotation.COLOR_4.editable.selected .a9s-inner,
 .a9s-annotationlayer .a9s-annotation.COLOR_4:hover .a9s-inner  {
-  stroke:#C080C0 !important;
+  stroke:#00695C !important;
 }
 
 .a9s-annotationlayer .a9s-annotation.COLOR_5 .a9s-inner {
@@ -1157,39 +1156,30 @@ svg.a9s-annotationlayer .a9s-selection-mask {
 }
 
 .a9s-annotationlayer .a9s-annotation.COLOR_8 .a9s-inner {
-  stroke:#408040 !important;
+  stroke:#C08040 !important;
 }
 
 .a9s-annotationlayer .a9s-annotation.COLOR_8.editable.selected .a9s-inner,
 .a9s-annotationlayer .a9s-annotation.COLOR_8:hover .a9s-inner  {
-  stroke:#408040 !important;
+  stroke:#C08040 !important;
 }
 
 .a9s-annotationlayer .a9s-annotation.COLOR_9 .a9s-inner {
-  stroke:#C08040 !important;
+  stroke:#FF8040 !important;
 }
 
 .a9s-annotationlayer .a9s-annotation.COLOR_9.editable.selected .a9s-inner,
 .a9s-annotationlayer .a9s-annotation.COLOR_9:hover .a9s-inner  {
-  stroke:#C08040 !important;
-}
-
-.a9s-annotationlayer .a9s-annotation.COLOR_10 .a9s-inner {
-  stroke:#FF8040 !important;
-}
-
-.a9s-annotationlayer .a9s-annotation.COLOR_10.editable.selected .a9s-inner,
-.a9s-annotationlayer .a9s-annotation.COLOR_10:hover .a9s-inner  {
   stroke:#FF8040 !important;
 }
 
 .a9s-annotationlayer .a9s-annotation.COLOR_DEFAULT .a9s-inner {
-  stroke:#FF8040 !important;
+  stroke:#A0A0A0 !important;
 }
 
 .a9s-annotationlayer .a9s-annotation.COLOR_DEFAULT.editable.selected .a9s-inner,
 .a9s-annotationlayer .a9s-annotation.COLOR_DEFAULT:hover .a9s-inner  {
-  stroke:#FF8040 !important;
+  stroke:#A0A0A0 !important;
 }
 
 
@@ -1197,8 +1187,47 @@ svg.a9s-annotationlayer .a9s-selection-mask {
 
 
 
+.slidecontainer {
+  width: 100%;
 
+}
 
+.slider {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 5px;
+  border-radius: 5px;
+  background: #d3d3d3;
+  outline: none;
+  opacity: 0.9;
+  -webkit-transition: .2s;
+  transition: opacity .2s;
+  margin-bottom: 10px;
+}
+
+.slider:hover {
+  opacity: 1;
+}
+
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #45633d;
+  cursor: pointer;
+  border: 1px solid white;
+}
+
+.slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #45633d;
+  cursor: pointer;
+  border: 1px solid white;
+}
 
 
 

@@ -97,6 +97,42 @@ function fpath_exists(fpath) {
     return exists;
 }
 
+exports.get_transfer = function(req, res, next) {
+
+
+
+    let image_sets_data = {};
+    let display_sets_root = path.join(USR_DATA_ROOT, "runs", "display");
+    //let results_root = path.join(USR_DATA_ROOT, "results");
+    let farm_names = get_subdirs(display_sets_root);
+
+    console.log("farm_names", farm_names);
+    for (farm_name of farm_names) {
+        image_sets_data[farm_name] = {};
+        let farm_root = path.join(display_sets_root, farm_name);
+        let field_names = get_subdirs(farm_root);
+        console.log("field_names", field_names);
+
+        for (field_name of field_names) {
+            image_sets_data[farm_name][field_name] = [];
+            let field_root = path.join(farm_root, field_name);
+            let mission_dates = get_subdirs(field_root);
+            console.log("mission_dates", mission_dates);
+
+            for (mission_date of mission_dates) {
+                image_sets_data[farm_name][field_name].push(mission_date);
+            }
+        }
+    }
+
+
+    res.render("transfer", {image_sets_data: image_sets_data});
+
+
+}
+
+
+
 exports.get_home = function(req, res, next) {
 
     if (req.session.user && req.cookies.user_sid) {
@@ -1338,6 +1374,7 @@ exports.get_viewer = function(req, res, next) {
         }
 
         let predictions = {};
+        let metrics = {};
         let overlays = {};
 
         let results_dirname = job_uuid;
@@ -1350,7 +1387,9 @@ exports.get_viewer = function(req, res, next) {
 
             let model_dir = path.join(results_dir, model_uuid);
             let predictions_path = path.join(model_dir, "predictions.json");
+            let metrics_path = path.join(model_dir, "metrics.json");
             let predictions_w3c_path = path.join(model_dir, "annotations.json");
+            /*
             let model_predictions;
             try {
                 model_predictions = JSON.parse(fs.readFileSync(predictions_path, 'utf8'));
@@ -1358,14 +1397,24 @@ exports.get_viewer = function(req, res, next) {
             }
             catch (error) {
                 console.log(error);
+            }*/
+            
+            let model_metrics;
+            try {
+                model_metrics = JSON.parse(fs.readFileSync(metrics_path, 'utf8'));
+                metrics[model_uuid] = model_metrics;
             }
+            catch (error) {
+                console.log(error);
+            }
+
             try {
                 model_predictions_w3c = JSON.parse(fs.readFileSync(predictions_w3c_path, 'utf8'));
                 overlays[model_uuid] = model_predictions_w3c;
             }
             catch (error) {
                 console.log(error);
-            }   
+            }
 
         }
         let image_set_root = path.join(USR_DATA_ROOT, "image_sets",
@@ -1402,7 +1451,8 @@ exports.get_viewer = function(req, res, next) {
         data["metadata"] = metadata;
         data["job_config"] = job_config;
         data["overlays"] = overlays;
-        data["predictions"] = predictions;
+        //data["predictions"] = predictions;
+        data["metrics"] = metrics;
         data["dzi_dir"] = path.join(APP_PREFIX, dzi_images_dir);
         data["dzi_image_paths"] = nat_orderBy.orderBy(dzi_image_paths);
 

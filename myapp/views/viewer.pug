@@ -66,7 +66,7 @@ html
                                             tr
 
                                                 td(style="text-align: left")
-                                                    h(class="header2" style="text-align:left") Image: 
+                                                    h(class="header2" style="width: 80px") Image: 
                                             
                                                 td(style="width: 100%; text-align: left; padding-left: 12px")
                                                     h(id="image_name")
@@ -75,37 +75,46 @@ html
                                         
                                             tr
                                                 td(style="text-align: left")
-                                                    h(class="header2") Status:
+                                                    h(class="header2" style="width: 80px") Status:
                                                 td(style="width:100%; text-align: left; padding-left: 12px")
                                                     h(id="image_status")
+                                            
+                                            tr
+                                                td(style="text-align: left")
+                                                    h(class="header2" style="width: 80px") Used for:
+                                                td(style="width:100%; text-align: left; padding-left: 12px")
+                                                    h(id="used_for")
+
 
 
 
                                         br
                                         hr
-
-                                        table(class="transparent_table")
+                                        br
+                                        
+                                        table(class="transparent_table" style="height: 40px")
                                             tr
-                                                td(style="text-align: left")
-                                                    h(class="header2") Dataset:
+                                                td(style="text-align: left;")
+                                                    h(class="header2" style="width: 110px") Filter images: 
                                                 td(style="width:100%")
+                                                    select(id="filter_combo" class="nonfixed_dropdown")
+                                                        option all
+                                                        option completed
+                                                        option unannotated
+                                                        option training/validation 
+                                                        option testing
+
+                                                //-
                                                     select(id="dataset_combo" class="nonfixed_dropdown")
                                                         option All
                                                         option Training
                                                         option Validation
                                                         option Test
-
-                                        div(class="scrollable_area" style="height: 195px; border:none")
+                                        br
+                                        div(class="scrollable_area" style="height: 445px; border:none")
                                             table(id="images_table")
 
-
-                                        br
-                                        hr
-
-                                        h(class="header2" style="text-align:left") Overlays:
-
-                                        div(class="scrollable_area" style="height: 255px; border:none")
-                                            table(id="models_table")                                        
+                                                                           
 
 
                                 td(style="width: 100%" id="seadragon_viewer")
@@ -113,9 +122,60 @@ html
 
                                 td(class="dark-bg" style="vertical-align:top")
                                     div(style="width: 280px;")
-                                        div(id="count_chart" class="scrollable_area" style="height: 255px; border:none")
+                                        div(style="height: 40px")
+                                            table(class="transparent_table")
+                                                td(style="text-align: left")
+                                                    h(class="header2") Metric: 
+                                                td(style="width: 100%")
+                                                    select(id="chart_combo" class="nonfixed_dropdown")
+                                                        option Raw counts
+                                                        option MS COCO mAP
+                                                        option PASCAL VOC mAP
+                                        div(id="count_chart" class="scrollable_area" style="height: 215px; border:none")
                                             div(id="count_chart_tooltip" class="tooltip" style="z-index: 10")
+                                        
+                                        
+                                        hr
+
+                                        h(class="header2" style="text-align:left") Overlays:
+
+                                        div(class="scrollable_area" style="height: 235px; border:none")
+                                            table(id="models_table")     
+
 
                                         hr
+                                
+
+                                        table(class="transparent_table")
+
+
+                                            tr
+                                                td(style="text-align: left; width: 85px")
+                                                    h(class="header2"  style="width: 150px") Show scores: 
+
+                                                td(style="width: 100%")
+                                                    //- ; text-align: left")
+                                                    input(type="checkbox" id="scores_checkbox" style="cursor:pointer;")
+
+
+                                            tr
+                                                td(style="text-align: left; width: 120px")
+                                                    h(class="header2" style="width: 150px") Filter by score: 
+
+                                                td(style="width: 100%")
+                                                    div(class="slidecontainer")
+                                                        input(type="range" min="0.5" max="1" step="0.05" value="0.5" class="slider" id="confidence_slider")
+                                                td(style="width: 20px")
+                                                    div(style="width: 50px")
+                                                        p(id="slider_val") 0.50
+                                            tr
+
+                                                td(style="text-align: left; width: 120px")
+                                                    h(class="header2" style="width: 150px") Download results: 
+
+                                                td(style="width: 100%;")
+                                                    //- text-align: center")
+                                                    a(class="table_button table_button_hover" style="padding: 5px 10px;" id="download_button" download)
+                                                        i(class="fa fa-download fa-sm")
     script.
         let data = !{JSON.stringify(data)};
