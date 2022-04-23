@@ -224,8 +224,20 @@ function draw_transfer_chart() {
         .text(function(d) { return d["text"]; });
     
 
+    svg.append("text")
+        .attr("text-anchor", "middle")
+        .attr("x", ((chart_width / 2)))
+        .attr("y", chart_height - 15)
+        .text("Dataset Size");
 
-
+    svg.append("text")
+        .attr("id", "yAxis_text")
+        .attr("text-anchor", "middle")
+        .attr("x", - (chart_height / 2))
+        .attr("y", margin / 2)
+        .attr("dy", ".75em")
+        .attr("transform", "rotate(-90)")
+        .text(sel_metric);
 
 }
 
@@ -234,9 +246,6 @@ function update_transfer_chart() {
     console.log("update transfer chart");
 
     let sel_metric = $("#metric_combo").val();
-
-    //metrics_xScale.domain([0, dataset_sizes[dataset_sizes.length-1]]);
-    //metrics_chart_x_axis.transition().duration(1000).call(d3.axisBottom(metrics_xScale).ticks(chart_width / 100));
 
     yScale.domain(get_range(sel_metric));
     chart_y_axis.transition().duration(1000).call(d3.axisLeft(yScale).ticks(chart_height / 100));
@@ -265,18 +274,13 @@ function update_transfer_chart() {
         line_data.push(line);
     }
 
-
-    //let svg = d3.select("#transfer_chart");
     d3.selectAll("path")
          .data(line_data)
-    //d3.selectAll("lines")
-         //.data(line_data)
          .transition()
          .duration(1000)
          .attr("d", function(d) { 
             return chart_line(d["values"]);
         });
-        //.attr("stroke", "white");
 
     d3.selectAll("circle")
         .data(circle_data)
@@ -288,4 +292,7 @@ function update_transfer_chart() {
          .attr("cy", function(d) {
             return yScale(d["y"]);
          });
+
+    d3.select("#yAxis_text").text(sel_metric);
+
 }

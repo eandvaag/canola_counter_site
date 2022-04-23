@@ -90,20 +90,33 @@ function overlay_initialization() {
 
 }
 
+function adjust_to_opt(btn_id) {
+
+    let overlay_id = btn_id.substring(0, btn_id.length - "_thresh".length);
+    let thresh_val = metrics[overlay_id]["point"]["train_val_optimal_score_threshold"]["threshold_value"];
+    //let thresh_val = 0.85;
+    $("#confidence_slider").val(thresh_val);
+    $("#confidence_slider").change();
+}
+
 function create_models_table() {
 
-    let models_col_width = "215px";
+    let models_col_width = "110px"; //"215px";
+    let opt_col_width = "90px"
 
     for (let i = 0; i < sorted_overlay_names.length; i++) {
         let overlay_name = sorted_overlay_names[i];
         let overlay_id = sorted_overlay_ids[i];
         let overlay_color = overlay_colors[overlay_name];
+        let opt_thresh_id = overlay_id + "_thresh";
+        let model_row_id = overlay_id + "_row";
         console.log("overlay_color", overlay_color);
-        $("#models_table").append(`<tr>` +
+        $("#models_table").append(`<tr id=${model_row_id}>` +
             `<td><label class="table_label" ` +
             `style="width: ${models_col_width}; background-color: ${overlay_color};">` +
             `<input id=${overlay_id} type="checkbox" style="cursor: pointer"></input>   ${overlay_name}</label>` +
             `</td>`+
+            
 
 /*
                     `<td><input class="table_label" type="checkbox">` +
@@ -115,6 +128,13 @@ function create_models_table() {
             `style="width: ${models_col_width}; background-color: ${overlay_color}"` +
                  `>${overlay_name}</div></td>` +*/
             `</tr>`);
+
+        if (i > 0) {
+            $("#" + model_row_id).append(
+                `<td><div id=${opt_thresh_id} style="width: ${opt_col_width};" class="table_button table_button_hover"` +
+                `onclick="adjust_to_opt('${opt_thresh_id}')">Opt. Thresh</div></td>`);
+
+        }
     }
 }
 

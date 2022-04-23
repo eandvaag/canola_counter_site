@@ -14,6 +14,14 @@ function get_config(url) {
     return config;
 }
 
+let metrics = [
+    "MS COCO mAP",
+    "PASCAL VOC mAP",
+    "Image Mean Abs. Diff. in Count",
+    "Image Mean Abs. Diff. in Count at Optimal Score Thresh.",
+    "Optimal Score Thresh."
+]
+
 $(document).ready(function() {
 
     for (farm_name of natsort(Object.keys(image_sets_data))) {
@@ -78,7 +86,7 @@ $(document).ready(function() {
 
         let methods = Object.keys(results["results"]);
 
-        for (metric of natsort(Object.keys(results["results"][methods[0]]))) {
+        for (metric of metrics) { //natsort(Object.keys(results["results"][methods[0]]))) {
             $("#metric_combo").append($('<option>', {
                 value: metric,
                 text: metric
