@@ -19,10 +19,20 @@ let metrics = [
     "PASCAL VOC mAP",
     "Image Mean Abs. Diff. in Count",
     "Image Mean Abs. Diff. in Count at Optimal Score Thresh.",
+    "Image Mean Percent Error in Count",
+    "Image Mean Percent Error in Count at Optimal Score Thresh.",
     "Optimal Score Thresh."
 ]
 
+let image_set_stats;
+
 $(document).ready(function() {
+
+
+
+    let image_set_stats_url = "/plant_detection/usr/data/runs/display/image_set_stats.json";
+    image_set_stats = get_config(image_set_stats_url);
+
 
     for (farm_name of natsort(Object.keys(image_sets_data))) {
         $("#farm_combo").append($('<option>', {
@@ -96,6 +106,58 @@ $(document).ready(function() {
         if (sel_metric !== null) {
             $("#metric_combo").val(sel_metric);
         }
+
+        $("#image_set_info").empty();
+        
+        /*
+        let num_annotated_images = image_set_stats[sel_farm][sel_field][sel_mission]["num_annotated_images"];
+        let num_annotations = image_set_stats[sel_farm][sel_field][sel_mission]["num_annotations"];
+        
+        //let num_annotated_images = 37;
+        //let num_annotations = 2991;
+
+        
+        $("#image_set_info").append(
+            `<div style="border: 1px solid white; margin: 0px 10px">` + 
+            `<table class="transparent_table">` + 
+                `<tr>` + 
+                    `<td style="text-align: right; padding: 5px 0px">` +
+                        `<h style="font-size: 18px; display: block; width: 250px">Number of annotated images:</h>` +
+                    `</td>` +
+                    `<td style="font-size: 18px; width: 100%; text-align: left; padding-left: 15px">` +
+                        `<h>${num_annotated_images}</h>` +
+                    `</td>` +
+                `</tr>` +
+                `<tr>` + 
+                    `<td style="text-align: right;  padding: 5px 0px">` +
+                        `<h style="font-size: 18px; display: block; width: 250px">Number of annotations:</h>` +
+                    `</td>` +
+                    `<td style="font-size: 18px; width: 100%; text-align: left;  padding-left: 15px">` +
+                        `<h>${num_annotations}</h>` +
+                    `</td>` +
+                `</tr>` +
+            `<table>` + 
+            `</div>`
+        );
+        */
+        
+        /*
+            
+            
+            `<p>${num_annotated_images}</p>`);*/
+
+
+
+/*
+        tr
+        td(style="text-align: left; width: 120px")
+            h(class="header2" style="width: 150px") Filter by score: 
+
+        td(style="width: 100%")
+            div(class="slidecontainer")
+*/
+
+
         draw_transfer_chart();
     });
     

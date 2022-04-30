@@ -21,9 +21,9 @@ let color_map = {
 }
 
 let text_map = {
-    "direct": "Trained on target",
-    "even_subset": "Even subset",
-    "graph_subset": "Matched subset",
+    "direct": "Direct method",
+    "even_subset": "Even subset method",
+    "graph_subset": "Graph subset method",
 }
 
 let method_order = ["direct", "even_subset", "graph_subset"];
@@ -84,10 +84,10 @@ function draw_transfer_chart() {
         .attr("y", 0)
         .attr("width", chart_width)
         .attr("height", chart_height)
-        .attr("rx", 15)
+        .attr("rx", 0)
         .attr("fill", "#222621")
         .attr("stroke", "white")
-        .attr("stroke-width", 1);
+        .attr("stroke-width", 2);
 
         
     let margin = 58;

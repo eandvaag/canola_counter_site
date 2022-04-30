@@ -6,7 +6,7 @@ RUN apt install -y libgl1
 RUN apt-get install -y libglib2.0-0
 RUN apt update && apt-get install -y linux-libc-dev
 RUN apt install -y nodejs
-RUN apt install python3
+RUN apt install -y python3
 RUN apt install -y python3-pip
 RUN mkdir -p /opt/app
 WORKDIR /opt/app
@@ -20,6 +20,7 @@ RUN pip3 install -r ./plant_detection/src/requirements.txt
 WORKDIR ./plant_detection_viewer/myapp
 RUN npm install
 RUN apt install -y postgresql-client
+RUN apt install -y imagemagick
 #COPY --chown=app ./node_modules/annotorious ./node_modules/annotorious
 #COPY --chown=app ./node_modules/openseadragon3 ./node_modules/openseadragon3
 USER app

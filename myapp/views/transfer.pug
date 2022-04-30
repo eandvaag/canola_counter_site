@@ -43,33 +43,39 @@ html
                                         th
                                             div(class="table_head" style="width: 100px") Farm Name: 
                                         th
-                                            div(style="width: 500px")
+                                            div(style="width: 520px")
                                                 select(class="nonfixed_dropdown" id="farm_combo")
 
                                     tr
                                         th
                                             div(class="table_head" style="width: 100px") Field Name: 
                                         th
-                                            div(style="width: 500px")
+                                            div(style="width: 520px")
                                                 select(class="nonfixed_dropdown" id="field_combo")
 
                                     tr
                                         th
                                             div(class="table_head" style="width: 100px") Mission Date: 
                                         th
-                                            div(style="width: 500px")
+                                            div(style="width: 520px")
                                                 select(class="nonfixed_dropdown" id="mission_combo")
 
                                     tr
                                         th
                                             div(class="table_head" style="width: 100px") Metric: 
                                         th
-                                            div(style="width: 500px")
+                                            div(style="width: 520px")
                                                 select(class="nonfixed_dropdown" id="metric_combo")
 
                             br
                             br
-                            div(id="transfer_chart" style="margin: auto; width: 750px; height: 550px")
+                            table(class="transparent_table")
+                                tr
+                                    td(style="width: 375px")
+                                    td
+                                        div(id="transfer_chart" style="margin: auto; width: 750px; height: 550px")
+                                    td(style="width: 375px; vertical-align: text-top")
+                                        div(id="image_set_info")
 
     script.
         let image_sets_data = !{JSON.stringify(image_sets_data)};
