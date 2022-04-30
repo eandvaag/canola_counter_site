@@ -5,9 +5,9 @@ RUN curl -fsSL https://deb.nodesource.com/setup_14.x | bash -
 RUN apt install -y libgl1
 RUN apt-get install -y libglib2.0-0
 RUN apt update && apt-get install -y linux-libc-dev
-RUN apt install -y nodejs
-RUN apt install -y python3
-RUN apt install -y python3-pip
+RUN apt update && apt install -y nodejs
+RUN apt update && apt install -y python3
+RUN apt update && apt install -y python3-pip
 RUN mkdir -p /opt/app
 WORKDIR /opt/app
 RUN adduser app
@@ -19,8 +19,8 @@ RUN pip3 install --no-cache-dir --debug libclang
 RUN pip3 install -r ./plant_detection/src/requirements.txt
 WORKDIR ./plant_detection_viewer/myapp
 RUN npm install
-RUN apt install -y postgresql-client
-RUN apt install -y imagemagick
+RUN apt update && apt install -y postgresql-client
+RUN apt update && apt install -y imagemagick
 #COPY --chown=app ./node_modules/annotorious ./node_modules/annotorious
 #COPY --chown=app ./node_modules/openseadragon3 ./node_modules/openseadragon3
 USER app

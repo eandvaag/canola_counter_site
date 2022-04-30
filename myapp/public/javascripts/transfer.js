@@ -109,7 +109,7 @@ $(document).ready(function() {
 
         $("#image_set_info").empty();
         
-        /*
+        
         let num_annotated_images = image_set_stats[sel_farm][sel_field][sel_mission]["num_annotated_images"];
         let num_annotations = image_set_stats[sel_farm][sel_field][sel_mission]["num_annotations"];
         
@@ -119,6 +119,7 @@ $(document).ready(function() {
         
         $("#image_set_info").append(
             `<div style="border: 1px solid white; margin: 0px 10px">` + 
+            `<div style="font-size: 18px; text-decoration: underline; padding: 5px 0px">Image Set Information</div>` +
             `<table class="transparent_table">` + 
                 `<tr>` + 
                     `<td style="text-align: right; padding: 5px 0px">` +
@@ -139,7 +140,7 @@ $(document).ready(function() {
             `<table>` + 
             `</div>`
         );
-        */
+        
         
         /*
             
