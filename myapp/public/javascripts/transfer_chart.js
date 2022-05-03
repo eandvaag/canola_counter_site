@@ -12,6 +12,7 @@ let max_vals = {
     "PASCAL VOC mAP": 100,
     "Image R Squared": 1.0,
     "Patch R Squared": 1.0,
+    "Optimal Score Thresh.": 1.0
 };
 
 let color_map = {
@@ -94,10 +95,17 @@ function draw_transfer_chart() {
 
     chart_x_axis = svg.append("g")
                     .attr("class", "x axis")
+                    //.style("font-size", 18)
+                    //.attr("class", "report")
+                    //.style("font-size", 20)
                     .attr("transform", "translate(0," + (chart_height - margin) + ")");
     
     chart_y_axis = svg.append("g")
+                    
                     .attr("class", "y axis")
+                    //.style("font-size", 18)
+                    //.attr("class", "report")
+                    //.style("font-size", 20)
                     .attr("transform", "translate(" + (margin + 20) + ", 0)");
 
     xScale = d3.scaleLinear()
@@ -225,19 +233,31 @@ function draw_transfer_chart() {
     
 
     svg.append("text")
+        //.attr("font-size", 20)
+        //.attr("font-family", "sans-serif")
         .attr("text-anchor", "middle")
         .attr("x", ((chart_width / 2)))
         .attr("y", chart_height - 15)
         .text("Dataset Size");
 
+    let axtext;
+    if (sel_metric == "Image Mean Percent Error in Count at Optimal Score Thresh.") {
+        axtext = "Mean % Error in Count at Opt. Thresh.";
+    }
+    else {
+        axtext = sel_metric;
+    }
+
     svg.append("text")
+        //.attr("font-size", 20)
+        //.attr("font-family", "sans-serif")
         .attr("id", "yAxis_text")
         .attr("text-anchor", "middle")
-        .attr("x", - (chart_height / 2))
-        .attr("y", margin / 2)
+        .attr("x", - (chart_height / 2) - 20)
+        .attr("y", (margin / 2) - 10)
         .attr("dy", ".75em")
         .attr("transform", "rotate(-90)")
-        .text(sel_metric);
+        .text(axtext);
 
 }
 
@@ -293,6 +313,18 @@ function update_transfer_chart() {
             return yScale(d["y"]);
          });
 
-    d3.select("#yAxis_text").text(sel_metric);
+
+    /*
+    let axtext;
+    if (sel_metric == "Image Mean Percent Error in Count at Optimal Score Thresh.") {
+        axtext = "Mean Percent Error in Count at Opt. Thresh.";
+    }
+    else {
+        axtext = sel_metric;
+    }*/
+
+
+
+    d3.select("#yAxis_text").text(sel_metric); //axtext);
 
 }

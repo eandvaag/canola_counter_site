@@ -339,19 +339,43 @@ exports.get_upload = function(req, res, next) {
     }
 }
 */
+
+
+
+
 exports.post_upload = function(req, res, next) {
     if (req.session.user && req.cookies.user_sid) {
+
+
+        console.log("Got to post_upload");
         let farm_name;
+        let field_name;
+        let mission_date;
+        let first;
+        let queued_filenames;
         if (req.files.length > 1) {
             farm_name = req.body.farm_name[0];
             field_name = req.body.field_name[0];
             mission_date = req.body.mission_date[0];
+            //first_batch = req.body.first_batch[0];
+            first = false;
+            for (let i = 0; i < req.body.first.length; i++) {
+                if (req.body.first[i] === "yes") {
+                    first = true;
+                }
+            }
+            queued_filenames = req.body.queued_filenames[0].split(",");
         }
         else {
             farm_name = req.body.farm_name;
             field_name = req.body.field_name;
             mission_date = req.body.mission_date;
+            first = req.body.first === "yes";
+            queued_filenames = req.body.queued_filenames.split(",");
         }
+
+        console.log("contains first?", first);
+        console.log("queued_filenames", queued_filenames);
 
         let format = /[ `!@#$%^&*()+\=\[\]{};':"\\|,<>\/?~]/;
         for (file of req.files) {
@@ -378,130 +402,106 @@ exports.post_upload = function(req, res, next) {
         let conversion_tmp_dir = path.join(dzi_images_dir, "conversion_tmp");
         let annotations_dir = path.join(mission_dir, "annotations");
 
-        if (!(fpath_exists(mission_dir))) {
-
-            fs.mkdirSync(images_dir, { recursive: true });
-            fs.mkdirSync(dzi_images_dir, { recursive: true });
-            fs.mkdirSync(conversion_tmp_dir, { recursive: true });
-            /*fs.mkdirSync(patches_dir, { recursive: true });*/
-            fs.mkdirSync(annotations_dir, { recursive: true });
-
-
-            let annotations_path = path.join(annotations_dir, "annotations_w3c.json");
-            let annotations = {};
-            for (file of req.files) {
-                let sanitized_fname = sanitize(file.originalname);
-                let extensionless_fname = sanitized_fname.substring(0, sanitized_fname.length-4);
-                annotations[extensionless_fname] = {
-                    "status": "unannotated",
-                    "annotations": []
-                };
+        if (first) {
+            if (fpath_exists(mission_dir)) {
+                return res.status(422).json({
+                    error: "The provided farm-field-mission combination already exists."
+                }); 
             }
-
-
-            /*
-            let image_set_data_path = path.join(mission_dir, "image_set_data.json");
-            let image_set_data = {};
-
-            console.log("adding image names to image_set_data");
-            image_set_data["images"] = {};
-            for (file of req.files) {
-                let sanitized_fname = sanitize(file.originalname);
-                let extensionless_fname = sanitized_fname.substring(0, sanitized_fname.length-4);
-                console.log("adding", extensionless_fname);
-                image_set_data["images"][extensionless_fname] = {
-                    "status": "unannotated"
-                };
-            }
-
-            image_set_data["class_map"] = {"plant": 0};
-            image_set_data["num_classes"] = 1;
-            image_set_data["annotation_counts"] = {"plant": 0};
-            image_set_data["num_images"] = req.files.length;
-
-            console.log("image_set_data", image_set_data);
-            console.log("writing image_set_data to", image_set_data_path);
-            */
-            try {
-                fs.writeFileSync(annotations_path, JSON.stringify(annotations));
-            }
-            catch (error) {
-                console.log(error);
-            }
-            for (file of req.files) {
-                let sanitized_fname = sanitize(file.originalname);
-                let extensionless_fname = sanitized_fname.substring(0, sanitized_fname.length-4);
-                let extension = sanitized_fname.substring(sanitized_fname.length-4);
-                let fpath = path.join(images_dir, sanitized_fname);
+            else {
+                console.log("Making the image set directories");
+                fs.mkdirSync(images_dir, { recursive: true });
+                fs.mkdirSync(dzi_images_dir, { recursive: true });
+                fs.mkdirSync(conversion_tmp_dir, { recursive: true });
+                /*fs.mkdirSync(patches_dir, { recursive: true });*/
+                fs.mkdirSync(annotations_dir, { recursive: true });
+    
+                console.log("Making the annotations file");
+                let annotations_path = path.join(annotations_dir, "annotations_w3c.json");
+                let annotations = {};
+                for (filename of queued_filenames) {
+                    let sanitized_fname = sanitize(filename);
+                    let extensionless_fname = sanitized_fname.substring(0, sanitized_fname.length-4);
+                    annotations[extensionless_fname] = {
+                        "status": "unannotated",
+                        "annotations": []
+                    };
+                }
+                console.log("Writing the annotations file");
                 try {
-                    fs.writeFileSync(fpath, file.buffer);
+                    fs.writeFileSync(annotations_path, JSON.stringify(annotations));
                 }
                 catch (error) {
                     console.log(error);
                 }
-
-                let img_dzi_path = path.join(dzi_images_dir, extensionless_fname);
-
-                let no_convert_extensions = [".jpg", ".JPG", ".png", ".PNG"];
-                if (!(no_convert_extensions.includes(extension))) {
-                    let tmp_path = path.join(conversion_tmp_dir, extensionless_fname + ".jpg");
-                    let conv_cmd = "convert " + fpath + " " + tmp_path;
-                    let slice_cmd = "./MagickSlicer/magick-slicer.sh '" + tmp_path + "' '" + img_dzi_path + "'";
-                    let result = exec(conv_cmd, {shell: "/bin/bash"}, function (error, stdout, stderr) {
-                        if (error) {
-                            console.log(error.stack);
-                            console.log('Error code: '+error.code);
-                            console.log('Signal received: '+error.signal);
-                        }
-                        else {
-                            let result = exec(slice_cmd, {shell: "/bin/bash"}, function (error, stdout, stderr) {
-                                if (error) {
-                                    console.log(error.stack);
-                                    console.log('Error code: '+error.code);
-                                    console.log('Signal received: '+error.signal);                                    
-                                }
-                                else {
-                                    try {
-                                        fs.unlinkSync(tmp_path);
-                                    }
-                                    catch (error) {
-                                        console.log(error);
-                                    }
-                                }
-                            });
-
-                        }
-                    });
-                }
-                else {
-                    let slice_cmd = "./MagickSlicer/magick-slicer.sh '" + fpath + "' '" + img_dzi_path + "'";
-                    let result = exec(slice_cmd, {shell: "/bin/bash"}, function (error, stdout, stderr) {
-                        if (error) {
-                            console.log(error.stack);
-                            console.log('Error code: '+error.code);
-                            console.log('Signal received: '+error.signal);                                    
-                        }
-                    });
-                }
             }
-            return res.sendStatus(200); //.send(req.file);
-            //res.status(200).send(req.files);
-            /*
-            response.error = false;
-            response.message = "Image set has been successfully registered";
-            res.json(response);*/
-
         }
         else {
-            //res.sendStatus()
-            return res.status(422).json({
-                error: "The provided farm-field-mission combination already exists."
-            });
-            /*
-            response.error = true;
-            response.message = "The provided farm-field-mission combination already exists";
-            res.json(response);*/
+            if (!(fpath_exists(mission_dir))) {
+                return res.status(422).json({
+                    error: "Image set directories were not created by initial request."
+                });
+            }
         }
+        console.log("Converting the files");
+        for (file of req.files) {
+            let sanitized_fname = sanitize(file.originalname);
+            let extensionless_fname = sanitized_fname.substring(0, sanitized_fname.length-4);
+            let extension = sanitized_fname.substring(sanitized_fname.length-4);
+            let fpath = path.join(images_dir, sanitized_fname);
+            try {
+                fs.writeFileSync(fpath, file.buffer);
+            }
+            catch (error) {
+                console.log(error);
+            }
+
+            let img_dzi_path = path.join(dzi_images_dir, extensionless_fname);
+
+            let no_convert_extensions = [".jpg", ".JPG", ".png", ".PNG"];
+            if (!(no_convert_extensions.includes(extension))) {
+                let tmp_path = path.join(conversion_tmp_dir, extensionless_fname + ".jpg");
+                let conv_cmd = "convert " + fpath + " " + tmp_path;
+                let slice_cmd = "./MagickSlicer/magick-slicer.sh '" + tmp_path + "' '" + img_dzi_path + "'";
+                let result = exec(conv_cmd, {shell: "/bin/bash"}, function (error, stdout, stderr) {
+                    if (error) {
+                        console.log(error.stack);
+                        console.log('Error code: '+error.code);
+                        console.log('Signal received: '+error.signal);
+                    }
+                    else {
+                        let result = exec(slice_cmd, {shell: "/bin/bash"}, function (error, stdout, stderr) {
+                            if (error) {
+                                console.log(error.stack);
+                                console.log('Error code: '+error.code);
+                                console.log('Signal received: '+error.signal);                                    
+                            }
+                            else {
+                                try {
+                                    fs.unlinkSync(tmp_path);
+                                }
+                                catch (error) {
+                                    console.log(error);
+                                }
+                            }
+                        });
+
+                    }
+                });
+            }
+            else {
+                let slice_cmd = "./MagickSlicer/magick-slicer.sh '" + fpath + "' '" + img_dzi_path + "'";
+                let result = exec(slice_cmd, {shell: "/bin/bash"}, function (error, stdout, stderr) {
+                    if (error) {
+                        console.log(error.stack);
+                        console.log('Error code: '+error.code);
+                        console.log('Signal received: '+error.signal);                                    
+                    }
+                });
+            }
+        }
+        console.log("Sending success status");
+        return res.sendStatus(200);
     }
     else {        
         res.redirect(APP_PREFIX);

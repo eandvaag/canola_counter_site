@@ -22,6 +22,16 @@ app.set('port', port);
 
 var server = http.createServer(app);
 
+/*
+var requestStats = require('request-stats');
+var stats = requestStats(server);
+
+stats.on('complete', function (details) {
+    var size = details.req.bytes;
+    console.log("size", size);
+});
+*/
+
 /**
  * Listen on provided port, on all network interfaces.
  */
@@ -95,3 +105,4 @@ function onListening() {
     : 'port ' + addr.port;
   debug('Listening on ' + bind);
 }
+

@@ -1,6 +1,9 @@
 
 let dropzone_handler;
+let first = true;
+let queued_filenames;
 let errors = [];
+let format = /[ `!@#$%^&*()+\=\[\]{};':"\\|,<>\/?~]/;
 
 function clear_form() {
     $("#farm_input").val("");
@@ -111,7 +114,6 @@ function update_submit() {
 }
 
 
-
 function show_upload() {
 
     let left_col_width = "100px";
@@ -176,16 +178,35 @@ function show_upload() {
         autoProcessQueue: false,
         paramName: function(n) { return 'source_file[]'; },
         uploadMultiple: true,
+        //chunking: true,
+        //parallelChunkUploads: true,
+        //retryChunks: true,
         farm_name: '',
         field_name: '',
         mission_date: '',
         //addRemoveLinks : true,
-        parallelUploads: 10000,
+        parallelUploads: 10, //10000,
         maxUploads: 10000
+        /*,
+        chunksUploaded: function(file, done) {
+            $.ajax({
+                success: function(data) {
+                    dropzone_handler.options.autoProcessQueue = true;
+                    done();
+                }
+            });
+        }*/
+    });
+
+    dropzone_handler.on("processing", function() {
+        console.log("started processing");
+        //first_batch = "no";
+        dropzone_handler.options.autoProcessQueue = true;
     });
 
     dropzone_handler.on("queuecomplete", function(files, response) {
-
+        first = true;
+        dropzone_handler.options.autoProcessQueue = false;
 
         if (dropzone_handler.getAcceptedFiles().length > 0) {
             console.log("An error occurred");
@@ -246,6 +267,14 @@ function show_upload() {
         formData.append('farm_name', $("#farm_input").val());
         formData.append('field_name', $("#field_input").val());
         formData.append('mission_date', $("#mission_input").val());
+        if (first) {
+            formData.append('first', "yes");
+            first = false;
+        }
+        else {
+            formData.append('first', "no");
+        }
+        formData.append("queued_filenames", queued_filenames.join(","));
     });
 
 
@@ -256,7 +285,42 @@ function show_upload() {
         disable_input();
         $("#upload_loader").show();
 
-        dropzone_handler.processQueue();
+        // $.post($(location).attr('href'),
+        // {
+        //     action: "prepare_for_upload",
+        //     farm_name: $("#farm_input").val(),
+        //     field_name: $("#field_input").val(),
+        //     mission_date: $("#mission_input").val(),
+        // },
+        // function(response, status) {
+        //     if (response.error) { 
+        //         console.log("error occurred", response.error);
+        //     }
+        //     else {
+        //         window.location.href = response.redirect;
+        //     }
+        // });
+        queued_filenames = [];
+
+        let illegal = false;
+        for (f of dropzone_handler.getQueuedFiles()) {
+            if (format.test(f.name)) {
+                illegal = true;
+            }
+            queued_filenames.push(f.name);
+        }
+        if (illegal) {
+            $("#modal_header_text").html("Error");
+            $("#modal_message").html("One or more filenames contains illegal characters");
+            $("#result_modal").css("display", "block");
+            clear_form();
+            enable_input();
+            disable_submit();
+            $("#upload_loader").hide();
+        }
+        else {
+            dropzone_handler.processQueue();
+        }
     });
 
     $("#farm_input").on("input", function(e) {

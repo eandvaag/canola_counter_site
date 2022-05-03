@@ -113,9 +113,6 @@ $(document).ready(function() {
         let num_annotated_images = image_set_stats[sel_farm][sel_field][sel_mission]["num_annotated_images"];
         let num_annotations = image_set_stats[sel_farm][sel_field][sel_mission]["num_annotations"];
         
-        //let num_annotated_images = 37;
-        //let num_annotations = 2991;
-
         
         $("#image_set_info").append(
             `<div style="border: 1px solid white; margin: 0px 10px">` + 
