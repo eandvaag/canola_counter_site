@@ -101,8 +101,8 @@ function adjust_to_opt(btn_id) {
 
 function create_models_table() {
 
-    let models_col_width = "110px"; //"215px";
-    let opt_col_width = "90px"
+    let models_col_width = "145px"; //"215px";
+    let opt_col_width = "85px"
 
     for (let i = 0; i < sorted_overlay_names.length; i++) {
         let overlay_name = sorted_overlay_names[i];
@@ -114,7 +114,28 @@ function create_models_table() {
         $("#models_table").append(`<tr id=${model_row_id}>` +
             `<td><label class="table_label" ` +
             `style="width: ${models_col_width}; background-color: ${overlay_color};">` +
-            `<input id=${overlay_id} type="checkbox" style="cursor: pointer"></input>   ${overlay_name}</label>` +
+            //`<input id=${overlay_id} type="checkbox" style="cursor: pointer"></input>   ${overlay_name}</label>` +
+           
+
+            `<table class="transparent_table">` +
+            `<tr>` + 
+            `<td style="width: 40px">` +
+                `<label class="switch">` +
+                `<input id=${overlay_id} type="checkbox"></input>` +
+                `<span class="switch_slider round"></span></label>` +
+            `</td>` +
+            `<td style="width: 100%">` +
+                `<div style="margin-left: 8px">${overlay_name}</div>` +
+            `</td>` +
+            `</tr>` +
+            `</table>` +
+            `</label>` +
+
+            //<span style="margin-left: 50px;">${overlay_name}</span>
+            //span(class="switch_slider round" id="scores_checkbox")
+
+           
+           
             `</td>`+
             
 
@@ -132,7 +153,7 @@ function create_models_table() {
         if (i > 0) {
             $("#" + model_row_id).append(
                 `<td><div id=${opt_thresh_id} style="width: ${opt_col_width};" class="table_button table_button_hover"` +
-                `onclick="adjust_to_opt('${opt_thresh_id}')">Opt. Thresh</div></td>`);
+                `onclick="adjust_to_opt('${opt_thresh_id}')">Opt thresh</div></td>`);
 
         }
     }
@@ -439,6 +460,11 @@ $(document).ready(function() {
         update_overlays();
         set_count_chart_data();
         update_count_chart();
+    });
+
+    $("#confidence_slider").on("input", function() {
+        let slider_val = Number.parseFloat($("#confidence_slider").val()).toFixed(2);
+        $("#slider_val").html(slider_val);
     });
 
     $("#scores_checkbox").change(function() {
