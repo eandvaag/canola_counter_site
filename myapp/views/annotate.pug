@@ -6,7 +6,8 @@ html
         meta(name="viewport" content="width=device-width, initial-scale=1")
 
         link(href='/plant_detection/stylesheets/main.css' rel='stylesheet')
-
+        link(href='/plant_detection/stylesheets/d3.css' rel='stylesheet')
+        
 
         link(rel="stylesheet" href="/plant_detection/annotorious/annotorious.min.css")
         link(rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css")
@@ -23,10 +24,11 @@ html
 
         //link(rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@recogito/annotorious-openseadragon@2.7.1/dist/annotorious.min.css")
         //script(type="text/javascript" src="https://cdn.jsdelivr.net/npm/@recogito/annotorious-openseadragon@2.7.1/dist/openseadragon-annotorious.min.js")
-
+        script(src="https://d3js.org/d3.v4.js")
 
 
         script(type='text/javascript' src='/plant_detection/javascripts/annotate.js')
+        script(type='text/javascript' src='/plant_detection/javascripts/map_chart.js')
         script(type='text/javascript' src='/plant_detection/javascripts/common.js')
 
     body
@@ -94,49 +96,23 @@ html
 
                                 td(style="width:100%")
                                     h(id="image_set_name" class="header2" style="font-size: 22px; text-align: center; white-space: pre-wrap; color: white")
+                                
+                                td
+                                    div(id="view_button_container" style="width: 140px")
+                                    //button(style="width: 140px; margin: 0px" id="view_button" class="table_button table_button_hover")
+                                            
+                                    //
+                                        i(class="fa-solid fa-location-dot" style="padding-right: 8px; color: white") 
+                                        | Map View
+
 
 
                         table(class="transparent_table")
 
                             tr
                                 td(class="dark-bg" style="vertical-align:top")
-                                    div(style="width: 280px;")
+                                    div(style="width: 280px;" id="left_panel")
 
-                                        table(class="transparent_table")
-                                            tr
-
-                                                td(style="text-align: left")
-                                                    h(class="header2" style="text-align:left") Image: 
-                                            
-                                                td(style="width: 100%; text-align: left; padding-left: 12px")
-                                                    h(id="image_name")
-
-
-                                        
-                                            tr
-                                                td(style="text-align: left")
-                                                    h(class="header2") Status:
-                                                td(style="width:100%")
-                                                    select(id="status_combo" class="nonfixed_dropdown")
-
-
-                                        br
-                                        hr
-                                        br
-
-                                        button(id="save_button" class="table_button table_button_hover")
-
-                                            i(id="save_icon" class="fa-solid fa-floppy-disk" style="padding-right: 8px; color: white")
-                                            |
-                                            | Save All Changes
-
-                                        br
-                                        br
-
-                                        h(class="header2" style="text-align:left") Image List:
-
-                                        div(class="scrollable_area" style="height: 390px; border:none")
-                                            table(id="image_set_table")
 
 
                                 td(style="width: 100%" id="seadragon_viewer")

@@ -25,6 +25,7 @@
     "sequelize": "^6.7.0",
     "sequelize-cli": "^6.2.0",
     "serve-favicon": "^2.5.0",
+    "simple-bilinear-interpolation": "^1.0.6",
     "uuid": "^8.3.2",
     "xml-js": "^1.6.11"
   },

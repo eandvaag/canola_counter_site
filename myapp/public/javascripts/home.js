@@ -64,7 +64,7 @@ function annotate_request() {
 
 function show_browse() {
 
-    let left_col_width = "100px";
+    let left_col_width = "130px";
     let right_col_width = "250px";
 
     $("#main_area").empty();
@@ -72,17 +72,17 @@ function show_browse() {
 
     $("#main_area").append(`<table class="transparent_table" id="combo_table"></table>`);
     $("#combo_table").append(`<tr>` +
-        `<th><div class="table_head" style="width: ${left_col_width};">Farm Name:</div></th>` +
+        `<th><div class="table_head" style="width: ${left_col_width};">Farm name</div></th>` +
         `<th><div style="width: ${right_col_width};"><select id="farm_combo" class="nonfixed_dropdown"></select></div></th>` +
     `<tr>`);
 
     $("#combo_table").append(`<tr>` +
-        `<th><div class="table_head" style="width: ${left_col_width};">Field Name:</div></th>` +
+        `<th><div class="table_head" style="width: ${left_col_width};">Field name</div></th>` +
         `<th><div style="width: ${right_col_width};"><select id="field_combo" class="nonfixed_dropdown"></select></div></th>` +
     `<tr>`);
 
     $("#combo_table").append(`<tr>` +
-    `<th><div class="table_head" style="width: ${left_col_width};">Mission Date:</div></th>` +
+    `<th><div class="table_head" style="width: ${left_col_width};">Mission date</div></th>` +
     `<th><div style="width: ${right_col_width};"><select id="mission_combo" class="nonfixed_dropdown"></select></div</th>` +
     `<tr>`);
 
@@ -233,8 +233,12 @@ function show_overview() {
     let mission_date = $("#mission_combo").val();
     let job_url = "/plant_detection/usr/data/image_sets/" + farm_name + "/" + field_name + 
                     "/" + mission_date + "/annotations/annotations_w3c.json";
-        
-    let annotations = get_config(job_url);
+    let metadata_url = "/plant_detection/usr/data/image_sets/" + farm_name + "/" + field_name + 
+                    "/" + mission_date + "/metadata/metadata.json";
+
+    let annotations = get_json(job_url);
+    let metadata = get_json(metadata_url);
+
     //annotations = JSON.stringify(annotations, null, 4);
     let total_annotations = 0;
     let total_images = 0;
@@ -261,51 +265,162 @@ function show_overview() {
     //$("#tab_details").append()
     //$("#tab_details").append(`<div style="height: 150px"></div>`);
 
-    $("#tab_details").append(`<table class="transparent_table" style="height: 500px" id="image_set_table"></table>`);
+    $("#tab_details").append(`<table class="transparent_table" style="height: 500px; width: 90%" id="image_set_table"></table>`);
 
     $("#image_set_table").append(`<tr>`+
-    `<th style="width: 750px;"><div id="annotate_section"></th>` +
-    `<th style="width: 750px;"><div id="stats_section"></div></th>` +
+    `<th style="width: 50%;" id="left_section">` +
+        // `<table class="transparent_table" >` +
+        //     `<tr style="height: 250px">` +
+        //         `<th id="top_left"></th>` +
+        //     `</tr>` +
+        //     `<tr style="height: 250px">` +
+        //         `<th id="bottom_left"></th>` +
+        //     `</tr>` +
+        // `</table>` +
+    `</th>` +
+    `<th style="width: 50%;" id="right_section">` +
+        `<div style="height: 100px"></div>` +
+        `<table id="right_table">` +
+            `<tr id="top_row" style="height: 160px">` +
+                `<th id="top_left" style="vertical-align: top;"></th>` +
+                `<th id="top_right" style="vertical-align: top"></th>` +
+            `</tr>` +
+            `<tr id="bottom_row" style="height: 240px">` +
+                `<th id="bottom_left" style="vertical-align: top;"></th>` +
+                `<th id="bottom_right" style="vertical-align: top"></th>` +
+            `</tr>` +
+        `</table>` +
+    `</th>` +
+    // `<th style="width: 50%;" id="right_section">` +
+    //     // `<table class="transparent_table" id="right_table">` +
+    //     //     `<tr style="height: 250px">` +
+    //     //         `<th id="top_right"></th>` +
+    //     //     `</tr>` +
+    //     //     `<tr style="height: 250px">` +
+    //     //         `<th id="bottom_right"></th>` +
+    //     //     `</tr>` +
+    //     // `</table>` +
+    // `</th>` +
     `<tr>`);
     //$("#tab_details").append(`<table class="transparent_table" id="image_set_table"></table>`);
 
-    $("#stats_section").append(`<div style="text-decoration: underline;">Annotations</div><br>`);
-    $("#stats_section").append(`<table class="transparent_table" id="annotation_stats_table"></table>`);
+    // $("#right_section").append(
+    //     `<button class="std-button std-button-hover" style="width: 220px; height: 50px; margin:auto" onclick="annotate_request()">`+
+    //         `<span><i class="fa-regular fa-clone" style="margin-right:8px"></i> Annotate</span></button>`);
+
+    
+    
+
+    let make = metadata["camera_info"]["make"];
+    let model = metadata["camera_info"]["model"];
+    let sensor_height;
+    let sensor_width;
+    let focal_length;
+    if (make in camera_specs && model in camera_specs[make]) {
+        sensor_height = camera_specs[make][model]["sensor_height"];
+        sensor_width = camera_specs[make][model]["sensor_width"];
+        focal_length = camera_specs[make][model]["focal_length"];
+    }
+    else {
+        make = "???";
+        model = "???";
+        sensor_height = "???";
+        sensor_width = "???";
+        focal_length = "???";
+    }
+    let flight_height = metadata["flight_height"];
+    if (flight_height == "unknown") {
+        flight_height = "???";
+    }
+    else {
+        flight_height = flight_height + " m";
+    }
+    let is_georeferenced;
+    if (metadata["missing"]["latitude"] || metadata["missing"]["longitude"]) {
+        is_georeferenced = "No";
+    }
+    else {
+        is_georeferenced = "Yes";
+    }
+    $("#top_right").append(`<div style="text-decoration: underline;">Flight Information</div><br>`);
+    $("#top_right").append(`<table class="transparent_table" id="flight_info_table"></table>`);
+
+    $("#flight_info_table").append(`<tr>` +
+            `<th><div class="table_head" style="width: ${label_width};">Flight height</div></th>` +
+            `<th><div class="table_text" style="width: ${value_width};">${flight_height}</div></th>` +
+            `<tr>`);
+    $("#flight_info_table").append(`<tr>` +
+            `<th><div class="table_head" style="width: ${label_width};">Georeferenced</div></th>` +
+            `<th><div class="table_text" style="width: ${value_width};">${is_georeferenced}</div></th>` +
+            `<tr>`);        
+
+    //$("#right_section").append(`<br><hr style="width: 80%"><br>`);
+    $("#bottom_right").append(`<div style="text-decoration: underline;">Camera Specs</div><br>`);
+
+
+    $("#bottom_right").append(`<table class="transparent_table" id="camera_specs_table"></table>`);
+    $("#camera_specs_table").append(`<tr>` +
+            `<th><div class="table_head" style="width: ${label_width};">Make</div></th>` +
+            `<th><div class="table_text" style="width: ${value_width};">${make}</div></th>` +
+            `<tr>`);
+    $("#camera_specs_table").append(`<tr>` +
+            `<th><div class="table_head" style="width: ${label_width};">Model</div></th>` +
+            `<th><div class="table_text" style="width: ${value_width};">${model}</div></th>` +
+            `<tr>`);
+    $("#camera_specs_table").append(`<tr>` +
+            `<th><div class="table_head" style="width: ${label_width};">Sensor height</div></th>` +
+            `<th><div class="table_text" style="width: ${value_width};">${sensor_height}</div></th>` +
+            `<tr>`);
+    $("#camera_specs_table").append(`<tr>` +
+            `<th><div class="table_head" style="width: ${label_width};">Sensor width</div></th>` +
+            `<th><div class="table_text" style="width: ${value_width};">${sensor_width}</div></th>` +
+            `<tr>`);
+    $("#camera_specs_table").append(`<tr>` +
+            `<th><div class="table_head" style="width: ${label_width};">Focal length</div></th>` +
+            `<th><div class="table_text" style="width: ${value_width};">${focal_length}</div></th>` +
+            `<tr>`);
+    // $("#camera_specs_table").append(`<tr>` +
+    //         `<th><div class="table_head" style="width: ${label_width};">Flight Height (m)</div></th>` +
+    //         `<th><div class="table_text" style="width: ${value_width};">${flight_height}</div></th>` +
+    //         `<tr>`)
+
+
+    $("#left_section").append(
+                `<button class="std-button std-button-hover" style="width: 220px; height: 50px; margin:auto" onclick="annotate_request()">`+
+                    `<span><i class="fa-regular fa-clone" style="margin-right:8px"></i> Annotate</span></button>`);
+
+    $("#top_left").append(`<div style="text-decoration: underline;">Annotations</div><br>`);
+    $("#top_left").append(`<table class="transparent_table" id="annotation_stats_table"></table>`);
 
     $("#annotation_stats_table").append(`<tr>` +
             `<th><div class="table_head" style="width: ${label_width};">Total</div></th>` +
             `<th><div class="table_text" style="width: ${value_width};">${total_annotations}</div></th>` +
-            /*`<th><div class="table_entry" style="width: ${finished_col_width};">Finished</div></th>` +*/
             `<tr>`);
 
-    $("#stats_section").append(`<br><hr style="width: 80%"><br>`);
-    $("#stats_section").append(`<div style="text-decoration: underline;">Images</div><br>`);
-    $("#stats_section").append(`<table class="transparent_table" id="image_stats_table"></table>`);
+    //$("#middle_section").append(`<br><hr style="width: 80%"><br>`);
+    $("#bottom_left").append(`<div style="text-decoration: underline;">Images</div><br>`);
+    $("#bottom_left").append(`<table class="transparent_table" id="image_stats_table"></table>`);
 
     $("#image_stats_table").append(`<tr>` +
             `<th><div class="table_head" style="width: ${label_width};">Total</div></th>` +
             `<th><div class="table_text" style="width: ${value_width};">${total_images}</div></th>` +
-            /*`<th><div class="table_entry" style="width: ${finished_col_width};">Finished</div></th>` +*/
             `<tr>`);  
 
     $("#image_stats_table").append(`<tr>` +
             `<th><div class="table_head" style="width: ${label_width};">Fully annotated</div></th>` +
             `<th><div class="table_text" style="width: ${value_width};">${completed}</div></th>` +
-            /*`<th><div class="table_entry" style="width: ${finished_col_width};">Finished</div></th>` +*/
             `<tr>`);       
     $("#image_stats_table").append(`<tr>` +
             `<th><div class="table_head" style="width: ${label_width};">Partially annotated</div></th>` +
             `<th><div class="table_text" style="width: ${value_width};">${started}</div></th>` +
-            /*`<th><div class="table_entry" style="width: ${finished_col_width};">Finished</div></th>` +*/
             `<tr>`);
     $("#image_stats_table").append(`<tr>` +
             `<th><div class="table_head" style="width: ${label_width};">Unannotated</div></th>` +
             `<th><div class="table_text" style="width: ${value_width};">${unannotated}</div></th>` +
-            /*`<th><div class="table_entry" style="width: ${finished_col_width};">Finished</div></th>` +*/
             `<tr>`);
-    $("#annotate_section").append(
-        `<button class="std-button std-button-hover" style="width: 220px; height: 50px;" onclick="annotate_request()">`+
-            `<span><i class="fa-regular fa-clone" style="margin-right:8px"></i> Annotate</span></button>`);
+
+            
+
     /*
     $("#annotate_section").append(`<br><br>`);
     $("#annotate_section").append(
@@ -315,27 +430,13 @@ function show_overview() {
 }
 
 
-function get_config(url) {
-    let config;
-    $.ajax({
-        url: url,
-        async: false,
-        dataType: 'json',
-        success: function (r_config) {
-            config = r_config;
-        }
-    });
-    return config;
-}
-
-
 function show_results() {
 
     let farm_name = $("#farm_combo").val();
     let field_name = $("#field_combo").val();
     let mission_date = $("#mission_combo").val();
 
-    let job_col_width = "200px";
+    let job_col_width = "500px";
     let started_col_width = "180px";
     let finished_col_width = "180px";
 
@@ -344,7 +445,7 @@ function show_results() {
     for (job_uuid of image_sets_data[farm_name][field_name][mission_date]) {
         let job_url = "/plant_detection/usr/data/jobs/" + job_uuid + ".json";
     
-        let job_config = get_config(job_url);
+        let job_config = get_json(job_url);
 
         if ("end_time" in job_config) {
             //let job_config_str = JSON.stringify(job_config, null, 4);

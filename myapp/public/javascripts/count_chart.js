@@ -35,7 +35,7 @@ function set_count_chart_data() {
     }
 
     let metric = $("#chart_combo").val();
-    if (metric === "Raw counts") {
+    if (metric === "Count" || metric === "Count per square metre") {
         for (let i = 0; i < sorted_overlay_ids.length; i++) {
             let overlay_id = sorted_overlay_ids[i];
             for (image_name of Object.keys(overlays[overlay_id])) {
@@ -43,9 +43,11 @@ function set_count_chart_data() {
                     //let class_name = annotation["body"][0]["value"];
                     let class_name = annotation["body"].find(b => b.purpose == "class").value;
                     let score_el = annotation["body"].find(b => b.purpose == 'score');
+
                     if (!score_el || score_el.value >= slider_val) {
                         count_chart_data[image_name][class_name][i]["count"]++;
                     }
+
                 }
             }
         }
@@ -53,6 +55,9 @@ function set_count_chart_data() {
         for (image_name of Object.keys(count_chart_data)) {
             for (class_name of Object.keys(job_config["arch_config"]["class_map"])) {
                 for (entry of count_chart_data[image_name][class_name]) {
+                    if (metric == "Count per square metre")
+                        entry.count = entry.count / metadata["images"][image_name]["area_m2"];
+                        entry.count = Math.round((entry.count + Number.EPSILON) * 100) / 100
                     if (entry.count > max_count) {
                         max_count = entry.count
                     }

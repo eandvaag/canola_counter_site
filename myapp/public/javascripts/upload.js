@@ -1,6 +1,6 @@
 
 let dropzone_handler;
-let first = true;
+let num_sent = 0;
 let queued_filenames;
 let errors = [];
 let format = /[ `!@#$%^&*()+\=\[\]{};':"\\|,<>\/?~]/;
@@ -9,6 +9,7 @@ function clear_form() {
     $("#farm_input").val("");
     $("#field_input").val("");
     $("#mission_input").val("");
+    $("#flight_height_input").val("");
     dropzone_handler.removeAllFiles();
 }
 
@@ -29,7 +30,7 @@ function disable_input() {
         $(button).css("cursor", "default");
     }
 
-    let inputs = ["farm_input", "field_input", "mission_input"];
+    let inputs = ["farm_input", "field_input", "mission_input", "flight_height_input"];
 
     for (input of inputs) {
         $("#" + input).prop("disabled", true);
@@ -65,7 +66,7 @@ function enable_input() {
         $(button).css("cursor", "pointer");
     }
 
-    let inputs = ["farm_input", "field_input", "mission_input"];
+    let inputs = ["farm_input", "field_input", "mission_input", "flight_height_input"];
 
     for (input of inputs) {
         $("#" + input).prop("disabled", false);
@@ -98,6 +99,17 @@ function form_is_complete() {
             return false;
         }
     }
+    
+    let flight_height = $("#flight_height_input").val();
+    if (flight_height !== "") {
+        if (!isNumeric(flight_height)) {
+            return false;
+        }
+        flight_height = parseFloat(flight_height);
+        if (flight_height < 0.1 || flight_height > 100) {
+            return false;
+        }
+    }
     if (dropzone_handler.files.length == 0) {
         return false;
     }
@@ -116,7 +128,7 @@ function update_submit() {
 
 function show_upload() {
 
-    let left_col_width = "100px";
+    let left_col_width = "130px";
     let right_col_width = "250px";
 
     $("#main_area").empty();
@@ -127,19 +139,27 @@ function show_upload() {
 
     $("#upload_form").append(`<table class="transparent_table" id="input_table"></table>`);
     $("#input_table").append(`<tr>` +
-        `<th><div class="table_head" style="width: ${left_col_width};">Farm Name:</div></th>` +
+        `<th><div class="table_head" style="width: ${left_col_width};">Farm name<span style="color:yellow"> *</span></div></th>` +
         `<th><div style="width: ${right_col_width};"><input id="farm_input" class="nonfixed_input"></div></th>` +
     `<tr>`);
 
     $("#input_table").append(`<tr>` +
-        `<th><div class="table_head" style="width: ${left_col_width};">Field Name:</div></th>` +
+        `<th><div class="table_head" style="width: ${left_col_width};">Field name<span style="color:yellow"> *</span></div></th>` +
         `<th><div style="width: ${right_col_width};"><input id="field_input" class="nonfixed_input"></div></th>` +
     `<tr>`);
 
     $("#input_table").append(`<tr>` +
-    `<th><div class="table_head" style="width: ${left_col_width};">Mission Date:</div></th>` +
-    `<th><div style="width: ${right_col_width};"><input id="mission_input" class="nonfixed_input"></div></th>` +
+    `<th><div class="table_head" style="width: ${left_col_width};">Mission date<span style="color:yellow"> *</span></div></th>` +
+    `<th><div style="width: ${right_col_width};"><input type="date" id="mission_input" class="nonfixed_input"></div></th>` +
     `<tr>`);
+
+    
+    $("#input_table").append(`<tr>` +
+    `<th><div class="table_head" style="width: ${left_col_width};">Flight height (m)</div></th>` +
+    `<th><div style="width: ${right_col_width};"><input id="flight_height_input" class="nonfixed_input"></div></th>` +
+    `<tr>`);
+
+    $("#upload_form").append(`<br><div style="color:yellow">*<span style="color: white"> Indicates required field.</span></div>`);
 
     /*
     $("#upload_form").append(`<div class="row"></div>`);
@@ -201,11 +221,13 @@ function show_upload() {
     dropzone_handler.on("processing", function() {
         console.log("started processing");
         //first_batch = "no";
+        //num_sent = 0;
         dropzone_handler.options.autoProcessQueue = true;
     });
 
     dropzone_handler.on("queuecomplete", function(files, response) {
-        first = true;
+        //first = true;
+        num_sent = 0;
         dropzone_handler.options.autoProcessQueue = false;
 
         if (dropzone_handler.getAcceptedFiles().length > 0) {
@@ -267,14 +289,17 @@ function show_upload() {
         formData.append('farm_name', $("#farm_input").val());
         formData.append('field_name', $("#field_input").val());
         formData.append('mission_date', $("#mission_input").val());
-        if (first) {
-            formData.append('first', "yes");
-            first = false;
-        }
-        else {
-            formData.append('first', "no");
-        }
+        // if (first) {
+        //     formData.append('first', "yes");
+        //     first = false;
+        // }
+        // else {
+        //     formData.append('first', "no");
+        // }
         formData.append("queued_filenames", queued_filenames.join(","));
+        formData.append('flight_height', $("#flight_height_input").val());
+        num_sent++;
+        formData.append("num_sent", num_sent.toString());
     });
 
 
@@ -332,6 +357,10 @@ function show_upload() {
     });
 
     $("#mission_input").on("input", function(e) {
+        update_submit();
+    });
+
+    $("#flight_height_input").on("input", function(e) {
         update_submit();
     });
 

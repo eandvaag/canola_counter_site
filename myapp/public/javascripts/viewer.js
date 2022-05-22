@@ -1,8 +1,9 @@
 
 
-let metadata;
+let image_set_info;
 let job_config;
 let overlays;
+let metadata;
 //let predictions;
 let metrics;
 let dzi_dir;
@@ -54,9 +55,9 @@ function overlay_initialization() {
                   "#FF4040", 
                   "#f5a70b", 
                   "#b95fb9", 
-                  "#00695C",
+                  "#02b863",
                   "#00C0C0", 
-                  "#C0C080", 
+                  "#00695C",
                   "#FFC0C0", 
                   "#C08040", 
                   "#FF8040"];
@@ -305,10 +306,11 @@ let used_for = {};
 
 $(document).ready(function() {
     
-    metadata = data["metadata"];
+    image_set_info = data["image_set_info"];
     job_config = data["job_config"];
     overlays = data["overlays"];
     //predictions = data["predictions"];
+    metadata = data["metadata"];
     metrics = data["metrics"];
     dzi_dir = data["dzi_dir"];
     dzi_image_paths = data["dzi_image_paths"];
@@ -323,9 +325,34 @@ $(document).ready(function() {
     $("#download_button").attr("href", download_path);
 
 
-    $("#image_set_name").text(metadata["farm_name"] + "  |  " + 
-                              metadata["field_name"] + "  |  " + 
-                              metadata["mission_date"]);
+    $("#image_set_name").text(image_set_info["farm_name"] + "  |  " + 
+                              image_set_info["field_name"] + "  |  " + 
+                              image_set_info["mission_date"]);
+
+
+
+
+    $('#chart_combo').append($('<option>', {
+        value: "Count",
+        text: "Count"
+    }));
+    if (!(metadata["missing"]["area_m2"])) {
+        $('#chart_combo').append($('<option>', {
+            value: "Count per square metre",
+            text: "Count per square metre"
+        }));
+    }
+    $('#chart_combo').append($('<option>', {
+        value: "MS COCO mAP",
+        text: "MS COCO mAP"
+    }));
+    $('#chart_combo').append($('<option>', {
+        value: "PASCAL VOC mAP",
+        text: "PASCAL VOC mAP"
+    }));
+
+
+
 
     image_names["all"] = natsort(Object.keys(data["overlays"]["annotations"]));
     for (image_name of image_names["all"]) {

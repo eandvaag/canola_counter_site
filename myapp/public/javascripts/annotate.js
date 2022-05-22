@@ -1,19 +1,21 @@
 
 
+// import { bilinearInterpolation } from "simple-bilinear-interpolation";
 
 
 
 
-
+let image_set_info;
 let metadata;
-//let image_set_data;
 let dzi_image_paths;
 let annotations;
-
+let image_to_dzi;
 
 let viewer;
 let anno;
 let cur_img_name;
+let cur_view;
+
 
 /*
 function update_containers() {
@@ -39,6 +41,9 @@ function close_help_modal() {
 
 
 function change_image(dzi_image_path) {
+    // if (viewer == null) {
+    //     create_viewer_and_anno();
+    // }
     console.log("changing to", dzi_image_path);
     viewer.open(dzi_image_path);
 }
@@ -70,15 +75,6 @@ function create_image_set_table() {
             //`<td><div class="table_entry">${img_dataset}</div></td>` +
             `</tr>`);
     }
-}
-
-
-function snap_to_boundaries(min_x, min_y, w, h) {
-
-
-    //console.log("selection2", selection);
-
-
 }
 
 
@@ -197,31 +193,15 @@ function set_image_status_combo() {
     $("#status_combo").val(cur_status);
 }
 
-$(document).ready(function() {
-    //update_containers();
-    console.log(window.location.href);
-    console.log("data", data);
-
-    metadata = data["metadata"];
-    //image_set_data = data["image_set_data"];
-    dzi_image_paths = data["dzi_image_paths"];
-    annotations = data["annotations"];
-
-
-    $("#image_set_name").text(metadata["farm_name"] + "  |  " + 
-                              metadata["field_name"] + "  |  " + 
-                              metadata["mission_date"]);
-
-    create_image_set_table();
-
-    /*
-    $("#farm_name_entry").text(metadata["farm_name"]);
-    $("#field_name_entry").text(metadata["field_name"]);
-    $("#mission_date_entry").text(metadata["mission_date"]);*/
 
 
 
-    cur_img_name = basename(dzi_image_paths[0]);
+
+
+function create_viewer_and_anno() {
+
+    $("#seadragon_viewer").empty();
+
 
     viewer = OpenSeadragon({
         id: "seadragon_viewer",
@@ -393,33 +373,332 @@ $(document).ready(function() {
         //anno.updateSelected(selection, true);
     });
 
-    console.log("anno", anno);
+
+}
+
+function disable_build() {
+
+    let buttons = ["#build_map_button"];
+
+    for (button of buttons) {
+        $(button).prop('disabled', true);
+        $(button).removeClass("table_button_hover");
+        $(button).css("opacity", 0.5);
+        $(button).css("cursor", "default");
+    }
+}
+
+
+function enable_build() {
+
+    let buttons = ["#build_map_button"];
+
+    for (button of buttons) {
+        $(button).prop('disabled', false);
+        $(button).addClass("table_button_hover");
+        $(button).css("opacity", 1);
+        $(button).css("cursor", "pointer");
+    }
+}
+
+
+
+function build_map() {
+    disable_build();
+    $("#build_loader").show();
+    //let sel_metric = $("input[type='radio'][name='metric']:checked").val();
+    let sel_interpolation = $("input[type='radio'][name='interpolation']:checked").val();
+
+    //console.log("sel_metric", sel_metric);
+    console.log("sel_interpolation", sel_interpolation);
+    
+    
+
+    $.post($(location).attr('href'),
+    {
+        action: "rebuild_map",
+        //metric: sel_metric,
+        interpolation: sel_interpolation
+        //image_set_data: JSON.stringify(image_set_data)
+    },
+    
+    function(response, status) {
+        $("#build_loader").hide();
+        enable_build();
+        if (response.error) {    
+            console.log("error occurred");
+        }
+        else {
+            console.log("showing map");
+            $("#seadragon_viewer").empty();
+            draw_map_chart();
+        }
+    });
+
+
+}
+
+function show_map() {
+    cur_view = "map";
+    save_annotations();
+
+    $("#view_button_container").empty();
+    $("#view_button_container").append(
+        `<button style="width: 140px; margin: 0px" id="view_button" class="table_button table_button_hover">` +
+        `<i class="fa-solid fa-image" style="padding-right: 10px; color: white"></i>Image View</button>`
+    );
+
+    
+    $("#view_button").click(function() {
+        if (cur_view == "image") {
+            cur_view = "map";
+            show_map();
+        }
+        else {
+            cur_view = "image";
+            show_image();
+            change_image(image_to_dzi[cur_img_name]);
+        }
+    });
+    /*
+    html(
+    i(class="fa-solid fa-location-dot" style="padding-right: 8px; color: white") 
+                                        | Map View*/
+
+    $("#left_panel").empty();
+    $("#seadragon_viewer").empty();
+
+    let left_panel_width = $("#left_panel").width();
+    let control_border_width = (left_panel_width - 20) + "px";
+
+    let num_completed = 0;
+    for (image_name of Object.keys(annotations)) {
+        if (annotations[image_name]["status"] == "completed") {
+            num_completed++;
+        }
+    }
+
+    if (num_completed >= 3) {
+
+        $("#left_panel").append(`<div style="font-size: 20px">Map Builder Controls<div>`);
+        $("#left_panel").append(`<br>`);
+        //$("#left_panel").append(`<div id="map_controls" style="display: block"></div>`);
+        /*
+        $("#left_panel").append(`<div class="header2" style="text-align: left; padding-left: 10px">Metric</div><table class="transparent_table" style="border: 1px solid white; width: ${control_border_width}">` +
+            `<tr><td>` +
+            `<label class="radio_container">Count` +
+                `<input type="radio" name="metric" value="count" checked>` +
+                `<span class="custom_radio"></span>` +
+            `</label></td>` +
+            `<td>` +
+            `<label class="radio_container">Density` +
+                `<input type="radio" name="metric" value="density">` +
+                `<span class="custom_radio"></span>` +
+            `</label></td></tr>` +
+        `</table>`);
+        $("#left_panel").append(`<br>`);*/
+        $("#left_panel").append(`<div class="header2" style="text-align: left; padding-left: 10px">Interpolation</div><table class="transparent_table" style="border: 1px solid white; width: ${control_border_width}">` +
+            `<tr><td>` +
+            `<label class="radio_container">Linear` +
+                `<input type="radio" name="interpolation" value="linear" checked>` +
+                `<span class="custom_radio"></span>` +
+            `</label></td>` +
+            `<td>` +
+            `<label class="radio_container">Nearest` +
+                `<input type="radio" name="interpolation" value="nearest">` +
+                `<span class="custom_radio"></span>` +
+            `</label></td></tr>` +
+        `</table>`);
+
+        $("#left_panel").append(`<br><hr><br>`);
+        $("#left_panel").append(
+            `<button style="width: 140px; margin: 0px" id="build_map_button" class="table_button table_button_hover"` +
+            `onclick="build_map()">` +
+            `<i class="fa-solid fa-gears" style="padding-right: 10px; color: white"></i>Build Map</button>`
+        );
+        $("#left_panel").append(`<br><br>`);
+        $("#left_panel").append(`<div id="build_loader" class="loader"></div>`);
+        $("#build_loader").hide();
+    }
+    else {
+        $("#left_panel").append(`<div>To build a density map, at least three images must be fully annotated.<div>`);
+    }
+
+
+    draw_map_chart();
+}
+
+
+function show_image() {
+    cur_view = "image";
+
+    if ((!(metadata["missing"]["latitude"]) && !(metadata["missing"]["longitude"])) && (!(metadata["missing"]["area_m2"]))) {
+        $("#view_button_container").empty();
+        $("#view_button_container").append(
+            `<button style="width: 140px; margin: 0px;" id="view_button" class="table_button table_button_hover">` +
+            `<i class="fa-solid fa-location-dot" style="padding-right: 10px; color: white;"></i>Map View</button>`
+        );
+
+
+        $("#view_button").click(function() {
+            if (cur_view == "image") {
+                show_map();
+            }
+            else {
+                show_image();
+                change_image(image_to_dzi[cur_img_name]);
+            }
+        });
+    }
+
+
+    $("#left_panel").empty();
+    $("#seadragon_viewer").empty();
+
+    $("#left_panel").append(
+        `<table class="transparent_table">` +
+            `<tr>` +
+                `<td style="text-align: left">` +
+                    `<h class="header2">Image:</h>` +
+                `</td>` +
+                `<td style="width:100%; text-align: left; padding-left: 12px">` +
+                    `<h id="image_name"></h>` +
+                `</td>` +
+            `</tr>` +
+            `<tr>` +
+                `<td style="text-align: left">` +
+                    `<h class="header2">Status:</h>` +
+                `</td>` +
+                `<td>` +
+                    `<select id="status_combo" class="nonfixed_dropdown"></select>` +
+                `</td>` +
+            `</tr>` +
+        `</table>` +
+        `<br><hr><br>` +
+        `<button id="save_button" class="table_button table_button_hover">` +
+            `<i id="save_icon" class="fa-solid fa-floppy-disk" style="padding-right: 8px; color: white"></i>` +
+                `Save All Changes` +
+        `</button>` +
+        `<br><br>` +
+        `<h class="header2" style="text-align: left">Image List:</h>` +
+        `<div class="scrollable_area" style="height: 390px; border: none">` +
+        `<table id="image_set_table"></table></div>`
+    )
+/*
+    table(class="transparent_table")
+    tr
+
+        td(style="text-align: left")
+            h(class="header2" style="text-align:left") Image: 
+    
+        td(style="width: 100%; text-align: left; padding-left: 12px")
+            h(id="image_name")
+
+
+
+    tr
+        td(style="text-align: left")
+            h(class="header2") Status:
+        td(style="width:100%")
+            select(id="status_combo" class="nonfixed_dropdown")
+
+
+br
+hr
+br
+
+button(id="save_button" class="table_button table_button_hover")
+
+    i(id="save_icon" class="fa-solid fa-floppy-disk" style="padding-right: 8px; color: white")
+    |
+    | Save All Changes
+
+br
+br
+
+h(class="header2" style="text-align:left") Image List:
+
+div(class="scrollable_area" style="height: 390px; border:none")
+    table(id="image_set_table")*/
+
+    create_image_set_table();
 
     $("#save_button").click(function() {
 
         //let selected = anno.getSelected();
 
-
-        $.post($(location).attr('href'),
-        {
-            annotations: JSON.stringify(annotations),
-            //image_set_data: JSON.stringify(image_set_data)
-        },
-        
-        function(response, status) {
-
-            if (response.error) {    
-                console.log("error occurred");
-            }
-            else {
-                console.log("Annotations Saved!");
-                //console.log("image_set_data", response.image_set_data);
-                //image_set_data = response.image_set_data;
-                create_image_set_table();
-                $("#save_icon").css("color", "white");
-            }
-        });
+        save_annotations();
     });
+
+    $("#status_combo").change(function() {
+
+        annotations[cur_img_name]["status"] = $("#status_combo").val();
+        set_image_status_combo();
+        $("#save_icon").css("color", "#ed452b");
+        create_image_set_table();
+    });
+
+    create_viewer_and_anno();
+
+    
+}
+
+function save_annotations() {
+
+
+    $.post($(location).attr('href'),
+    {
+        action: "save_annotations",
+        annotations: JSON.stringify(annotations),
+        //image_set_data: JSON.stringify(image_set_data)
+    },
+    
+    function(response, status) {
+
+        if (response.error) {    
+            console.log("error occurred");
+        }
+        else {
+            console.log("Annotations Saved!");
+            //console.log("image_set_data", response.image_set_data);
+            //image_set_data = response.image_set_data;
+            create_image_set_table();
+            $("#save_icon").css("color", "white");
+        }
+    });
+}
+
+$(document).ready(function() {
+    //update_containers();
+    console.log(window.location.href);
+    console.log("data", data);
+
+    image_set_info = data["image_set_info"];
+    //image_set_data = data["image_set_data"];
+    dzi_image_paths = data["dzi_image_paths"];
+    annotations = data["annotations"];
+    metadata = data["metadata"];
+
+
+    $("#image_set_name").text(image_set_info["farm_name"] + "  |  " + 
+                              image_set_info["field_name"] + "  |  " + 
+                              image_set_info["mission_date"]);
+
+    image_to_dzi = {};
+    for (dzi_image_path of dzi_image_paths) {
+        let image_name = basename(dzi_image_path)
+        let extensionless_name = image_name.substring(0, image_name.length - 4);
+        image_to_dzi[extensionless_name] = dzi_image_path;
+    }
+
+
+    cur_img_name = basename(dzi_image_paths[0]);
+    cur_view = "image";
+
+    show_image();
+
+    console.log("anno", anno);
+
 
     /*
     $("#seadragon_viewer").keypress(function(e) {
@@ -439,14 +718,6 @@ $(document).ready(function() {
 
     });*/
 
-
-    $("#status_combo").change(function() {
-
-        annotations[cur_img_name]["status"] = $("#status_combo").val();
-        set_image_status_combo();
-        $("#save_icon").css("color", "#ed452b");
-        create_image_set_table();
-    });
 /*
     $(window).resize(function() {
         update_containers();
@@ -459,6 +730,9 @@ $(document).ready(function() {
     $("#help_modal_close").click(function() {
         close_help_modal();
     });
+
+
+
 
 
 });

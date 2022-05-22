@@ -173,7 +173,16 @@ exports.get_home = function(req, res, next) {
             }
         }
 
-        res.render("home", {image_sets_data: image_sets_data});
+        let camera_specs;
+        let camera_specs_path = path.join(USR_DATA_ROOT, "cameras", "cameras.json");
+        try {
+            camera_specs = JSON.parse(fs.readFileSync(camera_specs_path, 'utf8'));
+        }
+        catch (error) {
+            console.log(error);
+        }
+
+        res.render("home", {image_sets_data: image_sets_data, camera_specs: camera_specs});
         
     }
     else {
@@ -201,10 +210,6 @@ exports.get_annotate = function(req, res, next) {
 
 
         let annotations_path = path.join(image_set_root, "annotations", "annotations_w3c.json");
-        
-
-
-
         let annotations;
         try {
             annotations = JSON.parse(fs.readFileSync(annotations_path, 'utf8'));
@@ -213,11 +218,20 @@ exports.get_annotate = function(req, res, next) {
             console.log(error);
         }
 
+        let metadata_path = path.join(image_set_root, "metadata", "metadata.json");
+        let metadata;
+        try {
+            metadata = JSON.parse(fs.readFileSync(metadata_path, 'utf8'));
+        }
+        catch (error) {
+            console.log(error);
+        }
+
+
         let dzi_image_paths = [];
         for (image_name of Object.keys(annotations)) {
             let dzi_image_path = path.join(APP_PREFIX, dzi_images_dir, image_name + ".dzi");
             dzi_image_paths.push(dzi_image_path);
-
         }
 
         /*
@@ -233,7 +247,7 @@ exports.get_annotate = function(req, res, next) {
 
         
 
-        let metadata = {
+        let image_set_info = {
             "farm_name": farm_name,
             "field_name": field_name,
             "mission_date": mission_date
@@ -241,8 +255,8 @@ exports.get_annotate = function(req, res, next) {
 
         console.log("ready to render");
         let data = {};
+        data["image_set_info"] = image_set_info;
         data["metadata"] = metadata;
-        //data["image_set_data"] = image_set_data;
         data["dzi_image_paths"] = nat_orderBy.orderBy(dzi_image_paths);
         data["annotations"] = annotations;
         res.render("annotate", {data: data});
@@ -258,69 +272,60 @@ exports.post_annotate = function(req, res, next) {
 
     if (req.session.user && req.cookies.user_sid) {
 
-    console.log("post_annotate");
-    let response = {};
-    /*
-    console.log("req.body", req.body);
-
-    let annotations =  JSON.parse(req.body.annotations);
-    console.log(annotations);*/
-
-    let farm_name = req.params.farm_name;
-    let field_name = req.params.field_name;
-    let mission_date = req.params.mission_date;
-
-    let image_set_root = path.join(USR_DATA_ROOT, "image_sets", farm_name,
-                                        field_name, mission_date);
-
-    let annotations_path = path.join(image_set_root, "annotations", "annotations_w3c.json")
+        console.log("post_annotate");
+        let response = {};
 
 
-    try {
-        fs.writeFileSync(annotations_path, req.body.annotations);
-    }
-    catch (error) {
-        console.log(error);
-    }
+        let farm_name = req.params.farm_name;
+        let field_name = req.params.field_name;
+        let mission_date = req.params.mission_date;
+        let action = req.body.action;
 
-    //let image_set_data_path = path.join(image_set_root, "image_set_data.json");
-    
+        let image_set_root = path.join(USR_DATA_ROOT, "image_sets", farm_name,
+                                            field_name, mission_date);
 
-    /*
-    let image_set_data;
-    try {
-        image_set_data = JSON.parse(fs.readFileSync(image_set_data_path, 'utf8'));
-    }
-    catch (error) {
-        console.log(error);
-    }
-    console.log("read in image_set_data", image_set_data);
-    for (img_name of Object.keys(annotations)) {
-        let num_annotations = annotations[img_name].length;
-        let prev_status = image_set_data["images"][img_name]["status"];
-        if (num_annotations == 0) {
-            image_set_data["images"][img_name]["status"] = "unannotated";
+
+        if (action == "save_annotations") {
+            let annotations_path = path.join(image_set_root, "annotations", "annotations_w3c.json")
+
+
+            try {
+                fs.writeFileSync(annotations_path, req.body.annotations);
+            }
+            catch (error) {
+                console.log(error);
+            }
+
+            response.error = false;
+            res.json(response);
         }
-        else if ((num_annotations > 0) && (prev_status === "unannotated")) {
-            image_set_data["images"][img_name]["status"] = "started";
-        }
-    }*/
-    //console.log("writing image_set_data", image_set_data);
-    /*
-    try {
-        fs.writeFileSync(image_set_data_path, req.body.image_set_data);
-    }
-    catch (error) {
-        console.log(error);
-    }*/
+        else if (action == "rebuild_map") {
 
-    response.error = false;
-    //response.image_set_data = image_set_data;
-    res.json(response);
-    /*
-    let parsed = JSON.parse(req.body);
-    console.log("parsed", parsed);
-    console.log("annotations", parsed["annotations"]);*/
+            console.log(farm_name);
+            console.log(field_name);
+            console.log(mission_date);
+            let rebuild_command = "python3 ../../plant_detection/src/interpolate.py " + farm_name +
+                                    " " + field_name + " " + mission_date;
+
+            if (req.body.interpolation == "nearest") {
+                rebuild_command = rebuild_command + " -nearest";
+            }
+            console.log(rebuild_command);
+            let result = exec(rebuild_command, {shell: "/bin/bash"}, function (error, stdout, stderr) {
+                if (error) {
+                    console.log(error.stack);
+                    console.log('Error code: '+error.code);
+                    console.log('Signal received: '+error.signal);
+                    response.error = true;
+                }
+                else {
+                    response.error = false;
+                }
+                console.log("returning a response");
+                res.json(response);
+            });
+        }
+
     
     }
     else {
@@ -341,7 +346,11 @@ exports.get_upload = function(req, res, next) {
 */
 
 
-
+function isNumeric(str) {
+    if (typeof str != "string") return false // we only process strings!  
+    return !isNaN(str) && // use type coercion to parse the _entirety_ of the string (`parseFloat` alone does not do this)...
+           !isNaN(parseFloat(str)) // ...and ensure strings of whitespace fail
+}
 
 exports.post_upload = function(req, res, next) {
     if (req.session.user && req.cookies.user_sid) {
@@ -352,27 +361,41 @@ exports.post_upload = function(req, res, next) {
         let field_name;
         let mission_date;
         let first;
+        let last;
         let queued_filenames;
+        let flight_height;
         if (req.files.length > 1) {
             farm_name = req.body.farm_name[0];
             field_name = req.body.field_name[0];
             mission_date = req.body.mission_date[0];
             //first_batch = req.body.first_batch[0];
             first = false;
-            for (let i = 0; i < req.body.first.length; i++) {
-                if (req.body.first[i] === "yes") {
+            last = false;
+            queued_filenames = req.body.queued_filenames[0].split(",");
+            flight_height = req.body.flight_height[0];
+            let num_sent;
+            for (let i = 0; i < req.body.num_sent.length; i++) {
+                num_sent = parseInt(req.body.num_sent[i])
+                console.log("num_sent", num_sent);
+                if (num_sent == 1) {
                     first = true;
                 }
+                if (num_sent == queued_filenames.length) {
+                    last = true;
+                }
             }
-            queued_filenames = req.body.queued_filenames[0].split(",");
+            
         }
         else {
             farm_name = req.body.farm_name;
             field_name = req.body.field_name;
             mission_date = req.body.mission_date;
-            first = req.body.first === "yes";
             queued_filenames = req.body.queued_filenames.split(",");
+            first = parseInt(req.body.num_sent) == 1;
+            last = parseInt(req.body.num_sent) == queued_filenames.length;
+            flight_height = req.body.flight_height;
         }
+        console.log(req.body.num_sent);
 
         console.log("contains first?", first);
         console.log("queued_filenames", queued_filenames);
@@ -392,6 +415,7 @@ exports.post_upload = function(req, res, next) {
             }
         }
 
+
         let image_sets_root = path.join(USR_DATA_ROOT, "image_sets");
         let farm_dir = path.join(image_sets_root, farm_name);
         let field_dir = path.join(farm_dir, field_name);
@@ -401,8 +425,20 @@ exports.post_upload = function(req, res, next) {
         let dzi_images_dir = path.join(mission_dir, "dzi_images");
         let conversion_tmp_dir = path.join(dzi_images_dir, "conversion_tmp");
         let annotations_dir = path.join(mission_dir, "annotations");
+        let metadata_dir = path.join(mission_dir, "metadata");
 
+
+        
         if (first) {
+            console.log("checking components");
+            let id_components = [farm_name, field_name, mission_date];
+            for (id_component of id_components) {
+                if (format.test(id_component)) {
+                    return res.status(422).json({
+                        error: "The provided farm, field, or mission date contains illegal characters."
+                    });                
+                }
+            }
             if (fpath_exists(mission_dir)) {
                 return res.status(422).json({
                     error: "The provided farm-field-mission combination already exists."
@@ -415,6 +451,7 @@ exports.post_upload = function(req, res, next) {
                 fs.mkdirSync(conversion_tmp_dir, { recursive: true });
                 /*fs.mkdirSync(patches_dir, { recursive: true });*/
                 fs.mkdirSync(annotations_dir, { recursive: true });
+                fs.mkdirSync(metadata_dir, { recursive: true });
     
                 console.log("Making the annotations file");
                 let annotations_path = path.join(annotations_dir, "annotations_w3c.json");
@@ -433,7 +470,14 @@ exports.post_upload = function(req, res, next) {
                 }
                 catch (error) {
                     console.log(error);
+                    return res.status(422).json({
+                        error: "Error occurred when writing annotations file."
+                    });
                 }
+
+
+
+
             }
         }
         else {
@@ -454,6 +498,9 @@ exports.post_upload = function(req, res, next) {
             }
             catch (error) {
                 console.log(error);
+                return res.status(422).json({
+                    error: "Error occurred when writing image file."
+                });
             }
 
             let img_dzi_path = path.join(dzi_images_dir, extensionless_fname);
@@ -474,7 +521,10 @@ exports.post_upload = function(req, res, next) {
                             if (error) {
                                 console.log(error.stack);
                                 console.log('Error code: '+error.code);
-                                console.log('Signal received: '+error.signal);                                    
+                                console.log('Signal received: '+error.signal);
+                                return res.status(422).json({
+                                    error: "Error occurred during image conversion process."
+                                });
                             }
                             else {
                                 try {
@@ -482,6 +532,9 @@ exports.post_upload = function(req, res, next) {
                                 }
                                 catch (error) {
                                     console.log(error);
+                                    return res.status(422).json({
+                                        error: "Error occurred during image conversion process."
+                                    });
                                 }
                             }
                         });
@@ -495,10 +548,78 @@ exports.post_upload = function(req, res, next) {
                     if (error) {
                         console.log(error.stack);
                         console.log('Error code: '+error.code);
-                        console.log('Signal received: '+error.signal);                                    
+                        console.log('Signal received: '+error.signal);
+                        return res.status(422).json({
+                            error: "Error occurred during image conversion process."
+                        });
                     }
                 });
             }
+        }
+
+
+        if (last) {
+            console.log("collecting metadata");
+            console.log("flight_height", flight_height);
+            let metadata_command = "python3 ../../plant_detection/src/metadata.py " + mission_dir;
+            if (isNumeric(flight_height)) {
+                numeric_flight_height = parseFloat(flight_height);
+                if (numeric_flight_height < 0.1 || numeric_flight_height > 100) {
+                    return res.status(422).json({
+                        error: "Provided flight height is invalid."
+                    });
+
+                }
+                metadata_command = metadata_command + " --flight_height " + flight_height;
+            }
+            console.log(metadata_command);
+            let result = exec(metadata_command, {shell: "/bin/bash"}, function(error, stdout, stderr) {
+                if (error) {
+                    console.log(error.stack);
+                    console.log('Error code: '+error.code);
+                    console.log('Signal received: '+error.signal);   
+                    return res.status(422).json({
+                        error: "Error occurred during metadata extraction."
+                    });
+                }    
+            });
+
+            // let subprocess = spawn("python3", ["../../plant_detection/src/metadata.py", 
+            //                         mission_dir]); //, "--flight_height", flight_height]);
+
+
+            //let subprocess = spawn("sleep", ["15"]);
+            // subprocess.on('close', (code) => {
+            //     console.log("Process finished.");
+            //     console.log("code", code);
+
+            // }).catch(function(error) {
+            //     console.log(error);
+            // });
+
+
+            // subprocess.stderr.on('data', (data) => {
+            //     /* for some reason listening on stderr is required for files to be 
+            //     output correctly by the subprocess ?? */
+            //     console.error(`subprocess stderr: ${data}`);
+            // });
+            // subprocess.stdout.on('data', (data) => {
+            //     console.log(`subprocess stdout: ${data}`);
+            // });
+
+            // subprocess.on('error', (err) => {
+            //     console.log("Failed to start subprocess.");
+            //     // return res.status(422).json({
+            //     //     error: "Error occurred while extacting image metadata."
+            //     // });
+
+            // }).catch(function(error) {
+            //     console.log(error);
+            // });
+
+
+
+
         }
         console.log("Sending success status");
         return res.sendStatus(200);
@@ -1428,8 +1549,18 @@ exports.get_viewer = function(req, res, next) {
         catch (error) {
             console.log(error);
         }
+        let metadata_path = path.join(image_set_root, "metadata", "metadata.json");
+        let metadata;
+        try {
+            metadata = JSON.parse(fs.readFileSync(metadata_path, 'utf8'));
+        }
+        catch (error) {
+            console.log(error);
+        }
 
-        overlays["annotations"] = annotations
+
+
+        overlays["annotations"] = annotations;
 
         
         let dzi_images_dir = path.join(image_set_root, "dzi_images");
@@ -1441,16 +1572,17 @@ exports.get_viewer = function(req, res, next) {
 
         }
 
-        let metadata = {
+        let image_set_info = {
             "farm_name": farm_name,
             "field_name": field_name,
             "mission_date": mission_date
         }
 
         let data = {};
-        data["metadata"] = metadata;
+        data["image_set_info"] = image_set_info;
         data["job_config"] = job_config;
         data["overlays"] = overlays;
+        data["metadata"] = metadata;
         //data["predictions"] = predictions;
         data["metrics"] = metrics;
         data["dzi_dir"] = path.join(APP_PREFIX, dzi_images_dir);
