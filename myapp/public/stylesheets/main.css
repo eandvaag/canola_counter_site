@@ -204,6 +204,11 @@ hr {
     /*border-radius: 15px 15px;*/
 }
 
+#chart_container {
+  border:  1px solid white;
+  background-color: #222621;
+}
+
 .table_label {
    background-color: black;
    color: white;

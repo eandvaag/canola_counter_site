@@ -299,13 +299,14 @@ exports.post_annotate = function(req, res, next) {
             response.error = false;
             res.json(response);
         }
-        else if (action == "rebuild_map") {
+        else if (action == "build_map") {
 
             console.log(farm_name);
             console.log(field_name);
             console.log(mission_date);
+            let out_dir = path.join(image_set_root, "maps");
             let rebuild_command = "python3 ../../plant_detection/src/interpolate.py " + farm_name +
-                                    " " + field_name + " " + mission_date;
+                                    " " + field_name + " " + mission_date + " " + out_dir;
 
             if (req.body.interpolation == "nearest") {
                 rebuild_command = rebuild_command + " -nearest";
@@ -1597,7 +1598,65 @@ exports.get_viewer = function(req, res, next) {
 }
 exports.post_viewer = function(req, res, next) {
 
+
+    if (req.session.user && req.cookies.user_sid) {
+
+        console.log("post_annotate");
+        let response = {};
+        console.log(req.params);
+
+        let job_uuid = req.params.job_uuid;
+        let farm_name = req.params.farm_name;
+        let field_name = req.params.field_name;
+        let mission_date = req.params.mission_date;
+        let action = req.body.action;
+
+        let image_set_root = path.join(USR_DATA_ROOT, "image_sets", farm_name,
+                                            field_name, mission_date);
+
+
+        if (action == "build_map") {
+
+            console.log(farm_name);
+            console.log(field_name);
+            console.log(mission_date);
+
+            let model_uuid = req.body.model_uuid;
+            let pred_path = path.join(USR_DATA_ROOT, "results", farm_name, field_name, mission_date,
+                                      job_uuid, model_uuid, "predictions.json");
+            let out_dir = path.join(USR_DATA_ROOT, "results", farm_name, field_name, mission_date,
+                                     job_uuid, model_uuid, "maps");
+
+            let rebuild_command = "python3 ../../plant_detection/src/interpolate.py " + farm_name +
+                                    " " + field_name + " " + mission_date + " " + out_dir + " -p " + pred_path;
+
+            if (req.body.interpolation == "nearest") {
+                rebuild_command = rebuild_command + " -nearest";
+            }
+            if (req.body.pred_image_status == "completed") {
+                rebuild_command = rebuild_command + " -completed_only";
+            }
+            console.log(rebuild_command);
+            let result = exec(rebuild_command, {shell: "/bin/bash"}, function (error, stdout, stderr) {
+                if (error) {
+                    console.log(error.stack);
+                    console.log('Error code: '+error.code);
+                    console.log('Signal received: '+error.signal);
+                    response.error = true;
+                }
+                else {
+                    response.error = false;
+                }
+                console.log("returning a response");
+                res.json(response);
+            });
+        }
+    }
+    else {
+        res.redirect(APP_PREFIX);
+    }
 }
+
 
 exports.get_manage = function(req, res, next) {
 

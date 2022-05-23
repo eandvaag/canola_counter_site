@@ -16,6 +16,7 @@ let anno;
 let cur_img_name;
 let cur_view;
 
+let map_url = null;
 
 /*
 function update_containers() {
@@ -416,7 +417,7 @@ function build_map() {
 
     $.post($(location).attr('href'),
     {
-        action: "rebuild_map",
+        action: "build_map",
         //metric: sel_metric,
         interpolation: sel_interpolation
         //image_set_data: JSON.stringify(image_set_data)
@@ -429,8 +430,12 @@ function build_map() {
             console.log("error occurred");
         }
         else {
+            let timestamp = new Date().getTime();    
+
+            map_url = "/plant_detection/usr/data/image_sets/" + image_set_info["farm_name"] + "/" + 
+                            image_set_info["field_name"] + "/" + image_set_info["mission_date"] + 
+                            "/maps/annotated_map.svg?t=" + timestamp;
             console.log("showing map");
-            $("#seadragon_viewer").empty();
             draw_map_chart();
         }
     });
@@ -442,34 +447,14 @@ function show_map() {
     cur_view = "map";
     save_annotations();
 
-    $("#view_button_container").empty();
-    $("#view_button_container").append(
-        `<button style="width: 140px; margin: 0px" id="view_button" class="table_button table_button_hover">` +
-        `<i class="fa-solid fa-image" style="padding-right: 10px; color: white"></i>Image View</button>`
-    );
 
-    
-    $("#view_button").click(function() {
-        if (cur_view == "image") {
-            cur_view = "map";
-            show_map();
-        }
-        else {
-            cur_view = "image";
-            show_image();
-            change_image(image_to_dzi[cur_img_name]);
-        }
-    });
-    /*
-    html(
-    i(class="fa-solid fa-location-dot" style="padding-right: 8px; color: white") 
-                                        | Map View*/
+    $("#view_button_text").empty();
+    $("#view_button_text").append(
+        `<i class="fa-solid fa-image" style="padding-right: 10px; color: white;"></i>Image View`);
 
-    $("#left_panel").empty();
-    $("#seadragon_viewer").empty();
+    $("#image_view_container").hide();
+    $("#map_view_container").show();
 
-    let left_panel_width = $("#left_panel").width();
-    let control_border_width = (left_panel_width - 20) + "px";
 
     let num_completed = 0;
     for (image_name of Object.keys(annotations)) {
@@ -479,51 +464,13 @@ function show_map() {
     }
 
     if (num_completed >= 3) {
-
-        $("#left_panel").append(`<div style="font-size: 20px">Map Builder Controls<div>`);
-        $("#left_panel").append(`<br>`);
-        //$("#left_panel").append(`<div id="map_controls" style="display: block"></div>`);
-        /*
-        $("#left_panel").append(`<div class="header2" style="text-align: left; padding-left: 10px">Metric</div><table class="transparent_table" style="border: 1px solid white; width: ${control_border_width}">` +
-            `<tr><td>` +
-            `<label class="radio_container">Count` +
-                `<input type="radio" name="metric" value="count" checked>` +
-                `<span class="custom_radio"></span>` +
-            `</label></td>` +
-            `<td>` +
-            `<label class="radio_container">Density` +
-                `<input type="radio" name="metric" value="density">` +
-                `<span class="custom_radio"></span>` +
-            `</label></td></tr>` +
-        `</table>`);
-        $("#left_panel").append(`<br>`);*/
-        $("#left_panel").append(`<div class="header2" style="text-align: left; padding-left: 10px">Interpolation</div><table class="transparent_table" style="border: 1px solid white; width: ${control_border_width}">` +
-            `<tr><td>` +
-            `<label class="radio_container">Linear` +
-                `<input type="radio" name="interpolation" value="linear" checked>` +
-                `<span class="custom_radio"></span>` +
-            `</label></td>` +
-            `<td>` +
-            `<label class="radio_container">Nearest` +
-                `<input type="radio" name="interpolation" value="nearest">` +
-                `<span class="custom_radio"></span>` +
-            `</label></td></tr>` +
-        `</table>`);
-
-        $("#left_panel").append(`<br><hr><br>`);
-        $("#left_panel").append(
-            `<button style="width: 140px; margin: 0px" id="build_map_button" class="table_button table_button_hover"` +
-            `onclick="build_map()">` +
-            `<i class="fa-solid fa-gears" style="padding-right: 10px; color: white"></i>Build Map</button>`
-        );
-        $("#left_panel").append(`<br><br>`);
-        $("#left_panel").append(`<div id="build_loader" class="loader"></div>`);
-        $("#build_loader").hide();
+        $("#insufficient_annotation_container").hide();
+        $("#map_builder_controls_container").show();
     }
     else {
-        $("#left_panel").append(`<div>To build a density map, at least three images must be fully annotated.<div>`);
+        $("#map_builder_controls_container").hide();
+        $("#insufficient_annotation_container").show();
     }
-
 
     draw_map_chart();
 }
@@ -532,115 +479,14 @@ function show_map() {
 function show_image() {
     cur_view = "image";
 
-    if ((!(metadata["missing"]["latitude"]) && !(metadata["missing"]["longitude"])) && (!(metadata["missing"]["area_m2"]))) {
-        $("#view_button_container").empty();
-        $("#view_button_container").append(
-            `<button style="width: 140px; margin: 0px;" id="view_button" class="table_button table_button_hover">` +
-            `<i class="fa-solid fa-location-dot" style="padding-right: 10px; color: white;"></i>Map View</button>`
-        );
-
-
-        $("#view_button").click(function() {
-            if (cur_view == "image") {
-                show_map();
-            }
-            else {
-                show_image();
-                change_image(image_to_dzi[cur_img_name]);
-            }
-        });
-    }
-
-
-    $("#left_panel").empty();
-    $("#seadragon_viewer").empty();
-
-    $("#left_panel").append(
-        `<table class="transparent_table">` +
-            `<tr>` +
-                `<td style="text-align: left">` +
-                    `<h class="header2">Image:</h>` +
-                `</td>` +
-                `<td style="width:100%; text-align: left; padding-left: 12px">` +
-                    `<h id="image_name"></h>` +
-                `</td>` +
-            `</tr>` +
-            `<tr>` +
-                `<td style="text-align: left">` +
-                    `<h class="header2">Status:</h>` +
-                `</td>` +
-                `<td>` +
-                    `<select id="status_combo" class="nonfixed_dropdown"></select>` +
-                `</td>` +
-            `</tr>` +
-        `</table>` +
-        `<br><hr><br>` +
-        `<button id="save_button" class="table_button table_button_hover">` +
-            `<i id="save_icon" class="fa-solid fa-floppy-disk" style="padding-right: 8px; color: white"></i>` +
-                `Save All Changes` +
-        `</button>` +
-        `<br><br>` +
-        `<h class="header2" style="text-align: left">Image List:</h>` +
-        `<div class="scrollable_area" style="height: 390px; border: none">` +
-        `<table id="image_set_table"></table></div>`
-    )
-/*
-    table(class="transparent_table")
-    tr
-
-        td(style="text-align: left")
-            h(class="header2" style="text-align:left") Image: 
+    $("#view_button_text").empty();
+    $("#view_button_text").append(
+        `<i class="fa-solid fa-location-dot" style="padding-right: 10px; color: white;"></i>Map View`);
     
-        td(style="width: 100%; text-align: left; padding-left: 12px")
-            h(id="image_name")
-
-
-
-    tr
-        td(style="text-align: left")
-            h(class="header2") Status:
-        td(style="width:100%")
-            select(id="status_combo" class="nonfixed_dropdown")
-
-
-br
-hr
-br
-
-button(id="save_button" class="table_button table_button_hover")
-
-    i(id="save_icon" class="fa-solid fa-floppy-disk" style="padding-right: 8px; color: white")
-    |
-    | Save All Changes
-
-br
-br
-
-h(class="header2" style="text-align:left") Image List:
-
-div(class="scrollable_area" style="height: 390px; border:none")
-    table(id="image_set_table")*/
+    $("#map_view_container").hide();
+    $("#image_view_container").show();
 
     create_image_set_table();
-
-    $("#save_button").click(function() {
-
-        //let selected = anno.getSelected();
-
-        save_annotations();
-    });
-
-    $("#status_combo").change(function() {
-
-        annotations[cur_img_name]["status"] = $("#status_combo").val();
-        set_image_status_combo();
-        $("#save_icon").css("color", "#ed452b");
-        create_image_set_table();
-    });
-
-    create_viewer_and_anno();
-
-    
 }
 
 function save_annotations() {
@@ -695,11 +541,47 @@ $(document).ready(function() {
     cur_img_name = basename(dzi_image_paths[0]);
     cur_view = "image";
 
+
+    if ((!(metadata["missing"]["latitude"]) && !(metadata["missing"]["longitude"])) && (!(metadata["missing"]["area_m2"]))) {
+
+        $("#view_button_container").append(
+            `<button style="width: 140px; margin: 0px;" id="view_button" class="table_button table_button_hover">` +
+            `<div id="view_button_text"></div></button>`
+        );
+
+
+        $("#view_button").click(function() {
+            if (cur_view == "image") {
+                show_map();
+            }
+            else {
+                show_image();
+            }
+        });
+    }
+
+
+
+    create_viewer_and_anno();
     show_image();
 
     console.log("anno", anno);
 
 
+    $("#save_button").click(function() {
+
+        //let selected = anno.getSelected();
+
+        save_annotations();
+    });
+
+    $("#status_combo").change(function() {
+
+        annotations[cur_img_name]["status"] = $("#status_combo").val();
+        set_image_status_combo();
+        $("#save_icon").css("color", "#ed452b");
+        create_image_set_table();
+    });
     /*
     $("#seadragon_viewer").keypress(function(e) {
         //console.log(e);

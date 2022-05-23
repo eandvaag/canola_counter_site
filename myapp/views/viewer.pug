@@ -21,6 +21,7 @@ html
 
         script(type='text/javascript' src='/plant_detection/javascripts/viewer.js')
         script(type='text/javascript' src='/plant_detection/javascripts/count_chart.js')
+        script(type='text/javascript' src='/plant_detection/javascripts/viewer_map_chart.js')
         script(type='text/javascript' src='/plant_detection/javascripts/common.js')
 
     body
@@ -52,127 +53,181 @@ html
 
                                 td(style="width:100%")
                                     h(id="image_set_name" class="header2" style="font-size: 22px; text-align: center; white-space: pre-wrap; color: white")
-
-
-                        table(class="transparent_table")
-
-                            tr
-                                td(class="dark-bg" style="vertical-align:top")
-                                    div(style="width: 280px;")
-
-                                        table(class="transparent_table")
-
-
-                                            tr
-
-                                                td(style="text-align: left")
-                                                    h(class="header2" style="width: 80px") Image: 
-                                            
-                                                td(style="width: 100%; text-align: left; padding-left: 12px")
-                                                    h(id="image_name")
-
-
-                                        
-                                            tr
-                                                td(style="text-align: left")
-                                                    h(class="header2" style="width: 80px") Status:
-                                                td(style="width:100%; text-align: left; padding-left: 12px")
-                                                    h(id="image_status")
-                                            
-                                            tr
-                                                td(style="text-align: left")
-                                                    h(class="header2" style="width: 80px") Used for:
-                                                td(style="width:100%; text-align: left; padding-left: 12px")
-                                                    h(id="used_for")
+                                td
+                                    div(id="view_button_container" style="width: 140px")
 
 
 
+                        div(id="image_view_container")
+                            table(class="transparent_table")
 
-                                        br
-                                        hr
-                                        br
-                                        
-                                        table(class="transparent_table" style="height: 40px")
-                                            tr
-                                                td(style="text-align: left;")
-                                                    h(class="header2" style="width: 110px") Filter images: 
-                                                td(style="width:100%")
-                                                    select(id="filter_combo" class="nonfixed_dropdown")
-                                                        option all
-                                                        option completed
-                                                        option unannotated
-                                                        option training/validation 
-                                                        option testing
+                                tr
+                                    td(class="dark-bg" style="vertical-align:top")
+                                        div(style="width: 280px;")
+                                            div(id="left_panel")
 
-                                                //-
-                                                    select(id="dataset_combo" class="nonfixed_dropdown")
-                                                        option All
-                                                        option Training
-                                                        option Validation
-                                                        option Test
-                                        br
-                                        div(class="scrollable_area" style="height: 425px; border:none")
-                                            table(id="images_table")
-
-                                        br
-                                        hr
-                                        div(style="height: 5px")
-
-                                        a(class="table_button table_button_hover" style="padding: 5px 10px;" id="download_button" download)
-                                            i(class="fa fa-download fa-sm")
-                                            span(style="margin-left: 10px") Download Counts 
-                                        
-                                        div(style="height: 5px")                                     
+                                                table(class="transparent_table")
 
 
-                                td(style="width: 100%" id="seadragon_viewer")
+                                                    tr
+
+                                                        td(style="text-align: left")
+                                                            h(class="header2" style="width: 80px") Image: 
+                                                    
+                                                        td(style="width: 100%; text-align: left; padding-left: 12px")
+                                                            h(id="image_name")
 
 
-                                td(class="dark-bg" style="vertical-align:top")
-                                    div(style="width: 280px;")
-                                        div(style="height: 40px")
-                                            table(class="transparent_table")
-                                                td(style="text-align: left")
-                                                    h(class="header2") Metric: 
-                                                td(style="width: 100%")
-                                                    select(id="chart_combo" class="nonfixed_dropdown")
-                                                        //option Raw counts
-                                                        //option MS COCO mAP
-                                                        //option PASCAL VOC mAP
-                                        div(id="count_chart" class="scrollable_area" style="height: 215px; border:none")
-                                            div(id="count_chart_tooltip" class="tooltip" style="z-index: 10")
-                                        
-                                        
-                                        hr
-
-                                        h(class="header2" style="text-align:left") Overlays:
-
-                                        div(class="scrollable_area" style="height: 320px; border:none")
-                                            table(id="models_table" class="transparent_table")     
-
-
-                                        hr
-                                            
-                                        table(class="transparent_table")
-                                            tr
-                                                td(style="width: 110px")
-                                                    div(style="width: 110px; text-align:left" class="header2") Show scores:
-                                                td(style="width:40px")
-                                                    label(class="switch")
-                                                        input(id="scores_checkbox" type="checkbox")
-                                                        span(class="switch_slider round")
-                                                td(style="width: 100%")
-
-                                        table(class="transparent_table")
                                                 
-                                            tr
-                                                td(style="width: 110px")
-                                                    div(style="width: 110px; text-align:left" class="header2") Filter scores:
-                                                td(style="width: 100%")
-                                                    div(class="slidecontainer" style="width: 100%")
-                                                        input(type="range" min="0.50" max="1" step="0.01" value="0.5" class="slider" id="confidence_slider")
-                                                td(style="width: 50px")
-                                                    div(id="slider_val" style="margin-left: 12px" class="header2") 0.50
+                                                    tr
+                                                        td(style="text-align: left")
+                                                            h(class="header2" style="width: 80px") Status:
+                                                        td(style="width:100%; text-align: left; padding-left: 12px")
+                                                            h(id="image_status")
+                                                    
+                                                    tr
+                                                        td(style="text-align: left")
+                                                            h(class="header2" style="width: 80px") Used for:
+                                                        td(style="width:100%; text-align: left; padding-left: 12px")
+                                                            h(id="used_for")
+
+
+
+
+                                                br
+                                                hr
+                                                br
+                                                
+                                                table(class="transparent_table" style="height: 40px")
+                                                    tr
+                                                        td(style="text-align: left;")
+                                                            h(class="header2" style="width: 110px") Filter images: 
+                                                        td(style="width:100%")
+                                                            select(id="filter_combo" class="nonfixed_dropdown")
+                                                                option all
+                                                                option completed
+                                                                option unannotated
+                                                                option training/validation 
+                                                                option testing
+
+                                                br
+                                                div(class="scrollable_area" style="height: 425px; border:none")
+                                                    table(id="images_table")
+
+                                                br
+                                                hr
+                                                div(style="height: 5px")
+
+                                                a(class="table_button table_button_hover" style="padding: 5px 10px;" id="download_button" download)
+                                                    i(class="fa fa-download fa-sm")
+                                                    span(style="margin-left: 10px") Download Counts 
+                                                
+                                                div(style="height: 5px")                                     
+
+
+                                    td(style="width: 100%" id="seadragon_viewer")
+
+
+                                    td(class="dark-bg" style="vertical-align:top")
+                                        div(style="width: 280px;")
+                                            div(style="height: 40px")
+                                                table(class="transparent_table")
+                                                    td(style="text-align: left")
+                                                        h(class="header2") Metric: 
+                                                    td(style="width: 100%")
+                                                        select(id="chart_combo" class="nonfixed_dropdown")
+                                                            
+                                            div(id="count_chart" class="scrollable_area" style="height: 215px; border:none")
+                                                div(id="count_chart_tooltip" class="tooltip" style="z-index: 10")
+                                            
+                                            
+                                            hr
+
+                                            h(class="header2" style="text-align:left") Overlays:
+
+                                            div(class="scrollable_area" style="height: 320px; border:none")
+                                                table(id="models_table" class="transparent_table")     
+
+
+                                            hr
+                                                
+                                            table(class="transparent_table")
+                                                tr
+                                                    td(style="width: 110px")
+                                                        div(style="width: 110px; text-align:left" class="header2") Show scores:
+                                                    td(style="width:40px")
+                                                        label(class="switch")
+                                                            input(id="scores_checkbox" type="checkbox")
+                                                            span(class="switch_slider round")
+                                                    td(style="width: 100%")
+
+                                            table(class="transparent_table")
+                                                    
+                                                tr
+                                                    td(style="width: 110px")
+                                                        div(style="width: 110px; text-align:left" class="header2") Filter scores:
+                                                    td(style="width: 100%")
+                                                        div(class="slidecontainer" style="width: 100%")
+                                                            input(type="range" min="0.50" max="1" step="0.01" value="0.5" class="slider" id="confidence_slider")
+                                                    td(style="width: 50px")
+                                                        div(id="slider_val" style="margin-left: 12px" class="header2") 0.50
+
+
+                        div(id="map_view_container" hidden)
+                            table(class="transparent_table")
+
+                                tr
+                                    td(class="dark-bg" style="vertical-align:top")
+                                        div(style="width: 280px;")
+
+                                            div(id="map_builder_controls_container" hidden)
+
+                                                div(style="font-size: 20px") Map Builder Controls 
+                                                br
+                                                div(class="header2" style="text-align: left; padding-left: 10px") Interpolation 
+                                                table(class="transparent_table" style="border: 1px solid white; width: 260px")
+                                                    tr 
+                                                        td 
+                                                            label(class="radio_container") Linear 
+                                                                input(type="radio" name="interpolation" value="linear" checked)
+                                                                span(class="custom_radio")
+                                                        td 
+                                                            label(class="radio_container") Nearest 
+                                                                input(type="radio" name="interpolation" value="nearest")
+                                                                span(class="custom_radio")
+
+                                                br
+                                                div(class="header2" style="text-align: left; padding-left: 10px") Map Selection 
+                                                table(class="transparent_table" style="border: 1px solid white; width: 260px" id="map_selection_table")
+
+                                                br
+                                                div(class="header2" style="text-align: left; padding-left: 10px") Images Used for Predicted Map
+                                                table(class="transparent_table" style="border: 1px solid white; width: 260px")
+                                                    tr 
+                                                        td 
+                                                            label(class="radio_container") All 
+                                                                input(type="radio" name="pred_image_status" value="all" checked)
+                                                                span(class="custom_radio")
+                                                        td 
+                                                            label(class="radio_container") Completed 
+                                                                input(type="radio" name="pred_image_status" value="completed")
+                                                                span(class="custom_radio")
+                                                br
+                                                hr
+                                                br
+                                                button(style="width: 140px; margin: 0px" id="build_map_button" class="table_button table_button_hover" onclick="build_map()")
+                                                    i(class="fa-solid fa-gears" style="padding-right: 10px; color: white")
+                                                    |
+                                                    | Build Map 
+                                                br
+                                                br
+                                                div(id="build_loader" class="loader" hidden)
+                                            
+                                            div(id="insufficient_annotation_container" hidden)
+                                                div To build a density map, at least three images must be fully annotated.
+
+
+                                    td(style="width: 100%" id="chart_container")                        
 
     script.
         let data = !{JSON.stringify(data)};

@@ -12,6 +12,8 @@ let sorted_overlay_names;
 let sorted_overlay_ids;
 let overlay_colors;
 let dataset_images;
+let used_for = {};
+
 
 let image_names = {
     "all": [],
@@ -24,6 +26,11 @@ let image_names = {
 let viewer;
 let anno;
 let cur_img_name;
+let cur_view;
+let cur_map_model_uuid;
+
+let map_url = null;
+let pred_map_url = null;
 
 function change_image(dzi_image_path) {
     viewer.open(dzi_image_path);
@@ -100,6 +107,76 @@ function adjust_to_opt(btn_id) {
     $("#confidence_slider").change();
 }
 
+
+function create_map_models_radio() {
+    $("#map_selection_table").empty();
+    let i = 0;
+    for (model_info of job_config["model_info"]) {
+        let model_uuid = model_info["model_uuid"];
+        let model_name = model_info["model_name"];
+        if (i == 0) {
+            $("#map_selection_table").append(
+                `<tr>` +
+                    `<td>` +
+                        `<label>${model_name}` +
+                            `<input style="margin-left: 30px" type="radio" name="map_model" value="${model_uuid}" checked>` +
+                            `<span class="custom_radio"></span>` +
+                        `</label>` +
+                    `</td>` +
+                `</tr>`
+            );
+
+        }
+        else {
+            $("#map_selection_table").append(
+                `<tr>` +
+                    `<td>` +
+                        `<label>${model_name}` +
+                            `<input style="margin-left: 30px" type="radio" name="map_model" value="${model_uuid}">` +
+                            `<span class="custom_radio"></span>` +
+                        `</label>` +
+                    `</td>` +
+                `</tr>`
+            );
+        }
+        i++;
+    }
+
+/*
+    let num_completed = 0;
+    for (image_name of Object.keys(overlays["annotations"])) {
+        if (overlays["annotations"][image_name]["status"] == "completed") {
+            num_completed++;
+        }
+    }*/
+
+    /*
+    if (num_completed >= 3) {
+
+        $("#include_annotations_container").append(
+            `<div class="header2" style="text-align: left; padding-left: 10px">Show Annotated Map</div>` +
+            `<table class="transparent_table" style="border: 1px solid white; width: 260px">` +
+                `<tr>` +
+                    `<td>` +
+                        `<label>Yes` +
+                            `<input type="radio" name="include_annotated_map" value="yes" checked>` +
+                            `<span class="custom_radio"></span>` +
+                        `</label>` +
+                    `</td>` +
+                    `<td>` +
+                        `<label>No` +
+                            `<input type="radio" name="include_annotated_map" value="no">` +
+                            `<span class="custom_radio"></span>` +
+                        `</label>` +
+                    `</td>` +
+                `</tr>` +
+            `</table>`
+        );
+        */
+
+    //}
+}
+
 function create_models_table() {
 
     let models_col_width = "145px"; //"215px";
@@ -161,7 +238,7 @@ function create_models_table() {
 }
 
 
-function create_image_set_table(filter) {
+function create_image_set_table() {
 
     let image_name_col_width = "100px";
     let image_status_col_width = "150px";
@@ -301,8 +378,245 @@ function assemble_datasets() {
 }
 */
 
-let used_for = {};
 
+
+/*
+function show_image() {
+
+    cur_view = "image";
+
+    if ((!(metadata["missing"]["latitude"]) && !(metadata["missing"]["longitude"])) && (!(metadata["missing"]["area_m2"]))) {
+        $("#view_button_container").empty();
+        $("#view_button_container").append(
+            `<button style="width: 140px; margin: 0px;" id="view_button" class="table_button table_button_hover">` +
+            `<i class="fa-solid fa-location-dot" style="padding-right: 10px; color: white;"></i>Map View</button>`
+        );
+
+
+        $("#view_button").click(function() {
+            if (cur_view == "image") {
+                show_map();
+            }
+            else {
+                show_image();
+                change_image(image_to_dzi[cur_img_name]);
+            }
+        });
+    }
+
+
+    $("#left_panel").empty();
+    $("#seadragon_viewer").empty();
+
+    $("#left_panel").append(
+        `<table class="transparent_table">` +
+            `<tr>` +
+                `<td style="text-align: left">` +
+                    `<h class="header2" style="width: 80px">Image:</h>` +
+                `</td>` +
+                `<td style="width: 100%; text-align: left; padding-left: 12px">` +
+                    `<h id="image_name"></h>` +
+                `</td>` +
+            `</tr>` +
+            `<tr>` +
+                `<td style="text-align: left">` +
+                    `<h class="header2" style="width: 80px">Status:</h>` +
+                `</td>` +
+                `<td style="width: 100%; text-align: left; padding-left: 12px">` +
+                    `<h id="image_status"></h>` +
+                `</td>` +
+            `</tr>` +
+            `<tr>` +
+                `<td style="text-align: left">` +
+                    `<h class="header2" style="width: 80px">Used for:</h>` +
+                `</td>` +
+                `<td style="width: 100%; text-align: left; padding-left: 12px">` +
+                    `<h id="used_for"></h>` +
+                `</td>` +
+            `</tr>` +
+        `</table>` +
+
+        `<br>` +
+        `<hr>` +
+        `<br>` +
+
+        `<table class="transparent_table" style="height: 40px">` +
+            `<tr>` +
+                `<td style="text-align: left">` +
+                    `<h class="header2" style="width: 110px">Filter images:</h>` +
+                `</td>` +
+                `<td style="width: 100%">` +
+                    `<select id="filter_combo" class="nonfixed_dropdown`
+
+
+
+    );
+
+
+
+
+                                        br
+                                        hr
+                                        br
+                                        
+                                        table(class="transparent_table" style="height: 40px")
+                                            tr
+                                                td(style="text-align: left;")
+                                                    h(class="header2" style="width: 110px") Filter images: 
+                                                td(style="width:100%")
+                                                    select(id="filter_combo" class="nonfixed_dropdown")
+                                                        option all
+                                                        option completed
+                                                        option unannotated
+                                                        option training/validation 
+                                                        option testing
+
+                                        br
+                                        div(class="scrollable_area" style="height: 425px; border:none")
+                                            table(id="images_table")
+
+                                        br
+                                        hr
+                                        div(style="height: 5px")
+
+                                        a(class="table_button table_button_hover" style="padding: 5px 10px;" id="download_button" download)
+                                            i(class="fa fa-download fa-sm")
+                                            span(style="margin-left: 10px") Download Counts 
+                                        
+                                        div(style="height: 5px")              
+}
+*/
+
+
+function disable_build() {
+
+    let buttons = ["#build_map_button"];
+
+    for (button of buttons) {
+        $(button).prop('disabled', true);
+        $(button).removeClass("table_button_hover");
+        $(button).css("opacity", 0.5);
+        $(button).css("cursor", "default");
+    }
+}
+
+
+function enable_build() {
+
+    let buttons = ["#build_map_button"];
+
+    for (button of buttons) {
+        $(button).prop('disabled', false);
+        $(button).addClass("table_button_hover");
+        $(button).css("opacity", 1);
+        $(button).css("cursor", "pointer");
+    }
+}
+
+
+
+function build_map() {
+    disable_build();
+    $("#build_loader").show();
+    //let sel_metric = $("input[type='radio'][name='metric']:checked").val();
+    let sel_interpolation = $("input[type='radio'][name='interpolation']:checked").val();
+    let sel_model = $("input[type='radio'][name='map_model']:checked").val();
+    let sel_pred_image_status = $("input[type='radio'][name='pred_image_status']:checked").val();
+
+
+    //let include_annotated_map = $("input[type='radio'][name='include_annotated_map']:checked").val() === "yes";
+    //console.log("include_annotated_map", include_annotated_map);
+    //console.log("sel_metric", sel_metric);
+    console.log("sel_interpolation", sel_interpolation);
+    
+    
+
+    $.post($(location).attr('href'),
+    {
+        action: "build_map",
+        //metric: sel_metric,
+        interpolation: sel_interpolation,
+        model_uuid: sel_model,
+        pred_image_status: sel_pred_image_status
+        //include_annotated_map: include_annotated_map 
+        //image_set_data: JSON.stringify(image_set_data)
+    },
+    
+    function(response, status) {
+        $("#build_loader").hide();
+        enable_build();
+        if (response.error) {    
+            console.log("error occurred");
+        }
+        else {
+            console.log("showing map");
+            cur_map_model_uuid = sel_model;
+
+            let timestamp = new Date().getTime();   
+
+            map_url = "/plant_detection/usr/data/results/" + image_set_info["farm_name"] + "/" + 
+                            image_set_info["field_name"] + "/" + image_set_info["mission_date"] + "/" +
+                            job_config["job_uuid"] + "/" + sel_model + "/maps/annotated_map.svg?t=" + timestamp;
+
+            pred_map_url = "/plant_detection/usr/data/results/" + image_set_info["farm_name"] + "/" + 
+                            image_set_info["field_name"] + "/" + image_set_info["mission_date"] + "/" +
+                            job_config["job_uuid"] + "/" + sel_model + "/maps/predicted_map.svg?t=" + timestamp;
+
+            console.log("showing map");
+            draw_map_chart();
+        }
+    });
+
+
+}
+
+function show_map() {
+    cur_view = "map";
+
+    $("#view_button_text").empty();
+    $("#view_button_text").append(
+        `<i class="fa-solid fa-image" style="padding-right: 10px; color: white;"></i>Image View`);
+
+    $("#image_view_container").hide();
+    $("#map_view_container").show();
+    
+    
+    create_map_models_radio();
+    $("#map_builder_controls_container").show();
+
+/*
+    let num_completed = 0;
+    for (image_name of Object.keys(annotations)) {
+        if (annotations[image_name]["status"] == "completed") {
+            num_completed++;
+        }
+    }
+
+    if (num_completed >= 3) {
+
+    }
+    else {
+        $("#map_builder_controls_container").hide();
+        $("#insufficient_annotation_container").show();
+    }
+*/
+    
+    draw_map_chart();
+}
+
+
+function show_image() {
+    cur_view = "image";
+
+    $("#view_button_text").empty();
+    $("#view_button_text").append(
+        `<i class="fa-solid fa-location-dot" style="padding-right: 10px; color: white;"></i>Map View`);
+    
+    $("#map_view_container").hide();
+    $("#image_view_container").show();
+
+    create_image_set_table();
+}
 
 $(document).ready(function() {
     
@@ -328,7 +642,6 @@ $(document).ready(function() {
     $("#image_set_name").text(image_set_info["farm_name"] + "  |  " + 
                               image_set_info["field_name"] + "  |  " + 
                               image_set_info["mission_date"]);
-
 
 
 
@@ -381,6 +694,27 @@ $(document).ready(function() {
         }
  
     }
+
+
+    cur_view = "image";
+
+    if ((!(metadata["missing"]["latitude"]) && !(metadata["missing"]["longitude"])) && (!(metadata["missing"]["area_m2"]))) {
+
+        $("#view_button_container").append(
+            `<button style="width: 140px; margin: 0px;" id="view_button" class="table_button table_button_hover">` +
+            `<div id="view_button_text"></div></button>`
+        );
+
+
+        $("#view_button").click(function() {
+            if (cur_view == "image") {
+                show_map();
+            }
+            else {
+                show_image();
+            }
+        });
+    }    
     
 
 
@@ -389,7 +723,7 @@ $(document).ready(function() {
 
     //assemble_datasets();
     overlay_initialization();
-    create_image_set_table(); //dataset_images["all"]);
+    //create_image_set_table(); //dataset_images["all"]);
     create_models_table();
     set_count_chart_data();
     draw_count_chart();
@@ -444,41 +778,13 @@ $(document).ready(function() {
     });
 
 
+    show_image();
+
 
     $("#models_table").change(function() {
         update_overlays();
     });
 
-    $("#dataset_combo").change(function() {
-        console.log("changing dataset");
-        let combo_val = $("#dataset_combo").val();
-        let sel_images;
-
-        if (combo_val === "Training") {
-            sel_images = dataset_images["training"];
-        }
-        else if (combo_val === "Validation") {
-            sel_images = dataset_images["validation"];
-        }
-        else if (combo_val === "Test") {
-            sel_images = dataset_images["test"];
-        }
-        else {
-            sel_images = dataset_images["all"];
-        }
-
-        create_image_set_table(sel_images);
-
-        let dzi_image_path = dzi_dir + "/" + sel_images[0] + ".dzi";
-        if (sel_images.length > 0) {
-            change_image(dzi_image_path);
-        }
-        else {
-            anno.clearAnnotations();
-            viewer.close(); //viewer.world.resetItems();
-            zero_count_chart();
-        }
-    });
 
     $("#confidence_slider").change(function() {
         let slider_val = Number.parseFloat($("#confidence_slider").val()).toFixed(2);

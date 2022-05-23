@@ -50,39 +50,11 @@ html
 
 
             div(id="body")
-                    
-                //h(class="header2" style="font-size:26px") Annotate
-                //hr
 
                 br
                 br
 
                 div(id="annotate_container" class="grid-container-1")
-
-                    //
-                        div(class="half-round-item-1" id="left_panel" style="height: 720px; overflow-y: auto;")
-
-
-
-                            h(id="image_set_name" class="header2" style="font-size: 22px; text-align: center; white-space: pre-wrap; color: white")
-
-                            div(class="scrollable_padded_area" style="height: 390px")
-                                table(id="image_set_table")
-
-                            hr
-
-
-                            div(style="text-align: left")
-                                button(id="save_button" class="table_button table_button_hover")
-
-                                    i(id="save_icon" class="fa-solid fa-floppy-disk" style="padding-right: 8px; color: white")
-                                    | Save All Changes
-
-
-                                div(style="padding: 10px 10px; white-space: pre;") <strong>SHIFT + drag</strong>: create a new annotation.<br><strong>DELETE</strong>: remove an existing annotation.
-
-
-                            
 
 
                     div(class="half-round-item-1")
@@ -99,50 +71,88 @@ html
                                 
                                 td
                                     div(id="view_button_container" style="width: 140px")
-                                    //button(style="width: 140px; margin: 0px" id="view_button" class="table_button table_button_hover")
+
+
+
+                        div(id="image_view_container")
+                            table(class="transparent_table")
+
+                                tr
+                                    td(class="dark-bg" style="vertical-align:top")
+                                        div(style="width: 280px;")
+
+                                            table(class="transparent_table")
+                                                tr
+                                                    td(style="text-align: left")
+                                                        h(class="header2") Image: 
+
+                                                    td(style="width: 100%; text-align: left; padding-left: 12px")
+                                                        h(id="image_name")
+
+                                                tr 
+                                                    td(style="text-align: left")
+                                                        h(class="header2") Status: 
+
+                                                    td
+                                                        select(id="status_combo" class="nonfixed_dropdown")
+                                            br
+                                            hr
+                                            br
+                                            button(id="save_button" class="table_button table_button_hover")
+                                                i(id="save_icon" class="fa-solid fa-floppy-disk" style="padding-right: 8px; color: white")
+                                                |
+                                                | Save All Changes 
+
+                                            br
+                                            br
+                                            h(class="header2" style="text-align: left") Image List:
+                                            div(class="scrollable_area" style="height: 390px; border: none")
+                                                table(id="image_set_table")
+
+
+                                    td(style="width: 100%" id="seadragon_viewer")
+
+
+                        div(id="map_view_container" hidden)
+                            table(class="transparent_table")
+
+                                tr
+                                    td(class="dark-bg" style="vertical-align:top")
+                                        div(style="width: 280px;")
+
+                                            div(id="map_builder_controls_container" hidden)
+
+                                                div(style="font-size: 20px") Map Builder Controls 
+                                                br
+                                                div(class="header2" style="text-align: left; padding-left: 10px") Interpolation 
+                                                table(class="transparent_table" style="border: 1px solid white; width: 260px")
+                                                    tr 
+                                                        td 
+                                                            label(class="radio_container") Linear 
+                                                                input(type="radio" name="interpolation" value="linear" checked)
+                                                                span(class="custom_radio")
+                                                        td 
+                                                            label(class="radio_container") Nearest 
+                                                                input(type="radio" name="interpolation" value="nearest")
+                                                                span(class="custom_radio")      
+
+
+                                                br
+                                                hr
+                                                br
+                                                button(style="width: 140px; margin: 0px" id="build_map_button" class="table_button table_button_hover" onclick="build_map()")
+                                                    i(class="fa-solid fa-gears" style="padding-right: 10px; color: white")
+                                                    |
+                                                    | Build Map 
+                                                br
+                                                br
+                                                div(id="build_loader" class="loader" hidden)
                                             
-                                    //
-                                        i(class="fa-solid fa-location-dot" style="padding-right: 8px; color: white") 
-                                        | Map View
+                                            div(id="insufficient_annotation_container" hidden)
+                                                div To build a density map, at least three images must be fully annotated.
 
 
-
-                        table(class="transparent_table")
-
-                            tr
-                                td(class="dark-bg" style="vertical-align:top")
-                                    div(style="width: 280px;" id="left_panel")
-
-
-
-                                td(style="width: 100%" id="seadragon_viewer")
-                                //    div(id="seadragon_viewer")
-
-
-                        //-
-                            tr
-
-                                td
-                                    div(style="width: 220px; text-align: left")
-                                        h(class="header2" style="font-size: 26px;") Image: 
-                                            span(id="image_name" style="color: white")
-                                td(style="width: 100%")
-                                td
-                                    div(style="width: 150px; text-align: center")
-                                        a(id="prev-button" class="table_button table_button_hover" style="border-radius: 50px; padding-left: 12px; padding-right: 12px; padding-top: 7px; padding-bottom: 3px; margin: 0px 10px;")
-                                            i(class="fas fa-caret-left" aria-hidden="true" style="font-size: 26px")
-                                        a(id="next-button" class="table_button table_button_hover" style="border-radius: 50px; padding-left: 12px; padding-right: 12px; padding-top: 7px; padding-bottom: 3px; margin: 0px 0px;")
-                                            i(class="fas fa-caret-right" aria-hidden="true" style="font-size: 26px")
-
-                            tr
-                                td
-                                    div(style="text-align: left")
-                                        h(class="header2" style="font-size: 16px;") Status: 
-                                            span(id="image_status" style="color: white") text
-
-                                td
-                                td
-
+                                    td(style="width: 100%" id="chart_container")
 
 
 
