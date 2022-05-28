@@ -99,11 +99,12 @@ function manage_jobs_request() {
 function show_train() {
 
     console.log("showing train");
-
+    $("#tab_details").empty();
+    /*
     let left_col_width = "100px";
     let right_col_width = "220px";
 
-    $("#tab_details").empty();
+    
 
     $("#tab_details").append(`<table class="transparent_table" style="height: 500px" id="train_table"></table>`);
 
@@ -130,7 +131,7 @@ function show_train() {
     $("#train_form").append(`<button id="train_button" class="std-button std-button-hover" `+
                              `style="width: 200px; height: 50px;"><span id="train_button_text"><i class="fa-solid fa-play" style="margin-right:3px"></i> Train</span></button>`);
 
-
+    */
     disable_training_submit();
     $("#train_button").click(function(e) {
         e.preventDefault();

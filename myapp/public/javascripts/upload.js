@@ -139,23 +139,23 @@ function show_upload() {
 
     $("#upload_form").append(`<table class="transparent_table" id="input_table"></table>`);
     $("#input_table").append(`<tr>` +
-        `<th><div class="table_head" style="width: ${left_col_width};">Farm name<span style="color:yellow"> *</span></div></th>` +
+        `<th><div class="table_head" style="width: ${left_col_width};">Farm Name<span style="color:yellow"> *</span></div></th>` +
         `<th><div style="width: ${right_col_width};"><input id="farm_input" class="nonfixed_input"></div></th>` +
     `<tr>`);
 
     $("#input_table").append(`<tr>` +
-        `<th><div class="table_head" style="width: ${left_col_width};">Field name<span style="color:yellow"> *</span></div></th>` +
+        `<th><div class="table_head" style="width: ${left_col_width};">Field Name<span style="color:yellow"> *</span></div></th>` +
         `<th><div style="width: ${right_col_width};"><input id="field_input" class="nonfixed_input"></div></th>` +
     `<tr>`);
 
     $("#input_table").append(`<tr>` +
-    `<th><div class="table_head" style="width: ${left_col_width};">Mission date<span style="color:yellow"> *</span></div></th>` +
+    `<th><div class="table_head" style="width: ${left_col_width};">Mission Date<span style="color:yellow"> *</span></div></th>` +
     `<th><div style="width: ${right_col_width};"><input type="date" id="mission_input" class="nonfixed_input"></div></th>` +
     `<tr>`);
 
     
     $("#input_table").append(`<tr>` +
-    `<th><div class="table_head" style="width: ${left_col_width};">Flight height (m)</div></th>` +
+    `<th><div class="table_head" style="width: ${left_col_width};">Flight Height (m)</div></th>` +
     `<th><div style="width: ${right_col_width};"><input id="flight_height_input" class="nonfixed_input"></div></th>` +
     `<tr>`);
 
@@ -236,8 +236,21 @@ function show_upload() {
             $("#modal_message").html("An error occurred during the upload process:<br>" + errors[0]);
             $("#result_modal").css("display", "block");
             errors = [];
+
+            clear_form();
+            enable_input();
+            disable_submit();
+            $("#upload_loader").hide();
         }
-        else {
+
+    });
+    dropzone_handler.on("success", function(file, response) {    
+        console.log("complete!");
+        console.log("response", response);
+        console.log("response.message", response.message);
+        console.log("file", file);
+        dropzone_handler.removeFile(file);
+        if (dropzone_handler.getAcceptedFiles().length == 0) {
             console.log("All done!");
             $("#modal_header_text").html("Success!");
             $("#modal_message").html("Your image set was successfully uploaded!" +
@@ -254,18 +267,11 @@ function show_upload() {
                 image_sets_data[uploaded_farm][uploaded_field] = {};
             }
             image_sets_data[uploaded_farm][uploaded_field][uploaded_mission] = [];
+            clear_form();
+            enable_input();
+            disable_submit();
+            $("#upload_loader").hide();
         }
-        clear_form();
-        enable_input();
-        disable_submit();
-        $("#upload_loader").hide();
-    });
-    dropzone_handler.on("success", function(file, response) {    
-        console.log("complete!");
-        console.log("response", response);
-        console.log("response.code", response.code);
-        console.log("file", file);
-        dropzone_handler.removeFile(file);
     });
 
     dropzone_handler.on("error", function(files, response) {

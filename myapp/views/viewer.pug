@@ -50,11 +50,14 @@ html
                                         button(style="width: 100px" id="help_button" class="table_button table_button_hover")
                                             i(id="help_icon" class="fa-solid fa-circle-info" style="padding-right: 8px; color: white") 
                                             | Help
+                                td 
+                                    div(style="width: 140px")
 
                                 td(style="width:100%")
                                     h(id="image_set_name" class="header2" style="font-size: 22px; text-align: center; white-space: pre-wrap; color: white")
                                 td
-                                    div(id="view_button_container" style="width: 140px")
+                                    div(style="width: 140px")
+                                        div(id="view_button_container" style="width: 140px")
 
 
 
@@ -197,21 +200,37 @@ html
                                                                 span(class="custom_radio")
 
                                                 br
-                                                div(class="header2" style="text-align: left; padding-left: 10px") Map Selection 
+                                                div(class="header2" style="text-align: left; padding-left: 10px") Model Selection 
                                                 table(class="transparent_table" style="border: 1px solid white; width: 260px" id="map_selection_table")
 
-                                                br
-                                                div(class="header2" style="text-align: left; padding-left: 10px") Images Used for Predicted Map
-                                                table(class="transparent_table" style="border: 1px solid white; width: 260px")
-                                                    tr 
-                                                        td 
-                                                            label(class="radio_container") All 
-                                                                input(type="radio" name="pred_image_status" value="all" checked)
-                                                                span(class="custom_radio")
-                                                        td 
-                                                            label(class="radio_container") Completed 
-                                                                input(type="radio" name="pred_image_status" value="completed")
-                                                                span(class="custom_radio")
+                                                
+
+                                                div(id="sufficient_annotation_options" hidden)
+                                                    br
+                                                    div(class="header2" style="text-align: left; padding-left: 10px") Images Used for Predicted Map
+                                                    table(class="transparent_table" style="border: 1px solid white; width: 260px")
+                                                        tr 
+                                                            td 
+                                                                label(class="radio_container") All 
+                                                                    input(type="radio" name="pred_image_status" value="all" checked)
+                                                                    span(class="custom_radio")
+                                                            td 
+                                                                label(class="radio_container") Annotated 
+                                                                    input(type="radio" name="pred_image_status" value="completed")
+                                                                    span(class="custom_radio")
+
+                                                    br
+                                                    div(class="header2" style="text-align: left; padding-left: 10px") Map Comparison Type 
+                                                    table(class="transparent_table" style="border: 1px solid white; width: 260px")
+                                                        tr 
+                                                            td 
+                                                                label(class="radio_container") Side-by-side 
+                                                                    input(type="radio" name="comparison_type" value="side_by_side" checked)
+                                                                    span(class="custom_radio")
+                                                            td 
+                                                                label(class="radio_container") Difference 
+                                                                    input(type="radio" name="comparison_type" value="diff")
+                                                                    span(class="custom_radio")
                                                 br
                                                 hr
                                                 br

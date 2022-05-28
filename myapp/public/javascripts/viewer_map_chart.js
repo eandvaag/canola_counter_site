@@ -2,6 +2,15 @@ let saddlebrown = [139,  69,  19];
 let greenyellow = [173, 255,  47];
 let wheat = [245, 222, 179];
 let forestgreen = [34, 139,  34];
+let royalblue = [65, 105, 225];
+let tomato = [255, 99, 71];
+let oldlace = [253, 245, 230];
+
+
+function range_map(old_val, old_min, old_max, new_min, new_max) {
+    new_val = (((old_val - old_min) * (new_max - new_min)) / (old_max - old_min)) + new_min;
+    return new_val;
+}
 
 function color_map(num, min_num, max_num, c1, c2) {
     let fraction = (num - min_num) / (max_num - min_num);
@@ -22,7 +31,7 @@ function draw_map_chart() {
             num_completed++;
         }
     }
-    let include_annotated_map = num_completed >= 3;
+    let include_annotated_map = (!(diff_map) && num_completed >= 3);
 
     let chart_height = $("#seadragon_viewer").height() + "px";
     let chart_width = chart_height;
@@ -67,8 +76,8 @@ function draw_map_chart() {
         );
     }
 
-    chart_width = $("#map_container").width();
-    chart_height = $("#map_container").height();
+    chart_width = $("#pred_map_container").width();
+    chart_height = $("#pred_map_container").height();
 
     let svg;
     if (include_annotated_map) {
@@ -82,7 +91,7 @@ function draw_map_chart() {
         .attr("width", chart_width)
         .attr("height", chart_height);
 
-    
+
 
     if (pred_map_url !== null) {
         let chart;
@@ -91,7 +100,7 @@ function draw_map_chart() {
         }
         let pred_chart = d3.select("#pred_map_container").select("svg").append("g");
             
-        let margin = 100;
+        let margin = 110;
 
 
 
@@ -100,7 +109,12 @@ function draw_map_chart() {
         let min_latitude = 10000;
         let max_longitude = -10000;
         let min_longitude = 10000;
-        let max_density = 0;
+        // let max_density = 0;
+        // let max_density_diff = -10000;
+        // let min_density_diff = 10000;
+
+
+        
         for (dzi_image_path of dzi_image_paths) {
             let image_name = basename(dzi_image_path)
             image_name = image_name.substring(0, image_name.length - 4);
@@ -112,22 +126,30 @@ function draw_map_chart() {
             let color;
             if (status == "completed") {
                 color = "#0080C0";
-                if (include_annotated_map) {
-                    let density = overlays["annotations"][image_name]["annotations"].length / metadata["images"][image_name]["area_m2"];
-                    if (Math.ceil(density) > max_density) {
-                        max_density = density;
-                    }
-                }
+                // if (include_annotated_map) {
+                //     let density = overlays["annotations"][image_name]["annotations"].length / metadata["images"][image_name]["area_m2"];
+                //     if (Math.ceil(density) > max_density) {
+                //         max_density = Math.ceil(density);
+                //     }
+                // }
 
             }
             else {
                 color = "white";
             }
 
-            let pred_density = overlays[cur_map_model_uuid][image_name]["annotations"].length / metadata["images"][image_name]["area_m2"];
-            if (Math.ceil(pred_density) > max_density) {
-                max_density = pred_density;
-            }
+            // let pred_density = overlays[cur_map_model_uuid][image_name]["annotations"].length / metadata["images"][image_name]["area_m2"];
+            // if (Math.ceil(pred_density) > max_density) {
+            //     max_density = Math.ceil(pred_density);
+            // }
+
+            // let density_diff = pred_density - density;
+            // if (Math.ceil(density_diff) > max_density_diff) {
+            //     max_density_diff = Math.ceil(density_diff)
+            // }
+            // if (Math.floor(density_diff) < min_density_diff) {
+            //     min_density_diff = Math.floor(density_diff)
+            // }
 
             circle_data.push({
                 "latitude": latitude,
@@ -239,9 +261,16 @@ function draw_map_chart() {
                     return d;
                 });
         }
+        let pred_text;
+        if (diff_map) {
+            pred_text = "Predicted Minus Actual Seedling Number Per Square Metre";
+        }
+        else {
+            pred_text = "Number of Predicted Seedlings Per Square Metre";
+        }
 
         pred_chart.selectAll("text")
-            .data(["Number of Predicted Seedlings Per Square Metre"])
+            .data([pred_text])
             .enter()
             .append("text")
             .attr("x", chart_width / 2)
@@ -257,7 +286,7 @@ function draw_map_chart() {
             chart.append("svg:image")
                 .attr("x", margin)
                 .attr("y", margin)
-                .attr("width", (chart_width - 2 * margin))
+                .attr("width", chart_width - 2 * margin)
                 .attr("height", chart_height - 2 * margin)
                 .attr("xlink:href", map_url);
         }
@@ -268,64 +297,106 @@ function draw_map_chart() {
             .attr("height", chart_height - 2 * margin)
             .attr("xlink:href", pred_map_url);
 
-        let legend_svg = d3.select("#legend_container")
-                            .append("svg")
-                            .attr("width", "60px")
-                            .attr("height", chart_height);
-
-        let cmap = d3.select("#legend_container").select("svg").append("g");
-
-        let min_color = wheat;
-        let max_color = forestgreen;
-        let rects = [];
+        let vmin;
+        let vmax;
+        if (min_max_rec !== null) {
+            vmin = min_max_rec["vmin"];
+            vmax = min_max_rec["vmax"];
         
-        //let num_rects = max_density; //max_count;
-        let num_rects = 1000;
-        for (let i = 0; i < num_rects; i++) {
-            let c = color_map((i / num_rects) * max_density, 0, max_density, min_color, max_color);
-            rects.push({
-                "color": "rgb(" + c[0] + ", " + c[1] + ", " + c[2] + ")"
+
+            let legend_svg = d3.select("#legend_container")
+                                .append("svg")
+                                .attr("width", "60px")
+                                .attr("height", chart_height);
+
+            let cmap = d3.select("#legend_container").select("svg").append("g");
+
+
+            let min_color;
+            let max_color;
+            if (diff_map) {
+                min_color = royalblue;
+                max_color = tomato;
+            }
+            else {
+                min_color = wheat;
+                max_color = forestgreen;
+            }
+            let rects = [];
+            
+            let num_rects = 1000;
+            for (let i = 0; i < num_rects; i++) {
+                //(old_val, old_min, old_max, new_min, new_max
+
+                let v = range_map(i, 0, num_rects, vmin, vmax);
+                let c;
+                if (diff_map) {
+                    let vc;
+                    if (i < num_rects / 2) {
+                        vc = range_map(i, 0, num_rects / 2, vmin, 0);
+                        c = color_map(vc, vmin, 0, min_color, oldlace);
+                    }
+                    else {
+                        vc = range_map(i, num_rects / 2, num_rects, 0, vmax);
+                        c = color_map(vc, 0, vmax, oldlace, max_color);
+                    }
+                }
+                else {
+                    //v = range_map(i, 0, num_rects, vmin, vmax);
+                    c = color_map(v, vmin, vmax, min_color, max_color);
+                }
+                rects.push({
+                    "color": "rgb(" + c[0] + ", " + c[1] + ", " + c[2] + ")",
+                    "v": v
+                });
+            }
+
+            let legend_yScale = d3.scaleLinear()
+                .domain([vmin, vmax])
+                .range([chart_height - margin, margin]);
+
+
+            let legend_y_axis = legend_svg.append("g")
+                .attr("class", "map_legend axis") //"y axis")
+                //.attr("font-size", "200px")
+                .attr("transform", "translate(" + 60 + ", 0)");
+            //legend_y_axis.call(d3.axisLeft(legend_yScale).ticks(chart_height / 100));
+
+            //console.log("max_density", max_density);
+
+            legend_y_axis.call(d3.axisLeft(legend_yScale).tickValues([vmin, vmax]).tickFormat(d3.format("d")).tickSize(25));
+            //legend_y_axis.call(g => g.select(".domain").remove());
+
+
+            console.log("rects", rects);
+            cmap.selectAll(".rect")
+            .data(rects)
+            .enter()
+            .append("rect")
+            .attr("x", function(d) {
+                return 40;
+            })
+            .attr("y", function(d, i) {
+                //return legend_yScale(i+1);
+                //return legend_yScale(((i+1) / num_rects) * vmax);
+                return legend_yScale(d.v);
+            })
+            .attr("height", function(d, i) {
+                //return 1; //legend_yScale(i) - legend_yScale(i+1) + 1;
+                //return legend_yScale((i / num_rects) * vmax) - legend_yScale(((i+1) / num_rects) * vmax) + 1;
+                if (i == num_rects -1) {
+                    return (legend_yScale(d.v) - legend_yScale(vmax)) + 1;
+                }
+                else {
+                    return (legend_yScale(d.v) - legend_yScale(rects[i+1]["v"])) + 1;
+                }
+            })
+            .attr("width", 20)
+            .attr("fill", function(d) {
+                return d["color"];
             });
+
         }
-
-        let legend_yScale = d3.scaleLinear()
-            .domain([0, max_density])
-            .range([chart_height - margin, margin]);
-
-
-        let legend_y_axis = legend_svg.append("g")
-            .attr("class", "y axis")
-            .attr("transform", "translate(" + 60 + ", 0)");
-        //legend_y_axis.call(d3.axisLeft(legend_yScale).ticks(chart_height / 100));
-
-        console.log("max_density", max_density);
-
-        legend_y_axis.call(d3.axisLeft(legend_yScale).tickValues([0, max_density]).tickFormat(d3.format("d")).tickSize(25));
-        //legend_y_axis.call(g => g.select(".domain").remove());
-
-
-        console.log("rects", rects);
-        cmap.selectAll(".rect")
-        .data(rects)
-        .enter()
-        .append("rect")
-        .attr("x", function(d) {
-            return 40;
-        })
-        .attr("y", function(d, i) {
-            //return legend_yScale(i+1);
-            return legend_yScale(((i+1) / num_rects) * max_density);
-        })
-        .attr("height", function(d, i) {
-            //return 1; //legend_yScale(i) - legend_yScale(i+1) + 1;
-            return legend_yScale((i / num_rects) * max_density) - legend_yScale(((i+1) / num_rects) * max_density) + 1;
-        })
-        .attr("width", 20)
-        .attr("fill", function(d) {
-            return d["color"];
-        });
-
-
 
 
 

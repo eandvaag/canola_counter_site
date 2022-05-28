@@ -31,6 +31,8 @@ let cur_map_model_uuid;
 
 let map_url = null;
 let pred_map_url = null;
+let diff_map = false;
+let min_max_rec = null;
 
 function change_image(dzi_image_path) {
     viewer.open(dzi_image_path);
@@ -98,14 +100,14 @@ function overlay_initialization() {
 
 }
 
-function adjust_to_opt(btn_id) {
+// function adjust_to_opt(btn_id) {
 
-    let overlay_id = btn_id.substring(0, btn_id.length - "_thresh".length);
-    let thresh_val = metrics[overlay_id]["point"]["train_val_optimal_score_threshold"]["threshold_value"];
-    //let thresh_val = 0.85;
-    $("#confidence_slider").val(thresh_val);
-    $("#confidence_slider").change();
-}
+//     let overlay_id = btn_id.substring(0, btn_id.length - "_thresh".length);
+//     let thresh_val = metrics[overlay_id]["point"]["train_val_optimal_score_threshold"]["threshold_value"];
+//     //let thresh_val = 0.85;
+//     $("#confidence_slider").val(thresh_val);
+//     $("#confidence_slider").change();
+// }
 
 
 function create_map_models_radio() {
@@ -179,14 +181,14 @@ function create_map_models_radio() {
 
 function create_models_table() {
 
-    let models_col_width = "145px"; //"215px";
-    let opt_col_width = "85px"
+    let models_col_width = "215px"; //"145px"; //"215px";
+    //let opt_col_width = "85px"
 
     for (let i = 0; i < sorted_overlay_names.length; i++) {
         let overlay_name = sorted_overlay_names[i];
         let overlay_id = sorted_overlay_ids[i];
         let overlay_color = overlay_colors[overlay_name];
-        let opt_thresh_id = overlay_id + "_thresh";
+        //let opt_thresh_id = overlay_id + "_thresh";
         let model_row_id = overlay_id + "_row";
         console.log("overlay_color", overlay_color);
         $("#models_table").append(`<tr id=${model_row_id}>` +
@@ -228,12 +230,12 @@ function create_models_table() {
                  `>${overlay_name}</div></td>` +*/
             `</tr>`);
 
-        if (i > 0) {
-            $("#" + model_row_id).append(
-                `<td><div id=${opt_thresh_id} style="width: ${opt_col_width};" class="table_button table_button_hover"` +
-                `onclick="adjust_to_opt('${opt_thresh_id}')">Opt thresh</div></td>`);
+        // if (i > 0) {
+        //     $("#" + model_row_id).append(
+        //         `<td><div id=${opt_thresh_id} style="width: ${opt_col_width};" class="table_button table_button_hover"` +
+        //         `onclick="adjust_to_opt('${opt_thresh_id}')">Opt thresh</div></td>`);
 
-        }
+        // }
     }
 }
 
@@ -522,7 +524,7 @@ function build_map() {
     let sel_interpolation = $("input[type='radio'][name='interpolation']:checked").val();
     let sel_model = $("input[type='radio'][name='map_model']:checked").val();
     let sel_pred_image_status = $("input[type='radio'][name='pred_image_status']:checked").val();
-
+    let comparison_type = $("input[type='radio'][name='comparison_type']:checked").val();
 
     //let include_annotated_map = $("input[type='radio'][name='include_annotated_map']:checked").val() === "yes";
     //console.log("include_annotated_map", include_annotated_map);
@@ -537,7 +539,8 @@ function build_map() {
         //metric: sel_metric,
         interpolation: sel_interpolation,
         model_uuid: sel_model,
-        pred_image_status: sel_pred_image_status
+        pred_image_status: sel_pred_image_status,
+        comparison_type: comparison_type
         //include_annotated_map: include_annotated_map 
         //image_set_data: JSON.stringify(image_set_data)
     },
@@ -545,22 +548,39 @@ function build_map() {
     function(response, status) {
         $("#build_loader").hide();
         enable_build();
+
         if (response.error) {    
             console.log("error occurred");
+            diff_map = false;
+            pred_map_url = null;
+            map_url = null;
+            draw_map_chart();
         }
         else {
             console.log("showing map");
             cur_map_model_uuid = sel_model;
 
-            let timestamp = new Date().getTime();   
+            let timestamp = new Date().getTime();
+            
+            let base = "/plant_detection/usr/data/results/" + image_set_info["farm_name"] + "/" + 
+                        image_set_info["field_name"] + "/" + image_set_info["mission_date"] + "/" +
+                        job_config["job_uuid"] + "/" + sel_model + "/maps/";
 
-            map_url = "/plant_detection/usr/data/results/" + image_set_info["farm_name"] + "/" + 
-                            image_set_info["field_name"] + "/" + image_set_info["mission_date"] + "/" +
-                            job_config["job_uuid"] + "/" + sel_model + "/maps/annotated_map.svg?t=" + timestamp;
+            map_url = base + "annotated_map.svg?t=" + timestamp;
 
-            pred_map_url = "/plant_detection/usr/data/results/" + image_set_info["farm_name"] + "/" + 
-                            image_set_info["field_name"] + "/" + image_set_info["mission_date"] + "/" +
-                            job_config["job_uuid"] + "/" + sel_model + "/maps/predicted_map.svg?t=" + timestamp;
+
+            if (comparison_type === "diff") {
+                pred_map_url = base + "difference_map.svg?t=" + timestamp;
+                diff_map = true;
+            }
+            else {
+                pred_map_url = base + "predicted_map.svg?t=" + timestamp;
+                diff_map = false;
+            }
+
+
+            let min_max_rec_url = base + "min_max_rec.json";
+            min_max_rec = get_json(min_max_rec_url);
 
             console.log("showing map");
             draw_map_chart();
@@ -584,22 +604,22 @@ function show_map() {
     create_map_models_radio();
     $("#map_builder_controls_container").show();
 
-/*
+
     let num_completed = 0;
-    for (image_name of Object.keys(annotations)) {
-        if (annotations[image_name]["status"] == "completed") {
+    for (image_name of Object.keys(overlays["annotations"])) {
+        if (overlays["annotations"][image_name]["status"] == "completed") {
             num_completed++;
         }
     }
 
     if (num_completed >= 3) {
+        $("#sufficient_annotation_options").show();
+    }
+    //else {
+        //$("#map_builder_controls_container").hide();
+        //$("#insufficient_annotation_container").show();
+    //}
 
-    }
-    else {
-        $("#map_builder_controls_container").hide();
-        $("#insufficient_annotation_container").show();
-    }
-*/
     
     draw_map_chart();
 }

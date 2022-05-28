@@ -16,8 +16,7 @@ function update_containers() {
 
 function delete_request() {
     $("#modal_header_text").html("Are you sure?");
-    $("#modal_message").html("Deleting the image set will remove all the images and annotations." +
-                             "<br><br>Are you sure you want to delete this image set?");
+    $("#modal_message").html("Are you sure you want to delete this image set?");
     $("#result_modal").css("display", "block");
 
     $("#modal_body").append(`<div id="modal_button_container">
@@ -37,8 +36,12 @@ function confirm_delete_request() {
         mission_date: $("#mission_combo").val(),
     },
     function(response, status) {
+
         if (response.error) { 
-            console.log("error occurred", response.error);
+            //console.log("error occurred");
+            $("#modal_header_text").html("Error");
+            $("#modal_message").html(response.message);
+            $("#result_modal").css("display", "block");
         }
         else {
             window.location.href = response.redirect;
@@ -54,12 +57,24 @@ function cancel_delete_request() {
 
 function annotate_request() {
 
-    let farm_name = $("#farm_combo").val();
-    let field_name = $("#field_combo").val();
-    let mission_date = $("#mission_combo").val();
+    $.post($(location).attr('href'),
+    {
+        action: "annotate_image_set",
+        farm_name: $("#farm_combo").val(),
+        field_name: $("#field_combo").val(),
+        mission_date: $("#mission_combo").val(),
+    },
+    function(response, status) {
 
-    window.location.href = "/plant_detection/annotate/" + farm_name + "/" +
-                           field_name + "/" + mission_date;
+        if (response.error) {
+            $("#modal_header_text").html("Error");
+            $("#modal_message").html(response.message);
+            $("#result_modal").css("display", "block");
+        }
+        else {
+            window.location.href = response.redirect;
+        }
+    });
 }
 
 function show_browse() {
@@ -72,17 +87,17 @@ function show_browse() {
 
     $("#main_area").append(`<table class="transparent_table" id="combo_table"></table>`);
     $("#combo_table").append(`<tr>` +
-        `<th><div class="table_head" style="width: ${left_col_width};">Farm name</div></th>` +
+        `<th><div class="table_head" style="width: ${left_col_width};">Farm Name</div></th>` +
         `<th><div style="width: ${right_col_width};"><select id="farm_combo" class="nonfixed_dropdown"></select></div></th>` +
     `<tr>`);
 
     $("#combo_table").append(`<tr>` +
-        `<th><div class="table_head" style="width: ${left_col_width};">Field name</div></th>` +
+        `<th><div class="table_head" style="width: ${left_col_width};">Field Name</div></th>` +
         `<th><div style="width: ${right_col_width};"><select id="field_combo" class="nonfixed_dropdown"></select></div></th>` +
     `<tr>`);
 
     $("#combo_table").append(`<tr>` +
-    `<th><div class="table_head" style="width: ${left_col_width};">Mission date</div></th>` +
+    `<th><div class="table_head" style="width: ${left_col_width};">Mission Date</div></th>` +
     `<th><div style="width: ${right_col_width};"><select id="mission_combo" class="nonfixed_dropdown"></select></div</th>` +
     `<tr>`);
 
@@ -386,8 +401,14 @@ function show_overview() {
 
 
     $("#left_section").append(
-                `<button class="std-button std-button-hover" style="width: 220px; height: 50px; margin:auto" onclick="annotate_request()">`+
-                    `<span><i class="fa-regular fa-clone" style="margin-right:8px"></i> Annotate</span></button>`);
+                `<table class="transparent_table" id="left_table">` +
+                `<tr>` +
+                `<td>` +
+                `<button class="std-button std-button-hover" style="width: 220px; height: 50px;" onclick="annotate_request()">`+
+                    `<span><i class="fa-regular fa-clone" style="margin-right:8px"></i>Annotate</span></button>` +
+                `</td>` +
+                `</tr>` +
+                `</table>`);
 
     $("#top_left").append(`<div style="text-decoration: underline;">Annotations</div><br>`);
     $("#top_left").append(`<table class="transparent_table" id="annotation_stats_table"></table>`);
@@ -421,12 +442,17 @@ function show_overview() {
 
             
 
-    /*
-    $("#annotate_section").append(`<br><br>`);
-    $("#annotate_section").append(
-        `<button class="x-button x-button-hover" style="width: 220px; height: 35px;" onclick="delete_request()">`+
-            `<span><i class="fa-regular fa-circle-xmark" style="margin-right:8px"></i> Delete Image Set</span></button>`);
-    */
+    if (total_annotations == 0) {
+        //$("#left_section").append(`<br><br><br>`);
+        $("#left_table").append(
+            `<tr style="height: 80px">` +
+            `<td>` +
+            `<button class="x-button x-button-hover" style="width: 220px; height: 35px;" onclick="delete_request()">`+
+                `<span><i class="fa-regular fa-circle-xmark" style="margin-right:8px"></i>Delete Image Set</span></button>` +
+            `</td>` +
+            `</tr>`);
+    
+    }
 }
 
 
@@ -500,23 +526,13 @@ function show_results() {
 }
 
 function view_job(job_uuid) {
+    let farm_name = $("#farm_combo").val();
+    let field_name = $("#field_combo").val();
+    let mission_date = $("#mission_combo").val();
 
-    $.post($(location).attr('href'),
-    {
-        action: "view_job",
-        farm_name: $("#farm_combo").val(),
-        field_name: $("#field_combo").val(),
-        mission_date: $("#mission_combo").val(),
-        job_uuid: job_uuid,
-    },
-    function(response, status) {
-        if (response.error) { 
-            console.log("error occurred", response.error);
-        }
-        else {
-            window.location.href = response.redirect;
-        }
-    });
+    window.location.href = "/plant_detection/viewer/" + job_uuid + "/" + 
+                           farm_name + "/" + field_name + "/" + mission_date;
+
 }
 
 function show_image_set_details() {

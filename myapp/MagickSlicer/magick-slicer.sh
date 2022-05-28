@@ -702,7 +702,13 @@ zoomImage(){ # zoom size -> file_path
     local file="${dir}.${resultExt}"
     # local file="${dir}.png"
     # local size=`scaleToPercents $s`
-    mkdir -p $dir   # Imagemagick can't create directories
+    mkdir $dir   # Imagemagick can't create directories
+    res=$?
+    if [ $res -ne 0 ]
+    then
+        echo "Parent directory does not exist"
+        exit 1
+    fi
     convert $imageSource $resizeFilter -resize $size $imOptions $file
     echo $file
 }
@@ -729,7 +735,13 @@ sliceImage(){ # zoom image
         local i=0
         for(( i=0; i<=$dirNum; i++ ))
         do
-            mkdir -p "${resultDir}/${zoom}/$i"  # Imagemagick can't create directories
+            mkdir "${resultDir}/${zoom}/$i"  # Imagemagick can't create directories
+            res=$?
+            if [ $res -ne 0 ]
+            then
+                echo "Parent directory does not exist"
+                exit 1
+            fi
         done
         sync
     fi
@@ -833,7 +845,13 @@ resizeImageH(){ # zoom -> file_path
     local dir="${resultDir}/${zoom}"
     local file="${dir}.${resultExt}"
     local size=`zoomPixels $zoom $tileW`
-    mkdir -p $dir   # Imagemagick can't create directories
+    mkdir $dir   # Imagemagick can't create directories
+    res=$?
+    if [ $res -ne 0 ]
+    then
+        echo "Parent directory does not exist"
+        exit 1
+    fi
     convert $imageSource $resizeFilter -resize $size $imOptions $file
     echo $file
 }
@@ -843,7 +861,13 @@ resizeImageV(){ # zoom -> file_path
     local dir="${resultDir}/${zoom}"
     local file="${dir}.${resultExt}"
     local size=`zoomPixels $zoom $tileH`
-    mkdir -p $dir   # Imagemagick can't create directories
+    mkdir $dir   # Imagemagick can't create directories
+    res=$?
+    if [ $res -ne 0 ]
+    then
+        echo "Parent directory does not exist"
+        exit 1
+    fi
     convert $imageSource $resizeFilter -resize "x${size}" $imOptions $file
     echo $file
 }
@@ -936,9 +960,27 @@ init(){
     # Set scale
     setScale
 
-    rm -rf $resultDir   # removing old results
-    mkdir -p $resultDir # creating new results folder
 
+    # parentDir="$(dirname "$resultDir")"
+
+    # echo $resultDir
+    # echo $parentDir
+    # if [ -d "$parentDir" ]
+    # then
+    #     echo "Parent directory does exist"
+    # else
+    #     echo "Parent directory does not exist"
+    # fi
+    rm -rf $resultDir   # removing old results
+    #mkdir $resultDir # creating new results folder
+    mkdir $resultDir
+    res=$?
+    if [ $res -ne 0 ]
+    then
+        echo "Parent directory does not exist"
+        exit 1
+    fi
+    #mkdir $resultDir
 }
 
 # ———————————————————————————————————————————————————————————————————————————————————

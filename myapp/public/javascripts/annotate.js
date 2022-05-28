@@ -3,8 +3,6 @@
 // import { bilinearInterpolation } from "simple-bilinear-interpolation";
 
 
-
-
 let image_set_info;
 let metadata;
 let dzi_image_paths;
@@ -15,6 +13,7 @@ let viewer;
 let anno;
 let cur_img_name;
 let cur_view;
+let countdown_interval;
 
 let map_url = null;
 
@@ -33,11 +32,31 @@ function update_containers() {
 
 
 function show_help_modal() {
-    $("#help_modal").css("display", "block");
+
+    $("#modal_head").empty();
+    $("#modal_body").empty();
+
+    $("#modal_head").append(
+    `<span class="close close-hover" id="modal_close">&times;</span>` +
+    `<p>Help</p>`);
+
+    $("#modal_body").append(`<p id="modal_message" align="left"></p>`);
+    $("#modal_message").html("Hold the <i>SHIFT</i> key and drag the mouse to create a new annotation." +
+    "<br><br>Use the <i>DELETE</i> key to remove annotations." + 
+    "<br><br>Don't forget to save your work!");
+    
+    $("#modal_close").click(function() {
+        close_modal();
+    });
+
+    $("#modal").css("display", "block");
 }
 
-function close_help_modal() {
-    $("#help_modal").css("display", "none");
+function close_modal() {
+    $("#modal_head").empty();
+    $("#modal_body").empty();
+
+    $("#modal").css("display", "none");
 }
 
 
@@ -221,8 +240,6 @@ function create_viewer_and_anno() {
         disableEditor: true
     });
 
-    //document.getElementById('seadragon_viewer').querySelector('.openseadragon-canvas').focus();
-
     viewer.innerTracker.keyDownHandler = function(e) {
 
         if (e.keyCode == 46) {
@@ -244,8 +261,7 @@ function create_viewer_and_anno() {
 
         let img_files_name = basename(event.source);
         let img_name = img_files_name.substring(0, img_files_name.length - 4);
-        //let img_status = image_set_data["images"][img_name]["status"];
-        //console.log("img_status", img_status);
+
         cur_img_name = img_name;
 
         $("#image_name").text(cur_img_name);
@@ -255,21 +271,10 @@ function create_viewer_and_anno() {
         for (annotation of annotations[cur_img_name]["annotations"]) {
             anno.addAnnotation(annotation);
         }
-        //update_overlays();
-        //update_count_chart();
+
     });
 
-
-    //anno = OpenSeadragon.Annotorious(viewer);
-
-    /*
-    anno.makeAnnotatable(viewer);*/
-
     anno.on('createAnnotation', function(annotation) {
-    //anno.handleAnnotationCreated(function(annotation, overrideId) {    
-    //anno.addHandler('createAnnotation', function(annotation, overrideId) {
-    //anno.on('handleAnnotationCreated', function(annotation, overrideId) {  
-        console.log(annotation);
 
         annotations[cur_img_name]["annotations"] = anno.getAnnotations();
 
@@ -299,29 +304,9 @@ function create_viewer_and_anno() {
         // Make sure to wait before saving!
         await anno.updateSelected(selection);
         anno.saveSelected();
-
-        
-
-
-        //anno.fitBounds(selection);
-        //annotations[cur_img_name] = anno.getAnnotations();
-
-    });
-
-    anno.on('startSelection', function(selection) {
-        console.log("startSelection");
-    });
-
-    anno.on('mouseLeaveAnnotation', function(selection) {
-        console.log("mouseLeaveAnnotation");
-    });
-
-    anno.on('selectAnnotation', function(annotation, element) {
-      console.log("selectAnnotation")
     });
 
     anno.on('updateAnnotation', async function(annotation, previous) {
-        console.log("updateAnnotation");
         let px_str = annotation.target.selector.value;
         let updated_px_str = resize_px_str(px_str);
 
@@ -338,40 +323,6 @@ function create_viewer_and_anno() {
         for (annotation of annotations[cur_img_name]["annotations"]) {
             anno.addAnnotation(annotation);
         }
-    });
-    
-
-    anno.on('cancelSelected', function(selection) {
-        console.log("cancelSelected");
-    });
-
-    anno.on('cancelSelectedTarget', function(selection) {
-        console.log("cancelSelectedTarget");
-    });
-
-    anno.on('changeSelectionTarget', async function(target) {
-        console.log("changeSelectionTarget");
-        let selection = anno.getSelected();
-        /*
-        console.log("selection", selection);
-
-        let px_str = selection.target.selector.value;
-        console.log("px_str", px_str);
-        
-        let updated_px_str = resize_px_str(px_str);
-        console.log(updated_px_str);
-        
-        selection.target.selector.value = updated_px_str;
-*/
-        console.log(anno.getSelected());
-        // Make sure to wait before saving!
-        /*
-        console.log("selection", selection);
-        await anno.updateSelected(selection);
-        anno.saveSelected();
-        */
-        
-        //anno.updateSelected(selection, true);
     });
 
 
@@ -418,16 +369,17 @@ function build_map() {
     $.post($(location).attr('href'),
     {
         action: "build_map",
-        //metric: sel_metric,
         interpolation: sel_interpolation
-        //image_set_data: JSON.stringify(image_set_data)
     },
     
     function(response, status) {
         $("#build_loader").hide();
         enable_build();
+
         if (response.error) {    
-            console.log("error occurred");
+            console.log(response.error);
+            map_url = null;
+            draw_map_chart();
         }
         else {
             let timestamp = new Date().getTime();    
@@ -435,7 +387,6 @@ function build_map() {
             map_url = "/plant_detection/usr/data/image_sets/" + image_set_info["farm_name"] + "/" + 
                             image_set_info["field_name"] + "/" + image_set_info["mission_date"] + 
                             "/maps/annotated_map.svg?t=" + timestamp;
-            console.log("showing map");
             draw_map_chart();
         }
     });
@@ -496,31 +447,117 @@ function save_annotations() {
     {
         action: "save_annotations",
         annotations: JSON.stringify(annotations),
-        //image_set_data: JSON.stringify(image_set_data)
     },
     
     function(response, status) {
 
-        if (response.error) {    
-            console.log("error occurred");
+        if (response.error) {
+            create_image_set_table();
         }
         else {
             console.log("Annotations Saved!");
-            //console.log("image_set_data", response.image_set_data);
-            //image_set_data = response.image_set_data;
             create_image_set_table();
             $("#save_icon").css("color", "white");
         }
     });
 }
 
+
+
+function refresh() {
+    console.log("refreshing the lock file");
+    
+    $.post($(location).attr('href'),
+    {
+        action: "refresh_lock_file"
+    },
+    
+    function(response, status) {
+
+        if (response.error) {
+            save_annotations();
+        }
+        else {
+            console.log("refreshed");
+        }
+
+    });
+    
+}
+
+function expired_session() {
+
+    save_annotations();
+    $.post($(location).attr('href'),
+    {
+        action: "expired_lock_file"
+    },
+    
+    function(response, status) {  
+        window.location.href = response.redirect;
+    });
+    
+}
+
+function confirm_continue() {
+    clearInterval(countdown_interval);
+    close_modal();
+    window.setTimeout(ask_to_continue, 7200000);
+}
+
+function ask_to_continue() {
+    
+    $("#modal_head").empty();
+    $("#modal_body").empty();
+
+    $("#modal_head").append(
+        `<p>Refresh Annotation Session</p>`);
+    
+
+    $("#modal_body").append(`<p id="modal_message" align="left">` +
+    `Your annotation session will expire in <span id="countdown_timer">180</span> seconds. Please confirm if you wish to continue annotating.</p>`);
+    let countdown_val = 180;
+    countdown_interval = window.setInterval(function() {
+        countdown_val -= 1;
+        $("#countdown_timer").html(countdown_val);
+
+        if (countdown_val == 0) {
+            clearInterval(countdown_interval);
+            console.log("timer finished");
+            expired_session();
+        }
+    }, 1000);
+
+    
+    $("#modal_body").append(`<div id="modal_button_container">
+        <button id="continue_annotate" class="std-button std-button-hover" `+
+        `style="width: 200px" onclick="confirm_continue()"><span>Continue Annotating</span></button>` +
+        `</div>`);
+
+    
+    $("#modal").css("display", "block");
+}
+
+
+$(window).bind('beforeunload', function(event){
+
+    $.post($(location).attr('href'),
+    {
+        action: "expired_lock_file"
+    },
+    
+    function(response, status) {
+
+    });
+});
+
 $(document).ready(function() {
-    //update_containers();
-    console.log(window.location.href);
-    console.log("data", data);
+    window.setInterval(refresh, 90000); // 1.5 minutes
+    window.setTimeout(ask_to_continue, 7200000); // 2 hours
+
+
 
     image_set_info = data["image_set_info"];
-    //image_set_data = data["image_set_data"];
     dzi_image_paths = data["dzi_image_paths"];
     annotations = data["annotations"];
     metadata = data["metadata"];
@@ -565,13 +602,7 @@ $(document).ready(function() {
     create_viewer_and_anno();
     show_image();
 
-    console.log("anno", anno);
-
-
     $("#save_button").click(function() {
-
-        //let selected = anno.getSelected();
-
         save_annotations();
     });
 
@@ -582,38 +613,36 @@ $(document).ready(function() {
         $("#save_icon").css("color", "#ed452b");
         create_image_set_table();
     });
-    /*
-    $("#seadragon_viewer").keypress(function(e) {
-        //console.log(e);
-        if ((e.which == 46) || (e.which == 127)) {
-            console.log('pressed delete');
-            let selected = anno.getSelected();
-            anno.removeAnnotation(selected);
 
-            annotations[cur_img_name]["annotations"] = anno.getAnnotations();
-            update_image_status();
-            set_image_status_combo();
-            create_image_set_table();
-            $("#save_icon").css("color", "#ed452b");
-
-        }
-
-    });*/
-
-/*
-    $(window).resize(function() {
-        update_containers();
-    });*/
 
     $("#help_button").click(function() {
         show_help_modal();
     })
 
-    $("#help_modal_close").click(function() {
-        close_help_modal();
+    $("#home_button").click(function() {
+        //save_annotations();
+        $.post($(location).attr('href'),
+        {
+            action: "expired_lock_file"
+        },
+        
+        function(response, status) {
+            window.location.href = "/plant_detection/home";
+        });
+    })
+
+    $("#log_out").click(function() {
+        //save_annotations();
+        $.post($(location).attr('href'),
+        {
+            action: "expired_lock_file"
+        },
+        
+        function(response, status) {
+            window.location.href = "/plant_detection/logout";
+        });
+        
     });
-
-
 
 
 

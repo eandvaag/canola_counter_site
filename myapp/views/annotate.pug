@@ -34,16 +34,26 @@ html
     body
         div(id="container")
 
-            include ./header.pug
+            div(id="header"  style="background-color: #2b3628")
+                table(class="transparent_table")
+                    tr
+                        td
+                            div(style="width: 320px")
+                                a(id="home_button" style="font-size: 22px; margin: 0px 5px" class="table_button table_button_hover") Canola Counter
+                        td(style="width:100%")
 
-            div(id="help_modal" class="modal")
+                        td
+                            div(style="width: 100px")
+                                a(class="table_button table_button_hover" id="log_out") Log Out
+
+                hr
+
+            div(id="modal" class="modal")
                 div(class="modal-content")
-                    div(class="modal-header")
-                        span(class="close close-hover" id="help_modal_close") &times;
-                        p Help
-                    div(class="modal-body")
-
-                        p(style="text-align: justify") Hold the <i>SHIFT</i> key and drag the mouse to create a new annotation.<br><br>Use the <i>DELETE</i> key to remove annotations.<br><br>Don't forget to save your work! 
+                    div(class="modal-header" id="modal_head")
+                        //span(class="close close-hover" id="modal_close") &times;
+                        //p Help
+                    div(class="modal-body" id="modal_body")
 
                     div(class="modal-footer")
 
@@ -62,15 +72,17 @@ html
                         table(class="transparent_table")
                             tr
                                 td
-                                    button(style="width: 100px; margin: 0px" id="help_button" class="table_button table_button_hover")
-                                        i(id="help_icon" class="fa-solid fa-circle-info" style="padding-right: 8px; color: white") 
-                                        | Help
+                                    div(style="width: 140px; text-align: left")
+                                        button(style="width: 100px; margin: 0px" id="help_button" class="table_button table_button_hover")
+                                            i(id="help_icon" class="fa-solid fa-circle-info" style="padding-right: 8px; color: white") 
+                                            | Help
 
                                 td(style="width:100%")
                                     h(id="image_set_name" class="header2" style="font-size: 22px; text-align: center; white-space: pre-wrap; color: white")
                                 
                                 td
-                                    div(id="view_button_container" style="width: 140px")
+                                    div(style="width: 140px")
+                                        div(id="view_button_container" style="width: 140px;")
 
 
 
