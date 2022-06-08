@@ -191,17 +191,31 @@ hr {
   text-align: center; 
 }
 
-
+/*
 #seadragon_viewer {
+
+  height: 650px;
+  border:  1px solid white;
+  background-color: #222621;*/
+
     /*
     margin: auto;
     */
     /*width: 50%;*/ /*800px;*/
-    height: 650px;
-    border:  1px solid white;
-    background-color: #222621;
+
+
+
+
     /*margin-top: 10px;*/
     /*border-radius: 15px 15px;*/
+    /*
+}
+*/
+
+.viewer {
+  height: 650px;
+  border:  1px solid white;
+  background-color: #222621;
 }
 
 #chart_container {
@@ -286,6 +300,7 @@ tr:first-child{ ;}*/
 
 .table_button {
   /*width:  fit-content;*/
+  word-break: break-all;
   background-color:  #222621;
   border: 1px solid white;
   color: white;
@@ -466,23 +481,25 @@ tr:first-child{ ;}*/
 }
 
 
-/* width */
+
 ::-webkit-scrollbar {
   width: 20px;
 }
 
-/* Track */
+
 ::-webkit-scrollbar-track {
   box-shadow: inset 0 0 5px grey;
   border-radius: 10px;
 }
 
-/* Handle */
 ::-webkit-scrollbar-thumb {
   background: #998866;
   border-radius: 10px;
 }
 
+::-webkit-scrollbar-corner {
+  background-color: #222621;
+}
 
 
 .grid-container-2 { 
@@ -1608,3 +1625,32 @@ input:checked + .switch_slider:before {
   background: white;
 }
 */
+
+
+.img-zoom-lens {
+  position: absolute;
+  border: 1px solid #d4d4d4;
+  width: 30px;
+  height: 30px;
+  cursor: none;
+}
+
+* {box-sizing: border-box;}
+
+.img-magnifier-glass {
+  position: absolute;
+  border: 3px solid #000;
+  /*border-radius: 50%;*/
+  cursor: none;
+  /*Set the size of the magnifier glass:*/
+  width: 200px;
+  height: 200px;
+}
+
+
+.img-zoom-result {
+  border: 1px solid #d4d4d4;
+  /*set the size of the result div:*/
+  width: 200px;
+  height: 200px;
+}

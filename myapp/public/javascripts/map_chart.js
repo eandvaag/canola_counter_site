@@ -67,7 +67,7 @@ function draw_map_chart() {
         let status = annotations[image_name]["status"];
 
         let color;
-        if (status == "completed") {
+        if ((status === "completed_for_training") || (status === "completed_for_testing")) {
             color = "#0080C0";
             let density = annotations[image_name]["annotations"].length / metadata["images"][image_name]["area_m2"];
             if (Math.ceil(density) > max_density) {

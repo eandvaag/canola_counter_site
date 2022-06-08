@@ -364,130 +364,6 @@ function update_overlays() {
     }*/
 }
 
-/*
-function assemble_datasets() {
-    dataset_images = {};
-    for (image_set of job_config["inference_config"]["datasets"]){ //image_sets"]) {
-        if ((image_set["farm_name"] === metadata["farm_name"] &&
-             image_set["field_name"] === metadata["field_name"]) &&
-             image_set["mission_date"] === metadata["mission_date"]) {
-            dataset_images["training"] = natsort(image_set["training_image_names"]);
-            dataset_images["validation"] = natsort(image_set["validation_image_names"]);
-            dataset_images["test"] = natsort(image_set["test_image_names"]);
-        }
-    }
-    dataset_images["all"] = natsort(Object.keys(data["overlays"]["annotations"]));
-}
-*/
-
-
-
-/*
-function show_image() {
-
-    cur_view = "image";
-
-    if ((!(metadata["missing"]["latitude"]) && !(metadata["missing"]["longitude"])) && (!(metadata["missing"]["area_m2"]))) {
-        $("#view_button_container").empty();
-        $("#view_button_container").append(
-            `<button style="width: 140px; margin: 0px;" id="view_button" class="table_button table_button_hover">` +
-            `<i class="fa-solid fa-location-dot" style="padding-right: 10px; color: white;"></i>Map View</button>`
-        );
-
-
-        $("#view_button").click(function() {
-            if (cur_view == "image") {
-                show_map();
-            }
-            else {
-                show_image();
-                change_image(image_to_dzi[cur_img_name]);
-            }
-        });
-    }
-
-
-    $("#left_panel").empty();
-    $("#seadragon_viewer").empty();
-
-    $("#left_panel").append(
-        `<table class="transparent_table">` +
-            `<tr>` +
-                `<td style="text-align: left">` +
-                    `<h class="header2" style="width: 80px">Image:</h>` +
-                `</td>` +
-                `<td style="width: 100%; text-align: left; padding-left: 12px">` +
-                    `<h id="image_name"></h>` +
-                `</td>` +
-            `</tr>` +
-            `<tr>` +
-                `<td style="text-align: left">` +
-                    `<h class="header2" style="width: 80px">Status:</h>` +
-                `</td>` +
-                `<td style="width: 100%; text-align: left; padding-left: 12px">` +
-                    `<h id="image_status"></h>` +
-                `</td>` +
-            `</tr>` +
-            `<tr>` +
-                `<td style="text-align: left">` +
-                    `<h class="header2" style="width: 80px">Used for:</h>` +
-                `</td>` +
-                `<td style="width: 100%; text-align: left; padding-left: 12px">` +
-                    `<h id="used_for"></h>` +
-                `</td>` +
-            `</tr>` +
-        `</table>` +
-
-        `<br>` +
-        `<hr>` +
-        `<br>` +
-
-        `<table class="transparent_table" style="height: 40px">` +
-            `<tr>` +
-                `<td style="text-align: left">` +
-                    `<h class="header2" style="width: 110px">Filter images:</h>` +
-                `</td>` +
-                `<td style="width: 100%">` +
-                    `<select id="filter_combo" class="nonfixed_dropdown`
-
-
-
-    );
-
-
-
-
-                                        br
-                                        hr
-                                        br
-                                        
-                                        table(class="transparent_table" style="height: 40px")
-                                            tr
-                                                td(style="text-align: left;")
-                                                    h(class="header2" style="width: 110px") Filter images: 
-                                                td(style="width:100%")
-                                                    select(id="filter_combo" class="nonfixed_dropdown")
-                                                        option all
-                                                        option completed
-                                                        option unannotated
-                                                        option training/validation 
-                                                        option testing
-
-                                        br
-                                        div(class="scrollable_area" style="height: 425px; border:none")
-                                            table(id="images_table")
-
-                                        br
-                                        hr
-                                        div(style="height: 5px")
-
-                                        a(class="table_button table_button_hover" style="padding: 5px 10px;" id="download_button" download)
-                                            i(class="fa fa-download fa-sm")
-                                            span(style="margin-left: 10px") Download Counts 
-                                        
-                                        div(style="height: 5px")              
-}
-*/
 
 
 function disable_build() {
@@ -650,8 +526,8 @@ $(document).ready(function() {
     dzi_image_paths = data["dzi_image_paths"];
 
 
-    let download_path = "/plant_detection/usr/data/results/" + job_config["target_farm_name"] + "/" +
-                        job_config["target_field_name"] + "/" + job_config["target_mission_date"] + "/" +
+    let download_path = "/plant_detection/usr/data/results/" + image_set_info["farm_name"] + "/" +
+    image_set_info["field_name"] + "/" + image_set_info["mission_date"] + "/" +
                         job_config["job_uuid"] + "/results.xlsx";
     
     //let download_path = "/plant_detection/usr/data/results.xlsx";
@@ -686,6 +562,17 @@ $(document).ready(function() {
 
 
 
+    let test_reserved_images = [];
+    for (image_set_conf of job_config["training"]["image_sets"]) {
+        if (((image_set_conf["farm_name"] === image_set_info["farm_name"]) &&
+            (image_set_conf["field_name"] === image_set_info["field_name"])) &&
+            (image_set_conf["mission_date"] === image_set_info["mission_date"])) {
+                test_reserved_images = image_set_conf["test_reserved_images"];
+                break;
+            }
+    }
+
+
 
     image_names["all"] = natsort(Object.keys(data["overlays"]["annotations"]));
     for (image_name of image_names["all"]) {
@@ -694,18 +581,28 @@ $(document).ready(function() {
         if (status === "completed") {
             image_names["completed"].push(image_name);
 
-
+            if (test_reserved_images.includes(image_name)) {
+                image_names["testing"].push(image_name)
+                used_for[image_name] = "testing";
+            }
+            else {
+                image_names["training/validation"].push(image_name);
+                used_for[image_name] = "training/validation";
+            }
+            /*
             if (job_config["test_reserved_images"].includes(image_name)) {
                 image_names["testing"].push(image_name)
                 used_for[image_name] = "testing";
             }
-            else if (job_config["training_validation_images"].includes(image_name)) {
+            if (job_config["training_validation_images"].includes(image_name)) {
                 image_names["training/validation"].push(image_name);
                 used_for[image_name] = "training/validation";
             }
             else {
-                used_for[image_name] = "NA";
-            }
+                //used_for[image_name] = "NA";
+                image_names["testing"].push(image_name)
+                used_for[image_name] = "testing";
+            }*/
 
         }
         else if (status === "unannotated") {

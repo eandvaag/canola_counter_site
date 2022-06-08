@@ -1,6 +1,15 @@
-FROM debian:bullseye-slim
+#FROM debian:bullseye-slim
+#FROM python:3.8-slim-bullseye
+
+FROM nvidia/cuda:11.5.0-runtime-ubuntu20.04
 RUN apt update -y
+RUN apt update && apt install -y exiftool
 RUN apt update && apt install -y curl
+
+ARG DEBIAN_FRONTEND=noninteractive
+ENV TZ=America/Regina
+RUN apt-get install -y tzdata
+
 RUN curl -fsSL https://deb.nodesource.com/setup_14.x | bash -
 RUN apt install -y libgl1
 RUN apt-get install -y libglib2.0-0
@@ -23,6 +32,8 @@ RUN apt update && apt install -y postgresql-client
 RUN apt update && apt install -y imagemagick
 #COPY --chown=app ./node_modules/annotorious ./node_modules/annotorious
 #COPY --chown=app ./node_modules/openseadragon3 ./node_modules/openseadragon3
+RUN ln -s /usr/bin/python3 /usr/bin/python
+
 USER app
 #RUN chown -R app:app /opt/app/plant_detection/src/usr
 RUN ln -s /opt/app/plant_detection/src/usr /opt/app/plant_detection_viewer/myapp/usr

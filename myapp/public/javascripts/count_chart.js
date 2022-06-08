@@ -21,7 +21,7 @@ function set_count_chart_data() {
 
     for (image_name of Object.keys(overlays["annotations"])) {
         count_chart_data[image_name] = {};
-        for (class_name of Object.keys(job_config["arch_config"]["class_map"])) {
+        for (class_name of Object.keys(job_config["arch"]["class_map"])) {
             count_chart_data[image_name][class_name] = [];
             for (let i = 0; i < sorted_overlay_ids.length; i++) {
 
@@ -53,7 +53,7 @@ function set_count_chart_data() {
         }
         max_count = 0;
         for (image_name of Object.keys(count_chart_data)) {
-            for (class_name of Object.keys(job_config["arch_config"]["class_map"])) {
+            for (class_name of Object.keys(job_config["arch"]["class_map"])) {
                 for (entry of count_chart_data[image_name][class_name]) {
                     if (metric == "Count per square metre")
                         entry.count = entry.count / metadata["images"][image_name]["area_m2"];

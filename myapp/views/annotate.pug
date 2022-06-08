@@ -26,6 +26,10 @@ html
         //script(type="text/javascript" src="https://cdn.jsdelivr.net/npm/@recogito/annotorious-openseadragon@2.7.1/dist/openseadragon-annotorious.min.js")
         script(src="https://d3js.org/d3.v4.js")
 
+        //script(src="/socket.io/socket.io.js")
+        //script(type='text/javascript' src="http://" + location.hostname + ":8110/socket.io/socket.io.js")
+        script(type='text/javascript' src="/socket.io/socket.io.js")
+        //script(src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js" integrity="sha512-eVL5Lb9al9FzgR63gDs1MxcDS2wFu3loYAgjIH0+Hg38tCS8Ag62dwKyH+wzDb+QauDpEZjXbMn11blw8cbTJQ==" crossorigin="anonymous")
 
         script(type='text/javascript' src='/plant_detection/javascripts/annotate.js')
         script(type='text/javascript' src='/plant_detection/javascripts/map_chart.js')
@@ -90,23 +94,30 @@ html
                             table(class="transparent_table")
 
                                 tr
-                                    td(class="dark-bg" style="vertical-align:top")
+                                    td(class="dark-bg" style="vertical-align:top" id="left_panel")
                                         div(style="width: 280px;")
 
                                             table(class="transparent_table")
                                                 tr
                                                     td(style="text-align: left")
-                                                        h(class="header2") Image: 
+                                                        h(class="header2") Image
 
                                                     td(style="width: 100%; text-align: left; padding-left: 12px")
-                                                        h(id="image_name")
+                                                        h(id="image_name" style="word-break: break-all;")
 
                                                 tr 
                                                     td(style="text-align: left")
-                                                        h(class="header2") Status: 
+                                                        h(class="header2") Status
 
                                                     td
                                                         select(id="status_combo" class="nonfixed_dropdown")
+
+                                                //-
+                                                    tr
+                                                        td 
+                                                            label(class="radio_container") Use for Training 
+                                                                input(id="use_for_radio" type="radio" name="use_for_training" value="yes")
+                                                                span(class="custom_radio")
                                             br
                                             hr
                                             br
@@ -117,12 +128,83 @@ html
 
                                             br
                                             br
-                                            h(class="header2" style="text-align: left") Image List:
+                                            h(class="header2" style="text-align: left") Image List
                                             div(class="scrollable_area" style="height: 390px; border: none")
                                                 table(id="image_set_table")
 
 
-                                    td(style="width: 100%" id="seadragon_viewer")
+                                    td(style="width: 100%; position: relative" class="viewer" id="seadragon_viewer")
+                                        // id="seadragon_viewer")
+                                        //div(id="annotation_viewer" style="height: 650px; width: 100%")
+
+                                        //div(id="segmentation_viewer" style="height: 650px; width: 100%" hidden)
+
+                                    td(style="width: 100%; position: relative" class="viewer" id="segmentation_viewer" hidden)
+                                        
+
+
+                                    td(class="dark-bg" style="vertical-align:top;")
+                                        div(id="right_panel" style="width: 280px;")
+
+                                            div(id="annotation_panel")
+                                                table(class="transparent_table")
+                                                    tr
+                                                        td(style="text-align: left;")
+                                                            h(class="header2" style="width: 120px") Model Status
+
+                                                        td(style="width: 100%; text-align: left; padding-left: 12px")
+                                                            h(id="model_status")
+
+                                                    tr
+                                                        td(style="text-align: left;")
+                                                            h(class="header2" style="width: 120px") Fully Trained?
+
+                                                        td(style="width: 100%; text-align: left; padding-left: 12px")
+                                                            h(id="model_training_status")
+
+                                                hr
+                                                div(id="annotation_edit_panel")
+
+                                                    
+                                                    br
+                                                    button(id="predict_button" class="table_button table_button_hover" style="width: 240px") Request Prediction
+                                                    br
+                                                    br
+                                                    button(id="retrieve_button" class="table_button table_button_hover" style="width: 240px") Show Most Recent Predictions
+                                                    br
+                                                    br
+                                                    button(id="segment_button" class="table_button table_button_hover" style="width: 240px") Segment Image
+
+
+                                                div(id="prediction_view_panel" hidden)
+                                                    br
+                                                    br
+                                                    button(id="use_predictions_button" class="table_button table_button_hover" style="width: 240px") Use Predictions As Annotations
+                                                    br
+                                                    br
+                                                    button(id="continue_annotation_button" class="table_button table_button_hover" style="width: 240px") Continue Annotating
+                                                
+
+                                        
+                                            div(id="segmentation_panel" hidden)
+
+                                                div(id="my_result" style="border: 1px solid white; height: 280px")
+
+                                                table(class="transparent_table")
+                                                    tr
+                                                        td(style="width: 110px")
+                                                            div(style="width: 110px; text-align:left" class="header2") Threshold:
+                                                    tr
+                                                        td(style="width: 100%")
+                                                            div(class="slidecontainer" style="width: 100%")
+                                                                input(type="range" min="-2" max="2" step="0.01" value="0.0" class="slider" id="threshold_slider")
+                                                        td
+                                                            div(style="text-align: right; width: 40px")
+                                                                div(id="slider_val" class="header2") 0.0
+
+                                                br
+                                                br
+                                                button(id="request_segment_button" class="table_button table_button_hover" style="width: 240px") Request Segmentation
 
 
                         div(id="map_view_container" hidden)

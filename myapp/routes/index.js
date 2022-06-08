@@ -3,6 +3,7 @@ var upload_files = require('multer')();
 var router = express.Router();
 
 let landing = require('../controllers/landing');
+let socket_api = require("../socket_api");
 
 router.get('/', landing.get_sign_in);
 router.post('/', landing.post_sign_in);
@@ -24,5 +25,7 @@ router.post('/viewer/:job_uuid/:farm_name/:field_name/:mission_date', landing.po
 router.get('/transfer', landing.get_transfer);
 
 router.get('/logout', landing.logout);
+
+router.post('/notification', socket_api.post_notification);
 
 module.exports = router;
