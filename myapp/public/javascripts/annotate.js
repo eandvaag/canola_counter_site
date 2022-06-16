@@ -19,6 +19,9 @@ let ask_to_continue_handle;
 let cur_update_num = -1;
 let pending_predictions;
 let predictions = {};
+let cur_panel;
+let cur_bounds = null;
+//let waiting_for_restart = false;
 
 let map_url = null;
 
@@ -30,7 +33,7 @@ let formatter = function(annotation) {
     const scoreTag = bodies.find(b => b.purpose == 'score');
     const highlightBody = bodies.find(b => b.purpose == 'highlighting');
 
-    let is_checked = $("#scores_checkbox").is(":checked");
+    let is_checked = $("#score_switch").is(":checked");
     if (is_checked && (scoreTag && highlightBody)) {
         const foreignObject = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject');
 
@@ -86,38 +89,25 @@ function close_modal() {
 }
 
 
-function change_image(dzi_image_path) {
-    // if (viewer == null) {
-    //     create_viewer_and_anno();
-    // }
-    console.log("changing to", dzi_image_path);
-    viewer.open(dzi_image_path);
-
-    //$("#predict_button").show();
-    //$("#retrieve_button").show();
-    //$("#use_predictions_button").hide();
-    //$("#continue_annotation_button").hide();
-
-    $("#segmentation_viewer").hide();
-    $("#segmentation_panel").hide();
-    $("#seadragon_viewer").show();
-    $("#annotation_panel").show();
+function change_image(img_name) {
     
+    cur_img_name = img_name;
 
-    $("#prediction_view_panel").hide();
-    $("#annotation_edit_panel").show();
-
-    
-    //if (pending_predictions.includes(cur_img_name)) {
-    //    disable_buttons([$("#predict_button")]);
-    //}
+    if (cur_panel === "annotation") {
+        show_annotation(true);
+    }
+    else if (cur_panel === "prediction") {
+        show_prediction(true);
+    }
+    else {
+        show_segmentation();
+    }
 }
 
 function create_image_set_table() {
 
-    let image_name_col_width = "100px";
-    let image_status_col_width = "150px";
-    let image_dataset_col_width = "200px";
+    let image_name_col_width = "170px";
+    let image_status_col_width = "60px";
 
     $("#image_set_table").empty();
     /*
@@ -126,18 +116,33 @@ function create_image_set_table() {
             //`<th><div class="table_header" style="width: ${image_status_col_width}">Annotation Status</div></th>` +
             //`<th><div class="table_header" style="width: ${image_dataset_col_width}">Assigned Dataset</div></th>` +
             `</tr>`);*/
+
+    let abbreviation = {
+        "unannotated": "Un.",
+        "started": "St.",
+        "completed_for_training": "C. Tr.",
+        "completed_for_testing": "C. Te."
+    };
+
     for (dzi_image_path of dzi_image_paths) {
         let image_name = basename(dzi_image_path);
         let extensionless_name = image_name.substring(0, image_name.length - 4);
 
+
         //let img_status = image_set_data["images"][extensionless_name]["status"];
 
         let image_status = annotations[extensionless_name]["status"];
+        let abbreviated_status = abbreviation[image_status];
         $("#image_set_table").append(`<tr>` +
-            `<td><div class="table_button table_button_hover"` +
-                 `onclick="change_image('${dzi_image_path}')">${extensionless_name}</div></td>` +
+           
             //`<td><div>${extensionless_name}</div></td>` +
-            `<td><div class="table_entry" style="border: 1px solid white">${image_status}</div></td>` +
+            `<td><div class="table_entry std_tooltip" style="cursor: default; position: relative; width: ${image_status_col_width}; border: 1px solid white">${abbreviated_status}` +
+            `<span class="std_tooltiptext">${image_status}</span></div></td>` +
+
+            `<td><div class="table_button table_button_hover" style="width: ${image_name_col_width}" ` +
+            // `onclick="change_image('${dzi_image_path}')">${extensionless_name}</div></td>` +
+             `onclick="change_image('${extensionless_name}')">${extensionless_name}</div></td>` +
+            //`</div></td>` + 
             //`<td><div class="table_entry">${img_dataset}</div></td>` +
             `</tr>`);
 
@@ -235,8 +240,12 @@ function set_image_status_combo() {
     let cur_status = annotations[cur_img_name]["status"];
     let num_annotations = annotations[cur_img_name]["annotations"].length;
     let image_status_options;
-    if (cur_status === "completed_for_training" || cur_status === "completed_for_testing") {
-        image_status_options = [cur_status];
+    if (cur_status === "completed_for_training") {
+        image_status_options = ["completed_for_training"];
+    }
+    else if (cur_status === "completed_for_testing") {
+        image_status_options = ["completed_for_training", "completed_for_testing"];
+    }
         /*
         if (num_annotations > 0) {
             image_status_options = ["started", "completed"];
@@ -244,7 +253,6 @@ function set_image_status_combo() {
         else {
             image_status_options = ["unannotated", "completed"];
         }*/
-    }
     else if (cur_status === "started") {
         image_status_options = ["started", "completed_for_training", "completed_for_testing"];
     }
@@ -264,13 +272,13 @@ function set_image_status_combo() {
 
 
 
-function create_anno(readOnly) {
+function create_anno() {
 
 
     anno = OpenSeadragon.Annotorious(viewer, {
         disableEditor: true,
-        disableSelect: readOnly,
-        readOnly: readOnly,
+        disableSelect: true, //false, //readOnly,
+        readOnly: true, //false, //readOnly,
         formatter: formatter
     });
 
@@ -319,14 +327,10 @@ function create_anno(readOnly) {
         annotations[cur_img_name]["annotations"] = anno.getAnnotations();
         $("#save_icon").css("color", "#ed452b");
 
-        anno.clearAnnotations();
-
-        for (annotation of annotations[cur_img_name]["annotations"]) {
-            anno.addAnnotation(annotation);
-        }
+        add_annotations();
     });
 
-    return anno;
+    //return anno;
 
 }
 
@@ -346,13 +350,20 @@ function create_viewer_and_anno() {
         zoomPerClick: 1,
         nextButton: "next-button",
         previousButton: "prev-button",
-        showNavigationControl: false
+        showNavigationControl: false,
+        prserveViewport: true
+        //homeFillsViewer: true
+        //defaultZoomLevel: 1.1,
+        //viewportMargins: 20
+        //navigatorMaintainSizeRatio: true
     });
 
+    create_anno();
+    /*
     anno = OpenSeadragon.Annotorious(viewer, {
         disableEditor: true,
         formatter: formatter
-    });
+    });*/
 /*
     prediction_anno = OpenSeadragon.Annotorious(viewer, {
         disableEditor: true,
@@ -378,8 +389,11 @@ function create_viewer_and_anno() {
     }
 
     viewer.addHandler("open", function(event) {
+
+        //console.log("cur_bounds", cur_bounds);
+        //viewer.viewport.applyConstraints();
         console.log("viewer open handler called");
-        anno.clearAnnotations();
+        //anno.clearAnnotations();
 
         let img_files_name = basename(event.source);
         let img_name = img_files_name.substring(0, img_files_name.length - 4);
@@ -392,31 +406,65 @@ function create_viewer_and_anno() {
 
         
         if (pending_predictions[cur_img_name]) {
-            disable_buttons(["predict_button"]);
+            disable_buttons(["request_prediction_button"]);
         }
         else {
-            enable_buttons(["predict_button"]);
+            enable_buttons(["request_prediction_button"]);
         }
 
+        //console.log(cur_bounds);
 
         //$("#use_for_radio").prop('disabled', ((annotations[cur_img_name]["available_for_training"]) || 
         //                                      (annotations[cur_img_name]["status"] !== "completed"))); 
         //((annotations[cur_img_name]["available_for_training"]) || 
         //                                    (annotations[cur_img_name]["status"] !== "completed")));
 
-
+/*
         for (annotation of annotations[cur_img_name]["annotations"]) {
             anno.addAnnotation(annotation);
-        }
+        }*/
 
+        //viewer.viewport.zoomTo(5, null, true);
+        //viewer.viewport.zoomTo(1, null, true);
+        //viewer.viewport.applyConstraints();
+        if (cur_bounds)
+            withFastOSDAnimation(viewer.viewport, function() {
+                viewer.viewport.fitBounds(cur_bounds);
+            });
+        
     });
 
 
-    anno = create_anno(false);
+    //anno = create_anno();
 
 
 
 }
+
+function withFastOSDAnimation(viewport, f) {
+
+    // save old ones
+    var oldValues = {};
+    oldValues.centerSpringXAnimationTime = viewport.centerSpringX.animationTime;
+    oldValues.centerSpringYAnimationTime = viewport.centerSpringY.animationTime;
+    oldValues.zoomSpringAnimationTime = viewport.zoomSpring.animationTime;
+    
+    // set our new ones
+    viewport.centerSpringX.animationTime =
+      viewport.centerSpringY.animationTime =
+      viewport.zoomSpring.animationTime =
+      0.01;
+    
+    // callback
+    f()
+    
+    // restore values
+    viewport.centerSpringX.animationTime = oldValues.centerSpringXAnimationTime;
+    viewport.centerSpringY.animationTime = oldValues.centerSpringYAnimationTime;
+    viewport.zoomSpring.animationTime = oldValues.zoomSpringAnimationTime;
+    }
+
+
 
 function disable_buttons(button_ids) {
 
@@ -485,8 +533,6 @@ function build_map() {
 
 function show_map() {
     cur_view = "map";
-    save_annotations();
-
 
     $("#view_button_text").empty();
     $("#view_button_text").append(
@@ -518,7 +564,7 @@ function show_map() {
 }
 
 
-function show_image() {
+function show_image(image_name) {
     cur_view = "image";
 
     $("#view_button_text").empty();
@@ -528,7 +574,20 @@ function show_image() {
     $("#map_view_container").hide();
     $("#image_view_container").show();
 
-    create_image_set_table();
+
+    change_image(image_name);
+    /*
+    if (cur_panel === "annotation") {
+        show_annotation(true);
+    }
+    else if (cur_panel === "prediction") {
+        show_prediction(true);
+    }*/
+/*
+    let dzi_image_path = image_to_dzi[cur_img_name];
+    viewer.open(dzi_image_path);
+
+    create_image_set_table();*/
 }
 
 function save_annotations() {
@@ -538,12 +597,14 @@ function save_annotations() {
     {
         action: "save_annotations",
         annotations: JSON.stringify(annotations),
+        excess_green_record: JSON.stringify(excess_green_record)
     },
     
     function(response, status) {
 
         if (response.error) {
-            create_image_set_table();
+            //create_image_set_table();
+            show_modal_message("Error", "Failed to save.");
         }
         else {
             console.log("Annotations Saved!");
@@ -642,333 +703,528 @@ $(window).bind('beforeunload', function(event){
     });
 });
 
+function create_overlays_table() {
+
+    let models_col_width = "215px";
+    let overlay_colors = [
+        "#0080C0",        
+        "#FF4040"
+    ];
+    let overlay_names = [
+        "annotations",
+        "predictions"
+    ];
+    for (let i = 0; i < overlay_names.length; i++) {
+        let overlay_color = overlay_colors[i];
+        let overlay_name = overlay_names[i];
+        let model_row_id = overlay_name + "_row";
+        $("#overlays_table").append(`<tr id=${model_row_id}>` +
+            `<td><label class="table_label" ` +
+            `style="width: ${models_col_width}; background-color: ${overlay_color};">` +
+            `<table class="transparent_table">` +
+            `<tr>` + 
+            `<td style="width: 40px">` +
+                `<label class="switch">` +
+                `<input id=${overlay_name} type="checkbox" checked></input>` +
+                `<span class="switch_slider round"></span></label>` +
+            `</td>` +
+            `<td style="width: 100%">` +
+                `<div style="margin-left: 8px">${overlay_name}</div>` +
+            `</td>` +
+            `</tr>` +
+            `</table>` +
+            `</label>` +
+            `</td>`+
+            `</tr>`);
+    }
+}
+
 
 function confirm_use_predictions() {
-    annotations[cur_img_name]["annotations"] = predictions[cur_img_name]["annotations"];
+    annotations[cur_img_name]["annotations"] = [];
 
+    let slider_val = Number.parseFloat($("#confidence_slider").val()).toFixed(2);
     for (annotation of predictions[cur_img_name]["annotations"]) {    
         let bodies = Array.isArray(annotation.body) ?
         annotation.body : [ annotation.body ];
         let highlightBody = bodies.find(b => b.purpose == 'highlighting');
+        let scoreTag = bodies.find(b => b.purpose == 'score');
 
-        let index = annotation["body"].indexOf(highlightBody);
-        if (index !== -1) {
-            annotation["body"].splice(index, 1);
+        if (scoreTag.value >= slider_val) {
+            let index = annotation["body"].indexOf(highlightBody);
+            if (index !== -1) {
+                annotation["body"].splice(index, 1);
+            }
+            annotations[cur_img_name]["annotations"].push(annotation);
         }
-
     }
     $("#save_icon").css("color", "#ed452b");
     close_modal();
-    return_to_annotate();
+    //return_to_annotate();
+    show_annotation();
 }
 
 
+function show_annotation(force_reset=false) {
+
+    $("#show_annotation_button").addClass("tab-btn-active");
+    $("#show_prediction_button").removeClass("tab-btn-active");
+    $("#show_segmentation_button").removeClass("tab-btn-active");
+
+    
+    if (((viewer == null) || (force_reset)) || (cur_panel === "segmentation"))
+        cur_bounds = null;
+    else
+        cur_bounds = viewer.viewport.getBounds();
+
+    cur_panel = "annotation";
+    //$("#segmentation_viewer").hide();
+    $("#prediction_panel").hide();
+    $("#segmentation_panel").hide();
+    //$("#seadragon_viewer").show();
+    $("#annotation_panel").show();
+
+    $("#seadragon_viewer").empty();
 
 
-function return_to_annotate() {
 
-    anno.readOnly = false;
-    anno.clearAnnotations();
+    create_viewer_and_anno();
+    console.log("setting read only status");
+    anno.readOnly = annotations[cur_img_name]["status"] === "completed_for_training";
+    add_annotations();
 
-    for (annotation of annotations[cur_img_name]["annotations"]) {
-        anno.addAnnotation(annotation);
-    }
 
-    //$("#predict_button").show();
-    //$("#retrieve_button").show();
-    //$("#use_predictions_button").hide();
-    //$("#continue_annotation_button").hide();
-
-    $("#prediction_view_panel").hide();
-    $("#annotation_edit_panel").show();
-
-    //$("#predict_button").html("Request Prediction");
-    //$("#retrieve_button").html("Show Most Recent Predictions");
+    let dzi_image_path = image_to_dzi[cur_img_name];
+    
+    
+    viewer.open(dzi_image_path);
+    //console.log(cur_bounds);
     
 
+
 }
-function magnify(imgID, zoom) {
-    var img, glass, w, h, bw;
-    img = document.getElementById(imgID);
-    /*create magnifier glass:*/
-    glass = document.createElement("DIV");
-    glass.setAttribute("class", "img-magnifier-glass");
-    /*insert magnifier glass:*/
-    img.parentElement.insertBefore(glass, img);
-    /*set background properties for the magnifier glass:*/
-    glass.style.backgroundImage = "url('" + img.src + "')";
-    glass.style.backgroundRepeat = "no-repeat";
-    glass.style.backgroundSize = (img.width * zoom) + "px " + (img.height * zoom) + "px";
-    bw = 3;
-    w = glass.offsetWidth / 2;
-    h = glass.offsetHeight / 2;
-    /*execute a function when someone moves the magnifier glass over the image:*/
-    glass.addEventListener("mousemove", moveMagnifier);
-    img.addEventListener("mousemove", moveMagnifier);
-    /*and also for touch screens:*/
-    glass.addEventListener("touchmove", moveMagnifier);
-    img.addEventListener("touchmove", moveMagnifier);
-    function moveMagnifier(e) {
-      var pos, x, y;
-      /*prevent any other actions that may occur when moving over the image*/
-      e.preventDefault();
-      /*get the cursor's x and y positions:*/
-      pos = getCursorPos(e);
-      x = pos.x;
-      y = pos.y;
-      /*prevent the magnifier glass from being positioned outside the image:*/
-      if (x > img.width - (w / zoom)) {x = img.width - (w / zoom);}
-      if (x < w / zoom) {x = w / zoom;}
-      if (y > img.height - (h / zoom)) {y = img.height - (h / zoom);}
-      if (y < h / zoom) {y = h / zoom;}
-      /*set the position of the magnifier glass:*/
-      glass.style.left = (x - w) + "px";
-      glass.style.top = (y - h) + "px";
-      /*display what the magnifier glass "sees":*/
-      glass.style.backgroundPosition = "-" + ((x * zoom) - w + bw) + "px -" + ((y * zoom) - h + bw) + "px";
-    }
-    function getCursorPos(e) {
-      var a, x = 0, y = 0;
-      e = e || window.event;
-      /*get the x and y positions of the image:*/
-      a = img.getBoundingClientRect();
-      /*calculate the cursor's x and y coordinates, relative to the image:*/
-      x = e.pageX - a.left;
-      y = e.pageY - a.top;
-      /*consider any page scrolling:*/
-      x = x - window.pageXOffset;
-      y = y - window.pageYOffset;
-      return {x : x, y : y};
-    }
-  }
-
-function imageZoom(imgID, resultID) {
-
-    //let margin_x = (($("#seadragon_viewer").outerWidth() - $("#my_image_container").outerWidth()) / 2);
-    //let margin_y = (($("#seadragon_viewer").outerHeight() - $("#my_image_container").outerHeight()) / 2) - 1;
-
-    let margin_x = (($("#segmentation_viewer").outerWidth() - $("#my_image_container").outerWidth()) / 2);
-    let margin_y = (($("#segmentation_viewer").outerHeight() - $("#my_image_container").outerHeight()) / 2) - 1;
-
-    console.log("segmentation_viewer outer width", $("#segmentation_viewer").outerWidth());
-    console.log("my_image_container outer width", $("#my_image_container").outerWidth());
-    console.log("segmentation_viewer outer height", $("#segmentation_viewer").outerHeight());
-    console.log("my_image_container outer height", $("#my_image_container").outerHeight());
-
-    console.log("margin_x", margin_x);
-    console.log("margin_y", margin_y);
-
-
-    var img, lens, result, cx, cy;
-    img = document.getElementById(imgID);
-    result = document.getElementById(resultID);
-    /*create lens:*/
-    lens = document.createElement("DIV");
-    lens.setAttribute("class", "img-zoom-lens");
-    /*insert lens:*/
-    img.parentElement.insertBefore(lens, img);
-    /*calculate the ratio between result DIV and lens:*/
-    cx = result.offsetWidth / lens.offsetWidth;
-    cy = result.offsetHeight / lens.offsetHeight;
-    /*set background properties for the result DIV:*/
-    result.style.backgroundImage = "url('" + img.src + "')";
-    result.style.backgroundSize = (img.width * cx) + "px " + (img.height * cy) + "px";
-    //result.style.backgroundSize = (result.width * cx) + "px " + (result.height * cy) + "px";
-
-    /*execute a function when someone moves the cursor over the image, or the lens:*/
-    lens.addEventListener("mousemove", moveLens);
-    img.addEventListener("mousemove", moveLens);
-    /*and also for touch screens:*/
-    lens.addEventListener("touchmove", moveLens);
-    img.addEventListener("touchmove", moveLens);
-    function moveLens(e) {
-      var pos, x, y;
-      /*prevent any other actions that may occur when moving over the image:*/
-      e.preventDefault();
-      /*get the cursor's x and y positions:*/
-      pos = getCursorPos(e);
-      /*calculate the position of the lens:*/
-      x = pos.x - (lens.offsetWidth / 2) + margin_x;
-      y = pos.y - (lens.offsetHeight / 2) + margin_y;
-      /*prevent the lens from being positioned outside the image:*/
-      if (x > img.width + margin_x - lens.offsetWidth) {x = img.width + margin_x  - lens.offsetWidth;}
-      if (x < margin_x) {x = margin_x;}
-      if (y > img.height + margin_y - lens.offsetHeight) {y = img.height + margin_y - lens.offsetHeight;}
-      if (y < margin_y) {y = margin_y;}
-      /*set the position of the lens:*/
-      lens.style.left = x + "px";
-      lens.style.top = y + "px";
-      /*display what the lens "sees":*/
-      result.style.backgroundPosition = "-" + ((x - margin_x) * cx) + "px -" + ((y - margin_y) * cy) + "px";
-    }
-    function getCursorPos(e) {
-      var a, x = 0, y = 0;
-      e = e || window.event;
-      /*get the x and y positions of the image:*/
-      a = img.getBoundingClientRect();
-      /*calculate the cursor's x and y coordinates, relative to the image:*/
-      x = e.pageX - a.left;
-      y = e.pageY - a.top;
-      /*consider any page scrolling:*/
-      x = x - window.pageXOffset;
-      y = y - window.pageYOffset;
-      return {x : x, y : y};
-    }
-  }
 
 
 
-function show_segmentation() {
+function retrieve_predictions() {
+
+    $("#predictions_available").hide();
+    $.post($(location).attr('href'),
+    {
+        action: "retrieve_prediction",
+        image_name: cur_img_name
+    },
+
+    function(response, status) {
+        console.log("got response");
+
+        if (response.error) {
+  
+        }
+        else {
+            
+            $("#predictions_available").show();
+            predictions[cur_img_name] = response.predictions[cur_img_name];
+            
+            for (annotation of predictions[cur_img_name]["annotations"]) {
+                annotation["body"].push({"value": "COLOR_1", "purpose": "highlighting"})
+            }
+
+            
+            //$("#prediction_switch").prop("checked", true);
+            //$("#prediction_switch").change();
+        }
+        add_annotations();
+    });
+}
+
+function show_prediction(force_reset=false) {
+
+    $("#show_annotation_button").removeClass("tab-btn-active");
+    $("#show_prediction_button").addClass("tab-btn-active");
+    $("#show_segmentation_button").removeClass("tab-btn-active");
+
+    if (((viewer == null) || (force_reset)) || (cur_panel === "segmentation"))
+        cur_bounds = null;
+    else
+        cur_bounds = viewer.viewport.getBounds();
+    
+    cur_panel = "prediction";
+
+
+    $("#annotation_panel").hide();
+    $("#segmentation_panel").hide();
+    $("#prediction_panel").show();
+    //$("#seadragon_viewer").show();
+
+    $("#seadragon_viewer").empty();
+
+        
+    create_viewer_and_anno();
+    anno.readOnly = true;
+
+    retrieve_predictions();
+    
+    
+    let dzi_image_path = image_to_dzi[cur_img_name];
+    viewer.open(dzi_image_path);
+}
+
+function show_segmentation_inner() {
+
+    cur_panel = "segmentation";
+
+    $("#show_annotation_button").removeClass("tab-btn-active");
+    $("#show_prediction_button").removeClass("tab-btn-active");
+    $("#show_segmentation_button").addClass("tab-btn-active");
+
+
+    //$("#seadragon_viewer").hide();
+    $("#annotation_panel").hide();
+    $("#prediction_panel").hide();
+    //$("#segmentation_viewer").show();
+    $("#segmentation_panel").show();
+
+    disable_buttons(["request_segment_button"]);
+    $("#image_loader").show();
+
     console.log("test button clicked");
 
     let timestamp = new Date().getTime();
 
-    let image_src = "/plant_detection/usr/data/image_sets/" + image_set_info["farm_name"] + "/"
+    let exg_src = "/plant_detection/usr/data/image_sets/" + image_set_info["farm_name"] + "/"
                     + image_set_info["field_name"] + "/" + image_set_info["mission_date"] + 
-                    "/segmentations/" + cur_img_name + ".png?t=" + timestamp;
-    //let image_src = "/plant_detection/usr/data/tmp_out_test.png?t=" + timestamp;
-
-    $("#seadragon_viewer").hide();
-    $("#annotation_panel").hide();
-    $("#segmentation_viewer").show();
-    $("#segmentation_panel").show();
-
-    $("#segmentation_viewer").empty();
-    $("#my_result").css("backgroundImage", "none");
-    //$("#seadragon_viewer").empty();
+                    "/excess_green/" + cur_img_name + ".png"; //?t=" + timestamp;
+    let rgb_src = "/plant_detection/usr/data/image_sets/" + image_set_info["farm_name"] + "/"
+                    + image_set_info["field_name"] + "/" + image_set_info["mission_date"] + 
+                    "/images/" + cur_img_name + image_set_info["image_ext"]; //".JPG"; //?t=" + timestamp;
 
 
-    let viewer_width = $("#segmentation_viewer").width(); //+ "px";
-    let viewer_height = $('#segmentation_viewer').height(); // + "px";
+    let min_val = excess_green_record[cur_img_name]["min_val"];
+    let max_val = excess_green_record[cur_img_name]["max_val"];
+    let sel_val = excess_green_record[cur_img_name]["sel_val"];
 
-    /*
-    $("#seadragon_viewer").append(
-       // `<div style="width: 650px; height: 650px; display: block">` +
-        //`<div style="position: relative;">` +
-        //`<div style="width: ${width}; height: ${height}; overflow-x: auto; overflow-y: auto;">`  +
-        `<div style="width: ${width}; height: ${height};">` +
-            //`<img id="myimage" src="${image_src}" width="325px" height="325px"></img>` +
-            //`<div id="myresult" style="width: 325px; height: 325px;"></div>` +
-            //`<img id="myimage" src="${image_src}" width="5000" height="5000"></img>` +
-            `<img id="myimage" src="${image_src}" width="${width}" height="${height}"></img>` +
-            //`<div id="myresult" style="width: 0px; height: 0px;"></div>` +
-        `</div>`);*/
+    $("#threshold_slider_container").empty();
+    $("#threshold_slider_container").append(
+        `<input type="range" min="${min_val}" max="${max_val}" step="0.01" value="${sel_val}" class="slider" id="threshold_slider">`
+    );
+    $("#threshold_slider_val_container").empty();
+    $("#threshold_slider_val_container").append(
+        `<div id="threshold_slider_val" class="header2">${sel_val}</div>`
+    );
 
+    $("#threshold_slider").on("input", function() {
+        $("#save_icon").css("color", "#ed452b");
+        excess_green_record[cur_img_name]["sel_val"] = Number.parseFloat($("#threshold_slider").val()).toFixed(2);
+        $("#threshold_slider_val").html( excess_green_record[cur_img_name]["sel_val"]);
+    });
 
-    let my_image = new Image();
-    let org_height;
-    let org_width;
-    my_image.onload = function() {
-        org_height = my_image.height;
-        org_width = my_image.width;
-        //alert('The image size is ' + width + '*' + height);
-        console.log("org_height", org_height);
+    //var base64string = "data:image/png;base64,iVBOR..........",
+    //threshold = 155, // 0..255
 
+    let thresh_val = $("#threshold_slider").val();
+    let threshold = range_map(thresh_val, -2, 2, 0, 255);
+    console.log("threshold", threshold);
+
+    let canvas = document.createElement("canvas");
+    let image_canvas = document.createElement("canvas");
+    let exg_ctx = canvas.getContext("2d");
+    let rgb_ctx = canvas.getContext("2d");
+    canvas.id = "my_canvas";
+    let exg_image = new Image();
+    let rgb_image = new Image();
+    //let zoomCtx = $("#my_result").append(`<canvas></canvas>`).getContext("2d");
+
+    let viewer_width = $("#seadragon_viewer").width();
+    let viewer_height = $('#seadragon_viewer').height(); 
+
+    exg_image.onload = function() {
+        rgb_image.onload = function() {
+
+        let org_height = rgb_image.height;
+        let org_width = rgb_image.width;
+        // let frac_h = viewer_height / org_height;
+        // let frac_w = viewer_width / org_width;
+        // let rescale = Math.min(frac_h, frac_w);
         
-        frac_h = viewer_height / org_height;
-        frac_w = viewer_width / org_width;
-        let rescale = Math.min(frac_h, frac_w);
-        
-        console.log("viewer_height", viewer_height);
-        console.log("viewer_width", viewer_width);
-        console.log("frac_h", frac_h);
-        console.log("frac_w", frac_w);
-        console.log("rescale", rescale);
-        let zoom_level = 15;
-        let full_height = rescale * org_height;
-        let full_width = rescale * org_width;
-        my_image.id = "my_image";
-        my_image.height = full_height;
-        my_image.width = full_width;
+        // let full_height = rescale * org_height;
+        // let full_width = rescale * org_width;
+        // rgb_image.id = "my_image";
+        // rgb_image.height = full_height;
+        // rgb_image.width = full_width;
 
+        rgb_image.height = org_height;
+        rgb_image.width = org_width;
+
+        exg_image.height = org_height;
+        exg_image.width = org_width;
+
+        var w = rgb_ctx.canvas.width  = rgb_image.width,
+            h = rgb_ctx.canvas.height = rgb_image.height;
+
+
+        //rgb_ctx.globalAlpha = 0.2;
+        //image_ctx.drawImage(org_image, 0, 0, w, h);
+        //ctx.drawImage(image, 0, 0, w, h);      // Set image to Canvas context
+        //var d = ctx.getImageData(0, 0, w, h);  // Get image Data from Canvas context
         
-        /*$("#seadragon_viewer").append(
-            `<div id="my_image_container" style="position: relative;">` +
-            `</div>`
-        );*/
+        rgb_ctx.drawImage(rgb_image, 0, 0, w, h);      // Set image to Canvas context
+        var d_rgb = rgb_ctx.getImageData(0, 0, w, h);  // Get image Data from Canvas context
+
+        exg_ctx.drawImage(exg_image, 0, 0, w, h);      // Set image to Canvas context
+        var d_exg = exg_ctx.getImageData(0, 0, w, h);  // Get image Data from Canvas context
+        
+        //console.log(d.data);
+
+/*
+        for (var i=0; i<d.data.length; i+=4) { // 4 is for RGBA channels
+            // R=G=B=R>T?255:0
+            d.data[i] = d.data[i+1] = d.data[i+2] = d.data[i+1] > threshold ? 255 : 0;
+        }*/
+        //for (var i=0; i<d.data.length; i+=1) { // 4 is for RGBA channels
+        
+        //let j = 0;
+        num_foreground = 0;
+        for (var i=0; i<d_rgb.data.length; i+=4) {    
+            // R=G=B=R>T?255:0
+            /*
+            if (d_exg.data[j] > threshold) {
+                d_rgb.data[i] = 0;
+                d_rgb.data[i+1] = 0;
+                d_rgb.data[i+2] = 0;
+
+            }*/
+            is_foreground = d_exg.data[i] > threshold;
+            d_rgb.data[i+3] = is_foreground ? 255 : 30;
+            if (is_foreground) {
+                num_foreground++;
+            }
+            //j++;
+        }
+        let percent_vegetation = ((num_foreground / (d_rgb.data.length / 4)) * 100).toFixed(2);
+        excess_green_record[cur_img_name]["ground_cover_percentage"] = percent_vegetation;
+
+        rgb_ctx.putImageData(d_rgb, 0, 0);             // Apply threshold conversion
+        //document.body.appendChild(ctx.canvas); // Show result
+        //$("#seadragon_viewer").append(ctx.canvas);
+        
+        let container_height = $("#seadragon_viewer").height() + "px";
+        let container_width = $("#seadragon_viewer").width() + "px";
+
         /*
         $("#seadragon_viewer").append(
-            `<table><tr><td id="seg_table"></td></tr></table>`
-        );*/
-        let container_height = full_height + "px";
-        let container_width = full_width + "px";
-        /*
-        $("#seadragon_viewer").append(
-            `<div id="external_container" style="margin: auto; height: ${container_height}; width: ${container_width}">` +
-            `<div id="my_image_container"></div></div>`
-        );*/
-        //$("#segmentation_viewer").append(
-        $("#segmentation_viewer").append(
             `<div id="my_image_container" style="margin: auto auto; height: ${container_height}; width: ${container_width}">` +
             `</div>`
         );
+        */
+        //
+
+        $("#image_loader").hide();
+
+        /*
+        $("#my_image_container").css("height", container_height);
+        $("#my_image_container").css("width", container_width);
+        $("#my_image_container").show();*/
+        //}
+        $("#my_image_container").empty();
+        /*
         $("#my_image_container").append(
-            my_image
+            org_image
+        );*/
+
+        
+        $("#my_image_container").append(
+            rgb_ctx.canvas
         );
+
+        enable_buttons(["request_segment_button"]);
+        
 
         //$("#right_panel").append(`<div id="my_result" style="border: 1px solid white; height: 280px"></div>`);
-        imageZoom("my_image", "my_result");
-        //magnify("my_image", 10);
-
-/*
-        my_image.height = full_height * zoom_level;
-        my_image.width = full_width * zoom_level;
-        
-        viewer_height = viewer_height + "px";
-        viewer_width = viewer_width + "px";
-        
-        $("#seadragon_viewer").append(
-            `<div id="my_image_container" style="width: ${viewer_width}; height: ${viewer_height}; overflow-x: auto; overflow-y: auto;"></div>`
-        );
-        $("#my_image_container").append(
-            my_image
-        );
-        //magnify("my_image", 10);
-*/
+        //imageZoom("my_image", "my_result")
+        };
     };
 
 
-    my_image.src = image_src;
 
-        //`</div>`);
+    
+    exg_image.src = exg_src;
+    rgb_image.src = rgb_src;
+}
 
-    //$("#right_panel").append(`<div id="myresult" style="border: 1px solid white; height: 280px"></div>`);
 
-        // `<table class="transparent_table">` +
-        //     `<tr>` +
-        //         `<td>` +
-        //             `<img id="myimage" src="${image_src}" width="425px" height="425px"></img>` +
-        //         `</td>` +
-        //         `<td>` +
-        //             `<div id="myresult" style="width: 425px; height: 425px;"></div>` +
-        //         `</td>` +
-        //     `</tr>` +
-        // `</table>`);
+function add_annotations() {
+    console.log("add_annotations");
+    anno.clearAnnotations();
+    for (annotation of annotations[cur_img_name]["annotations"]) {
+        if ((cur_panel !== "prediction") || ($("#annotations").is(":checked"))) {
+            anno.addAnnotation(annotation);
+        }
+    }
+    let slider_val = Number.parseFloat($("#confidence_slider").val()).toFixed(2);
+    if ((cur_panel == "prediction") && (cur_img_name in predictions)) {
+        if ($("#predictions").is(":checked")) {
+            for (annotation of predictions[cur_img_name]["annotations"]) {
 
-    //
+                let bodies = Array.isArray(annotation.body) ?
+                annotation.body : [ annotation.body ];
+                let scoreTag = bodies.find(b => b.purpose == 'score');
+                if (!scoreTag || scoreTag.value >= slider_val) {
+                    anno.addAnnotation(annotation);
+                }
+                
+            }
+        }
+    }
+}
+
+
+function show_segmentation() {
+
+    let container_height = $("#seadragon_viewer").height() + "px";
+    let container_width = $("#seadragon_viewer").width() + "px";
+    cur_bounds = viewer.viewport.getBounds();
+    $("#seadragon_viewer").empty();
+    $("#seadragon_viewer").append(
+        `<div id="my_image_container" class="scrollable_area" style="cursor: grab; height: ${container_height}; width: ${container_width}; border: none">` +
+        `</div>`
+    );
+    let pos = { top: 0, left: 0, x: 0, y: 0};
+
+    const ele = document.getElementById('my_image_container');
+    const mouseDownHandler = function(e) {
+
+        ele.style.cursor = 'grabbing';
+        ele.style.userSelect = 'none';
+
+        pos = {
+            left: this.scrollLeft,
+            top: this.scrollTop,
+            x: e.clientX,
+            y: e.clientY
+        };
+
+        document.addEventListener('mousemove', mouseMoveHandler);
+        document.addEventListener('mouseup', mouseUpHandler);
+    };
+
+
+    const mouseMoveHandler = function (e) {
+        // How far the mouse has been moved
+        const dx = e.clientX - pos.x;
+        const dy = e.clientY - pos.y;
+
+        // Scroll the element
+        ele.scrollTop = pos.top - dy;
+        ele.scrollLeft = pos.left - dx;
+    };
+
+    const mouseUpHandler = function () {
+        document.removeEventListener('mousemove', mouseMoveHandler);
+        document.removeEventListener('mouseup', mouseUpHandler);
+    
+        ele.style.cursor = 'grab';
+        ele.style.removeProperty('user-select');
+    };
+
+    ele.addEventListener('mousedown', mouseDownHandler);
+
+    show_segmentation_inner();
+}
+
+
+function confirm_restart_model() {
+    $("#modal_button_container").empty();
+    $("#restart_loader").show();
+    
+    //waiting_for_restart = true;
+    $.post($(location).attr('href'),
+    {
+        action: "restart_model"
+    },
+    
+    function(response, status) {
+        console.log(response);
+        /*
+        while (waiting_for_restart) {
+
+        }
+        $("#restart_loader").hide();*/
+        //annotations = response.annotations;
+    });
+
+
+}
+
+function restart_model() {
+
+    $("#modal_head").empty();
+    $("#modal_body").empty();
+
+    /*
+    $("#modal_head").append(
+    `<span class="close close-hover" id="modal_close">&times;</span>` +
+    `<p>Are you sure?</p>`);*/
+    $("#modal_head").append(
+        `<p>Restart model?</p>`);
+
+    $("#modal_body").append(`<p id="modal_message" align="left"></p>`);
+    $("#modal_message").html("The model will be reset to its initial state. The status of all fully annotated images will be " + 
+    "set to 'completed_for_testing'.");
+
+    $("#modal_body").append(`<div id="modal_button_container">
+    <button class="std-button std-button-hover" `+
+    `id="modal_restart_button" style="width: 200px" onclick="confirm_restart_model()"><span>Restart</span></button>` +
+    `<button class="std-button std-button-hover" ` +
+    `id="modal_cancel_button" style="width: 200px" onclick="close_modal()"><span>Cancel</span></button>` +
+    `</div>`);
+    $("#modal_body").append(`<div id="restart_loader" class="loader" hidden></div>`);
+
+    $("#modal_close").click(function() {
+        close_modal();
+    });
+
+    $("#modal").css("display", "block");
 }
 
 
 
+function lower_slider() {
+    let slider_val = parseFloat($("#confidence_slider").val());
+    if (slider_val > 0.25) {
+        slider_val = slider_val - 0.01;
+        $("#confidence_slider").val(slider_val).change();
+    }
+}
 
+function raise_slider() {
+    let slider_val = parseFloat($("#confidence_slider").val());
+    if (slider_val < 1.0) {
+        slider_val = slider_val + 0.01;
+        $("#confidence_slider").val(slider_val).change();
+    }
+}
 
 $(document).ready(function() {
     window.setInterval(refresh, 90000); // 1.5 minutes
     ask_to_continue_handle = window.setTimeout(ask_to_continue, 7200000); // 2 hours
 
 
+    create_overlays_table();
 
 
     image_set_info = data["image_set_info"];
     dzi_image_paths = data["dzi_image_paths"];
     annotations = data["annotations"];
     metadata = data["metadata"];
+    excess_green_record = data["excess_green_record"];
 
     pending_predictions = {};
     for (image_name of Object.keys(annotations)) {
         pending_predictions[image_name] = false;
     }
 
+    
 
     let socket = io();
     socket.emit('join_message', image_set_info["farm_name"] + "/" + image_set_info["field_name"] + "/" + image_set_info["mission_date"]);
@@ -994,19 +1250,56 @@ $(document).ready(function() {
             else {
                 $("#model_training_status").html("no");
             }
+        }
+        if ("restarted" in status) {
+            for (image_name of Object.keys(annotations)) {
+                if (annotations[image_name]["status"] === "completed_for_training") {
+                    annotations[image_name]["status"] = "completed_for_testing";
+                }
+            }
+            close_modal();
+            create_image_set_table();
+            set_image_status_combo();
+            /*
+            let cur_img_status = $("#status_combo").val();
+            
+            if (cur_img_status === "completed_for_training") {
+                $("#status_combo").val("completed_for_testing").change();
+            }*/
 
-            if ("prediction_image_name" in status) {
+            //waiting_for_restart = false;
+        }
+
+
+        if ("prediction_image_names" in status) {
+
+            let prediction_image_names = status["prediction_image_names"].split(",");
+
+            console.log("pending_predictions", pending_predictions);
+            console.log("prediction_image_names", prediction_image_names);
+            /*
+            let index = pending_predictions.indexOf(status["prediction_image_name"]);
+            if (index !== -1) {
+                pending_predictions.splice(index, 1);
+            }*/
+            if (prediction_image_names.length == 1) {
+                let prediction_image_name = prediction_image_names[0];
+
+                pending_predictions[prediction_image_name] = false;
                 console.log("pending_predictions", pending_predictions);
-                /*
-                let index = pending_predictions.indexOf(status["prediction_image_name"]);
-                if (index !== -1) {
-                    pending_predictions.splice(index, 1);
-                }*/
-                pending_predictions[status["prediction_image_name"]] = false;
-                console.log("pending_predictions", pending_predictions);
-                console.log(cur_img_name, status["prediction_image_name"]);
-                if (cur_img_name === status["prediction_image_name"]) {
-                    enable_buttons(["predict_button"]);
+                console.log(cur_img_name, prediction_image_name);
+                if (cur_img_name === prediction_image_name) {
+                    enable_buttons(["request_prediction_button"])
+                    console.log("cur_panel", cur_panel);
+                    if (cur_panel === "prediction") {
+                        show_prediction();
+                    }
+                }
+            }
+            else {
+                enable_buttons(["request_result_button"]);
+                if (cur_panel === "prediction") {
+                    show_prediction();
                 }
             }
         }
@@ -1019,22 +1312,23 @@ $(document).ready(function() {
 
     image_to_dzi = {};
     for (dzi_image_path of dzi_image_paths) {
-        let image_name = basename(dzi_image_path)
+        let image_name = basename(dzi_image_path);
         let extensionless_name = image_name.substring(0, image_name.length - 4);
         image_to_dzi[extensionless_name] = dzi_image_path;
     }
 
+    let init_image_name = basename(dzi_image_paths[0]);
+    cur_img_name = init_image_name.substring(0, init_image_name.length - 4);
 
-    cur_img_name = basename(dzi_image_paths[0]);
+    console.log(cur_img_name);
     cur_view = "image";
+    cur_panel = "annotation";
 
+    create_image_set_table();
 
     if ((!(metadata["missing"]["latitude"]) && !(metadata["missing"]["longitude"])) && (!(metadata["missing"]["area_m2"]))) {
 
-        $("#view_button_container").append(
-            `<button style="width: 140px; margin: 0px;" id="view_button" class="table_button table_button_hover">` +
-            `<div id="view_button_text"></div></button>`
-        );
+        $("#view_button_container").show();
 
 
         $("#view_button").click(function() {
@@ -1042,15 +1336,13 @@ $(document).ready(function() {
                 show_map();
             }
             else {
-                show_image();
+                show_image(cur_img_name);
             }
         });
     }
 
-
-
-    create_viewer_and_anno();
-    show_image();
+    //show_image();
+    show_annotation();
 
     $("#save_button").click(function() {
         window.clearTimeout(ask_to_continue_handle);
@@ -1102,9 +1394,29 @@ $(document).ready(function() {
         });
     });
 
-    $("#predict_button").click(function() {
+    $("#request_result_button").click(function() {
+        disable_buttons(["request_result_button"]);
+        $.post($(location).attr("href"),
+        {
+            action: "get_result"
+        },
+        function(response, status) {
+            if (response.error) {
+                show_modal_message("Error", response.message);
+            }
+            else {
+                show_modal_message("Success", 
+                "The result request was successfully submitted. Upon completion, the " +
+                "results will be preserved under this image set's 'Results' tab.");
+            }
+        });
 
-        disable_buttons(["predict_button"]);
+    });
+
+
+    $("#request_prediction_button").click(function() {
+
+        disable_buttons(["request_prediction_button"]);
         console.log("pushing", cur_img_name);
         pending_predictions[cur_img_name] = true;
         $.post($(location).attr('href'),
@@ -1115,6 +1427,7 @@ $(document).ready(function() {
 
         function(response, status) {
             console.log("got response");
+            
         });
     });
 
@@ -1149,77 +1462,27 @@ $(document).ready(function() {
         annotations[cur_img_name]["available_for_training"] = true;
     })*/
 
-    $("#retrieve_button").click(function() {
+    /*
+    $("#prediction_switch").change(function() {
+        add_annotations();
+    });*/
 
-
-        $.post($(location).attr('href'),
-        {
-            action: "retrieve_prediction",
-            image_name: cur_img_name
-        },
-
-        function(response, status) {
-            console.log("got response");
-
-            if (response.error) {
-                show_modal_message("Error", response.message);
-            }
-            else {
-                console.log("showing predictions");
-                predictions[cur_img_name] = response.predictions[cur_img_name];
-
-                anno.clearAnnotations();
-
-                //$("#right_panel").css("background-color", "pink"); //#222621;")
-                //$("#predict_button").html("Use Predictions as Annotations");
-                //$("#retrieve_button").html("Continue Annotating");
-
-                //$("#predict_button").hide();
-                //$("#retrieve_button").hide();
-                //$("#use_predictions_button").show();
-                //$("#continue_annotation_button").show();
-
-                $("#annotation_edit_panel").hide();
-                $("#prediction_view_panel").show();
-                
-                anno.readOnly = true;
-                //create_anno(true);
-                for (annotation of annotations[cur_img_name]["annotations"]) {
-                    anno.addAnnotation(annotation);
-                }
-                
-                for (annotation of predictions[cur_img_name]["annotations"]) {
-                    
-                    annotation["body"].push({"value": "COLOR_1", "purpose": "highlighting"})
-                    
-                    //console.log(annotation);
-                    anno.addAnnotation(annotation); //, {readOnly: true}); //, true);
-                }
-
-                //create_anno(false);
-
-                //anno.readOnly = false;
-                
-
-            }
-        });
+    $("#overlays_table").change(function() {
+        add_annotations();
     });
 
-    $("#continue_annotation_button").click(function() {
-        return_to_annotate();
-    });
 
-    $("#segment_button").click(function() {
-        show_segmentation();
-    });
+    $("#score_switch").change(function() {
+        add_annotations();
+    })
 
-    $("#threshold_slider").on("input", function() {
-        let slider_val = Number.parseFloat($("#threshold_slider").val()).toFixed(2);
-        $("#slider_val").html(slider_val);
-    });
+
+
 
     $("#request_segment_button").click(function() {
         console.log("requesting segmentation");
+        show_segmentation_inner();
+        /*
 
         let threshold_val = Number.parseFloat($("#threshold_slider").val()).toFixed(2).toString();
         $.post($(location).attr('href'),
@@ -1237,10 +1500,43 @@ $(document).ready(function() {
                 show_segmentation();
             }
 
-
-        });
+        });*/
 
     });
 
+
+    $("#confidence_slider").change(function() {
+        let slider_val = Number.parseFloat($("#confidence_slider").val()).toFixed(2);
+
+        $("#confidence_slider_val").html(slider_val);
+        add_annotations();
+        //set_count_chart_data();
+        //update_count_chart();
+    });
+
+    $("#confidence_slider").on("input", function() {
+        let slider_val = Number.parseFloat($("#confidence_slider").val()).toFixed(2);
+        $("#confidence_slider_val").html(slider_val);
+    });
+
+
+    let score_handler;
+    $("#score_down").mousedown(function() {
+        lower_slider();
+        score_handler = setInterval(lower_slider, 300);
+    });
+
+    $("#score_down").mouseup(function() {
+        clearInterval(score_handler);
+    }); 
+
+    $("#score_up").mousedown(function() {
+        raise_slider();
+        score_handler = setInterval(raise_slider, 300);
+    });
+
+    $("#score_up").mouseup(function() {
+        clearInterval(score_handler);
+    });
 
 });

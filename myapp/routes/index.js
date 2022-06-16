@@ -19,8 +19,13 @@ router.get('/manage', landing.get_manage);
 router.post('/manage', landing.post_manage);
 //router.get('/results', landing.get_results);
 
-router.get('/viewer/:job_uuid/:farm_name/:field_name/:mission_date', landing.get_viewer);
-router.post('/viewer/:job_uuid/:farm_name/:field_name/:mission_date', landing.post_viewer);
+//router.get('/viewer/:job_uuid/:farm_name/:field_name/:mission_date', landing.get_viewer);
+//router.post('/viewer/:job_uuid/:farm_name/:field_name/:mission_date', landing.post_viewer);
+
+router.get('/viewer/:farm_name/:field_name/:mission_date/:timestamp', landing.get_viewer);
+router.post('/viewer/:farm_name/:field_name/:mission_date/:timestamp', landing.post_viewer);
+
+
 
 router.get('/transfer', landing.get_transfer);
 

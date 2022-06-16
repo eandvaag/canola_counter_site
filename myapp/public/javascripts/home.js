@@ -1,4 +1,4 @@
-
+global_disabled = false;
 /*
 
 function update_containers() {
@@ -154,7 +154,7 @@ function show_browse() {
         $("#mission_combo").empty();
         $("#right_panel").empty();
 
-        for (mission_date of natsort(Object.keys(image_sets_data[farm_name][field_name]))) {
+        for (mission_date of natsort(image_sets_data[farm_name][field_name])) {
             $("#mission_combo").append($('<option>', {
                 value: mission_date,
                 text: mission_date
@@ -206,7 +206,7 @@ function show_image_set_tab(sel_tab_btn_id) {
     //let tab_btn_id = tab_btn.id;
     let image_set_tab_ids = [
         "overview_tab_btn",
-        "train_tab_btn",
+        //"train_tab_btn",
         "results_tab_btn"
     ];
     /*
@@ -232,9 +232,10 @@ function show_image_set_tab(sel_tab_btn_id) {
     if (sel_tab_btn_id === "overview_tab_btn") {
         show_overview();
     }
+    /*
     else if (sel_tab_btn_id === "train_tab_btn") {
         show_train();
-    }
+    }*/
     else {
         show_results();
     }
@@ -466,8 +467,43 @@ function show_results() {
     let started_col_width = "180px";
     let finished_col_width = "180px";
 
+    
 
+
+    $.post($(location).attr('href'),
+    {
+        action: "fetch_results",
+        farm_name: $("#farm_combo").val(),
+        field_name: $("#field_combo").val(),
+        mission_date: $("#mission_combo").val(),
+    },
+    function(response, status) {
+
+        console.log("response", response);
+
+        if (response.results.length > 0) {
+            $("#tab_details").empty();
+            $("#tab_details").append(`<div style="height: 120px"></div>`);
+            $("#tab_details").append(`<table class="transparent_table" id="image_set_table_head"></table>`);
+            for (result of response.results) {
+                let date = timestamp_to_date(result);
+                
+                $("#image_set_table_head").append(`<tr>` +
+
+                `<td><div class="std-button std-button-hover" style="width: ${job_col_width};" ` +
+                    `onclick="view_result('${result}')"><span>${date}</span></div></td>` +
+                    `</tr>`);
+            }
+        }
+        else {
+            $("#tab_details").empty();
+            $("#tab_details").append(`<div style="height: 120px"></div>`);
+            $("#tab_details").append(`<div>No Results Found</div>`);
+        }
+    });
+    /*
     let job_recs = [];
+    
     for (job_uuid of image_sets_data[farm_name][field_name][mission_date]) {
         let job_url = "/plant_detection/usr/data/jobs/" + job_uuid + ".json";
     
@@ -521,17 +557,17 @@ function show_results() {
     }
     else {
         $("#tab_details").append(`<div>No Results Found</div>`);
-    }
+    }*/
 
 }
 
-function view_job(job_uuid) {
+function view_result(timestamp) {
     let farm_name = $("#farm_combo").val();
     let field_name = $("#field_combo").val();
     let mission_date = $("#mission_combo").val();
 
-    window.location.href = "/plant_detection/viewer/" + job_uuid + "/" + 
-                           farm_name + "/" + field_name + "/" + mission_date;
+    window.location.href = "/plant_detection/viewer/" + 
+                           farm_name + "/" + field_name + "/" + mission_date + "/" + timestamp;
 
 }
 
@@ -555,11 +591,11 @@ function show_image_set_details() {
     $("#image_set_tabs").append(
         `<li id="overview_tab_btn" class="nav tab-btn-active" onclick="show_image_set_tab(this.id)">` +
         `<a class="nav"><span><i class="fa-regular fa-rectangle-list" style="margin-right:3px"></i> Overview</span></a></li>`);
-
+/*
     $("#image_set_tabs").append(
         `<li id="train_tab_btn" class="nav" onclick="show_image_set_tab(this.id)">` +
         `<a class="nav"><span><i class="fa-solid fa-play" style="margin-right:3px"></i> Train</span></a></li>`);
-
+*/
     $("#image_set_tabs").append(
         `<li id="results_tab_btn" class="nav" onclick="show_image_set_tab(this.id)">` +
         `<a class="nav"><span><i class="fa-solid fa-chart-line" style="margin-right:3px"></i> Results</span></a></li>`);
@@ -601,8 +637,18 @@ $(document).ready(function() {
 
     //update_containers();
 
-    show_browse();
 
+    $("#browse_tab_btn").click(function() {
+        if (!global_disabled)
+            show_tab("browse_tab_btn");
+    });
+
+    $("#upload_tab_btn").click(function() {
+        if (!global_disabled)
+            show_tab("upload_tab_btn");
+    });
+
+    show_browse();
 
 
 

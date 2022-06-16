@@ -1,7 +1,7 @@
 #FROM debian:bullseye-slim
 #FROM python:3.8-slim-bullseye
 
-FROM nvidia/cuda:11.5.0-runtime-ubuntu20.04
+FROM nvidia/cuda:11.5.0-cudnn8-devel-ubuntu20.04
 RUN apt update -y
 RUN apt update && apt install -y exiftool
 RUN apt update && apt install -y curl

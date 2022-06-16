@@ -15,7 +15,7 @@ html
         script(type='text/javascript' src='/plant_detection/javascripts/home.js')
         script(type='text/javascript' src='/plant_detection/javascripts/common.js')
         script(type='text/javascript' src='/plant_detection/javascripts/upload.js')
-        script(type='text/javascript' src='/plant_detection/javascripts/train.js')
+        //script(type='text/javascript' src='/plant_detection/javascripts/train.js')
 
     body
         div(id="container")
@@ -47,14 +47,14 @@ html
                         div(class="content" style="display:block; height: 700px")
 
                             ul(class="nav" id="browse_upload")
-                                li(id="browse_tab_btn" class="nav tab-btn-active" onclick="show_tab(this.id)")
+                                li(id="browse_tab_btn" class="nav tab-btn-active")
                                     a(class="nav")
                                         span
                                             i(class="fa-solid fa-seedling" style="margin-right:3px")
                                             |
                                             | Browse
 
-                                li(id="upload_tab_btn" class="nav " onclick="show_tab(this.id)")
+                                li(id="upload_tab_btn" class="nav")
                                     a(class="nav")
                                         span
                                             i(class="fa-solid fa-upload" style="margin-right:3px")

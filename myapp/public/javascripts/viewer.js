@@ -4,24 +4,28 @@ let image_set_info;
 let job_config;
 let overlays;
 let metadata;
-//let predictions;
+let predictions;
+let annotations;
 let metrics;
 let dzi_dir;
 let dzi_image_paths;
+let excess_green_record;
+/*
 let sorted_overlay_names;
 let sorted_overlay_ids;
-let overlay_colors;
+let overlay_colors;*/
 let dataset_images;
-let used_for = {};
+//let used_for = {};
+let image_to_dzi;
 
-
+/*
 let image_names = {
     "all": [],
     "completed": [],
     "unannotated": [],
     "training/validation": [],
     "testing": []
-};
+};*/
 
 let viewer;
 let anno;
@@ -34,12 +38,55 @@ let pred_map_url = null;
 let diff_map = false;
 let min_max_rec = null;
 
-function change_image(dzi_image_path) {
-    viewer.open(dzi_image_path);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function change_image(image_name) {
+    console.log("change_image", image_name);
+    cur_img_name = image_name;
+    $("#seadragon_viewer").empty();
+    create_viewer_and_anno();
+    viewer.open(image_to_dzi[cur_img_name]);
+}
+
+function overlay_initialization() {
+
+    //let i = 0;
+    for (const [overlay_name, overlay] of Object.entries(overlays)) {
+
+        let color_id = overlay["color_id"];
+        for (image_name of Object.keys(overlay["overlays"])) {
+            for (annotation of overlay["overlays"][image_name]["annotations"]) {
+                annotation["body"].push({"value": color_id, "purpose": "highlighting"})
+            }
+        }
+        //i++;
+    }
 }
 
 
-function overlay_initialization() {
+function overlay_initialization_2() {
 
     sorted_overlay_names = [];
     sorted_overlay_ids = [];
@@ -109,10 +156,12 @@ function overlay_initialization() {
 //     $("#confidence_slider").change();
 // }
 
-
+/*
 function create_map_models_radio() {
     $("#map_selection_table").empty();
     let i = 0;
+    
+    
     for (model_info of job_config["model_info"]) {
         let model_uuid = model_info["model_uuid"];
         let model_name = model_info["model_name"];
@@ -142,7 +191,8 @@ function create_map_models_radio() {
             );
         }
         i++;
-    }
+        
+    }*/
 
 /*
     let num_completed = 0;
@@ -177,31 +227,22 @@ function create_map_models_radio() {
         */
 
     //}
-}
+//}
 
-function create_models_table() {
+function create_overlays_table() {
 
-    let models_col_width = "215px"; //"145px"; //"215px";
-    //let opt_col_width = "85px"
-
-    for (let i = 0; i < sorted_overlay_names.length; i++) {
-        let overlay_name = sorted_overlay_names[i];
-        let overlay_id = sorted_overlay_ids[i];
-        let overlay_color = overlay_colors[overlay_name];
-        //let opt_thresh_id = overlay_id + "_thresh";
-        let model_row_id = overlay_id + "_row";
-        console.log("overlay_color", overlay_color);
+    let models_col_width = "215px";
+    for (const [overlay_name, overlay] of Object.entries(overlays)) {
+        let overlay_color = overlay["color"];
+        let model_row_id = overlay_name + "_row";
         $("#models_table").append(`<tr id=${model_row_id}>` +
             `<td><label class="table_label" ` +
             `style="width: ${models_col_width}; background-color: ${overlay_color};">` +
-            //`<input id=${overlay_id} type="checkbox" style="cursor: pointer"></input>   ${overlay_name}</label>` +
-           
-
             `<table class="transparent_table">` +
             `<tr>` + 
             `<td style="width: 40px">` +
                 `<label class="switch">` +
-                `<input id=${overlay_id} type="checkbox"></input>` +
+                `<input id=${overlay_name} type="checkbox"></input>` +
                 `<span class="switch_slider round"></span></label>` +
             `</td>` +
             `<td style="width: 100%">` +
@@ -210,43 +251,19 @@ function create_models_table() {
             `</tr>` +
             `</table>` +
             `</label>` +
-
-            //<span style="margin-left: 50px;">${overlay_name}</span>
-            //span(class="switch_slider round" id="scores_checkbox")
-
-           
-           
             `</td>`+
-            
-
-/*
-                    `<td><input class="table_label" type="checkbox">` +
-                    ` ${overlay_name}</label></td>` +
-                    */
-/*
-
-            `<td><div class="table_button table_button_hover" ` +
-            `style="width: ${models_col_width}; background-color: ${overlay_color}"` +
-                 `>${overlay_name}</div></td>` +*/
             `</tr>`);
-
-        // if (i > 0) {
-        //     $("#" + model_row_id).append(
-        //         `<td><div id=${opt_thresh_id} style="width: ${opt_col_width};" class="table_button table_button_hover"` +
-        //         `onclick="adjust_to_opt('${opt_thresh_id}')">Opt thresh</div></td>`);
-
-        // }
     }
 }
 
 
 function create_image_set_table() {
 
-    let image_name_col_width = "100px";
-    let image_status_col_width = "150px";
-    let image_dataset_col_width = "200px";
 
-    $("#images_table").empty();
+    let image_name_col_width = "170px";
+    let image_status_col_width = "60px";
+
+    $("#image_set_table").empty();
     /*
     $("#image_set_table").append(`<tr>` +
             `<th><div class="table_header" style="width: ${image_name_col_width};">Name</div></th>` +
@@ -256,6 +273,8 @@ function create_image_set_table() {
     //for (dzi_image_path of dzi_image_paths) {
 
     let filter_val = $("#filter_combo").val();
+    console.log("filter_val", filter_val);
+    /*
     let selected_image_names;
     if (filter_val === "all") {
         selected_image_names = image_names["all"];
@@ -271,23 +290,40 @@ function create_image_set_table() {
     }
     else {
         selected_image_names = image_names["testing"]
-    }
+    }*/
 
 
-    for (image_name of selected_image_names) {
-        //let image_name = basename(dzi_image_path)
-        //let extensionless_name = image_name.substring(0, image_name.length - 4);
-        let dzi_image_path = dzi_dir + "/" + image_name + ".dzi";
+    let abbreviation = {
+        "unannotated": "Un.",
+        "started": "St.",
+        "completed_for_training": "C. Tr.",
+        "completed_for_testing": "C. Te."
+    };
 
-        //let img_status = image_set_data["images"][extensionless_name]["status"];
-        let image_status = overlays["annotations"][image_name]["status"];
-        $("#images_table").append(`<tr>` +
-            `<td><div class="table_button table_button_hover"` +
-                 `onclick="change_image('${dzi_image_path}')">${image_name}</div></td>` +
+    for (image_name of Object.keys(annotations)) {
+        if ((filter_val === "all") || (annotations[image_name]["status"] === filter_val)) {
+
+            //for (image_name of selected_image_names) {
+            //let image_name = basename(dzi_image_path)
+            //let extensionless_name = image_name.substring(0, image_name.length - 4);
+            //let dzi_image_path = dzi_dir + "/" + image_name + ".dzi";
+
+            //let img_status = image_set_data["images"][extensionless_name]["status"];
+            let image_status = annotations[image_name]["status"];
+            let abbreviated_status = abbreviation[image_status];
+            $("#image_set_table").append(`<tr>` +
+           
             //`<td><div>${extensionless_name}</div></td>` +
-            `<td><div class="table_entry" style="border: 1px solid white">${image_status}</div></td>` +
+            `<td><div class="table_entry std_tooltip" style="cursor: default; position: relative; width: ${image_status_col_width}; border: 1px solid white">${abbreviated_status}` +
+            `<span class="std_tooltiptext">${image_status}</span></div></td>` +
+
+            `<td><div class="table_button table_button_hover" style="width: ${image_name_col_width}" ` +
+            // `onclick="change_image('${dzi_image_path}')">${extensionless_name}</div></td>` +
+             `onclick="change_image('${image_name}')">${image_name}</div></td>` +
+            //`</div></td>` + 
             //`<td><div class="table_entry">${img_dataset}</div></td>` +
             `</tr>`);
+        }
     }
 }
 let formatter = function(annotation) {
@@ -306,6 +342,8 @@ let formatter = function(annotation) {
         // otherwise FF doesn't render...
         foreignObject.setAttribute('width', '1px');
         foreignObject.setAttribute('height', '1px');
+
+        //rounded_score = scoreTag.value.toFixed(2);
 
         foreignObject.innerHTML = `
         <div xmlns="http://www.w3.org/1999/xhtml" class="a9s-shape-label-wrapper">
@@ -333,9 +371,11 @@ function update_overlays() {
     anno.clearAnnotations();
     console.log("update_overlays");
     let slider_val = Number.parseFloat($("#confidence_slider").val()).toFixed(2);
-    for (overlay_id of sorted_overlay_ids) {
-        if ($("#" + overlay_id).is(":checked")) {
-            for (annotation of overlays[overlay_id][cur_img_name]["annotations"]) {
+    //for (overlay_id of sorted_overlay_ids) {
+    console.log("overlays", overlays);
+    for (const [overlay_name, overlay] of Object.entries(overlays)) {
+        if ($("#" + overlay_name).is(":checked")) {
+            for (annotation of overlay["overlays"][cur_img_name]["annotations"]) {
                 //annotation["body"].push({"value": "COLOR_1", "purpose": "highlighting"})
                 /*
                 let tag = {
@@ -398,7 +438,7 @@ function build_map() {
     $("#build_loader").show();
     //let sel_metric = $("input[type='radio'][name='metric']:checked").val();
     let sel_interpolation = $("input[type='radio'][name='interpolation']:checked").val();
-    let sel_model = $("input[type='radio'][name='map_model']:checked").val();
+    //let sel_model = $("input[type='radio'][name='map_model']:checked").val();
     let sel_pred_image_status = $("input[type='radio'][name='pred_image_status']:checked").val();
     let comparison_type = $("input[type='radio'][name='comparison_type']:checked").val();
 
@@ -414,9 +454,9 @@ function build_map() {
         action: "build_map",
         //metric: sel_metric,
         interpolation: sel_interpolation,
-        model_uuid: sel_model,
+        //model_uuid: sel_model,
         pred_image_status: sel_pred_image_status,
-        comparison_type: comparison_type
+        comparison_type: "side_by_side", //comparison_type
         //include_annotated_map: include_annotated_map 
         //image_set_data: JSON.stringify(image_set_data)
     },
@@ -434,13 +474,13 @@ function build_map() {
         }
         else {
             console.log("showing map");
-            cur_map_model_uuid = sel_model;
+            //cur_map_model_uuid = sel_model;
 
             let timestamp = new Date().getTime();
             
-            let base = "/plant_detection/usr/data/results/" + image_set_info["farm_name"] + "/" + 
-                        image_set_info["field_name"] + "/" + image_set_info["mission_date"] + "/" +
-                        job_config["job_uuid"] + "/" + sel_model + "/maps/";
+            let base = "/plant_detection/usr/data/image_sets/" + image_set_info["farm_name"] + "/" + 
+                        image_set_info["field_name"] + "/" + image_set_info["mission_date"] + "/model/results/" +
+                        image_set_info["timestamp"] + "/maps/";
 
             map_url = base + "annotated_map.svg?t=" + timestamp;
 
@@ -477,17 +517,18 @@ function show_map() {
     $("#map_view_container").show();
     
     
-    create_map_models_radio();
+    //create_map_models_radio();
     $("#map_builder_controls_container").show();
 
 
     let num_completed = 0;
-    for (image_name of Object.keys(overlays["annotations"])) {
-        if (overlays["annotations"][image_name]["status"] == "completed") {
+    for (image_name of Object.keys(annotations)) {
+        let status = annotations[image_name]["status"];
+        if (status === "completed_for_training" || status === "completed_for_testing") {
             num_completed++;
         }
     }
-
+    console.log("num_completed", num_completed);
     if (num_completed >= 3) {
         $("#sufficient_annotation_options").show();
     }
@@ -501,7 +542,7 @@ function show_map() {
 }
 
 
-function show_image() {
+function show_image(image_name) {
     cur_view = "image";
 
     $("#view_button_text").empty();
@@ -511,33 +552,133 @@ function show_image() {
     $("#map_view_container").hide();
     $("#image_view_container").show();
 
-    create_image_set_table();
+    change_image(image_name);
+    
+}
+
+
+
+function lower_slider() {
+    let slider_val = parseFloat($("#confidence_slider").val());
+    if (slider_val > 0.25) {
+        slider_val = slider_val - 0.01;
+        $("#confidence_slider").val(slider_val).change();
+    }
+}
+
+function raise_slider() {
+    let slider_val = parseFloat($("#confidence_slider").val());
+    if (slider_val < 1.0) {
+        slider_val = slider_val + 0.01;
+        $("#confidence_slider").val(slider_val).change();
+    }
+}
+
+
+function create_viewer_and_anno() {
+
+    viewer = OpenSeadragon({
+        id: "seadragon_viewer",
+        sequenceMode: true,
+        prefixUrl: "/plant_detection/osd/images/",
+        tileSources: dzi_image_paths,
+        showNavigator: false,
+        maxZoomLevel: 100,
+        zoomPerClick: 1,
+        nextButton: "next-button",
+        previousButton: "prev-button",
+        showNavigationControl: false
+    });
+
+    anno = OpenSeadragon.Annotorious(viewer, {
+        disableEditor: true,
+        disableSelect: true,
+        readOnly: true,
+        formatter: formatter
+    });
+
+    viewer.addHandler("open", function(event) {
+        
+
+        //let img_files_name = basename(event.source);
+        //let img_name = img_files_name.substring(0, img_files_name.length - 4);
+
+        //let img_status = image_set_data["images"][img_name]["status"];
+        //console.log("img_status", img_status);
+        //cur_img_name = img_name;
+        let cur_status = annotations[cur_img_name]["status"];
+        //let use = used_for[cur_img_name];
+
+        $("#image_name").text(cur_img_name);
+        $("#image_status").text(cur_status);
+        //$("#used_for").text(use);
+
+
+
+
+        update_overlays();
+        update_count_chart();
+
+    });
+
 }
 
 $(document).ready(function() {
     
     image_set_info = data["image_set_info"];
     job_config = data["job_config"];
-    overlays = data["overlays"];
-    //predictions = data["predictions"];
+    //overlays = data["overlays"];
+    excess_green_record = data["excess_green_record"];
+    annotations = data["annotations"];
+    predictions = data["predictions"];
     metadata = data["metadata"];
     metrics = data["metrics"];
     dzi_dir = data["dzi_dir"];
     dzi_image_paths = data["dzi_image_paths"];
 
+    overlays = {
+        "annotations": {   
+            "overlays": annotations,
+            "color_id": "COLOR_0",
+            "color": "#0080C0",
+        },
+        "predictions": {
+            "overlays": predictions,
+            "color_id": "COLOR_1",
+            "color": "#FF4040",
+        }
+    };
 
+    /*
     let download_path = "/plant_detection/usr/data/results/" + image_set_info["farm_name"] + "/" +
     image_set_info["field_name"] + "/" + image_set_info["mission_date"] + "/" +
-                        job_config["job_uuid"] + "/results.xlsx";
+                        job_config["job_uuid"] + "/results.xlsx";*/
+
+    let farm_name = image_set_info["farm_name"];
+    let field_name = image_set_info["field_name"];
+    let mission_date = image_set_info["mission_date"];
+    let timestamp = image_set_info["timestamp"];
     
-    //let download_path = "/plant_detection/usr/data/results.xlsx";
+    let download_path = "/plant_detection/usr/data/image_sets/" + farm_name + "/" +
+                        field_name + "/" + mission_date + "/model/results/" + timestamp + "/results.xlsx";
+    
     console.log("download_path", download_path);
     $("#download_button").attr("href", download_path);
 
+    image_to_dzi = {};
+    for (dzi_image_path of dzi_image_paths) {
+        let image_name = basename(dzi_image_path);
+        let extensionless_name = image_name.substring(0, image_name.length - 4);
+        image_to_dzi[extensionless_name] = dzi_image_path;
+    }
+    let init_image_name = basename(dzi_image_paths[0]);
+    cur_img_name = init_image_name.substring(0, init_image_name.length - 4);
 
-    $("#image_set_name").text(image_set_info["farm_name"] + "  |  " + 
-                              image_set_info["field_name"] + "  |  " + 
-                              image_set_info["mission_date"]);
+
+
+    $("#image_set_name").text(farm_name + "  |  " + 
+                              field_name + "  |  " + 
+                              mission_date);
 
 
 
@@ -559,9 +700,13 @@ $(document).ready(function() {
         value: "PASCAL VOC mAP",
         text: "PASCAL VOC mAP"
     }));
+    $('#chart_combo').append($('<option>', {
+        value: "Ground Cover Percentage",
+        text: "Ground Cover Percentage"
+    }));
 
 
-
+    /*
     let test_reserved_images = [];
     for (image_set_conf of job_config["training"]["image_sets"]) {
         if (((image_set_conf["farm_name"] === image_set_info["farm_name"]) &&
@@ -570,9 +715,9 @@ $(document).ready(function() {
                 test_reserved_images = image_set_conf["test_reserved_images"];
                 break;
             }
-    }
+    }*/
 
-
+/*
 
     image_names["all"] = natsort(Object.keys(data["overlays"]["annotations"]));
     for (image_name of image_names["all"]) {
@@ -589,113 +734,48 @@ $(document).ready(function() {
                 image_names["training/validation"].push(image_name);
                 used_for[image_name] = "training/validation";
             }
-            /*
-            if (job_config["test_reserved_images"].includes(image_name)) {
-                image_names["testing"].push(image_name)
-                used_for[image_name] = "testing";
-            }
-            if (job_config["training_validation_images"].includes(image_name)) {
-                image_names["training/validation"].push(image_name);
-                used_for[image_name] = "training/validation";
-            }
-            else {
-                //used_for[image_name] = "NA";
-                image_names["testing"].push(image_name)
-                used_for[image_name] = "testing";
-            }*/
 
         }
         else if (status === "unannotated") {
             image_names["unannotated"].push(image_name);
             used_for[image_name] = "NA";
         }
- 
-    }
+    }*/
 
 
     cur_view = "image";
 
     if ((!(metadata["missing"]["latitude"]) && !(metadata["missing"]["longitude"])) && (!(metadata["missing"]["area_m2"]))) {
 
-        $("#view_button_container").append(
-            `<button style="width: 140px; margin: 0px;" id="view_button" class="table_button table_button_hover">` +
-            `<div id="view_button_text"></div></button>`
-        );
-
+        $("#view_button_container").show();
 
         $("#view_button").click(function() {
             if (cur_view == "image") {
                 show_map();
             }
             else {
-                show_image();
+                show_image(cur_img_name);
             }
         });
     }    
     
 
 
-    let img_files_name = basename(dzi_image_paths[0]);
-    cur_img_name = img_files_name.substring(0, img_files_name.length - 4);
+    //let img_files_name = basename(dzi_image_paths[0]);
+    //cur_img_name = img_files_name.substring(0, img_files_name.length - 4);
 
     //assemble_datasets();
     overlay_initialization();
     //create_image_set_table(); //dataset_images["all"]);
-    create_models_table();
+    create_image_set_table();
+    
+    create_overlays_table();
     set_count_chart_data();
     draw_count_chart();
 
+    create_viewer_and_anno();
 
-    viewer = OpenSeadragon({
-        id: "seadragon_viewer",
-        sequenceMode: true,
-        prefixUrl: "/plant_detection/osd/images/",
-        tileSources: dzi_image_paths,
-        showNavigator: false,
-        maxZoomLevel: 100,
-        zoomPerClick: 1,
-        nextButton: "next-button",
-        previousButton: "prev-button",
-        showNavigationControl: false
-    });    
-
-
-
-
-    anno = OpenSeadragon.Annotorious(viewer, {
-        disableEditor: true,
-        disableSelect: true,
-        readOnly: true,
-        formatter: formatter
-    });
-
-    viewer.addHandler("open", function(event) {
-        
-
-        let img_files_name = basename(event.source);
-        let img_name = img_files_name.substring(0, img_files_name.length - 4);
-
-        //let img_status = image_set_data["images"][img_name]["status"];
-        //console.log("img_status", img_status);
-        cur_img_name = img_name;
-        let cur_status = overlays["annotations"][cur_img_name]["status"];
-        let use = used_for[cur_img_name];
-
-        $("#image_name").text(cur_img_name);
-        $("#image_status").text(cur_status);
-        $("#used_for").text(use);
-
-
-
-
-        update_overlays();
-        update_count_chart();
-        //update_overlays();
-        //update_count_chart();
-    });
-
-
-    show_image();
+    //show_image();
 
 
     $("#models_table").change(function() {
@@ -705,7 +785,7 @@ $(document).ready(function() {
 
     $("#confidence_slider").change(function() {
         let slider_val = Number.parseFloat($("#confidence_slider").val()).toFixed(2);
-
+        console.log("slider_val is", slider_val);
         $("#slider_val").html(slider_val);
         update_overlays();
         set_count_chart_data();
@@ -728,6 +808,33 @@ $(document).ready(function() {
 
     $("#filter_combo").change(function() {
         create_image_set_table();
-    })
+    });
+
+    $("#download_button").click(function() {
+        console.log("downloading results");
+    });
+
+
+    let score_handler;
+    $("#score_down").mousedown(function() {
+        lower_slider();
+        score_handler = setInterval(lower_slider, 300);
+    });
+
+    $("#score_down").mouseup(function() {
+        clearInterval(score_handler);
+    }); 
+
+    $("#score_up").mousedown(function() {
+        raise_slider();
+        score_handler = setInterval(raise_slider, 300);
+    });
+
+    $("#score_up").mouseup(function() {
+        clearInterval(score_handler);
+    });
+
+
 
 });
+

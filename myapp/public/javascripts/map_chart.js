@@ -25,7 +25,7 @@ function draw_map_chart() {
             `<tr>` +
                 `<td>` +
                     `<div id="map_container" style="height: ${chart_height}; width: ${chart_width};">` +
-                        `<div id="map_chart_tooltip" class="tooltip" style="z-index: 10"></div>` +
+                        `<div id="map_chart_tooltip" class="tooltip"></div>` +
                     `</div>` +
                 `</td>` +
                 `<td>` +
@@ -48,7 +48,7 @@ function draw_map_chart() {
 
     let chart = d3.select("#map_container").select("svg").append("g");
         
-    let margin = 100;
+    let margin = 110;
 
 
 
@@ -259,8 +259,8 @@ function draw_map_chart() {
          .attr("stroke-width", 1)
 
          .on("click", function(d) {
-            show_image();
-            change_image(d["dzi_image_path"]);
+            show_image(d["image_name"]);
+            //change_image(d["image_name"]);
          })
          .on("mouseover", tip_mouseover)
          .on("mouseleave", tip_mouseleave);

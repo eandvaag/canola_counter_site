@@ -21,14 +21,17 @@ function close_modal() {
 
 function disable_input() {
 
-    let buttons = ["#upload_button"];
+    global_disabled = true;
+
+    let buttons = ["upload_button"];
 
     for (button of buttons) {
-        $(button).prop('disabled', true);
-        $(button).removeClass("std-button-hover");
-        $(button).css("opacity", 0.5);
-        $(button).css("cursor", "default");
+        $("#" + button).prop('disabled', true);
+        $("#" + button).removeClass("std-button-hover");
+        $("#" + button).css("opacity", 0.5);
+        $("#" + button).css("cursor", "default");
     }
+
 
     let inputs = ["farm_input", "field_input", "mission_input", "flight_height_input"];
 
@@ -37,19 +40,24 @@ function disable_input() {
         $("#" + input).css("opacity", 0.5);
     }
 
+    $(".nav").css("pointer-events", "none");
+    $(".nav").css("opacity", 0.5);
+
     $("#file-drop").addClass("disabled_dropzone");
     $("#file-drop").css("opacity", 0.7);
 }
 
 function disable_submit() {
 
-    let buttons = ["#upload_button"];
+    global_disabled = false;
+
+    let buttons = ["upload_button"];
 
     for (button of buttons) {
-        $(button).prop('disabled', true);
-        $(button).removeClass("std-button-hover");
-        $(button).css("opacity", 0.5);
-        $(button).css("cursor", "default");
+        $("#" + button).prop('disabled', true);
+        $("#" + button).removeClass("std-button-hover");
+        $("#" + button).css("opacity", 0.5);
+        $("#" + button).css("cursor", "default");
     }
 }
 
@@ -57,13 +65,13 @@ function disable_submit() {
 
 function enable_input() {
 
-    let buttons = ["#upload_button"];
+    let buttons = ["upload_button"];
 
     for (button of buttons) {
-        $(button).prop('disabled', false);
-        $(button).addClass("std-button-hover");
-        $(button).css("opacity", 1);
-        $(button).css("cursor", "pointer");
+        $("#" + button).prop('disabled', false);
+        $("#" + button).addClass("std-button-hover");
+        $("#" + button).css("opacity", 1);
+        $("#" + button).css("cursor", "pointer");
     }
 
     let inputs = ["farm_input", "field_input", "mission_input", "flight_height_input"];
@@ -73,6 +81,10 @@ function enable_input() {
         $("#" + input).css("opacity", 1.0);
     }
 
+    $(".nav").css("pointer-events", "all");
+    $(".nav").css("opacity", 1.0);
+
+
     $("#file-drop").removeClass("disabled_dropzone");
     $("#file-drop").css("opacity", 1.0);
 
@@ -81,13 +93,13 @@ function enable_input() {
 
 function enable_submit() {
 
-    let buttons = ["#upload_button"];
+    let buttons = ["upload_button"];
 
     for (button of buttons) {
-        $(button).prop('disabled', false);
-        $(button).addClass("std-button-hover");
-        $(button).css("opacity", 1);
-        $(button).css("cursor", "pointer");
+        $("#" + button).prop('disabled', false);
+        $("#" + button).addClass("std-button-hover");
+        $("#" + button).css("opacity", 1);
+        $("#" + button).css("cursor", "pointer");
     }
 }
 
@@ -186,7 +198,7 @@ function show_upload() {
     
     $("#upload_form").append(`<hr>`);
     $("#upload_form").append(`<button id="upload_button" class="std-button std-button-hover" `+
-                                `style="width: 200px; height: 40px;" type="submit"><span>Upload</span></button>`);
+                                `style="width: 200px; height: 40px;" type="submit">Upload</button>`);
 
 
     $("#file-drop").append(`<div id="upload_loader" class="loader"></div>`);
@@ -264,9 +276,10 @@ function show_upload() {
                 image_sets_data[uploaded_farm] = {};
             }
             if (!(uploaded_field in image_sets_data[uploaded_farm])) {
-                image_sets_data[uploaded_farm][uploaded_field] = {};
+                image_sets_data[uploaded_farm][uploaded_field] = [];
             }
-            image_sets_data[uploaded_farm][uploaded_field][uploaded_mission] = [];
+            image_sets_data[uploaded_farm][uploaded_field].push(uploaded_mission);
+            //image_sets_data[uploaded_farm][uploaded_field][uploaded_mission] = [];
             clear_form();
             enable_input();
             disable_submit();

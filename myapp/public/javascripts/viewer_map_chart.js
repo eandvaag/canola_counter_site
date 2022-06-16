@@ -26,16 +26,19 @@ function draw_map_chart() {
 
 
     let num_completed = 0;
-    for (image_name of Object.keys(overlays["annotations"])) {
-        if (overlays["annotations"][image_name]["status"] == "completed") {
+    for (image_name of Object.keys(annotations)) {
+        let status = annotations[image_name]["status"];
+        if ((status === "completed_for_training") || (status === "completed_for_testing")) {
             num_completed++;
         }
     }
     let include_annotated_map = (!(diff_map) && num_completed >= 3);
 
-    let chart_height = $("#seadragon_viewer").height() + "px";
-    let chart_width = chart_height;
+    //let chart_height = $("#seadragon_viewer").height() + "px";
+    //let chart_width = chart_height;
 
+    let chart_width = (($("#chart_container").width() / 2) - 60) + "px";
+    let chart_height = chart_width;
 
     $("#chart_container").empty();
 
@@ -121,10 +124,10 @@ function draw_map_chart() {
 
             let latitude = metadata["images"][image_name]["latitude"];
             let longitude = metadata["images"][image_name]["longitude"];
-            let status = overlays["annotations"][image_name]["status"];
+            let status = annotations[image_name]["status"];
 
             let color;
-            if (status == "completed") {
+            if ((status === "completed_for_training") || (status === "completed_for_testing")) {
                 color = "#0080C0";
                 // if (include_annotated_map) {
                 //     let density = overlays["annotations"][image_name]["annotations"].length / metadata["images"][image_name]["area_m2"];
@@ -442,8 +445,8 @@ function draw_map_chart() {
                 .attr("stroke-width", 1)
 
                 .on("click", function(d) {
-                    show_image();
-                    change_image(d["dzi_image_path"]);
+                    show_image(d["image_name"]);
+                    //change_image(d["image_name"]);
                 })
                 .on("mouseover", tip_mouseover)
                 .on("mouseleave", tip_mouseleave);
@@ -490,8 +493,8 @@ function draw_map_chart() {
             .attr("stroke-width", 1)
 
             .on("click", function(d) {
-                show_image();
-                change_image(d["dzi_image_path"]);
+                show_image(d["image_name"]);
+                //change_image(d["image_name"]);
             })
             .on("mouseover", pred_tip_mouseover)
             .on("mouseleave", pred_tip_mouseleave);         

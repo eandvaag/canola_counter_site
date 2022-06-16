@@ -69,3 +69,23 @@ function natsort(arr) {
     let collator = new Intl.Collator(undefined, {numeric: true, sensitivity: 'base'});
     return arr.sort(collator.compare);
 }
+
+function range_map(old_val, old_min, old_max, new_min, new_max) {
+    new_val = (((old_val - old_min) * (new_max - new_min)) / (old_max - old_min)) + new_min;
+    return new_val;
+}
+
+
+function timestamp_to_date(timestamp){
+    // https://stackoverflow.com/questions/847185/convert-a-unix-timestamp-to-time-in-javascript
+    let a = new Date(timestamp * 1000);
+    let months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    let year = a.getFullYear();
+    let month = months[a.getMonth()];
+    let date = a.getDate();
+    let hour = a.getHours().toString().padStart(2, "0");
+    let min = a.getMinutes().toString().padStart(2, "0");
+    let sec = a.getSeconds().toString().padStart(2, "0");
+    let time = date + ' ' + month + ' ' + year + ' ' + hour + ':' + min + ':' + sec ;
+    return time;
+  }

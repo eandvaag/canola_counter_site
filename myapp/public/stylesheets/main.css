@@ -504,10 +504,10 @@ tr:first-child{ ;}*/
 
 .grid-container-2 { 
   margin: auto;
-  width: 95%;
+  /*width: 95%;*/
   display: grid;
   grid-gap: 10px; 
-  padding: 5px;  
+  /*padding: 5px;*/
   grid-template-columns: repeat(2, minmax(120px, 1fr))
 
 }
@@ -515,10 +515,10 @@ tr:first-child{ ;}*/
 
 .grid-container-1 {
   margin: auto;
-  width: 95%;
+  /*width: 95%;*/
   display: grid;
   grid-gap: 10px; 
-  padding: 5px;  
+  /*padding: 5px;*/
   grid-template-columns: repeat(1, minmax(120px, 1fr))
 
 }
@@ -1653,4 +1653,51 @@ input:checked + .switch_slider:before {
   /*set the size of the result div:*/
   width: 200px;
   height: 200px;
+}
+
+
+
+
+
+
+/*
+.std_tooltiptext {
+	background-color: #2b3628;
+	color: white;
+	border: 1px solid white;
+	border-radius:  4px;
+	padding: 3px;
+	position: absolute;
+	opacity: 0;
+
+  visibility: hidden;
+  width: 120px;
+
+  text-align: center;
+
+  z-index: 1;
+}*/
+
+
+.std_tooltiptext {
+  visibility: hidden;
+  /*width: 120px;*/
+  border: 1px solid white;
+  background-color: #222621;
+  color: white;
+  text-align: center;
+  border-radius:  4px;
+  padding: 3px;
+
+  /* Position the tooltip */
+  position: absolute;
+  z-index: 1;
+  top: -1px;
+  left: 115%;
+
+}
+
+
+.std_tooltip:hover .std_tooltiptext {
+  visibility: visible;
 }

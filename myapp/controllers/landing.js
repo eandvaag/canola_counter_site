@@ -12,6 +12,7 @@ const sanitize = require('sanitize-filename');
 const models = require('../models');
 const { response } = require('express');
 
+const glob = require("glob");
 /*
 const express = require('express');
 const app = express();
@@ -80,6 +81,34 @@ exports.sessionChecker = function(req, res, next) {
 //     setTimeout(scheduler, 5000);
 
 // }
+/*
+console.log("STARTING THE PYTHON PROCESS");
+
+let scheduler = spawn("python3", ["../../plant_detection/src/scheduler.py"]);
+
+
+scheduler.on('close', (code) => {
+    console.log("Scheduler finished.");
+    console.log("code", code);  
+});
+
+scheduler.stderr.on('data', (data) => {
+    // for some reason listening on stderr is required for files to be 
+    //   output correctly by the subprocess ?? 
+    console.error(`scheduler stderr: ${data}`);
+});
+scheduler.stdout.on('data', (data) => {
+    console.log(`scheduler stdout: ${data}`);
+});
+
+scheduler.on('SIGINT', function() {
+    console.log('Received SIGINT signal');
+});
+
+scheduler.on('error', (error) => {
+    console.log("Failed to start subprocess.");
+    console.log(error);
+});*/
 
 
 exports.get_sign_in = function(req, res, next) {
@@ -191,13 +220,12 @@ exports.get_home = function(req, res, next) {
 
         console.log("farm_names", farm_names);
         for (farm_name of farm_names) {
-            image_sets_data[farm_name] = {};
+            
             let farm_root = path.join(image_sets_root, farm_name);
             let field_names = get_subdirs(farm_root);
             console.log("field_names", field_names);
 
             for (field_name of field_names) {
-                image_sets_data[farm_name][field_name] = {};
                 let field_root = path.join(farm_root, field_name);
                 let mission_dates = get_subdirs(field_root);
                 console.log("mission_dates", mission_dates);
@@ -209,9 +237,15 @@ exports.get_home = function(req, res, next) {
                     let upload_complete_path = path.join(mission_root, "upload_complete.json");
                     if (fs.existsSync(upload_complete_path)) {
 
-                        image_sets_data[farm_name][field_name][mission_date] = [];
+                        if (!(farm_name in image_sets_data)) {
+                            image_sets_data[farm_name] = {};
+                        }
+                        if (!(field_name in image_sets_data[farm_name])) {
+                            image_sets_data[farm_name][field_name] = []
+                        }
+                        image_sets_data[farm_name][field_name].push(mission_date); // = [];
                         
-                        
+                        /*
                         results_dir = path.join(results_root, farm_name, field_name, mission_date);
                         if (fs.existsSync(results_dir)) {
                             let jobs = get_subdirs(results_dir);
@@ -219,7 +253,7 @@ exports.get_home = function(req, res, next) {
                         }
                         else {
                             image_sets_data[farm_name][field_name][mission_date] = [];
-                        }
+                        }*/
                     }
 
                     //else {
@@ -263,88 +297,113 @@ exports.get_annotate = function(req, res, next) {
         let farm_name = req.params.farm_name;
         let field_name = req.params.field_name;
         let mission_date = req.params.mission_date;
-
         let image_set_dir = path.join(USR_DATA_ROOT, "image_sets", farm_name, field_name, mission_date);
-        let annotations_dir = path.join(image_set_dir, "annotations");
-        let annotations_lock_path = path.join(annotations_dir, "lock.json")
 
-        annotation_mutex.acquire()
-        .then(function(release) {
-            let annotations_lock;
-            try {
-                annotations_lock = JSON.parse(fs.readFileSync(annotations_lock_path, 'utf8'));
-            }
-            catch (error) {
-                release();
+        glob(path.join(image_set_dir, "images", "*"), function(error, image_paths) {
+            if (error) {
                 return res.redirect(APP_PREFIX);
             }
 
-            let last_refresh = annotations_lock["last_refresh"];
-            let cur_time = Date.now()
-            if ((cur_time - last_refresh) < ANNOTATION_LOCK_TIMEOUT) {
+            console.log("image_paths", image_paths);
+            let image_ext = image_paths[0].substring(image_paths[0].length - 4);
+            console.log("image_ext", image_ext);
+    
+            
+            let annotations_dir = path.join(image_set_dir, "annotations");
+            let annotations_lock_path = path.join(annotations_dir, "lock.json")
+    
+            annotation_mutex.acquire()
+            .then(function(release) {
+                let annotations_lock;
+                try {
+                    annotations_lock = JSON.parse(fs.readFileSync(annotations_lock_path, 'utf8'));
+                }
+                catch (error) {
+                    release();
+                    return res.redirect(APP_PREFIX);
+                }
+    
+                let last_refresh = annotations_lock["last_refresh"];
+                let cur_time = Date.now()
+                if ((cur_time - last_refresh) < ANNOTATION_LOCK_TIMEOUT) {
+                    release();
+                    // TODO: redirect to an error page
+                    return res.redirect(APP_PREFIX);
+                }
+                annotations_lock["last_refresh"] = Date.now();
+                try {
+                    fs.writeFileSync(annotations_lock_path, JSON.stringify(annotations_lock));
+                }
+                catch (error) {
+                    release();
+                    // TODO: redirect to an error page
+                    return res.redirect(APP_PREFIX);
+                }
                 release();
-                // TODO: redirect to an error page
-                return res.redirect(APP_PREFIX);
-            }
-            annotations_lock["last_refresh"] = Date.now();
-            try {
-                fs.writeFileSync(annotations_lock_path, JSON.stringify(annotations_lock));
-            }
-            catch (error) {
-                release();
-                // TODO: redirect to an error page
-                return res.redirect(APP_PREFIX);
-            }
-            release();
+    
+                let annotations_path = path.join(annotations_dir, "annotations_w3c.json");
+                let annotations;
+                try {
+                    annotations = JSON.parse(fs.readFileSync(annotations_path, 'utf8'));
+                }
+                catch (error) {
+                    console.log(error);
+                    return res.redirect(APP_PREFIX);
+                }
+        
+                let metadata_path = path.join(image_set_dir, "metadata", "metadata.json");
+                let metadata;
+                try {
+                    metadata = JSON.parse(fs.readFileSync(metadata_path, 'utf8'));
+                }
+                catch (error) {
+                    console.log(error);
+                    return res.redirect(APP_PREFIX);
+                }
 
-            let annotations_path = path.join(annotations_dir, "annotations_w3c.json");
-            let annotations;
-            try {
-                annotations = JSON.parse(fs.readFileSync(annotations_path, 'utf8'));
-            }
-            catch (error) {
+                let excess_green_record_path = path.join(image_set_dir, "excess_green", "record.json");
+                let excess_green_record;
+                try {
+                    excess_green_record = JSON.parse(fs.readFileSync(excess_green_record_path, 'utf8'));
+                }
+                catch (error) {
+                    console.log(error);
+                    return res.redirect(APP_PREFIX);
+                }
+        
+                let dzi_images_dir = path.join(image_set_dir, "dzi_images");
+                let dzi_image_paths = [];
+                for (image_name of Object.keys(annotations)) {
+                    let dzi_image_path = path.join(APP_PREFIX, dzi_images_dir, image_name + ".dzi");
+                    dzi_image_paths.push(dzi_image_path);
+                }
+        
+                let image_set_info = {
+                    "farm_name": farm_name,
+                    "field_name": field_name,
+                    "mission_date": mission_date,
+                    "image_ext": image_ext
+                }
+        
+                console.log("ready to render");
+                let data = {};
+                data["image_set_info"] = image_set_info;
+                data["metadata"] = metadata;
+                data["dzi_image_paths"] = nat_orderBy.orderBy(dzi_image_paths);
+                data["annotations"] = annotations;
+                data["excess_green_record"] = excess_green_record;
+                res.render("annotate", {data: data});
+    
+    
+            }).catch(function(error) {
                 console.log(error);
                 return res.redirect(APP_PREFIX);
-            }
+            });
     
-            let metadata_path = path.join(image_set_dir, "metadata", "metadata.json");
-            let metadata;
-            try {
-                metadata = JSON.parse(fs.readFileSync(metadata_path, 'utf8'));
-            }
-            catch (error) {
-                console.log(error);
-                return res.redirect(APP_PREFIX);
-            }
     
-            let dzi_images_dir = path.join(image_set_dir, "dzi_images");
-            let dzi_image_paths = [];
-            for (image_name of Object.keys(annotations)) {
-                let dzi_image_path = path.join(APP_PREFIX, dzi_images_dir, image_name + ".dzi");
-                dzi_image_paths.push(dzi_image_path);
-            }
-    
-            let image_set_info = {
-                "farm_name": farm_name,
-                "field_name": field_name,
-                "mission_date": mission_date
-            }
-    
-            console.log("ready to render");
-            let data = {};
-            data["image_set_info"] = image_set_info;
-            data["metadata"] = metadata;
-            data["dzi_image_paths"] = nat_orderBy.orderBy(dzi_image_paths);
-            data["annotations"] = annotations;
-            res.render("annotate", {data: data});
 
-
-        }).catch(function(error) {
-            console.log(error);
-            return res.redirect(APP_PREFIX);
         });
-
-
+        
         
     }
     else {
@@ -371,11 +430,21 @@ exports.post_annotate = function(req, res, next) {
 
 
     if (action === "save_annotations") {
-        let annotations_path = path.join(image_set_dir, "annotations", "annotations_w3c.json")
+        let annotations_path = path.join(image_set_dir, "annotations", "annotations_w3c.json");
 
 
         try {
             fs.writeFileSync(annotations_path, req.body.annotations);
+        }
+        catch (error) {
+            console.log(error);
+            response.error = true;
+            return res.json(response);
+        }
+
+        let excess_green_record_path = path.join(image_set_dir, "excess_green", "record.json");
+        try {
+            fs.writeFileSync(excess_green_record_path, req.body.excess_green_record);
         }
         catch (error) {
             console.log(error);
@@ -392,8 +461,9 @@ exports.post_annotate = function(req, res, next) {
         console.log(field_name);
         console.log(mission_date);
         let out_dir = path.join(image_set_dir, "maps");
+        let annotations_path = path.join(image_set_dir, "annotations", "annotations_w3c.json");
         let rebuild_command = "python ../../plant_detection/src/interpolate.py " + farm_name +
-                                " " + field_name + " " + mission_date + " " + out_dir;
+                                " " + field_name + " " + mission_date + " " + annotations_path + " " + out_dir;
 
         if (req.body.interpolation == "nearest") {
             rebuild_command = rebuild_command + " -nearest";
@@ -515,26 +585,13 @@ exports.post_annotate = function(req, res, next) {
     else if (action === "predict") {
 
         let image_name = req.body.image_name;
-        //let preview_command = "python3 ../../plant_detection/src/annotation_previews.py " + farm_name +
-        //                        " " + field_name + " " + mission_date + " " + image_name;
-
-
-        // let command = "python ../../plant_detection/src/image_set_model.py " + farm_name + " " 
-        //                 + field_name + " " + mission_date + " --predict_on " + image_name;
-        // console.log("executing command", command);
-        // let result = exec(command, {shell: "/bin/bash"}, function (error, stdout, stderr) {
-        //     if (error) {
-        //         console.log("error", error);
-        //     }
-        //     console.log("completed success");
-
-        // });
 
         let request = {
             "farm_name": farm_name,
             "field_name": field_name,
             "mission_date": mission_date,
-            "image_name": image_name
+            "image_names": [image_name],
+            "save_result": false
         };
         let request_uuid = uuidv4().toString();
         
@@ -552,36 +609,46 @@ exports.post_annotate = function(req, res, next) {
 
         response.error = false;
         return res.json(response);
+    }
+    else if (action === "get_result") {
 
+        //let image_name = req.body.image_name;
+        let annotations_path = path.join(USR_DATA_ROOT, "image_sets",
+                                farm_name, field_name, mission_date,
+                                "annotations", "annotations_w3c.json")
 
+        try {
+            annotations = JSON.parse(fs.readFileSync(annotations_path, 'utf8'));
+        }
+        catch (error) {
+            response.message = "Failed to read annotation file."
+            response.error = true;
+            return res.json(response);
+        }
 
-        /*
-        let subprocess = spawn("python", ["../../plant_detection/src/image_set_model.py", 
-                                farm_name, field_name, mission_date, "--predict_on", image_name]);
-
-        subprocess.on('close', (code) => {
-            console.log("Process finished.");
-            console.log("code", code);
-        });
-
-        subprocess.stderr.on('data', (data) => {
-            console.error(`subprocess stderr: ${data}`);
-        });
-
-        subprocess.stdout.on('data', (data) => {
-            console.log(`subprocess stdout: ${data}`);
-        });
-
+        let request = {
+            "farm_name": farm_name,
+            "field_name": field_name,
+            "mission_date": mission_date,
+            "image_names": Object.keys(annotations),
+            "save_result": true
+        };
+        let request_uuid = uuidv4().toString();
         
-        //subprocess.on('SIGINT', function() {
-        //    console.log('Received SIGINT signal');
-        //});
-    
-        subprocess.on('error', (err) => {
-            console.log("Failed to start subprocess.");
-        });
-        */    
+        let request_path = path.join(USR_DATA_ROOT, "prediction_requests",
+                                     request_uuid + ".json");
+        try {
+            fs.writeFileSync(request_path, JSON.stringify(request));
+        }
+        catch (error) {
+            console.log(error);
+            response.message = "Failed to create prediction request.";
+            response.error = true;
+            return res.json(response);
+        }
 
+        response.error = false;
+        return res.json(response);
     }
     else if (action === "retrieve_prediction") {
         let image_name = req.body.image_name;
@@ -632,8 +699,61 @@ exports.post_annotate = function(req, res, next) {
             }
             return res.json(response);
         });
+    }
+    else if (action === "restart_model") {
+        
+        let request = {
+            "farm_name": farm_name,
+            "field_name": field_name,
+            "mission_date": mission_date
+        };
+        let request_uuid = uuidv4().toString();
+        
+        let request_path = path.join(USR_DATA_ROOT, "restart_requests",
+                                     request_uuid + ".json");
+        try {
+            fs.writeFileSync(request_path, JSON.stringify(request));
+        }
+        catch (error) {
+            console.log(error);
+            response.message = "Failed to create restart request.";
+            response.error = true;
+            return res.json(response);
+        }
+
+        response.error = false;
+        return res.json(response);
 
     }
+    /*
+    else if (action === "crop_image") {
+
+        let image_name = req.body.image_name;
+        let coord_0 = req.body.coord_0;
+        let coord_1 = req.body.coord_1;
+        let coord_2 = req.body.coord_2;
+        let coord_3 = req.body.coord_3;
+
+        let image_path = "usr/data/image_sets/" + farm_name + "/" + field_name + "/" +
+                          mission_date + "/segmentations/" + image_name + ".png";
+
+        let crop_command = "python ../../plant_detection/src/crop.py " + image_path + " " + 
+                            coord_0 + " " + coord_1 + " " + coord_2 + " " + coord_3;
+
+        let result = exec(crop_command, {shell: "/bin/bash"}, function (error, stdout, stderr) {
+            if (error) {
+                console.log(error.stack);
+                console.log('Error code: '+error.code);
+                console.log('Signal received: '+error.signal);
+                response.error = true;
+            }
+            else {
+                response.error = false;
+            }
+            return res.json(response);
+        });
+
+    }*/
 
 /*
     }
@@ -756,17 +876,19 @@ exports.post_upload = function(req, res, next) {
     let images_dir = path.join(mission_dir, "images");
     //let patches_dir = path.join(mission_dir, "patches");
     let dzi_images_dir = path.join(mission_dir, "dzi_images");
-    let segmentations_dir = path.join(mission_dir, "segmentations");
+    //let segmentations_dir = path.join(mission_dir, "segmentations");
     let conversion_tmp_dir = path.join(dzi_images_dir, "conversion_tmp");
     let annotations_dir = path.join(mission_dir, "annotations");
     let metadata_dir = path.join(mission_dir, "metadata");
     
     let patches_dir = path.join(mission_dir, "patches");
+    let excess_green_dir = path.join(mission_dir, "excess_green");
 
     let model_dir = path.join(mission_dir, "model");
     let training_dir = path.join(model_dir, "training");
     let prediction_dir = path.join(model_dir, "prediction");
     let weights_dir = path.join(model_dir, "weights");
+    let results_dir = path.join(model_dir, "results");
 
 
     
@@ -797,16 +919,17 @@ exports.post_upload = function(req, res, next) {
             console.log("Making the image set directories");
             fs.mkdirSync(images_dir, { recursive: true });
             fs.mkdirSync(dzi_images_dir, { recursive: true });
-            fs.mkdirSync(segmentations_dir, { recursive: true });
+            //fs.mkdirSync(segmentations_dir, { recursive: true });
             fs.mkdirSync(conversion_tmp_dir, { recursive: true });
             fs.mkdirSync(annotations_dir, { recursive: true });
             fs.mkdirSync(metadata_dir, { recursive: true });
             fs.mkdirSync(patches_dir, { recursive: true });
+            fs.mkdirSync(excess_green_dir, { recursive: true });
             fs.mkdirSync(model_dir, { recursive: true });
             fs.mkdirSync(training_dir, { recursive: true });
             fs.mkdirSync(prediction_dir, { recursive: true });
             fs.mkdirSync(weights_dir, { recursive: true });
-
+            fs.mkdirSync(results_dir, { recursive: true});
 
             console.log("Copying initial model weights");
             let source_weights_path = path.join(USR_DATA_ROOT, "weights", "default_weights.h5");
@@ -1090,28 +1213,37 @@ exports.post_upload = function(req, res, next) {
                 }
             });
         }
+
+        let exg_command = "python ../../plant_detection/src/excess_green.py " + mission_dir + " " + extensionless_fname;
+        //console.log("Creating excess green images...")
+        //console.log(exg_command);
+        let result = exec(exg_command, {shell: "/bin/bash"}, function(error, stdout, stderr) {
+            if (error) {
+                console.log(error.stack);
+                console.log('Error code: '+error.code);
+                console.log('Signal received: '+error.signal);   
+
+                remove_image_set(farm_name, field_name, mission_date);
+                if (!sent_response) {
+                    sent_response = true;
+                    return res.status(422).json({
+                        error: "Error occurred during creation of excess green image."
+                    });
+                }
+            }
+        });
+
+        
     }
 
 
     if (last) {
-        console.log("collecting metadata");
+        console.log("Collecting metadata...");
         console.log("flight_height", flight_height);
         let metadata_command = "python ../../plant_detection/src/metadata.py " + mission_dir;
         if (isNumeric(flight_height)) {
             numeric_flight_height = parseFloat(flight_height);
             if (numeric_flight_height < 0.1 || numeric_flight_height > 100) {
-
-                /*
-                fs.rmSync(mission_dir, { recursive: true, force: true });
-                let missions = get_subdirs(field_dir);
-                if (missions.length == 0) {
-                    fs.rmSync(field_dir, { recursive: true, force: true });
-                    let fields = get_subdirs(farm_dir);
-                    if (fields.length == 0) {
-                        fs.rmSync(farm_dir, { recursive: true, force: true });
-                    }
-                }*/
-
                 remove_image_set(farm_name, field_name, mission_date);
                 if (!sent_response) {
                     sent_response = true;
@@ -1130,16 +1262,6 @@ exports.post_upload = function(req, res, next) {
                 console.log('Error code: '+error.code);
                 console.log('Signal received: '+error.signal);   
 
-                /*
-                fs.rmSync(mission_dir, { recursive: true, force: true });
-                let missions = get_subdirs(field_dir);
-                if (missions.length == 0) {
-                    fs.rmSync(field_dir, { recursive: true, force: true });
-                    let fields = get_subdirs(farm_dir);
-                    if (fields.length == 0) {
-                        fs.rmSync(farm_dir, { recursive: true, force: true });
-                    }
-                }*/
                 remove_image_set(farm_name, field_name, mission_date);
                 if (!sent_response) {
                     sent_response = true;
@@ -1149,6 +1271,8 @@ exports.post_upload = function(req, res, next) {
                 }
             }
             else {
+
+                console.log("Writing upload_complete file...");
                 let upload_complete = {}
                 let upload_complete_path = path.join(mission_dir, "upload_complete.json");
 
@@ -1171,6 +1295,63 @@ exports.post_upload = function(req, res, next) {
                     sent_response = true;
                     return res.sendStatus(200);
                 }
+
+
+
+                /*
+                let excess_green_record = {};
+                console.log("Consolidating excess green records...");
+                glob(path.join(mission_dir, "excess_green", "*_record.json"), function(error, image_paths) {
+                    if (error) {
+                        if (!sent_response) {
+                            sent_response = true;
+                            return res.status(422).json({
+                                error: "Error occurred while reading excess green records."
+                            });
+                        }
+                    }
+                    for (image_path of image_paths) {
+                        let fname = path.basename(image_path);
+                        let image_name = fname.substring(0, fname.length - "_record.json".length);
+                        try {
+                            image_record = JSON.parse(fs.readFileSync(image_path, 'utf8'));
+                        }
+                        catch (error) {
+                            if (!sent_response) {
+                                sent_response = true;
+                                return res.status(422).json({
+                                    error: "Error occurred while reading excess green records."
+                                });
+                            }
+                        }
+                        excess_green_record[image_name] = image_record;
+                        try {
+                            fs.unlinkSync(image_path);
+                        }
+                        catch (error) {
+                            if (!sent_response) {
+                                sent_response = true;
+                                return res.status(422).json({
+                                    error: "Error occurred while reading excess green records."
+                                });
+                            }
+                        }
+                    }
+                    let excess_green_record_path = path.join(mission_dir, "excess_green", "record.json");
+                    try {
+                        fs.writeFileSync(excess_green_record_path, JSON.stringify(excess_green_record));
+                    }
+                    catch (error) {
+                        if (!sent_response) {
+                            sent_response = true;
+                            return res.status(422).json({
+                                error: "Error occurred while writing excess green record."
+                            });
+                        }
+                    }*/
+
+
+                //});
             }
         });
 
@@ -1182,15 +1363,6 @@ exports.post_upload = function(req, res, next) {
             return res.sendStatus(200);
         }
     }
-
-    /*
-    }
-    else {        
-        //res.redirect(APP_PREFIX);
-        res.cookie_expired = true;
-        response.redirect = APP_PREFIX;
-        return res.json(response);
-    }*/
 }
 
 function dataset_is_annotated(dataset_name) {
@@ -1377,6 +1549,21 @@ exports.post_home = function(req, res, next) {
 
 
 
+
+    }
+    else if (action === "fetch_results") {
+       
+        let farm_name = req.body.farm_name;
+        let field_name = req.body.field_name;
+        let mission_date = req.body.mission_date;
+        
+        results_dir = path.join(USR_DATA_ROOT, "image_sets",
+                                 farm_name, field_name, mission_date, "model", "results");
+
+        let results = get_subdirs(results_dir);
+        response.results = results;
+        response.error = false;
+        return res.json(response);
 
     }
     // else if (action === "manage_jobs_request") {
@@ -1577,13 +1764,14 @@ exports.post_home = function(req, res, next) {
     }*/
 
 }
-exports.get_viewer = function(req, res, next) {
+exports.get_viewer_dep = function(req, res, next) {
     
     if (req.session.user && req.cookies.user_sid) {
-        let job_uuid = req.params.job_uuid;
+        
         let farm_name = req.params.farm_name;
         let field_name = req.params.field_name;
         let mission_date = req.params.mission_date;
+        let job_uuid = req.params.timestamp;
 
         let job_config;
         let job_config_path = path.join(USR_DATA_ROOT, "jobs", job_uuid + ".json");
@@ -1610,15 +1798,6 @@ exports.get_viewer = function(req, res, next) {
             let predictions_path = path.join(model_dir, "predictions.json");
             let metrics_path = path.join(model_dir, "metrics.json");
             let predictions_w3c_path = path.join(model_dir, "annotations.json");
-            /*
-            let model_predictions;
-            try {
-                model_predictions = JSON.parse(fs.readFileSync(predictions_path, 'utf8'));
-                predictions[model_uuid] = model_predictions;
-            }
-            catch (error) {
-                console.log(error);
-            }*/
             
             let model_metrics;
             try {
@@ -1695,6 +1874,149 @@ exports.get_viewer = function(req, res, next) {
         res.redirect(APP_PREFIX);
     }
 }
+
+exports.get_viewer = function(req, res, next) {
+    
+    if (req.session.user && req.cookies.user_sid) {
+        
+        let farm_name = req.params.farm_name;
+        let field_name = req.params.field_name;
+        let mission_date = req.params.mission_date;
+        let timestamp = req.params.timestamp;
+
+        /*
+        let job_config;
+        let job_config_path = path.join(USR_DATA_ROOT, "jobs", job_uuid + ".json");
+        try {
+            job_config = JSON.parse(fs.readFileSync(job_config_path, 'utf8'));
+        }
+        catch (error) {
+            console.log(error);
+        }
+
+        let predictions = {};
+        let metrics = {};
+        let overlays = {};
+
+        let results_dirname = job_uuid;
+        let results_dir = path.join(USR_DATA_ROOT, "results", 
+                                    farm_name, field_name, mission_date, results_dirname);
+
+        for (model_info of job_config["model_info"]) {
+            let model_uuid = model_info["model_uuid"];
+            let model_name = model_info["model_name"];
+
+            let model_dir = path.join(results_dir, model_uuid);
+            let predictions_path = path.join(model_dir, "predictions.json");
+            let metrics_path = path.join(model_dir, "metrics.json");
+            let predictions_w3c_path = path.join(model_dir, "annotations.json");
+            
+            let model_metrics;
+            try {
+                model_metrics = JSON.parse(fs.readFileSync(metrics_path, 'utf8'));
+                metrics[model_uuid] = model_metrics;
+            }
+            catch (error) {
+                console.log(error);
+            }
+
+            try {
+                model_predictions_w3c = JSON.parse(fs.readFileSync(predictions_w3c_path, 'utf8'));
+                overlays[model_uuid] = model_predictions_w3c;
+            }
+            catch (error) {
+                console.log(error);
+            }
+
+        }*/
+
+        let image_set_dir = path.join(USR_DATA_ROOT, "image_sets",
+                                      farm_name, field_name, mission_date);
+
+        let sel_results_dir = path.join(image_set_dir, "model", "results", timestamp);
+
+        //let annotations_path = path.join(image_set_dir, "annotations", "annotations_w3c.json");
+        let annotations_path = path.join(sel_results_dir, "annotations_w3c.json")
+        let annotations;
+        try {
+            annotations = JSON.parse(fs.readFileSync(annotations_path, 'utf8'));
+        }
+        catch (error) {
+            console.log(error);
+        }
+        let metadata_path = path.join(image_set_dir, "metadata", "metadata.json");
+        let metadata;
+        try {
+            metadata = JSON.parse(fs.readFileSync(metadata_path, 'utf8'));
+        }
+        catch (error) {
+            console.log(error);
+        }
+        let predictions_path = path.join(sel_results_dir, "predictions_w3c.json")
+        let predictions;
+        try {
+            predictions = JSON.parse(fs.readFileSync(predictions_path, 'utf8'));
+        }
+        catch (error) {
+            console.log(error);
+        }
+        let metrics_path = path.join(sel_results_dir, "metrics.json");
+        let metrics;
+        try {
+            metrics = JSON.parse(fs.readFileSync(metrics_path, 'utf8'));
+        }
+        catch (error) {
+            console.log(error);
+        }
+        let excess_green_record_path = path.join(sel_results_dir, "excess_green_record.json");
+        let excess_green_record;
+        try {
+            excess_green_record = JSON.parse(fs.readFileSync(excess_green_record_path, 'utf8'));
+        }
+        catch (error) {
+            console.log(error);
+        }
+
+        //overlays["annotations"] = annotations;
+
+        
+        let dzi_images_dir = path.join(image_set_dir, "dzi_images");
+
+        let dzi_image_paths = [];
+        for (image_name of Object.keys(annotations)) {
+            let dzi_image_path = path.join(APP_PREFIX, dzi_images_dir, image_name + ".dzi");
+            dzi_image_paths.push(dzi_image_path);
+
+        }
+
+        let image_set_info = {
+            "farm_name": farm_name,
+            "field_name": field_name,
+            "mission_date": mission_date,
+            "timestamp": timestamp
+        };
+
+        let data = {};
+        data["image_set_info"] = image_set_info;
+        //data["job_config"] = job_config;
+        //data["overlays"] = overlays;
+        data["annotations"] = annotations;
+        data["predictions"] = predictions;
+        data["metadata"] = metadata;
+        //data["predictions"] = predictions;
+        data["excess_green_record"] = excess_green_record;
+        data["metrics"] = metrics;
+        data["dzi_dir"] = path.join(APP_PREFIX, dzi_images_dir);
+        data["dzi_image_paths"] = nat_orderBy.orderBy(dzi_image_paths);
+
+        res.render("viewer", {"data": data});
+    }
+    
+    else {
+        res.redirect(APP_PREFIX);
+    }
+}
+
 exports.post_viewer = function(req, res, next) {
 
 
@@ -1703,10 +2025,11 @@ exports.post_viewer = function(req, res, next) {
     let response = {};
     console.log(req.params);
 
-    let job_uuid = req.params.job_uuid;
+    //let job_uuid = req.params.job_uuid;
     let farm_name = req.params.farm_name;
     let field_name = req.params.field_name;
     let mission_date = req.params.mission_date;
+    let timestamp = req.params.timestamp;
     let action = req.body.action;
 
 
@@ -1716,14 +2039,23 @@ exports.post_viewer = function(req, res, next) {
         console.log(field_name);
         console.log(mission_date);
 
-        let model_uuid = req.body.model_uuid;
-        let pred_path = path.join(USR_DATA_ROOT, "results", farm_name, field_name, mission_date,
-                                    job_uuid, model_uuid, "predictions.json");
-        let out_dir = path.join(USR_DATA_ROOT, "results", farm_name, field_name, mission_date,
-                                    job_uuid, model_uuid, "maps");
+        //let model_uuid = req.body.model_uuid;
+
+        
+        
+        let model_results_dir = path.join(USR_DATA_ROOT, "image_sets", farm_name, field_name, mission_date,
+                                          "model", "results", timestamp);
+        let annotations_path = path.join(model_results_dir, "annotations_w3c.json");
+        let pred_path = path.join(model_results_dir, "predictions_w3c.json");
+        let out_dir = path.join(model_results_dir, "maps");
+        //let pred_path = path.join(USR_DATA_ROOT, "results", farm_name, field_name, mission_date,
+        //                            job_uuid, model_uuid, "predictions.json");
+        //let out_dir = path.join(USR_DATA_ROOT, "results", farm_name, field_name, mission_date,
+        //                            job_uuid, model_uuid, "maps");
 
         let rebuild_command = "python ../../plant_detection/src/interpolate.py " + farm_name +
-                                " " + field_name + " " + mission_date + " " + out_dir + " -p " + pred_path;
+                                " " + field_name + " " + mission_date + " " + annotations_path + " " +
+                                out_dir + " -p " + pred_path;
 
         if (req.body.interpolation == "nearest") {
             rebuild_command = rebuild_command + " -nearest";

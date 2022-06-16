@@ -36,6 +36,8 @@ services:
     networks: 
       - container_net
 
+    runtime: nvidia
+
 networks:
   container_net:
     driver: bridge
