@@ -138,107 +138,28 @@ function update_submit() {
 }
 
 
-function show_upload() {
+function initialize_upload() {
 
-    let left_col_width = "130px";
-    let right_col_width = "250px";
-
-    $("#main_area").empty();
-
-    $("#main_area").append(`<form id="upload_form" action=""></form>`)
-    $("#upload_form").append(`<br><br><br>`);
-
-
-    $("#upload_form").append(`<table class="transparent_table" id="input_table"></table>`);
-    $("#input_table").append(`<tr>` +
-        `<th><div class="table_head" style="width: ${left_col_width};">Farm Name<span style="color:yellow"> *</span></div></th>` +
-        `<th><div style="width: ${right_col_width};"><input id="farm_input" class="nonfixed_input"></div></th>` +
-    `<tr>`);
-
-    $("#input_table").append(`<tr>` +
-        `<th><div class="table_head" style="width: ${left_col_width};">Field Name<span style="color:yellow"> *</span></div></th>` +
-        `<th><div style="width: ${right_col_width};"><input id="field_input" class="nonfixed_input"></div></th>` +
-    `<tr>`);
-
-    $("#input_table").append(`<tr>` +
-    `<th><div class="table_head" style="width: ${left_col_width};">Mission Date<span style="color:yellow"> *</span></div></th>` +
-    `<th><div style="width: ${right_col_width};"><input type="date" id="mission_input" class="nonfixed_input"></div></th>` +
-    `<tr>`);
-
-    
-    $("#input_table").append(`<tr>` +
-    `<th><div class="table_head" style="width: ${left_col_width};">Flight Height (m)</div></th>` +
-    `<th><div style="width: ${right_col_width};"><input id="flight_height_input" class="nonfixed_input"></div></th>` +
-    `<tr>`);
-
-    $("#upload_form").append(`<br><div style="color:yellow">*<span style="color: white"> Indicates required field.</span></div>`);
-
-    /*
-    $("#upload_form").append(`<div class="row"></div>`);
-    $("#upload_form").append(`<div class="col_left"><div class="col_label">Farm Name:</div></div>`);
-    $("#upload_form").append(`<div class="col_right"><input id="farm_input" class="nonfixed_input"></input></div>`);
-
-    $("#upload_form").append(`<div class="row"></div>`);
-    $("#upload_form").append(`<div class="col_left"><div class="col_label">Field Name:</div></div>`);
-    $("#upload_form").append(`<div class="col_right"><input id="field_input" class="nonfixed_input"></input></div>`);
-
-    $("#upload_form").append(`<div class="row"></div>`);
-    $("#upload_form").append(`<div class="col_left"><div class="col_label">Mission Date:</div></div>`);
-    $("#upload_form").append(`<div class="col_right"><input id="mission_input" class="nonfixed_input"></input></div>`);
-    */
-   
-    $("#upload_form").append(`<br>`);
-    /*
-    $("#upload_form").append(`<br>`);
-    $("#upload_form").append(`<br>`);*/
-
-    $("#upload_form").append(`<hr style="margin: 0px 0px">`);
-    $("#upload_form").append(`<div id="file-drop" class="dropzone"></div>`);
-    $("#file-drop").append(`<div class="dz-message data-dz-message"><span>Drop Images Here</span></div>`);
-    
-    $("#upload_form").append(`<hr>`);
-    $("#upload_form").append(`<button id="upload_button" class="std-button std-button-hover" `+
-                                `style="width: 200px; height: 40px;" type="submit">Upload</button>`);
-
-
-    $("#file-drop").append(`<div id="upload_loader" class="loader"></div>`);
     disable_submit();
-    $("#upload_loader").hide();
 
     dropzone_handler = new Dropzone("#file-drop", { 
         url: "/plant_detection/upload",
         autoProcessQueue: false,
         paramName: function(n) { return 'source_file[]'; },
         uploadMultiple: true,
-        //chunking: true,
-        //parallelChunkUploads: true,
-        //retryChunks: true,
         farm_name: '',
         field_name: '',
         mission_date: '',
-        //addRemoveLinks : true,
-        parallelUploads: 10, //10000,
+        parallelUploads: 10,
         maxUploads: 10000
-        /*,
-        chunksUploaded: function(file, done) {
-            $.ajax({
-                success: function(data) {
-                    dropzone_handler.options.autoProcessQueue = true;
-                    done();
-                }
-            });
-        }*/
     });
 
     dropzone_handler.on("processing", function() {
         console.log("started processing");
-        //first_batch = "no";
-        //num_sent = 0;
         dropzone_handler.options.autoProcessQueue = true;
     });
 
     dropzone_handler.on("queuecomplete", function(files, response) {
-        //first = true;
         num_sent = 0;
         dropzone_handler.options.autoProcessQueue = false;
 
@@ -279,7 +200,7 @@ function show_upload() {
                 image_sets_data[uploaded_farm][uploaded_field] = [];
             }
             image_sets_data[uploaded_farm][uploaded_field].push(uploaded_mission);
-            //image_sets_data[uploaded_farm][uploaded_field][uploaded_mission] = [];
+            initialize_browse();
             clear_form();
             enable_input();
             disable_submit();
@@ -308,13 +229,6 @@ function show_upload() {
         formData.append('farm_name', $("#farm_input").val());
         formData.append('field_name', $("#field_input").val());
         formData.append('mission_date', $("#mission_input").val());
-        // if (first) {
-        //     formData.append('first', "yes");
-        //     first = false;
-        // }
-        // else {
-        //     formData.append('first', "no");
-        // }
         formData.append("queued_filenames", queued_filenames.join(","));
         formData.append('flight_height', $("#flight_height_input").val());
         num_sent++;
@@ -329,21 +243,6 @@ function show_upload() {
         disable_input();
         $("#upload_loader").show();
 
-        // $.post($(location).attr('href'),
-        // {
-        //     action: "prepare_for_upload",
-        //     farm_name: $("#farm_input").val(),
-        //     field_name: $("#field_input").val(),
-        //     mission_date: $("#mission_input").val(),
-        // },
-        // function(response, status) {
-        //     if (response.error) { 
-        //         console.log("error occurred", response.error);
-        //     }
-        //     else {
-        //         window.location.href = response.redirect;
-        //     }
-        // });
         queued_filenames = [];
 
         let illegal = false;

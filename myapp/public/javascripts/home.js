@@ -77,112 +77,52 @@ function annotate_request() {
     });
 }
 
-function show_browse() {
 
-    let left_col_width = "130px";
-    let right_col_width = "250px";
+function initialize_train_baseline() {
 
-    $("#main_area").empty();
-    $("#main_area").append(`<br><br><br>`);
 
-    $("#main_area").append(`<table class="transparent_table" id="combo_table"></table>`);
-    $("#combo_table").append(`<tr>` +
-        `<th><div class="table_head" style="width: ${left_col_width};">Farm Name</div></th>` +
-        `<th><div style="width: ${right_col_width};"><select id="farm_combo" class="nonfixed_dropdown"></select></div></th>` +
-    `<tr>`);
-
-    $("#combo_table").append(`<tr>` +
-        `<th><div class="table_head" style="width: ${left_col_width};">Field Name</div></th>` +
-        `<th><div style="width: ${right_col_width};"><select id="field_combo" class="nonfixed_dropdown"></select></div></th>` +
-    `<tr>`);
-
-    $("#combo_table").append(`<tr>` +
-    `<th><div class="table_head" style="width: ${left_col_width};">Mission Date</div></th>` +
-    `<th><div style="width: ${right_col_width};"><select id="mission_combo" class="nonfixed_dropdown"></select></div</th>` +
-    `<tr>`);
-
-    /*
-    $("#main_area").append(`<div class="row"></div>`);
-    $("#main_area").append(`<div class="col_left"><div class="col_label">Farm Name:</div></div>`);
-    $("#main_area").append(`<div class="col_right"><select id="farm_combo" class="nonfixed_dropdown"></select></div>`);
-
-    $("#main_area").append(`<div class="row"></div>`);
-    $("#main_area").append(`<div class="col_left"><div class="col_label">Field Name:</div></div>`);
-    $("#main_area").append(`<div class="col_right"><select id="field_combo" class="nonfixed_dropdown"></select></div>`);
-
-    $("#main_area").append(`<div class="row"></div>`);
-    $("#main_area").append(`<div class="col_left"><div class="col_label">Mission Date:</div></div>`);
-    $("#main_area").append(`<div class="col_right"><select id="mission_combo" class="nonfixed_dropdown"></select></div>`);
-    */
-    $("#main_area").append(`<br>`);
-    
-    $("#main_area").append(`<hr style="margin: 0px 0px">`);
-    $("#main_area").append(`<div id="image_set_container">`);
+    //let container_height = "300px";
+    //let container_width = "1000px";
+    let col_width = "400px";
 
     for (farm_name of natsort(Object.keys(image_sets_data))) {
-        $("#farm_combo").append($('<option>', {
-            value: farm_name,
-            text: farm_name
-        }));
-    }
-    $("#farm_combo").prop("selectedIndex", -1);
-
-
-
-    $("#farm_combo").change(function() {
-
-        let farm_name = $(this).val();
-
-        $("#field_combo").empty();
-        $("#mission_combo").empty();
-        $("#right_panel").empty();
-
         for (field_name of natsort(Object.keys(image_sets_data[farm_name]))) {
-            $("#field_combo").append($('<option>', {
-                value: field_name,
-                text: field_name
-            }));
+            for (mission_date of natsort(Object.keys(image_sets_data[farm_name]))) {
+                let image_set_name = farm_name + "::" + field_name + "::" + mission_date;
+                let image_set_row_id = image_set_name + "_row";
+                let overlay_color = "black";
+                $("#image_sets_table").append(`<tr id=${image_set_row_id}>` +
+                `<td><label class="table_label" ` +
+                `style="width: ${col_width}; background-color: #2b3628;">` +
+                `<table class="transparent_table">` +
+                `<tr>` + 
+                `<td style="width: 40px">` +
+                    `<label class="switch">` +
+                    `<input id=${image_set_name} type="checkbox"></input>` +
+                    `<span class="switch_slider round"></span></label>` +
+                `</td>` +
+                `<td style="width: 100%">` +
+                    `<div style="margin-left: 8px">${image_set_name}</div>` +
+                `</td>` +
+                `</tr>` +
+                `</table>` +
+                `</label>` +
+                `</td>`+
+                `</tr>`);
+            }
         }
-        $("#field_combo").val($("#field_combo:first").val()).change();
-    });
-
-    $("#field_combo").change(function() {
-
-        let farm_name = $("#farm_combo").val();
-        let field_name = $(this).val();
-
-        $("#mission_combo").empty();
-        $("#right_panel").empty();
-
-        for (mission_date of natsort(image_sets_data[farm_name][field_name])) {
-            $("#mission_combo").append($('<option>', {
-                value: mission_date,
-                text: mission_date
-            }));
-        }
-        $("#mission_combo").val($("#mission_combo:first").val()).change();
-    });
-
-    $("#mission_combo").change(function() {
-        show_image_set_details();
-    });
-
-
-    $("#modal_close").click(function() {
-        $("#modal_button_container").remove();
-        close_modal();
-    });
+    }
 }
+
 
 
 function show_tab(sel_tab_btn_id) {
 
     let tab_ids = [
         "browse_tab_btn",
-        "upload_tab_btn"
+        "upload_tab_btn",
+        "train_baseline_tab_btn"
     ];
-
-    let sel_tab_id = sel_tab_btn_id.substring(0, sel_tab_btn_id.length - 4);
 
     for (tab_btn_id of tab_ids) {
         let tab_id = tab_btn_id.substring(0, tab_btn_id.length - 4);
@@ -192,11 +132,21 @@ function show_tab(sel_tab_btn_id) {
 
     $("#" + sel_tab_btn_id).addClass("tab-btn-active");
 
+    $("#browse").hide();
+    $("#upload").hide();
+    $("#train_baseline").hide();
+
     if (sel_tab_btn_id === "browse_tab_btn") {
-        show_browse();
+        //show_browse();
+        $("#browse").show();
+    }
+    else if (sel_tab_btn_id === "upload_tab_btn") {
+        //show_upload();
+        $("#upload").show();
     }
     else {
-        show_upload();
+        //show_train_baseline();
+        $("#train_baseline").show();
     }
 
 }
@@ -370,7 +320,7 @@ function show_overview() {
             `<th><div class="table_text" style="width: ${value_width};">${is_georeferenced}</div></th>` +
             `<tr>`);        
 
-    //$("#right_section").append(`<br><hr style="width: 80%"><br>`);
+            
     $("#bottom_right").append(`<div style="text-decoration: underline;">Camera Specs</div><br>`);
 
 
@@ -395,10 +345,6 @@ function show_overview() {
             `<th><div class="table_head" style="width: ${label_width};">Focal length</div></th>` +
             `<th><div class="table_text" style="width: ${value_width};">${focal_length}</div></th>` +
             `<tr>`);
-    // $("#camera_specs_table").append(`<tr>` +
-    //         `<th><div class="table_head" style="width: ${label_width};">Flight Height (m)</div></th>` +
-    //         `<th><div class="table_text" style="width: ${value_width};">${flight_height}</div></th>` +
-    //         `<tr>`)
 
 
     $("#left_section").append(
@@ -444,7 +390,6 @@ function show_overview() {
             
 
     if (total_annotations == 0) {
-        //$("#left_section").append(`<br><br><br>`);
         $("#left_table").append(
             `<tr style="height: 80px">` +
             `<td>` +
@@ -459,15 +404,7 @@ function show_overview() {
 
 function show_results() {
 
-    let farm_name = $("#farm_combo").val();
-    let field_name = $("#field_combo").val();
-    let mission_date = $("#mission_combo").val();
-
     let job_col_width = "500px";
-    let started_col_width = "180px";
-    let finished_col_width = "180px";
-
-    
 
 
     $.post($(location).attr('href'),
@@ -482,6 +419,8 @@ function show_results() {
         console.log("response", response);
 
         if (response.results.length > 0) {
+            response.results.sort().reverse();
+
             $("#tab_details").empty();
             $("#tab_details").append(`<div style="height: 120px"></div>`);
             $("#tab_details").append(`<table class="transparent_table" id="image_set_table_head"></table>`);
@@ -501,63 +440,6 @@ function show_results() {
             $("#tab_details").append(`<div>No Results Found</div>`);
         }
     });
-    /*
-    let job_recs = [];
-    
-    for (job_uuid of image_sets_data[farm_name][field_name][mission_date]) {
-        let job_url = "/plant_detection/usr/data/jobs/" + job_uuid + ".json";
-    
-        let job_config = get_json(job_url);
-
-        if ("end_time" in job_config) {
-            //let job_config_str = JSON.stringify(job_config, null, 4);
-
-            let job_rec = {
-                "job_uuid": job_config["job_uuid"],
-                "job_name": job_config["job_name"],
-                "start_time": job_config["start_time"],
-                "end_time": job_config["end_time"]
-            }
-            job_recs.push(job_rec);
-
-        }
-    }
-
-    $("#tab_details").empty();
-    $("#tab_details").append(`<div style="height: 120px"></div>`);
-    //$("#tab_details").append(`<br>`);
-    //job_recs = [{"job_uuid": "fake", "job_name": "fake", "start_time": "fake", "end_time": "fake"}];
-    if (job_recs.length > 0) {
-        $("#tab_details").append(`<table class="transparent_table" id="image_set_table_head"></table>`);
-        $("#image_set_table_head").append(`<tr>` +
-                `<th><div class="table_header" style="width: ${job_col_width};">Job Name</div></th>` +
-                `<th><div class="table_header" style="width: ${started_col_width};">Started</div></th>` +
-                `<th><div class="table_header" style="width: ${finished_col_width};">Finished</div></th>` +
-                `<tr>`);
-
-        $("#tab_details").append(`<div class="scrollable_area" style="height: 380px; border: none">` +
-                                `<table class="transparent_table" id="image_set_table_content"></table></div>`);
-
-        console.log("sorting job recs");
-        job_recs.sort(function(a, b) {
-            return new Date(b["end_time"]) - new Date(a["end_time"]);
-        });                 
-        for (job_rec of job_recs) {
-            let job_uuid = job_rec["job_uuid"];
-            let job_name = job_rec["job_name"];
-            let start_time = job_rec["start_time"];
-            let end_time = job_rec["end_time"];
-            $("#image_set_table_content").append(`<tr>` +
-            `<td><div class="std-button std-button-hover" style="width: ${job_col_width};" ` +
-                    `onclick="view_job('${job_uuid}')"><span>${job_name}</span></div></td>` +
-                    `<td><div class="table_entry" style="width: ${started_col_width};">${start_time}</div></td>` +   
-                    `<td><div class="table_entry" style="width: ${finished_col_width};">${end_time}</div></td>` +
-            `</tr>`);
-        }
-    }
-    else {
-        $("#tab_details").append(`<div>No Results Found</div>`);
-    }*/
 
 }
 
@@ -631,7 +513,58 @@ function show_image_set_details() {
                                 `<span>Annotate</span></button>`);*/
 
 
+function initialize_browse() {
 
+
+    $("#farm_combo").empty();
+    $("#field_combo").empty();
+    $("#mission_combo").empty();
+    $("#image_set_container").empty();
+
+    for (farm_name of natsort(Object.keys(image_sets_data))) {
+        $("#farm_combo").append($('<option>', {
+            value: farm_name,
+            text: farm_name
+        }));
+    }
+    $("#farm_combo").prop("selectedIndex", -1);
+
+
+
+    $("#farm_combo").change(function() {
+
+        let farm_name = $(this).val();
+
+        $("#field_combo").empty();
+        $("#mission_combo").empty();
+        $("#right_panel").empty();
+
+        for (field_name of natsort(Object.keys(image_sets_data[farm_name]))) {
+            $("#field_combo").append($('<option>', {
+                value: field_name,
+                text: field_name
+            }));
+        }
+        $("#field_combo").val($("#field_combo:first").val()).change();
+    });
+
+    $("#field_combo").change(function() {
+
+        let farm_name = $("#farm_combo").val();
+        let field_name = $(this).val();
+
+        $("#mission_combo").empty();
+        $("#right_panel").empty();
+
+        for (mission_date of natsort(image_sets_data[farm_name][field_name])) {
+            $("#mission_combo").append($('<option>', {
+                value: mission_date,
+                text: mission_date
+            }));
+        }
+        $("#mission_combo").val($("#mission_combo:first").val()).change();
+    });
+}
 
 $(document).ready(function() {
 
@@ -648,18 +581,24 @@ $(document).ready(function() {
             show_tab("upload_tab_btn");
     });
 
-    show_browse();
+    $("#train_baseline_tab_btn").click(function() {
+        if (!global_disabled)
+            show_tab("train_baseline_tab_btn");
+    });
 
 
-
-/*
-    $(window).resize(function() {
-        update_containers();
-    });*/
+    $("#mission_combo").change(function() {
+        show_image_set_details();
+    });
 
 
+    $("#modal_close").click(function() {
+        $("#modal_button_container").remove();
+        close_modal();
+    });
 
-
-
+    initialize_browse();
+    initialize_upload();
+    initialize_train_baseline();
 
 });

@@ -72,7 +72,6 @@ function change_image(image_name) {
 
 function overlay_initialization() {
 
-    //let i = 0;
     for (const [overlay_name, overlay] of Object.entries(overlays)) {
 
         let color_id = overlay["color_id"];
@@ -81,153 +80,9 @@ function overlay_initialization() {
                 annotation["body"].push({"value": color_id, "purpose": "highlighting"})
             }
         }
-        //i++;
     }
 }
 
-
-function overlay_initialization_2() {
-
-    sorted_overlay_names = [];
-    sorted_overlay_ids = [];
-
-    let model_items = job_config["model_info"]
-    model_items.sort(function(first, second) {
-        if (first["model_name"] < second["model_name"]) return -1;
-        if (first["model_name"] > second["model_name"]) return 1;
-        return 0;
-    });
-
-    for (model_item of model_items) {
-        sorted_overlay_names.push(model_item["model_name"]);
-        sorted_overlay_ids.push(model_item["model_uuid"]); 
-    }
-
-    sorted_overlay_names = ["annotations", ...sorted_overlay_names];
-    sorted_overlay_ids = ["annotations", ...sorted_overlay_ids];
-
-
-    let colors = ["#0080C0",        
-                  "#FF4040", 
-                  "#f5a70b", 
-                  "#b95fb9", 
-                  "#02b863",
-                  "#00C0C0", 
-                  "#00695C",
-                  "#FFC0C0", 
-                  "#C08040", 
-                  "#FF8040"];
-    let overflow_color = "#A0A0A0";
-
-    overlay_colors = {};
-    for (let i = 0; i < sorted_overlay_names.length; i++) {
-        if (i < colors.length)
-            overlay_colors[sorted_overlay_names[i]] = colors[i];
-        else
-            overlay_colors[sorted_overlay_names[i]] = overflow_color;
-    }
-
-    let color_id;
-    for (let i = 0; i < sorted_overlay_names.length; i++) {
-
-        if (i < colors.length)
-            color_id = "COLOR_" + i;
-        else
-            color_id = "COLOR_DEFAULT";
-
-        //console.log("for loop started");
-        for (img_name of Object.keys(overlays[sorted_overlay_ids[i]])) {
-            for (annotation of overlays[sorted_overlay_ids[i]][img_name]["annotations"]) {
-                annotation["body"].push({"value": color_id, "purpose": "highlighting"})
-            }
-        }
-        //console.log("for loop finished");
-
-    }
-
-}
-
-// function adjust_to_opt(btn_id) {
-
-//     let overlay_id = btn_id.substring(0, btn_id.length - "_thresh".length);
-//     let thresh_val = metrics[overlay_id]["point"]["train_val_optimal_score_threshold"]["threshold_value"];
-//     //let thresh_val = 0.85;
-//     $("#confidence_slider").val(thresh_val);
-//     $("#confidence_slider").change();
-// }
-
-/*
-function create_map_models_radio() {
-    $("#map_selection_table").empty();
-    let i = 0;
-    
-    
-    for (model_info of job_config["model_info"]) {
-        let model_uuid = model_info["model_uuid"];
-        let model_name = model_info["model_name"];
-        if (i == 0) {
-            $("#map_selection_table").append(
-                `<tr>` +
-                    `<td>` +
-                        `<label>${model_name}` +
-                            `<input style="margin-left: 30px" type="radio" name="map_model" value="${model_uuid}" checked>` +
-                            `<span class="custom_radio"></span>` +
-                        `</label>` +
-                    `</td>` +
-                `</tr>`
-            );
-
-        }
-        else {
-            $("#map_selection_table").append(
-                `<tr>` +
-                    `<td>` +
-                        `<label>${model_name}` +
-                            `<input style="margin-left: 30px" type="radio" name="map_model" value="${model_uuid}">` +
-                            `<span class="custom_radio"></span>` +
-                        `</label>` +
-                    `</td>` +
-                `</tr>`
-            );
-        }
-        i++;
-        
-    }*/
-
-/*
-    let num_completed = 0;
-    for (image_name of Object.keys(overlays["annotations"])) {
-        if (overlays["annotations"][image_name]["status"] == "completed") {
-            num_completed++;
-        }
-    }*/
-
-    /*
-    if (num_completed >= 3) {
-
-        $("#include_annotations_container").append(
-            `<div class="header2" style="text-align: left; padding-left: 10px">Show Annotated Map</div>` +
-            `<table class="transparent_table" style="border: 1px solid white; width: 260px">` +
-                `<tr>` +
-                    `<td>` +
-                        `<label>Yes` +
-                            `<input type="radio" name="include_annotated_map" value="yes" checked>` +
-                            `<span class="custom_radio"></span>` +
-                        `</label>` +
-                    `</td>` +
-                    `<td>` +
-                        `<label>No` +
-                            `<input type="radio" name="include_annotated_map" value="no">` +
-                            `<span class="custom_radio"></span>` +
-                        `</label>` +
-                    `</td>` +
-                `</tr>` +
-            `</table>`
-        );
-        */
-
-    //}
-//}
 
 function create_overlays_table() {
 
@@ -660,7 +515,7 @@ $(document).ready(function() {
     let timestamp = image_set_info["timestamp"];
     
     let download_path = "/plant_detection/usr/data/image_sets/" + farm_name + "/" +
-                        field_name + "/" + mission_date + "/model/results/" + timestamp + "/results.xlsx";
+                        field_name + "/" + mission_date + "/model/results/" + timestamp + "/results.csv";
     
     console.log("download_path", download_path);
     $("#download_button").attr("href", download_path);

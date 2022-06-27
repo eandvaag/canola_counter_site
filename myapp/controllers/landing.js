@@ -48,7 +48,8 @@ let socket_io = require('socket.io');
 let io = socket_io();*/
 
 const APP_PREFIX = '/plant_detection';
-const USR_DATA_ROOT = 'usr/data/';
+const USR_DATA_ROOT = path.join("usr", "data");
+const USR_REQUESTS_ROOT = path.join("usr", "requests");
 
 const ANNOTATION_LOCK_TIMEOUT = 240000; // 4 minutes
 // const AsyncLock = require('async-lock');
@@ -387,6 +388,11 @@ exports.get_annotate = function(req, res, next) {
         
                 console.log("ready to render");
                 let data = {};
+
+                let cur_weights_path = path.join(image_set_dir, "model", "weights", "best_weights.h5");
+                data["baseline_initialized"] = fs.existsSync(cur_weights_path);
+                console.log("baseline_initialized", data["baseline_initialized"]);
+                
                 data["image_set_info"] = image_set_info;
                 data["metadata"] = metadata;
                 data["dzi_image_paths"] = nat_orderBy.orderBy(dzi_image_paths);
@@ -595,7 +601,7 @@ exports.post_annotate = function(req, res, next) {
         };
         let request_uuid = uuidv4().toString();
         
-        let request_path = path.join(USR_DATA_ROOT, "prediction_requests",
+        let request_path = path.join(USR_REQUESTS_ROOT, "prediction",
                                      request_uuid + ".json");
         try {
             fs.writeFileSync(request_path, JSON.stringify(request));
@@ -635,7 +641,7 @@ exports.post_annotate = function(req, res, next) {
         };
         let request_uuid = uuidv4().toString();
         
-        let request_path = path.join(USR_DATA_ROOT, "prediction_requests",
+        let request_path = path.join(USR_REQUESTS_ROOT, "prediction",
                                      request_uuid + ".json");
         try {
             fs.writeFileSync(request_path, JSON.stringify(request));
@@ -709,7 +715,7 @@ exports.post_annotate = function(req, res, next) {
         };
         let request_uuid = uuidv4().toString();
         
-        let request_path = path.join(USR_DATA_ROOT, "restart_requests",
+        let request_path = path.join(USR_REQUESTS_ROOT, "restart",
                                      request_uuid + ".json");
         try {
             fs.writeFileSync(request_path, JSON.stringify(request));
@@ -931,6 +937,7 @@ exports.post_upload = function(req, res, next) {
             fs.mkdirSync(weights_dir, { recursive: true });
             fs.mkdirSync(results_dir, { recursive: true});
 
+            /*
             console.log("Copying initial model weights");
             let source_weights_path = path.join(USR_DATA_ROOT, "weights", "default_weights.h5");
             let best_weights_path = path.join(weights_dir, "best_weights.h5");
@@ -960,7 +967,7 @@ exports.post_upload = function(req, res, next) {
                         error: "Error occurred while copying weights."
                     });
                 }
-            }
+            }*/
 
             let status = {
                 "status": "idle",
@@ -1050,8 +1057,6 @@ exports.post_upload = function(req, res, next) {
                     });
                 }
             }
-
-
         }
     }
     else {
@@ -1996,7 +2001,10 @@ exports.get_viewer = function(req, res, next) {
             "timestamp": timestamp
         };
 
+
+
         let data = {};
+
         data["image_set_info"] = image_set_info;
         //data["job_config"] = job_config;
         //data["overlays"] = overlays;

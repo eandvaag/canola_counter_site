@@ -5,12 +5,14 @@ html
         title="Canola Counter"
         meta(name="viewport" content="width=device-width, initial-scale=1")
 
+        link(rel="icon" href="/plant_detection/images/favicon.ico")
+
+        link(href="https://unpkg.com/dropzone@6.0.0-beta.1/dist/dropzone.css" rel="stylesheet" type="text/css")
+        link(href='/plant_detection/stylesheets/main.css' rel='stylesheet')
+        
         script(src="https://code.jquery.com/jquery-3.6.0.js")
         script(src="https://unpkg.com/dropzone@6.0.0-beta.1/dist/dropzone-min.js")
         
-        link(href="https://unpkg.com/dropzone@6.0.0-beta.1/dist/dropzone.css" rel="stylesheet" type="text/css")
-        link(href='/plant_detection/stylesheets/main.css' rel='stylesheet')
-
 
         script(type='text/javascript' src='/plant_detection/javascripts/home.js')
         script(type='text/javascript' src='/plant_detection/javascripts/common.js')
@@ -40,6 +42,7 @@ html
                 br
 
                 div(id="home_container")
+
                     div(class="panel" style="width: 1500px;")
 
                         //h(class="header2" style="font-size: 26px; text-align: center;") Image Sets
@@ -61,57 +64,114 @@ html
                                             |
                                             | Upload
 
-                            //hr
 
-
-                            //
-                                table(class="transparent_table")
-                                    tr
-                                        //td
-                                        //    h(class="title" style="width: 200px") Image Sets
-                                        td(style="width: 100%")
-                                        td
-                                            div(id="upload" class="table_button table_button_hover" style="width:100px")
-                                                span
-                                                    i(class="fa-solid fa-upload" style="font-size: 18px")
-                                                    |
-                                                    | Upload
-                                
+                                li(id="train_baseline_tab_btn" class="nav")
+                                    a(class="nav")
+                                        span
+                                            i(class="fa-solid fa-cube" style="margin-right:3px")
+                                            |
+                                            | Train Baseline
 
 
                             div(id="main_area")
-                            
-                            //
-                                div(class="row")
-                                    div(class="col_left")
-                                        div(class="col_label") Farm Name:
-                                    div(class="col_right")
-                                        select(id="farm_combo" class="nonfixed_dropdown")
 
 
-                                div(class="row")
-                                    div(class="col_left")
-                                        div(class="col_label") Field Name:
-                                    div(class="col_right")
-                                        select(id="field_combo" class="nonfixed_dropdown")
+                                div(id="browse")
+                                    br
+                                    br
+                                    br
+
+                                    table(class="transparent_table" id="combo_table")
+                                        tr
+                                            th
+                                                div(class="table_head" style="width: 130px") Farm Name 
+                                            th 
+                                                div(style="width: 250px")
+                                                    select(id="farm_combo" class="nonfixed_dropdown")
+
+                                        tr
+                                            th 
+                                                div(class="table_head" style="width: 130px") Field Name 
+                                            th 
+                                                div(style="width: 250px")
+                                                    select(id="field_combo" class="nonfixed_dropdown")
+
+                                        tr
+                                            th 
+                                                div(class="table_head" style="width: 130px") Mission Date
+                                            th 
+                                                div(style="width: 250px")
+                                                    select(id="mission_combo" class="nonfixed_dropdown")
+
+                                    br
+                                    hr(style="margin: 0px 0px")
+                                    div(id="image_set_container")
 
 
-                                div(class="row")
-                                    div(class="col_left")
-                                        div(class="col_label") Mission Date:
-                                    div(class="col_right")
-                                        select(id="mission_combo" class="nonfixed_dropdown")
+                                div(id="upload" hidden)
+                                    form(id="upload_form" action="")
+                                        br
+                                        br
+                                        br
+
+                                        table(class="transparent_table" id="input_table")
+                                            tr 
+                                                th 
+                                                    div(class="table_head" style="width: 130px") Farm Name 
+                                                        span(style="color: yellow") *
+                                                th 
+                                                    div(style="width: 250px")
+                                                        input(id="farm_input" class="nonfixed_input")
+                                        
+                                            tr 
+                                                th 
+                                                    div(class="table_head" style="width: 130px") Field Name 
+                                                        span(style="color: yellow") *
+                                                th 
+                                                    div(style="width: 250px")
+                                                        input(id="field_input" class="nonfixed_input")
+
+                                            tr 
+                                                th 
+                                                    div(class="table_head" style="width: 130px") Mission Date 
+                                                        span(style="color: yellow") *
+                                                th 
+                                                    div(style="width: 250px")
+                                                        input(id="mission_input" type="date" class="nonfixed_input")
 
 
-                                br
-                                hr(style="margin: 0")
-                                div(id="image_set_container")
+                                            tr 
+                                                th 
+                                                    div(class="table_head" style="width: 130px") Flight Height (m)
+                                                th 
+                                                    div(style="width: 250px")
+                                                        input(id="flight_height_input" class="nonfixed_input")
+                                        
+                                        br
+                                        div(style="color: yellow") * 
+                                            span(style="color: white") Indicates required field.
 
-                            //hr
-                            //div(id="image_set_scrollable_area" class="scrollable_area" style="height: 390px; border:none")
+                                        br
+                                        hr(style="margin: 0px 0px")
+                                        div(id="file-drop" class="dropzone")
+                                            div(class="dz-message data-dz-message")
+                                                span Drop Images Here 
+                                            div(id="upload_loader" class="loader" hidden)
+
+                                        hr
+                                        
+                                        button(id="upload_button" class="std-button std-button-hover" style="width: 200px; height: 40px" type="submit")
+                                            span Upload 
                                 
-                            //table(id="image_set_table")
 
+                                div(id="train_baseline" hidden)
+
+                                    br
+                                    br
+                                    br
+
+                                    div(class="scrollable_area" style="height: 280px; margin: 10px 10px; padding: 10px 10px")
+                                        table(id="image_sets_table" class="transparent_table")
     script.
         let image_sets_data = !{JSON.stringify(image_sets_data)};
         let camera_specs = !{JSON.stringify(camera_specs)};

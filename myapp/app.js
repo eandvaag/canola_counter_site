@@ -19,7 +19,11 @@ app.set('view engine', 'pug');
 app.use('/plant_detection/osd', express.static(__dirname + '/external_node_modules/openseadragon3'));
 app.use('/plant_detection/annotorious', express.static(__dirname + '/external_node_modules/annotorious'));
 
-app.use(favicon(__dirname + '/public/images/favicon.ico'));
+//app.use('/plant_detection/public/images/favicon.ico', 
+//        favicon(__dirname + '/public/images/favicon.ico'));
+//app.use(favicon(path.join(__dirname, 'public', 'images', 'favicon.ico')));
+
+//app.use(favicon(__dirname + '/public/images/favicon.ico'));        
 
 app.use(logger('dev'));
 //app.use(express.json());
@@ -31,7 +35,7 @@ app.use(express.json());
 
 //app.use(express.json({ limit: "50000kb" }));
 app.use(cookieParser());
-app.use('/plant_detection', express.static(path.join(__dirname, '/public')));
+app.use('/plant_detection', express.static(path.join(__dirname, 'public')));
 app.use('/plant_detection/usr', express.static(path.join(__dirname, 'usr')));
 app.use(session({
   key: 'user_sid',
