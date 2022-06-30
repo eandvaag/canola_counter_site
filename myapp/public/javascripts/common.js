@@ -89,3 +89,25 @@ function timestamp_to_date(timestamp){
     let time = date + ' ' + month + ' ' + year + ' ' + hour + ':' + min + ':' + sec ;
     return time;
   }
+
+
+  function get_patch_size(annotations) {
+    //let box_areas = [];
+    let box_area_sum = 0;
+    let num_boxes = 0;
+    for (image_name of Object.keys(annotations)) {
+        for (annotation of annotations[image_name]["annotations"]) {
+            let coords_str = annotation.target.selector.value;
+            let coords = coords_str.substring(11).split(",").map(parseFloat);
+            //box_areas.push(coords[2] * coords[3]);
+            box_area_sum = box_area_sum + (coords[2] * coords[3]);
+            num_boxes++;
+        }
+    }
+    console.log("box_area_sum", box_area_sum);
+    let mean_patch_area = box_area_sum / num_boxes;
+
+    let patch_area = mean_patch_area * (90000 / 2296);
+    let patch_size = Math.round(Math.sqrt(patch_area));
+    return patch_size;
+  }

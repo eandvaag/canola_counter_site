@@ -389,10 +389,10 @@ exports.get_annotate = function(req, res, next) {
                 console.log("ready to render");
                 let data = {};
 
-                let cur_weights_path = path.join(image_set_dir, "model", "weights", "best_weights.h5");
-                data["baseline_initialized"] = fs.existsSync(cur_weights_path);
-                console.log("baseline_initialized", data["baseline_initialized"]);
-                
+                //let cur_weights_path = path.join(image_set_dir, "model", "weights", "best_weights.h5");
+                //data["baseline_initialized"] = fs.existsSync(cur_weights_path);
+                //console.log("baseline_initialized", data["baseline_initialized"]);
+
                 data["image_set_info"] = image_set_info;
                 data["metadata"] = metadata;
                 data["dzi_image_paths"] = nat_orderBy.orderBy(dzi_image_paths);
@@ -437,7 +437,6 @@ exports.post_annotate = function(req, res, next) {
 
     if (action === "save_annotations") {
         let annotations_path = path.join(image_set_dir, "annotations", "annotations_w3c.json");
-
 
         try {
             fs.writeFileSync(annotations_path, req.body.annotations);
@@ -706,6 +705,8 @@ exports.post_annotate = function(req, res, next) {
             return res.json(response);
         });
     }
+
+    /*
     else if (action === "restart_model") {
         
         let request = {
@@ -727,6 +728,40 @@ exports.post_annotate = function(req, res, next) {
             return res.json(response);
         }
 
+        response.error = false;
+        return res.json(response);
+
+    }*/
+
+    else if (action === "initialize_model") {
+
+        let annotations_path = path.join(image_set_dir, "annotations", "annotations_w3c.json");
+
+        try {
+            fs.writeFileSync(annotations_path, req.body.annotations);
+        }
+        catch (error) {
+            console.log(error);
+            //response.error = true;
+            //return res.json(response);
+        }
+
+        let initialize_request_path = path.join(image_set_dir, "model", "initialize.json")
+        let initialize_request = {
+            "farm_name": farm_name,
+            "field_name": field_name,
+            "mission_date": mission_date,
+            "annotation_guides": JSON.parse(req.body.annotation_guides)
+        }
+        try {
+            fs.writeFileSync(initialize_request_path, JSON.stringify(initialize_request));
+        }
+        catch (error) {
+            console.log(error);
+            //response.error = true;
+            //return res.json(response);
+        }
+        response.message = "The model is now being initialized!";
         response.error = false;
         return res.json(response);
 
@@ -970,7 +1005,7 @@ exports.post_upload = function(req, res, next) {
             }*/
 
             let status = {
-                "status": "idle",
+                "status": "uninitialized", //"idle",
                 "num_images_fully_trained_on": 0,
                 "update_num": 0
             };

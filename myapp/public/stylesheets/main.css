@@ -1105,6 +1105,7 @@ svg.a9s-annotationlayer .a9s-selection-mask {
   stroke:#fff !important;  
 }
 
+
 .a9s-annotationlayer .a9s-annotation .a9s-inner {
   stroke:#0080C0 !important;
 }
@@ -1138,7 +1139,7 @@ svg.a9s-annotationlayer .a9s-selection-mask {
   stroke:#FF4040 !important;
 }
 
-.a9s-annotationlayer .a9s-annotation.COLOR_1.editable.selected .a9s-inner,
+.a9s-annotationlayer .a9s-annotation.editable.selected .COLOR_1 .a9s-inner,
 .a9s-annotationlayer .a9s-annotation.COLOR_1:hover .a9s-inner  {
   stroke:#FF4040 !important;
 }
@@ -1147,7 +1148,7 @@ svg.a9s-annotationlayer .a9s-selection-mask {
   stroke:#f5a70b !important;
 }
 
-.a9s-annotationlayer .a9s-annotation.COLOR_2.editable.selected .a9s-inner,
+.a9s-annotationlayer .a9s-annotation.editable.selected .COLOR_2 .a9s-inner,
 .a9s-annotationlayer .a9s-annotation.COLOR_2:hover .a9s-inner  {
   stroke:#f5a70b !important;
 }
@@ -1157,7 +1158,7 @@ svg.a9s-annotationlayer .a9s-selection-mask {
   stroke:#b95fb9 !important;
 }
 
-.a9s-annotationlayer .a9s-annotation.COLOR_3.editable.selected .a9s-inner,
+.a9s-annotationlayer .a9s-annotation.editable.selected .COLOR_3 .a9s-inner,
 .a9s-annotationlayer .a9s-annotation.COLOR_3:hover .a9s-inner  {
   stroke:#b95fb9 !important;
 }
@@ -1167,7 +1168,7 @@ svg.a9s-annotationlayer .a9s-selection-mask {
   stroke:#02b863 !important;
 }
 
-.a9s-annotationlayer .a9s-annotation.COLOR_4.editable.selected .a9s-inner,
+.a9s-annotationlayer .a9s-annotation.editable.selected .COLOR_4 .a9s-inner,
 .a9s-annotationlayer .a9s-annotation.COLOR_4:hover .a9s-inner  {
   stroke:#02b863 !important;
 }
@@ -1178,7 +1179,7 @@ svg.a9s-annotationlayer .a9s-selection-mask {
   stroke:#00C0C0 !important;
 }
 
-.a9s-annotationlayer .a9s-annotation.COLOR_5.editable.selected .a9s-inner,
+.a9s-annotationlayer .a9s-annotation.editable.selected .COLOR_5 .a9s-inner,
 .a9s-annotationlayer .a9s-annotation.COLOR_5:hover .a9s-inner  {
   stroke:#00C0C0 !important;
 }
@@ -1187,7 +1188,7 @@ svg.a9s-annotationlayer .a9s-selection-mask {
   stroke:#00695C !important;
 }
 
-.a9s-annotationlayer .a9s-annotation.COLOR_6.editable.selected .a9s-inner,
+.a9s-annotationlayer .a9s-annotation.editable.selected .COLOR_6 .a9s-inner,
 .a9s-annotationlayer .a9s-annotation.COLOR_6:hover .a9s-inner  {
   stroke:#00695C !important;
 }
@@ -1196,7 +1197,7 @@ svg.a9s-annotationlayer .a9s-selection-mask {
   stroke:#FFC0C0 !important;
 }
 
-.a9s-annotationlayer .a9s-annotation.COLOR_7.editable.selected .a9s-inner,
+.a9s-annotationlayer .a9s-annotation.editable.selected .COLOR_7 .a9s-inner,
 .a9s-annotationlayer .a9s-annotation.COLOR_7:hover .a9s-inner  {
   stroke:#FFC0C0 !important;
 }
@@ -1205,7 +1206,7 @@ svg.a9s-annotationlayer .a9s-selection-mask {
   stroke:#C08040 !important;
 }
 
-.a9s-annotationlayer .a9s-annotation.COLOR_8.editable.selected .a9s-inner,
+.a9s-annotationlayer .a9s-annotation.editable.selected .COLOR_8 .a9s-inner,
 .a9s-annotationlayer .a9s-annotation.COLOR_8:hover .a9s-inner  {
   stroke:#C08040 !important;
 }
@@ -1214,7 +1215,7 @@ svg.a9s-annotationlayer .a9s-selection-mask {
   stroke:#FF8040 !important;
 }
 
-.a9s-annotationlayer .a9s-annotation.COLOR_9.editable.selected .a9s-inner,
+.a9s-annotationlayer .a9s-annotation.editable.selected .COLOR_9 .a9s-inner,
 .a9s-annotationlayer .a9s-annotation.COLOR_9:hover .a9s-inner  {
   stroke:#FF8040 !important;
 }
@@ -1223,7 +1224,7 @@ svg.a9s-annotationlayer .a9s-selection-mask {
   stroke:#A0A0A0 !important;
 }
 
-.a9s-annotationlayer .a9s-annotation.COLOR_DEFAULT.editable.selected .a9s-inner,
+.a9s-annotationlayer .a9s-annotation.editable.selected .COLOR_DEFAULT .a9s-inner,
 .a9s-annotationlayer .a9s-annotation.COLOR_DEFAULT:hover .a9s-inner  {
   stroke:#A0A0A0 !important;
 }
@@ -1700,4 +1701,20 @@ input:checked + .switch_slider:before {
 
 .std_tooltip:hover .std_tooltiptext {
   visibility: visible;
+}
+
+
+
+
+.annotation_guide {
+  background: rgba(255, 0, 0, 0.08);
+  outline: red solid 1px;
+/*
+  opacity: 0.7;
+  filter: alpha(opacity=70);
+  outline: red solid 2px; 
+  background-color: transparent;
+  font-size: 20px;
+  font-family: arial;
+  color: white;*/
 }

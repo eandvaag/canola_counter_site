@@ -96,12 +96,36 @@ html
                                                     | Map View
 
 
-                        div(id="image_view_container")
+
+                        //-
+                            div(id="initialize_container" hidden)
+                                
+                                table(class="transparent_table")
+                                    tr
+                                        td(style="width: 100%; position: relative" class="viewer" id="init_seadragon_viewer")
+
+                        div(id="image_view_container" hidden)
                             table(class="transparent_table")
 
                                 tr
                                     td(class="dark-bg" style="vertical-align:top" id="left_panel")
-                                        div(style="width: 280px;")
+                                        div(style="width: 280px;" id="init_left_panel" hidden)
+
+                                            p(style="font-weight: bold; text-align: left; text-decoration: underline") Instructions:
+                                            p(id="annotation_instructions" style="height: 100px")
+
+                                            
+                                            //button(id="change_image_button" class="table_button table_button_hover" onclick="next_image()") Next Image
+                                            button(id="init_next_button" class="table_button table_button_hover" onclick="advance_init()") Next
+                                            hr
+                                            
+                                            h(class="header2" style="text-align: left") Images
+                                            div(class="scrollable_area" style="height: 390px; border: none")
+                                                table(id="image_set_table_init")
+
+
+
+                                        div(style="width: 280px;" id="ctl_left_panel" hidden)
 
                                             table(class="transparent_table")
                                                 tr
@@ -111,11 +135,13 @@ html
                                                     td(style="width: 100%; text-align: left; padding-left: 12px")
                                                         h(id="image_name" style="word-break: break-all;")
 
+                                            table(class="transparent_table")
+
                                                 tr 
                                                     td(style="text-align: left")
                                                         h(class="header2") Status
 
-                                                    td
+                                                    td(style="width: 100%; text-align: left; padding-left: 12px")
                                                         select(id="status_combo" class="nonfixed_dropdown")
 
                                                 //-
@@ -149,18 +175,18 @@ html
                                     td(class="dark-bg" style="vertical-align:top; padding: 0px 0px;")
 
 
-                                        div(id="init_panel" style="width: 280px; padding: 8px 8px")
+                                        div(id="init_right_panel" style="width: 280px; padding: 8px 8px")
+                                            //-
+                                                p(style="font-size: 16px" hidden)
+                                                    span(style="color: #ed452b; font-weight: bold; font-size: 18px" id="num_annotations")
+                                                    |  plant annotations needed to determine initial weights.
+                                                                                    
+                                                p(id="initial_annotations_complete" hidden) 
+                                                    | Click 
+                                                    span(style="color: #ed452b; font-weight: bold;") Save All Changes
+                                                    |  to begin the process of selecting a baseline model.
 
-                                            p(style="font-size: 16px")
-                                                span(style="color: #ed452b; font-weight: bold; font-size: 18px" id="num_annotations")
-                                                |  plant annotations needed to determine initial weights.
-                                                                                
-                                            p(id="initial_annotations_complete" hidden) 
-                                                | Click 
-                                                span(style="color: #ed452b; font-weight: bold;") Save All Changes
-                                                |  to begin the process of selecting a baseline model.
-
-                                        div(id="ctl_panel" hidden)
+                                        div(id="ctl_right_panel" hidden)
                                     
                                             div(style="width: 280px;")
 
@@ -199,12 +225,13 @@ html
                                                                 h(id="model_training_status")
                                                     hr
 
-                                                    div(style="height: 455px")
-                                                    button(id="restart_button" class="std-button std-button-hover" style="width: 190px" onclick="restart_model()")
-                                                        span
-                                                            i(class="fa-solid fa-rotate-right" style="margin-right:8px") 
-                                                            |
-                                                            | Restart Model
+                                                    //-
+                                                        div(style="height: 455px")
+                                                        button(id="restart_button" class="std-button std-button-hover" style="width: 190px" onclick="restart_model()")
+                                                            span
+                                                                i(class="fa-solid fa-rotate-right" style="margin-right:8px") 
+                                                                |
+                                                                | Restart Model
 
 
                                                 div(id="prediction_panel" hidden)
