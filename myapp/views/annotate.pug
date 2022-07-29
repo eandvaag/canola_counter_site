@@ -12,7 +12,7 @@ html
         
 
         link(rel="stylesheet" href="/plant_detection/annotorious/annotorious.min.css")
-        link(rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css")
+        link(rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.2/css/all.min.css")
 
         script(src="https://code.jquery.com/jquery-3.6.0.js")
 
@@ -48,6 +48,8 @@ html
                                 a(id="home_button" style="font-size: 22px; margin: 0px 5px" class="table_button table_button_hover") Canola Counter
                         td(style="width:100%")
 
+                        td
+                            div(style="font-weight: bold; margin-right:15px") #{username} 
                         td
                             div(style="width: 100px")
                                 a(class="table_button table_button_hover" id="log_out") Log Out
@@ -96,36 +98,13 @@ html
                                                     | Map View
 
 
-
-                        //-
-                            div(id="initialize_container" hidden)
-                                
-                                table(class="transparent_table")
-                                    tr
-                                        td(style="width: 100%; position: relative" class="viewer" id="init_seadragon_viewer")
-
                         div(id="image_view_container" hidden)
                             table(class="transparent_table")
 
                                 tr
                                     td(class="dark-bg" style="vertical-align:top" id="left_panel")
-                                        div(style="width: 280px;" id="init_left_panel" hidden)
 
-                                            p(style="font-weight: bold; text-align: left; text-decoration: underline") Instructions:
-                                            p(id="annotation_instructions" style="height: 100px")
-
-                                            
-                                            //button(id="change_image_button" class="table_button table_button_hover" onclick="next_image()") Next Image
-                                            button(id="init_next_button" class="table_button table_button_hover" onclick="advance_init()") Next
-                                            hr
-                                            
-                                            h(class="header2" style="text-align: left") Images
-                                            div(class="scrollable_area" style="height: 390px; border: none")
-                                                table(id="image_set_table_init")
-
-
-
-                                        div(style="width: 280px;" id="ctl_left_panel" hidden)
+                                        div(style="width: 280px;")
 
                                             table(class="transparent_table")
                                                 tr
@@ -173,243 +152,152 @@ html
 
 
                                     td(class="dark-bg" style="vertical-align:top; padding: 0px 0px;")
+                                
+                                        div(style="width: 280px;")
+
+                                            div
+                                                ul.nav
 
 
-                                        div(id="init_right_panel" style="width: 280px; padding: 8px 8px")
-                                            //-
-                                                p(style="font-size: 16px" hidden)
-                                                    span(style="color: #ed452b; font-weight: bold; font-size: 18px" id="num_annotations")
-                                                    |  plant annotations needed to determine initial weights.
-                                                                                    
-                                                p(id="initial_annotations_complete" hidden) 
-                                                    | Click 
-                                                    span(style="color: #ed452b; font-weight: bold;") Save All Changes
-                                                    |  to begin the process of selecting a baseline model.
+                                                    li.nav(id="show_annotation_button" class="tab-btn-active" style="width: 93px" onclick="show_annotation()") 
+                                                        a.nav
+                                                            i(class="fa-solid fa-pen-to-square")
 
-                                        div(id="ctl_right_panel" hidden)
-                                    
-                                            div(style="width: 280px;")
+                                                    li.nav(id="show_prediction_button" onclick="show_prediction()" style="width: 93px") 
+                                                        a.nav
+                                                            i(class="fa-regular fa-clone")
 
-                                                div
-                                                    ul.nav
+                                                    li.nav(id="show_segmentation_button" onclick="show_segmentation()" style="width: 93px") 
+                                                        a.nav
+                                                            i(class="fa-solid fa-image")
 
 
-                                                        li.nav(id="show_annotation_button" class="tab-btn-active" style="width: 93px" onclick="show_annotation()") 
-                                                            a.nav
-                                                                i(class="fa-solid fa-pen-to-square")
+                                        div(style="padding: 8px 8px;")
+                                            div(id="annotation_panel")
+                                                table(class="transparent_table")
+                                                    tr
+                                                        td(style="text-align: left;")
+                                                            h(class="header2" style="width: 120px") Model Status
 
-                                                        li.nav(id="show_prediction_button" onclick="show_prediction()" style="width: 93px") 
-                                                            a.nav
-                                                                i(class="fa-regular fa-clone")
+                                                        td(style="width: 100%; text-align: left; padding-left: 12px")
+                                                            h(id="model_status")
 
-                                                        li.nav(id="show_segmentation_button" onclick="show_segmentation()" style="width: 93px") 
-                                                            a.nav
-                                                                i(class="fa-solid fa-image")
+                                                    tr
+                                                        td(style="text-align: left;")
+                                                            h(class="header2" style="width: 120px") Fully Trained?
 
+                                                        td(style="width: 100%; text-align: left; padding-left: 12px")
+                                                            h(id="model_training_status")
+                                                hr
 
-                                            div(style="padding: 8px 8px;")
-                                                div(id="annotation_panel")
-                                                    table(class="transparent_table")
-                                                        tr
-                                                            td(style="text-align: left;")
-                                                                h(class="header2" style="width: 120px") Model Status
-
-                                                            td(style="width: 100%; text-align: left; padding-left: 12px")
-                                                                h(id="model_status")
-
-                                                        tr
-                                                            td(style="text-align: left;")
-                                                                h(class="header2" style="width: 120px") Fully Trained?
-
-                                                            td(style="width: 100%; text-align: left; padding-left: 12px")
-                                                                h(id="model_training_status")
-                                                    hr
-
-                                                    //-
-                                                        div(style="height: 455px")
-                                                        button(id="restart_button" class="std-button std-button-hover" style="width: 190px" onclick="restart_model()")
-                                                            span
-                                                                i(class="fa-solid fa-rotate-right" style="margin-right:8px") 
-                                                                |
-                                                                | Restart Model
+                                                //-
+                                                    div(style="height: 455px")
+                                                    button(id="restart_button" class="std-button std-button-hover" style="width: 190px" onclick="restart_model()")
+                                                        span
+                                                            i(class="fa-solid fa-rotate-right" style="margin-right:8px") 
+                                                            |
+                                                            | Restart Model
 
 
-                                                div(id="prediction_panel" hidden)
+                                            div(id="prediction_panel" hidden)
 
-                                                    
-                                                    br
-                                                    br
-                                                    br
-                                                    button(id="request_prediction_button" class="table_button table_button_hover") Request Predictions: This Image
                                                 
-                                                    br
-                                                    br
-                                                    button(id="request_result_button" class="table_button table_button_hover") Request Predictions: All Images
-
-
-                                                    div(id="predictions_available" hidden)
-
-                                                        br
-                                                        br
-                                                        button(id="use_predictions_button" class="std-button std-button-hover" style="font-size: 16px") Use Predictions As Annotations
-
-                                                        br
-                                                        br
-                                                        br
-
-
-                                                        hr
-                                                        br
-
-
-                                                        //-
-                                                            table(class="transparent_table" id="overlay_table")
-                                                                tr
-                                                                    td(style="width: 190px")
-                                                                        div(style="width: 190px; text-align:left" class="header2") Show predictions
-                                                                    td(style="width: 100%")
-                                                                        label(class="switch")
-                                                                            input(id="prediction_switch" type="checkbox")
-                                                                            span(class="switch_slider round")
-
-
-
-                                                        div(style="height: 255px")
-                                                            table(class="transparent_table" id="overlays_table")
-
-
-
-
-
-
-                                                        hr
-
-                                                        table(class="transparent_table")
-                                                            tr 
-                                                                td(style="width: 140px")
-                                                                    div(style="width: 140px; text-align:left" class="header2") Show scores
-                                                                td(style="width: 40px")
-                                                                    label(class="switch")
-                                                                        input(id="score_switch" type="checkbox")
-                                                                        span(class="switch_slider round")
-                                                                td(style="width: 100%")
-
-                                                        table(class="transparent_table")                   
-                                                            tr
-                                                                td(style="width: 50px")
-                                                                    div(style="width: 50px; text-align:left" class="header2") Filter
-
-                                                                td
-                                                                    button(id="score_down" class="table_button table_button_hover" style="margin: 0px; border-radius: 50px; padding-bottom: 4px")
-                                                                        i(class="fa-solid fa-circle-chevron-left")
-                                                                        
-                                                                td(style="width: 100%")
-                                                                    div(class="slidecontainer" style="width: 100%")
-                                                                        input(type="range" min="0.25" max="1" step="0.01" value="0.5" class="slider" id="confidence_slider")
-
-                                                                td
-                                                                    button(id="score_up" class="table_button table_button_hover" style="margin: 0px; border-radius: 50px; padding-bottom: 4px")
-                                                                        i(class="fa-solid fa-circle-chevron-right")
-                                                                
-                                                                td(style="width: 50px")
-                                                                    div(id="confidence_slider_val" style="margin-left: 12px" class="header2") 0.50
-
-
-                                                        //-
-                                                            table(class="transparent_table") 
-                                                                tr 
-                                                                    td
-                                                                        label(class="table_label" style="background-color: #2b3628;")
-                                                                            table(class="transparent_table")
-                                                                                tr 
-                                                                                    td(style="width: 190px")
-                                                                                        div(style="width: 190px; text-align:left" class="header2") Show predictions
-                                                                                    td(style="width: 40px")
-                                                                                        label(class="switch")
-                                                                                            input(id="prediction_switch" type="checkbox")
-                                                                                            span(class="switch_slider round")
-                                                                                    //td(style="width: 100%")
-                                                                                    //    div(style="margin-left: 8px") Show Predictions
-                                                                                tr(style="height: 10px")
-                                                                                tr 
-                                                                                    td(style="width: 190px")
-                                                                                        div(style="width: 190px; text-align:left" class="header2") Show scores
-                                                                                    td(style="width: 40px")
-                                                                                        label(class="switch")
-                                                                                            input(id="score_switch" type="checkbox")
-                                                                                            span(class="switch_slider round")
-                                                                                    //td(style="width: 100%")
-                                                                                    //    div(style="margin-left: 8px") Show Scores
-                                                                                tr(style="height: 10px")
-                                                                            //label(class="table_label" style="background-color: #2b3628;")
-                                                                            table(class="transparent_table")
-                                                                                tr
-                                                                                    td(style="width: 50px")
-                                                                                        div(style="width: 50px; text-align:left" class="header2") Filter
-                                                                                    td(style="width: 100%")
-                                                                                        div(class="slidecontainer" style="width: 100%")
-                                                                                            input(type="range" min="0.25" max="1" step="0.01" value="0.50" class="slider" id="confidence_slider")
-                                                                                    td(style="width: 50px")
-                                                                                        div(id="confidence_slider_val" style="margin-left: 12px" class="header2") 0.50
-                                                //-   
-                                                    hr
-                                                    div(id="annotation_edit_panel")
-
-                                                        
-                                                        br
-                                                        button(id="predict_button" class="table_button table_button_hover" style="width: 240px") Request Prediction
-                                                        br
-                                                        br
-                                                        button(id="retrieve_button" class="table_button table_button_hover" style="width: 240px") Show Most Recent Predictions
-                                                        br
-                                                        br
-                                                        button(id="segment_button" class="table_button table_button_hover" style="width: 240px") Segment Image
-
-
-                                                    div(id="prediction_view_panel" hidden)
-                                                        br
-                                                        br
-                                                        button(id="use_predictions_button" class="table_button table_button_hover" style="width: 240px") Use Predictions As Annotations
-                                                        br
-                                                        br
-                                                        button(id="continue_annotation_button" class="table_button table_button_hover" style="width: 240px") Continue Annotating
-                                                    
-
+                                                br
+                                                br
+                                                br
+                                                button(id="request_prediction_button" class="table_button table_button_hover") Request Predictions: This Image
                                             
-                                                div(id="segmentation_panel" hidden)
+                                                br
+                                                br
+                                                button(id="request_result_button" class="table_button table_button_hover") Request Predictions: All Images
 
-                                                    //div(id="my_result" style="border: 1px solid white; height: 280px")
+
+                                                div(id="predictions_available" hidden)
+
+                                                    br
+                                                    br
+                                                    button(id="use_predictions_button" class="std-button std-button-hover" style="font-size: 16px") Use Predictions As Annotations
+
+                                                    br
+                                                    br
+                                                    br
+
+
+                                                    hr
+                                                    br
+
+
+                                                    div(style="height: 255px")
+                                                        table(class="transparent_table" id="overlays_table")
+
+                                                    hr
 
                                                     table(class="transparent_table")
-                                                        tr
-                                                            td(style="width: 90px")
-                                                                div(style="width: 90px; text-align:left" class="header2") Threshold:
-                                                            td(style="width: 50px")
-                                                                div(id="threshold_slider_val_container" style="text-align: right; width: 50px")
-                                                    table(class="transparent_table")
-                                                        tr
-                                                            td
-                                                                button(id="threshold_score_down" class="table_button table_button_hover" style="margin: 0px; border-radius: 50px; padding-bottom: 4px")
-                                                                    i(class="fa-solid fa-circle-chevron-left")
-
+                                                        tr 
+                                                            td(style="width: 140px")
+                                                                div(style="width: 140px; text-align:left" class="header2") Show scores
+                                                            td(style="width: 40px")
+                                                                label(class="switch")
+                                                                    input(id="score_switch" type="checkbox")
+                                                                    span(class="switch_slider round")
                                                             td(style="width: 100%")
-                                                                div(id="threshold_slider_container" class="slidecontainer" style="width: 100%")
-                                                                    //input(type="range" min="-2" max="2" step="0.01" value="0.0" class="slider" id="threshold_slider")
-                                                            
+
+                                                    table(class="transparent_table")                   
+                                                        tr
+                                                            td(style="width: 50px")
+                                                                div(style="width: 50px; text-align:left" class="header2") Filter
+
                                                             td
-                                                                button(id="threshold_score_up" class="table_button table_button_hover" style="margin: 0px; border-radius: 50px; padding-bottom: 4px")
-                                                                    i(class="fa-solid fa-circle-chevron-right")                                                        
-                                                            
-                                                            
-                                                                //div(id="threshold_slider_val" style="margin-left: 12px" class="header2")  
+                                                                button(id="score_down" class="table_button table_button_hover" style="margin: 0px; border-radius: 50px; padding-bottom: 4px")
+                                                                    i(class="fa-solid fa-circle-chevron-left")
+                                                                    
+                                                            td(style="width: 100%")
+                                                                div(class="slidecontainer" style="width: 100%")
+                                                                    input(type="range" min="0.25" max="1" step="0.01" value="0.5" class="slider" id="confidence_slider")
 
-                                                    br
-                                                    br
-                                                    button(id="request_segment_button" class="table_button table_button_hover" style="width: 240px") Segment
+                                                            td
+                                                                button(id="score_up" class="table_button table_button_hover" style="margin: 0px; border-radius: 50px; padding-bottom: 4px")
+                                                                    i(class="fa-solid fa-circle-chevron-right")
+                                                            
+                                                            td(style="width: 50px")
+                                                                div(id="confidence_slider_val" style="margin-left: 12px" class="header2") 0.50
 
-                                                    br
-                                                    br
-                                                    div(id="image_loader" class="loader")
+
+                                        
+                                            div(id="segmentation_panel" hidden)
+
+                                                //div(id="my_result" style="border: 1px solid white; height: 280px")
+
+                                                table(class="transparent_table")
+                                                    tr
+                                                        td(style="width: 90px")
+                                                            div(style="width: 90px; text-align:left" class="header2") Threshold:
+                                                        td(style="width: 50px")
+                                                            div(id="threshold_slider_val_container" style="text-align: right; width: 50px")
+                                                table(class="transparent_table")
+                                                    tr
+                                                        td
+                                                            button(id="threshold_score_down" class="table_button table_button_hover" style="margin: 0px; border-radius: 50px; padding-bottom: 4px")
+                                                                i(class="fa-solid fa-circle-chevron-left")
+
+                                                        td(style="width: 100%")
+                                                            div(id="threshold_slider_container" class="slidecontainer" style="width: 100%")
+                                                                //input(type="range" min="-2" max="2" step="0.01" value="0.0" class="slider" id="threshold_slider")
+                                                        
+                                                        td
+                                                            button(id="threshold_score_up" class="table_button table_button_hover" style="margin: 0px; border-radius: 50px; padding-bottom: 4px")
+                                                                i(class="fa-solid fa-circle-chevron-right")                                                        
+                                                        
+                                                        
+                                                            //div(id="threshold_slider_val" style="margin-left: 12px" class="header2")  
+
+                                                br
+                                                br
+                                                button(id="request_segment_button" class="table_button table_button_hover" style="width: 240px") Segment
+
+                                                br
+                                                br
+                                                div(id="image_loader" class="loader")
 
                         div(id="map_view_container" hidden)
                             table(class="transparent_table")
@@ -457,4 +345,5 @@ html
 
 
     script.
+        let username = !{JSON.stringify(username)};
         let data = !{JSON.stringify(data)};

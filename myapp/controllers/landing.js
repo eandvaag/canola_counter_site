@@ -49,7 +49,8 @@ let io = socket_io();*/
 
 const APP_PREFIX = '/plant_detection';
 const USR_DATA_ROOT = path.join("usr", "data");
-const USR_REQUESTS_ROOT = path.join("usr", "requests");
+//const USR_REQUESTS_ROOT = path.join("usr", "requests");
+const USR_SHARED_ROOT = path.join("usr", "shared");
 
 const ANNOTATION_LOCK_TIMEOUT = 240000; // 4 minutes
 // const AsyncLock = require('async-lock');
@@ -62,6 +63,7 @@ var Mutex = require('async-mutex').Mutex;
 
 
 const annotation_mutex = new Mutex();
+const camera_mutex = new Mutex();
 
 
 /*
@@ -137,7 +139,7 @@ exports.post_sign_in = function(req, res, next) {
             }
             else {
                 req.session.user = user.dataValues;
-                response.redirect = APP_PREFIX + "/home";
+                response.redirect = APP_PREFIX + "/home/" + req.body.username;
                 res.json(response);
             }
         }
@@ -172,41 +174,6 @@ function fpath_exists(fpath) {
     return exists;
 }
 
-exports.get_transfer = function(req, res, next) {
-
-
-
-    let image_sets_data = {};
-    let display_sets_root = path.join(USR_DATA_ROOT, "runs", "display");
-    //let results_root = path.join(USR_DATA_ROOT, "results");
-    let farm_names = get_subdirs(display_sets_root);
-
-    console.log("farm_names", farm_names);
-    for (farm_name of farm_names) {
-        image_sets_data[farm_name] = {};
-        let farm_root = path.join(display_sets_root, farm_name);
-        let field_names = get_subdirs(farm_root);
-        console.log("field_names", field_names);
-
-        for (field_name of field_names) {
-            image_sets_data[farm_name][field_name] = [];
-            let field_root = path.join(farm_root, field_name);
-            let mission_dates = get_subdirs(field_root);
-            console.log("mission_dates", mission_dates);
-
-            for (mission_date of mission_dates) {
-                image_sets_data[farm_name][field_name].push(mission_date);
-            }
-        }
-    }
-
-
-    res.render("transfer", {image_sets_data: image_sets_data});
-
-
-}
-
-
 
 exports.get_home = function(req, res, next) {
 
@@ -215,8 +182,8 @@ exports.get_home = function(req, res, next) {
         console.log("gathering image_sets data");
 
         let image_sets_data = {};
-        let image_sets_root = path.join(USR_DATA_ROOT, "image_sets");
-        let results_root = path.join(USR_DATA_ROOT, "results");
+        let image_sets_root = path.join(USR_DATA_ROOT, req.session.user.username, "image_sets");
+        //let results_root = path.join(USR_DATA_ROOT, "results");
         let farm_names = get_subdirs(image_sets_root);
 
         console.log("farm_names", farm_names);
@@ -274,16 +241,36 @@ exports.get_home = function(req, res, next) {
             }
         }
 
-        let camera_specs;
-        let camera_specs_path = path.join(USR_DATA_ROOT, "cameras", "cameras.json");
-        try {
-            camera_specs = JSON.parse(fs.readFileSync(camera_specs_path, 'utf8'));
-        }
-        catch (error) {
-            console.log(error);
-        }
 
-        res.render("home", {image_sets_data: image_sets_data, camera_specs: camera_specs});
+        camera_mutex.acquire()
+        .then(function(release) {
+
+            let camera_specs;
+            let camera_specs_path = path.join(USR_DATA_ROOT, req.session.user.username, "cameras", "cameras.json");
+            try {
+                camera_specs = JSON.parse(fs.readFileSync(camera_specs_path, 'utf8'));
+            }
+            catch (error) {
+                release();
+                console.log(error);
+                res.redirect(APP_PREFIX);
+            }
+
+
+            release();
+            
+            res.render("home", {
+                username: req.session.user.username, 
+                image_sets_data: image_sets_data, 
+                camera_specs: camera_specs
+            });
+
+
+        }).catch(function(error) {
+            console.log(error);
+            res.redirect(APP_PREFIX);
+        });
+
         
     }
     else {
@@ -298,7 +285,7 @@ exports.get_annotate = function(req, res, next) {
         let farm_name = req.params.farm_name;
         let field_name = req.params.field_name;
         let mission_date = req.params.mission_date;
-        let image_set_dir = path.join(USR_DATA_ROOT, "image_sets", farm_name, field_name, mission_date);
+        let image_set_dir = path.join(USR_DATA_ROOT, req.session.user.username, "image_sets", farm_name, field_name, mission_date);
 
         glob(path.join(image_set_dir, "images", "*"), function(error, image_paths) {
             if (error) {
@@ -398,7 +385,7 @@ exports.get_annotate = function(req, res, next) {
                 data["dzi_image_paths"] = nat_orderBy.orderBy(dzi_image_paths);
                 data["annotations"] = annotations;
                 data["excess_green_record"] = excess_green_record;
-                res.render("annotate", {data: data});
+                res.render("annotate", {username: req.session.user.username, data: data});
     
     
             }).catch(function(error) {
@@ -431,7 +418,7 @@ exports.post_annotate = function(req, res, next) {
     let mission_date = req.params.mission_date;
     let action = req.body.action;
 
-    let image_set_dir = path.join(USR_DATA_ROOT, "image_sets", farm_name,
+    let image_set_dir = path.join(USR_DATA_ROOT, req.session.user.username, "image_sets", farm_name,
                                         field_name, mission_date);
 
 
@@ -467,8 +454,8 @@ exports.post_annotate = function(req, res, next) {
         console.log(mission_date);
         let out_dir = path.join(image_set_dir, "maps");
         let annotations_path = path.join(image_set_dir, "annotations", "annotations_w3c.json");
-        let rebuild_command = "python ../../plant_detection/src/interpolate.py " + farm_name +
-                                " " + field_name + " " + mission_date + " " + annotations_path + " " + out_dir;
+        let rebuild_command = "python ../../plant_detection/src/interpolate.py " + req.session.user.username + " " +
+                            farm_name + " " + field_name + " " + mission_date + " " + annotations_path + " " + out_dir;
 
         if (req.body.interpolation == "nearest") {
             rebuild_command = rebuild_command + " -nearest";
@@ -575,7 +562,7 @@ exports.post_annotate = function(req, res, next) {
             // success
             release();
             response.error = false;
-            response.redirect = APP_PREFIX + "/home";
+            response.redirect = APP_PREFIX + "/home/" + req.session.user.username;
             return res.json(response);
 
         }).catch(function(error) {
@@ -591,17 +578,24 @@ exports.post_annotate = function(req, res, next) {
 
         let image_name = req.body.image_name;
 
+        let request_uuid = uuidv4().toString();
         let request = {
-            "farm_name": farm_name,
-            "field_name": field_name,
-            "mission_date": mission_date,
+            //"username": req.session.user.username,
+            // "farm_name": farm_name,
+            // "field_name": field_name,
+            // "mission_date": mission_date,
+            "request_uuid": request_uuid,
+            "start_time": Math.floor(Date.now() / 1000),
             "image_names": [image_name],
             "save_result": false
         };
-        let request_uuid = uuidv4().toString();
         
-        let request_path = path.join(USR_REQUESTS_ROOT, "prediction",
-                                     request_uuid + ".json");
+        
+        let request_path = path.join(USR_DATA_ROOT, req.session.user.username,
+                                    "image_sets", farm_name, field_name, mission_date,
+                                    "model", "prediction", "image_requests", request_uuid + ".json");
+        //let request_path = path.join(USR_REQUESTS_ROOT, "prediction",
+        //                             request_uuid + ".json");
         try {
             fs.writeFileSync(request_path, JSON.stringify(request));
         }
@@ -618,9 +612,7 @@ exports.post_annotate = function(req, res, next) {
     else if (action === "get_result") {
 
         //let image_name = req.body.image_name;
-        let annotations_path = path.join(USR_DATA_ROOT, "image_sets",
-                                farm_name, field_name, mission_date,
-                                "annotations", "annotations_w3c.json")
+        let annotations_path = path.join(image_set_dir, "annotations", "annotations_w3c.json")
 
         try {
             annotations = JSON.parse(fs.readFileSync(annotations_path, 'utf8'));
@@ -631,17 +623,32 @@ exports.post_annotate = function(req, res, next) {
             return res.json(response);
         }
 
+        let image_names = [];
+        for (image_name of Object.keys(annotations)) {
+            image_names.push(image_name);
+            /*
+            if (annotations[image_name]["status"] === "completed_for_testing") {
+                image_names.push(image_name);
+            }*/
+        }
+        let request_uuid = uuidv4().toString();
         let request = {
-            "farm_name": farm_name,
-            "field_name": field_name,
-            "mission_date": mission_date,
-            "image_names": Object.keys(annotations),
+            // "username": req.session.user.username,
+            // "farm_name": farm_name,
+            // "field_name": field_name,
+            // "mission_date": mission_date,
+            "request_uuid": request_uuid,
+            "start_time": Math.floor(Date.now() / 1000),
+            "image_names": image_names, //Object.keys(annotations),
             "save_result": true
         };
-        let request_uuid = uuidv4().toString();
         
-        let request_path = path.join(USR_REQUESTS_ROOT, "prediction",
-                                     request_uuid + ".json");
+        
+        // let request_path = path.join(USR_REQUESTS_ROOT, "prediction",
+        //                              request_uuid + ".json");
+        let request_path = path.join(USR_DATA_ROOT, req.session.user.username,
+                                     "image_sets", farm_name, field_name, mission_date,
+                                     "model", "prediction", "image_set_requests", "pending", request_uuid + ".json");
         try {
             fs.writeFileSync(request_path, JSON.stringify(request));
         }
@@ -733,6 +740,7 @@ exports.post_annotate = function(req, res, next) {
 
     }*/
 
+    /*
     else if (action === "initialize_model") {
 
         let annotations_path = path.join(image_set_dir, "annotations", "annotations_w3c.json");
@@ -765,7 +773,7 @@ exports.post_annotate = function(req, res, next) {
         response.error = false;
         return res.json(response);
 
-    }
+    }*/
     /*
     else if (action === "crop_image") {
 
@@ -814,9 +822,9 @@ function isNumeric(str) {
            !isNaN(parseFloat(str)) // ...and ensure strings of whitespace fail
 }
 
-function remove_image_set(farm_name, field_name, mission_date) {
+function remove_image_set(username, farm_name, field_name, mission_date) {
 
-    let farm_dir = path.join(USR_DATA_ROOT, "image_sets", farm_name);
+    let farm_dir = path.join(USR_DATA_ROOT, username, "image_sets", farm_name);
     let field_dir = path.join(farm_dir, field_name);
     let mission_dir = path.join(field_dir, mission_date);
 
@@ -889,7 +897,7 @@ exports.post_upload = function(req, res, next) {
     let format = /[ `!@#$%^&*()+\=\[\]{};':"\\|,<>\/?~]/;
     for (file of req.files) {
         if (!(file.mimetype.startsWith('image/'))) {
-            remove_image_set(farm_name, field_name, mission_date);
+            remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
             if (!sent_response) {
                 sent_response = true;
                 return res.status(422).json({
@@ -899,7 +907,7 @@ exports.post_upload = function(req, res, next) {
         }
         if (format.test(file.originalname)) {
         //if (!(file.originalname.match(/^[^a-zA-Z0-9.]+$/))) {
-            remove_image_set(farm_name, field_name, mission_date);
+            remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
             if (!sent_response) {
                 sent_response = true;
                 return res.status(422).json({
@@ -910,7 +918,7 @@ exports.post_upload = function(req, res, next) {
     }
 
 
-    let image_sets_root = path.join(USR_DATA_ROOT, "image_sets");
+    let image_sets_root = path.join(USR_DATA_ROOT, req.session.user.username, "image_sets");
     let farm_dir = path.join(image_sets_root, farm_name);
     let field_dir = path.join(farm_dir, field_name);
     let mission_dir = path.join(field_dir, mission_date);
@@ -928,6 +936,10 @@ exports.post_upload = function(req, res, next) {
     let model_dir = path.join(mission_dir, "model");
     let training_dir = path.join(model_dir, "training");
     let prediction_dir = path.join(model_dir, "prediction");
+    let image_requests_dir = path.join(prediction_dir, "image_requests");
+    let image_set_requests_dir = path.join(prediction_dir, "image_set_requests");
+    let pending_dir = path.join(image_set_requests_dir, "pending");
+    let aborted_dir = path.join(image_set_requests_dir, "aborted");
     let weights_dir = path.join(model_dir, "weights");
     let results_dir = path.join(model_dir, "results");
 
@@ -940,7 +952,7 @@ exports.post_upload = function(req, res, next) {
             if (format.test(id_component)) {
                 if (!sent_response) {
                     sent_response = true;
-                    remove_image_set(farm_name, field_name, mission_date);
+                    remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
                     return res.status(422).json({
                         error: "The provided farm, field, or mission date contains illegal characters."
                     });
@@ -948,7 +960,7 @@ exports.post_upload = function(req, res, next) {
             }
         }
         if (fpath_exists(mission_dir)) {
-            remove_image_set(farm_name, field_name, mission_date);
+            remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
             if (!sent_response) {
                 sent_response = true;
                 return res.status(422).json({
@@ -969,12 +981,16 @@ exports.post_upload = function(req, res, next) {
             fs.mkdirSync(model_dir, { recursive: true });
             fs.mkdirSync(training_dir, { recursive: true });
             fs.mkdirSync(prediction_dir, { recursive: true });
+            fs.mkdirSync(image_requests_dir, { recursive: true });
+            fs.mkdirSync(image_set_requests_dir, { recursive: true });
+            fs.mkdirSync(pending_dir, { recursive: true });
+            fs.mkdirSync(aborted_dir, { recursive: true });
             fs.mkdirSync(weights_dir, { recursive: true });
             fs.mkdirSync(results_dir, { recursive: true});
 
-            /*
+            
             console.log("Copying initial model weights");
-            let source_weights_path = path.join(USR_DATA_ROOT, "weights", "default_weights.h5");
+            let source_weights_path = path.join(USR_SHARED_ROOT, "weights", "default_weights.h5");
             let best_weights_path = path.join(weights_dir, "best_weights.h5");
             let cur_weights_path = path.join(weights_dir, "cur_weights.h5");
             try {
@@ -982,7 +998,7 @@ exports.post_upload = function(req, res, next) {
             }
             catch (error) {
                 console.log("Error occurred while copying weights", error);
-                remove_image_set(farm_name, field_name, mission_date);
+                remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
                 if (!sent_response) {
                     sent_response = true;
                     return res.status(422).json({
@@ -995,17 +1011,17 @@ exports.post_upload = function(req, res, next) {
             }
             catch (error) {
                 console.log("Error occurred while copying weights", error);
-                remove_image_set(farm_name, field_name, mission_date);
+                remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
                 if (!sent_response) {
                     sent_response = true;
                     return res.status(422).json({
                         error: "Error occurred while copying weights."
                     });
                 }
-            }*/
+            }
 
             let status = {
-                "status": "uninitialized", //"idle",
+                "status": "idle", //"uninitialized", //"idle",
                 "num_images_fully_trained_on": 0,
                 "update_num": 0
             };
@@ -1015,7 +1031,7 @@ exports.post_upload = function(req, res, next) {
             }
             catch (error) {
                 console.log(error);
-                remove_image_set(farm_name, field_name, mission_date);
+                remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
                 if (!sent_response) {
                     sent_response = true;
                     return res.status(422).json({
@@ -1043,7 +1059,7 @@ exports.post_upload = function(req, res, next) {
             }
             catch (error) {
                 console.log(error);
-                remove_image_set(farm_name, field_name, mission_date);
+                remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
                 if (!sent_response) {
                     sent_response = true;
                     return res.status(422).json({
@@ -1060,7 +1076,7 @@ exports.post_upload = function(req, res, next) {
             }
             catch (error) {
                 console.log(error);
-                remove_image_set(farm_name, field_name, mission_date);
+                remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
                 if (!sent_response) {
                     sent_response = true;
                     return res.status(422).json({
@@ -1084,7 +1100,7 @@ exports.post_upload = function(req, res, next) {
             }
             catch (error) {
                 console.log(error);
-                remove_image_set(farm_name, field_name, mission_date);
+                remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
                 if (!sent_response) {
                     sent_response = true;
                     return res.status(422).json({
@@ -1096,7 +1112,7 @@ exports.post_upload = function(req, res, next) {
     }
     else {
         if (!(fpath_exists(mission_dir))) {
-            remove_image_set(farm_name, field_name, mission_date);
+            remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
             if (!sent_response) {
                 sent_response = true;
                 return res.status(422).json({
@@ -1110,7 +1126,7 @@ exports.post_upload = function(req, res, next) {
         let sanitized_fname = sanitize(file.originalname);
         let extensionless_fname = sanitized_fname.substring(0, sanitized_fname.length-4);
         if (extensionless_fname.length > 50) {
-            remove_image_set(farm_name, field_name, mission_date);
+            remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
             if (!sent_response) {
                 sent_response = true;
                 return res.status(422).json({
@@ -1128,7 +1144,7 @@ exports.post_upload = function(req, res, next) {
         }
         catch (error) {
             console.log(error);
-            remove_image_set(farm_name, field_name, mission_date);
+            remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
             if (!sent_response) {
                 sent_response = true;
                 return res.status(422).json({
@@ -1161,7 +1177,7 @@ exports.post_upload = function(req, res, next) {
                     console.log('Error code: '+error.code);
                     console.log('Signal received: '+error.signal);
 
-                    remove_image_set(farm_name, field_name, mission_date);
+                    remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
                     if (!sent_response) {
                         sent_response = true;
                         return res.status(422).json({
@@ -1186,7 +1202,7 @@ exports.post_upload = function(req, res, next) {
                                 }
                             }*/
 
-                            remove_image_set(farm_name, field_name, mission_date);
+                            remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
                             if (!sent_response) {
                                 sent_response = true;
                                 return res.status(422).json({
@@ -1211,7 +1227,7 @@ exports.post_upload = function(req, res, next) {
                                     }
                                 }*/
 
-                                remove_image_set(farm_name, field_name, mission_date);
+                                remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
                                 if (!sent_response) {
                                     sent_response = true;
                                     return res.status(422).json({
@@ -1243,7 +1259,7 @@ exports.post_upload = function(req, res, next) {
                     console.log(error.stack);
                     console.log('Error code: '+error.code);
                     console.log('Signal received: '+error.signal);
-                    remove_image_set(farm_name, field_name, mission_date);
+                    remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
                     if (!sent_response) {
                         sent_response = true;
                         return res.status(422).json({
@@ -1263,7 +1279,7 @@ exports.post_upload = function(req, res, next) {
                 console.log('Error code: '+error.code);
                 console.log('Signal received: '+error.signal);   
 
-                remove_image_set(farm_name, field_name, mission_date);
+                remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
                 if (!sent_response) {
                     sent_response = true;
                     return res.status(422).json({
@@ -1284,7 +1300,7 @@ exports.post_upload = function(req, res, next) {
         if (isNumeric(flight_height)) {
             numeric_flight_height = parseFloat(flight_height);
             if (numeric_flight_height < 0.1 || numeric_flight_height > 100) {
-                remove_image_set(farm_name, field_name, mission_date);
+                remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
                 if (!sent_response) {
                     sent_response = true;
                     return res.status(422).json({
@@ -1295,6 +1311,15 @@ exports.post_upload = function(req, res, next) {
             }
             metadata_command = metadata_command + " --flight_height " + flight_height;
         }
+        else {
+            remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
+            if (!sent_response) {
+                sent_response = true;
+                return res.status(422).json({
+                    error: "Provided flight height is invalid."
+                });
+            }
+        }
         console.log(metadata_command);
         let result = exec(metadata_command, {shell: "/bin/bash"}, function(error, stdout, stderr) {
             if (error) {
@@ -1302,7 +1327,7 @@ exports.post_upload = function(req, res, next) {
                 console.log('Error code: '+error.code);
                 console.log('Signal received: '+error.signal);   
 
-                remove_image_set(farm_name, field_name, mission_date);
+                remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
                 if (!sent_response) {
                     sent_response = true;
                     return res.status(422).json({
@@ -1321,7 +1346,7 @@ exports.post_upload = function(req, res, next) {
                 }
                 catch (error) {
                     console.log(error);
-                    remove_image_set(farm_name, field_name, mission_date);
+                    remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
                     if (!sent_response) {
                         sent_response = true;
                         return res.status(422).json({
@@ -1445,7 +1470,8 @@ exports.post_home = function(req, res, next) {
         let field_name = req.body.field_name;
         let mission_date = req.body.mission_date;
 
-        let mission_dir = path.join(USR_DATA_ROOT, "image_sets", farm_name, field_name, mission_date);
+        let mission_dir = path.join(USR_DATA_ROOT, req.session.user.username, "image_sets", 
+                                    farm_name, field_name, mission_date);
 
         let annotations_lock_path = path.join(mission_dir, "annotations", "lock.json");
 
@@ -1498,17 +1524,18 @@ exports.post_home = function(req, res, next) {
 
                 fs.rmSync(mission_dir, { recursive: true, force: true });
 
-                let field_dir = path.join(USR_DATA_ROOT, "image_sets", farm_name, field_name);
+                let field_dir = path.join(USR_DATA_ROOT, req.session.user.username, "image_sets", farm_name, field_name);
                 let missions = get_subdirs(field_dir);
                 if (missions.length == 0) {
                     fs.rmSync(field_dir, { recursive: true, force: true });
-                    let farm_dir = path.join(USR_DATA_ROOT, "image_sets", farm_name);
+                    let farm_dir = path.join(USR_DATA_ROOT, req.session.user.username, "image_sets", farm_name);
                     let fields = get_subdirs(farm_dir);
                     if (fields.length == 0) {
                         fs.rmSync(farm_dir, { recursive: true, force: true });
                     }
                 }
-
+                
+                /*
                 let results_mission_dir = path.join(USR_DATA_ROOT, "results", farm_name, field_name, mission_date);
                 if (fs.existsSync(results_mission_dir)) {
                     fs.rmSync(results_mission_dir, { recursive: true, force: true });
@@ -1522,11 +1549,14 @@ exports.post_home = function(req, res, next) {
                             fs.rmSync(results_farm_dir, { recursive: true, force: true });
                         }
                     }
-                }
+                }*/
+
+
+                // TODO: remove unneeded keys from cameras.json
                 
 
                 response.error = false;
-                response.redirect = APP_PREFIX + "/home";
+                response.redirect = APP_PREFIX + "/home/" + req.session.user.usename;
                 return res.json(response);
             }
         }).catch(function(error) {
@@ -1542,7 +1572,7 @@ exports.post_home = function(req, res, next) {
         let field_name = req.body.field_name;
         let mission_date = req.body.mission_date;
 
-        let mission_dir = path.join(USR_DATA_ROOT, "image_sets", farm_name, field_name, mission_date);
+        let mission_dir = path.join(USR_DATA_ROOT, req.session.user.username, "image_sets", farm_name, field_name, mission_date);
         let annotations_dir = path.join(mission_dir, "annotations");
         let annotations_lock_path = path.join(annotations_dir, "lock.json")
 
@@ -1575,8 +1605,8 @@ exports.post_home = function(req, res, next) {
             // success
             release();
             response.error = false;
-            response.redirect = APP_PREFIX + "/annotate/" + farm_name + "/" +
-                            field_name + "/" + mission_date;
+            response.redirect = APP_PREFIX + "/annotate/" + req.session.user.username + "/" + farm_name + "/" +
+                                field_name + "/" + mission_date;
             return res.json(response);
 
         }).catch(function(error) {
@@ -1596,12 +1626,129 @@ exports.post_home = function(req, res, next) {
         let farm_name = req.body.farm_name;
         let field_name = req.body.field_name;
         let mission_date = req.body.mission_date;
-        
-        results_dir = path.join(USR_DATA_ROOT, "image_sets",
-                                 farm_name, field_name, mission_date, "model", "results");
 
-        let results = get_subdirs(results_dir);
-        response.results = results;
+
+        let model_dir = path.join(USR_DATA_ROOT, req.session.user.username, "image_sets",
+                                  farm_name, field_name, mission_date, "model");
+        let prediction_dir = path.join(model_dir, "prediction");
+        let results_dir = path.join(model_dir, "results");
+
+        response.pending_results = [];
+        response.aborted_results = [];
+        response.completed_results = [];
+        glob(path.join(prediction_dir, "image_set_requests", "pending", "*"), function(error, pending_paths) {
+
+            if (error) {
+                response.error = true;
+                return res.json(response);
+            }
+
+            console.log("pending_paths", pending_paths);
+
+            for (pending_path of pending_paths) {
+                try {
+                    response.pending_results.push(JSON.parse(fs.readFileSync(pending_path, 'utf8')));
+                }
+                catch (error) {
+                    response.error = true;
+                    return res.json(response);
+                }
+            }
+
+            glob(path.join(prediction_dir, "image_set_requests", "aborted", "*"), function(error, aborted_paths) {
+
+                if (error) {
+                    response.error = true;
+                    return res.json(response);
+                }
+
+                console.log("aborted_paths", aborted_paths);
+
+                for (aborted_path of aborted_paths) {
+                    try {
+                        response.aborted_results.push(JSON.parse(fs.readFileSync(aborted_path, 'utf8')));
+                    }
+                    catch (error) {
+                        response.error = true;
+                        return res.json(response);
+                    }
+                }
+
+                glob(path.join(results_dir, "*"), function(error, completed_dirs) {
+                    if (error) {
+                        response.error = true;
+                        return res.json(response);
+                    }
+
+                    console.log("completed_dirs", completed_dirs);
+
+                    for (completed_dir of completed_dirs) {
+                        try {
+                            response.completed_results.push(JSON.parse(fs.readFileSync(path.join(completed_dir, "request.json"), 'utf8')));
+                        }
+                        catch (error) {
+                            response.error = true;
+                            return res.json(response);
+                        }
+                    }
+
+                    //let results = get_subdirs(results_dir);
+                    //response.results = results;
+                    response.error = false;
+                    return res.json(response);
+
+                });
+            });
+        });
+
+
+    }
+    else if (action === "delete_result") {
+       
+        let farm_name = req.body.farm_name;
+        let field_name = req.body.field_name;
+        let mission_date = req.body.mission_date;
+        let result_type = req.body.result_type;
+        let result_id = req.body.result_id;
+
+        console.log("result_type", result_type);
+        console.log("result_id", result_id);
+
+        if (result_type === "completed") {
+
+            let result_dir = path.join(USR_DATA_ROOT, req.session.user.username, "image_sets",
+                                  farm_name, field_name, mission_date, "model", "results", result_id);
+
+            console.log("removing result", result_dir);
+            try {
+                fs.rmSync(result_dir, { recursive: true, force: true });
+            }
+            catch (error) {
+                console.log(error);
+                response.error = true;
+                return res.json(response);
+            }
+        }
+        else if (result_type === "aborted") {
+            
+            let request_path = path.join(USR_DATA_ROOT, req.session.user.username, "image_sets",
+                                   farm_name, field_name, mission_date, "model", "prediction", 
+                                   "image_set_requests", "aborted", result_id + ".json");
+
+            console.log("removing request", request_path);
+            try {
+                fs.unlinkSync(request_path);
+            }
+            catch (error) {
+                console.log(error);
+                response.error = true;
+                return res.json(response);
+            }
+            
+
+        }
+
+
         response.error = false;
         return res.json(response);
 
@@ -1789,6 +1936,202 @@ exports.post_home = function(req, res, next) {
     //         }
     //     }
     // }
+
+
+    else if (action === "add_camera") {
+
+        let make = req.body.make;
+        let model = req.body.model;
+        let sensor_width = req.body.sensor_width;
+        let sensor_height = req.body.sensor_height;
+        let focal_length = req.body.focal_length;
+        let farm_name = req.body.farm_name;
+        let field_name = req.body.field_name;
+        let mission_date = req.body.mission_date;
+
+
+        let format = /[`!@#$%^&*()+\=\[\]{};':"\\|,<>\/?~]/;
+        for (input of [make, model, sensor_width, sensor_height, focal_length]) {
+            if (format.test(input)) {
+                response.message = "Provided metadata contains invalid characters."
+                response.error = true;
+                return res.json(response);
+            }
+        }
+        for (input of [make, model]) {
+            if (input.length < 3 || input.length > 20) {
+                response.message = "Provided metadata is invalid."
+                response.error = true;
+                return res.json(response);
+            }
+        }
+
+        for (input of [sensor_width, sensor_height, focal_length]) {
+            if (input.length < 1 || input.length > 10) {
+                response.message = "Provided metadata is invalid."
+                response.error = true;
+                return res.json(response);
+            }
+            if (!(isNumeric(input))) {
+                response.message = "Provided metadata is invalid."
+                response.error = true;
+                return res.json(response);
+            }
+            input = parseFloat(input);
+            if (input <= 0) {
+                response.message = "Provided metadata is invalid."
+                response.error = true;
+                return res.json(response);
+            }
+        }
+
+        sensor_width = sensor_width + " mm";
+        sensor_height = sensor_height + " mm";
+        focal_length = focal_length + " mm";
+
+        camera_mutex.acquire()
+        .then(function(release) {
+
+            let camera_specs;
+            let camera_specs_path = path.join(USR_DATA_ROOT, req.session.user.username, "cameras", "cameras.json");
+            try {
+                camera_specs = JSON.parse(fs.readFileSync(camera_specs_path, 'utf8'));
+            }
+            catch (error) {
+                release();
+                console.log(error);
+                response.message = "Failed to read camera metadata file.";
+                response.error = true;
+                return res.json(response);
+            }
+
+            if (!(make in camera_specs)) {
+                camera_specs[make] = {};
+            }
+
+            camera_specs[make][model] = {
+                "sensor_width": sensor_width,
+                "sensor_height": sensor_height,
+                "focal_length": focal_length
+            }
+
+            let metadata;
+            let metadata_path = path.join(USR_DATA_ROOT, req.session.user.username, "image_sets",
+                                         farm_name, field_name, mission_date, "metadata", "metadata.json");
+            try {
+                metadata = JSON.parse(fs.readFileSync(metadata_path, 'utf8'));
+            }
+            catch (error) {
+                release();
+                console.log(error);
+                response.message = "Failed to read image set metadata file.";
+                response.error = true;
+                return res.json(response);
+            }
+
+            metadata["camera_info"]["make"] = make;
+            metadata["camera_info"]["model"] = model;
+
+            try {
+                fs.writeFileSync(metadata_path, JSON.stringify(metadata));
+            }
+            catch (error) {
+                release();
+                response.message = "Failed to write image set metadata file.";
+                response.error = true;
+                return res.json(response);
+            }
+
+
+            // remove unused keys
+
+            let image_sets_root = path.join(USR_DATA_ROOT, req.session.user.username, "image_sets");
+            let farm_names = get_subdirs(image_sets_root);
+            console.log("farm_names", farm_names);
+            let used_cameras = {};
+            for (farm_name of farm_names) {
+            
+                let farm_root = path.join(image_sets_root, farm_name);
+                let field_names = get_subdirs(farm_root);
+                console.log("field_names", field_names);
+    
+                for (field_name of field_names) {
+                    let field_root = path.join(farm_root, field_name);
+                    let mission_dates = get_subdirs(field_root);
+                    console.log("mission_dates", mission_dates);
+                    
+                    
+                    for (mission_date of mission_dates) {
+                        let mission_root = path.join(field_root, mission_date);
+
+                        let metadata_path = path.join(mission_root, "metadata", "metadata.json");
+
+                        try {
+                            metadata = JSON.parse(fs.readFileSync(metadata_path, 'utf8'));
+                        }
+                        catch (error) {
+                            release();
+                            console.log(error);
+                            response.message = "Failed to read image set metadata file.";
+                            response.error = true;
+                            return res.json(response);
+                        }
+
+                        make = metadata["camera_info"]["make"];
+                        model = metadata["camera_info"]["model"];
+
+                        if (!(make in used_cameras)) {
+                            used_cameras[make] = [];
+                        }
+                        if (!(used_cameras[make].includes(model))) {
+                            used_cameras[make].push(model);
+                        }
+                    }
+                }
+            }
+
+            console.log("used_cameras", used_cameras);
+
+            for (make of Object.keys(camera_specs)) {
+                if (make in used_cameras) {
+                    for (model of Object.keys(camera_specs[make])) {
+                        if (!(used_cameras[make].includes(model))) {
+                            delete camera_specs[make][model];
+                        }
+                    }
+                }
+                else {
+                    delete camera_specs[make];
+                }
+            }
+
+            try {
+                fs.writeFileSync(camera_specs_path, JSON.stringify(camera_specs));
+            }
+            catch (error) {
+                release();
+                response.message = "Failed to write camera metadata file.";
+                response.error = true;
+                return res.json(response);
+            }
+
+
+
+            release();
+            
+            response.error = false;
+            response.camera_specs = camera_specs;
+            return res.json(response);
+
+
+        }).catch(function(error) {
+            console.log(error);
+            response.message = "Failed to acquire camera metadata mutex.";
+            response.error = true;
+            return res.json(response);
+        });
+
+    }
     else {
         console.log("invalid action", action);
         response.message = "Invalid action specified.";
@@ -1804,116 +2147,6 @@ exports.post_home = function(req, res, next) {
     }*/
 
 }
-exports.get_viewer_dep = function(req, res, next) {
-    
-    if (req.session.user && req.cookies.user_sid) {
-        
-        let farm_name = req.params.farm_name;
-        let field_name = req.params.field_name;
-        let mission_date = req.params.mission_date;
-        let job_uuid = req.params.timestamp;
-
-        let job_config;
-        let job_config_path = path.join(USR_DATA_ROOT, "jobs", job_uuid + ".json");
-        try {
-            job_config = JSON.parse(fs.readFileSync(job_config_path, 'utf8'));
-        }
-        catch (error) {
-            console.log(error);
-        }
-
-        let predictions = {};
-        let metrics = {};
-        let overlays = {};
-
-        let results_dirname = job_uuid;
-        let results_dir = path.join(USR_DATA_ROOT, "results", 
-                                    farm_name, field_name, mission_date, results_dirname);
-
-        for (model_info of job_config["model_info"]) {
-            let model_uuid = model_info["model_uuid"];
-            let model_name = model_info["model_name"];
-
-            let model_dir = path.join(results_dir, model_uuid);
-            let predictions_path = path.join(model_dir, "predictions.json");
-            let metrics_path = path.join(model_dir, "metrics.json");
-            let predictions_w3c_path = path.join(model_dir, "annotations.json");
-            
-            let model_metrics;
-            try {
-                model_metrics = JSON.parse(fs.readFileSync(metrics_path, 'utf8'));
-                metrics[model_uuid] = model_metrics;
-            }
-            catch (error) {
-                console.log(error);
-            }
-
-            try {
-                model_predictions_w3c = JSON.parse(fs.readFileSync(predictions_w3c_path, 'utf8'));
-                overlays[model_uuid] = model_predictions_w3c;
-            }
-            catch (error) {
-                console.log(error);
-            }
-
-        }
-        let image_set_root = path.join(USR_DATA_ROOT, "image_sets",
-                                      farm_name, field_name, mission_date);
-        let annotations_path = path.join(image_set_root, "annotations", "annotations_w3c.json");
-        
-        let annotations;
-        try {
-            annotations = JSON.parse(fs.readFileSync(annotations_path, 'utf8'));
-        }
-        catch (error) {
-            console.log(error);
-        }
-        let metadata_path = path.join(image_set_root, "metadata", "metadata.json");
-        let metadata;
-        try {
-            metadata = JSON.parse(fs.readFileSync(metadata_path, 'utf8'));
-        }
-        catch (error) {
-            console.log(error);
-        }
-
-
-
-        overlays["annotations"] = annotations;
-
-        
-        let dzi_images_dir = path.join(image_set_root, "dzi_images");
-
-        let dzi_image_paths = [];
-        for (image_name of Object.keys(annotations)) {
-            let dzi_image_path = path.join(APP_PREFIX, dzi_images_dir, image_name + ".dzi");
-            dzi_image_paths.push(dzi_image_path);
-
-        }
-
-        let image_set_info = {
-            "farm_name": farm_name,
-            "field_name": field_name,
-            "mission_date": mission_date
-        }
-
-        let data = {};
-        data["image_set_info"] = image_set_info;
-        data["job_config"] = job_config;
-        data["overlays"] = overlays;
-        data["metadata"] = metadata;
-        //data["predictions"] = predictions;
-        data["metrics"] = metrics;
-        data["dzi_dir"] = path.join(APP_PREFIX, dzi_images_dir);
-        data["dzi_image_paths"] = nat_orderBy.orderBy(dzi_image_paths);
-
-        res.render("viewer", {"data": data});
-    }
-    
-    else {
-        res.redirect(APP_PREFIX);
-    }
-}
 
 exports.get_viewer = function(req, res, next) {
     
@@ -1924,53 +2157,8 @@ exports.get_viewer = function(req, res, next) {
         let mission_date = req.params.mission_date;
         let timestamp = req.params.timestamp;
 
-        /*
-        let job_config;
-        let job_config_path = path.join(USR_DATA_ROOT, "jobs", job_uuid + ".json");
-        try {
-            job_config = JSON.parse(fs.readFileSync(job_config_path, 'utf8'));
-        }
-        catch (error) {
-            console.log(error);
-        }
 
-        let predictions = {};
-        let metrics = {};
-        let overlays = {};
-
-        let results_dirname = job_uuid;
-        let results_dir = path.join(USR_DATA_ROOT, "results", 
-                                    farm_name, field_name, mission_date, results_dirname);
-
-        for (model_info of job_config["model_info"]) {
-            let model_uuid = model_info["model_uuid"];
-            let model_name = model_info["model_name"];
-
-            let model_dir = path.join(results_dir, model_uuid);
-            let predictions_path = path.join(model_dir, "predictions.json");
-            let metrics_path = path.join(model_dir, "metrics.json");
-            let predictions_w3c_path = path.join(model_dir, "annotations.json");
-            
-            let model_metrics;
-            try {
-                model_metrics = JSON.parse(fs.readFileSync(metrics_path, 'utf8'));
-                metrics[model_uuid] = model_metrics;
-            }
-            catch (error) {
-                console.log(error);
-            }
-
-            try {
-                model_predictions_w3c = JSON.parse(fs.readFileSync(predictions_w3c_path, 'utf8'));
-                overlays[model_uuid] = model_predictions_w3c;
-            }
-            catch (error) {
-                console.log(error);
-            }
-
-        }*/
-
-        let image_set_dir = path.join(USR_DATA_ROOT, "image_sets",
+        let image_set_dir = path.join(USR_DATA_ROOT, req.session.user.username, "image_sets",
                                       farm_name, field_name, mission_date);
 
         let sel_results_dir = path.join(image_set_dir, "model", "results", timestamp);
@@ -2052,7 +2240,7 @@ exports.get_viewer = function(req, res, next) {
         data["dzi_dir"] = path.join(APP_PREFIX, dzi_images_dir);
         data["dzi_image_paths"] = nat_orderBy.orderBy(dzi_image_paths);
 
-        res.render("viewer", {"data": data});
+        res.render("viewer", {username: req.session.user.username, "data": data});
     }
     
     else {
@@ -2086,7 +2274,7 @@ exports.post_viewer = function(req, res, next) {
 
         
         
-        let model_results_dir = path.join(USR_DATA_ROOT, "image_sets", farm_name, field_name, mission_date,
+        let model_results_dir = path.join(USR_DATA_ROOT, req.session.user.username, "image_sets", farm_name, field_name, mission_date,
                                           "model", "results", timestamp);
         let annotations_path = path.join(model_results_dir, "annotations_w3c.json");
         let pred_path = path.join(model_results_dir, "predictions_w3c.json");
@@ -2096,8 +2284,8 @@ exports.post_viewer = function(req, res, next) {
         //let out_dir = path.join(USR_DATA_ROOT, "results", farm_name, field_name, mission_date,
         //                            job_uuid, model_uuid, "maps");
 
-        let rebuild_command = "python ../../plant_detection/src/interpolate.py " + farm_name +
-                                " " + field_name + " " + mission_date + " " + annotations_path + " " +
+        let rebuild_command = "python ../../plant_detection/src/interpolate.py " + req.session.user.username + " " +
+                            farm_name + " " + field_name + " " + mission_date + " " + annotations_path + " " +
                                 out_dir + " -p " + pred_path;
 
         if (req.body.interpolation == "nearest") {
@@ -2132,143 +2320,6 @@ exports.post_viewer = function(req, res, next) {
     }*/
 }
 
-
-exports.get_manage = function(req, res, next) {
-
-    if (req.session.user && req.cookies.user_sid) {
-        
-        let job_configs = {};
-        let jobs_dir = path.join(USR_DATA_ROOT, "jobs");
-        let list = fs.readdirSync(jobs_dir);
-        list.forEach(function(file) {
-            console.log("file", file);
-            if (file !== "jobs.json") {
-                job_config = JSON.parse(fs.readFileSync(path.join(jobs_dir, file), 'utf8'));
-                job_configs[job_config["job_uuid"]] = job_config;
-            }
-        });
-
-
-        // job_configs.sort(function(a, b) {
-        //     let keyA = new Date(a.start_time);
-        //     let keyB = new Date(b.start_time);
-
-        //     if (keyA < keyB) return -1;
-        //     if (keyA > keyB) return 1;
-        //     return 0;
-        // });
-
-
-        res.render("manage", {job_configs: job_configs});
-
-    }
-    else {
-        res.redirect(APP_PREFIX);
-    }
-}
-
-
-exports.post_manage = function(req, res, next) {
-    
-    
-    if (req.session.user && req.cookies.user_sid) {
-        
-        let response = {};
-        let action = req.body.action;
-        if (action === "refresh") {
-            let loss_records = {};
-            if (req.body.model_uuids !== "") {
-                let model_uuids = req.body.model_uuids.split(",");
-                for (model_uuid of model_uuids) {
-                    loss_records_dir = path.join(USR_DATA_ROOT, "models", model_uuid, "loss_records");
-
-                    loss_records[model_uuid] = [];
-                    if (fs.existsSync(loss_records_dir)) {
-                        let list = fs.readdirSync(loss_records_dir);
-                        list.sort();
-                        list.forEach(function(file) {
-                            loss_record = JSON.parse(fs.readFileSync(path.join(loss_records_dir, file), 'utf8'));
-                            loss_records[model_uuid].push(loss_record);
-                        });
-                    }
-                }
-            }
-
-            let job_configs = {};
-            let jobs_dir = path.join(USR_DATA_ROOT, "jobs");
-            let list = fs.readdirSync(jobs_dir);
-            list.forEach(function(file) {
-                if (file !== "jobs.json") {
-                    job_config = JSON.parse(fs.readFileSync(path.join(jobs_dir, file), 'utf8'));
-                    job_configs[job_config["job_uuid"]] = job_config;
-                }
-            });
-
-            response.error = false;
-            response.loss_records = JSON.stringify(loss_records);
-            response.job_configs = JSON.stringify(job_configs);
-            res.json(response);
-        }
-        else if (action === "stop_job") {
-            let job_uuid = req.body.job_uuid;
-
-            job_lock.acquire(active_subprocesses, function() {
-                let subprocess_pid = active_subprocesses[job_uuid];
-                process.kill(subprocess_pid, 'SIGINT');
-            }).catch(function(error) {
-                console.log(error);
-            });
-            response.error = false;
-            res.json(response);
-        }
-        else if (action === "destroy_job") {
-            let job_uuid = req.body.job_uuid;
-
-            let job_config_path = path.join(USR_DATA_ROOT, "jobs", job_uuid + ".json");
-            job_config = JSON.parse(fs.readFileSync(job_config_path, 'utf8'));
-            if ("inference_config" in job_config && "image_sets" in job_config["inference_config"]) {
-                for (image_set of job_config["inference_config"]["image_sets"]) {
-                    let farm_name = image_set["farm_name"];
-                    let field_name = image_set["field_name"];
-                    let mission_date = image_set["mission_date"];
-                    results_dir = path.join(USR_DATA_ROOT, "results", farm_name, field_name, mission_date, job_uuid);
-                    if (fs.existsSync(results_dir)) {
-                        fs.rmSync(results_dir, { recursive: true, force: true });
-                    }
-                }
-            }
-            if ("model_info" in job_config) {
-                for (model_info of job_config["model_info"]) {
-                    let model_uuid = model_info["model_uuid"];
-                    let model_dir = path.join(USR_DATA_ROOT, "models", model_uuid);
-                    if (fs.existsSync(model_dir)) {
-                        fs.rmSync(model_dir, { recursive: true, force: true });
-                    }
-                }
-            }
-            try {
-                fs.unlinkSync(job_config_path);
-            }
-            catch (error) {
-                console.log(error);
-            }
-            response.error = false;
-            res.json(response);
-
-        }
-        else {
-            console.log("invalid action", action)
-            response.error = true;
-            res.json(response);
-        }
-        
-    }
-    else {
-        // TODO: FIX
-        res.redirect(APP_PREFIX);
-    }
-
-}
 
 exports.logout = function(req, res, next) {
     console.log("got to logout");

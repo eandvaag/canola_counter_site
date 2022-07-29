@@ -18,19 +18,12 @@ let cur_view;
 let countdown_handle;
 let ask_to_continue_handle;
 let cur_update_num = -1;
-let pending_predictions;
+//let pending_predictions;
 let predictions = {};
 let cur_panel;
 let cur_bounds = null;
 let cur_status;
 
-let cur_init_stage;
-let init_annotation = null;
-let annotation_guides = {};
-//let waiting_for_restart = false;
-let num_bg_areas = 0;
-let REQ_INIT_ANNOTATIONS = 20;
-let REQ_INIT_BG_AREAS = 5;
 
 let map_url = null;
 
@@ -71,6 +64,8 @@ let formatter = function(annotation) {
   }
   
 
+
+
 function show_modal_message(head, message) {
 
     $("#modal_head").empty();
@@ -91,8 +86,9 @@ function show_modal_message(head, message) {
 }
 
 function close_modal() {
+    /*
     $("#modal_head").empty();
-    $("#modal_body").empty();
+    $("#modal_body").empty();*/
 
     $("#modal").css("display", "none");
 }
@@ -120,7 +116,6 @@ function create_image_set_table(table_id) {
     let image_status_col_width = "60px";
 
     $("#image_set_table").empty();
-    $("#image_set_table_init").empty();
     /*
     $("#image_set_table").append(`<tr>` +
             `<th><div class="table_header" style="width: ${image_name_col_width};">Name</div></th>` +
@@ -159,7 +154,6 @@ function create_image_set_table(table_id) {
             //`<td><div class="table_entry">${img_dataset}</div></td>` +
             `</tr>`;
         $("#image_set_table").append(item);
-        $("#image_set_table_init").append(item);
 
     }
 }
@@ -288,157 +282,6 @@ function set_image_status_combo() {
 }
 
 
-function update_stage(stage) {
-    cur_init_stage = stage;
-    if (stage === "no_guide") {
-        $("#annotation_instructions").html("Annotate a single plant.");
-    }
-    else if (stage === "fill_guide") {
-        $("#annotation_instructions").html("Annotate all the plants contained " +
-            "(partially or fully) within the red area.");
-    }
-    else if (stage === "no_bg_guide") {
-        $("#annotation_instructions").html("Annotate a region without plants. Try to include difficult objects such as weeds!")
-    }
-    else if (stage === "submitted") {
-        $("#annotation_instructions").html("Model is now being initialized.");
-    }
-}
-
-
-
-function advance_init() {
-
-    if (cur_init_stage === "no_guide") {
-        
-
-        let coords_str = init_annotation.target.selector.value;
-        let coords = coords_str.substring(11).split(",").map(parseFloat);
-        console.log("coords_str", coords_str);
-        let image_shape = viewer.world._contentSize;
-        console.log("image_shape", image_shape);
-        //let overlayElement = document.createElement('div');
-        //var overlay = viewer.viewport.imageToViewportRectangle(124.53097534179688,133.33065795898438,26.285736083984375,20.399093627929688); //absx, absy, abswidth, absheight);
-        //let overlay = viewer.viewport.imageToViewportRectangle(0, 0, 0.1, 0.2); //absx, absy, abswidth, absheight);
-
-        //console.log("bounds", viewer.world._contentSize);
-        //let image_co = viewer.viewport.viewportToImageCoordinates(viewportPoint);
-
-        let patch_size = get_patch_size(annotations);
-        console.log("patch_size", patch_size);
-
-        let centre_x = coords[0] + (coords[2] / 2);
-        let centre_y = coords[1] + (coords[3] / 2);
-        let px = Math.max(0, Math.min(centre_x - Math.round(patch_size / 2), image_shape.x - patch_size));
-        let py = Math.max(0, Math.min(centre_y - Math.round(patch_size / 2), image_shape.y - patch_size));
-        let width = Math.min(patch_size, image_shape.x - px);
-        let height = Math.min(patch_size, image_shape.y - py);
-
-        let overlay = {
-            id: "guide_" + cur_img_name + "_" + annotation_guides[cur_img_name].length,
-            px: px, //centre_x - 150,// / image_shape.x, //5472, //0,//125, //124.53097534179688,
-            py: py, //centre_y - 150, // / image_shape.y, //3648, //0, //133, //133.33065795898438,
-            width: width, //300, // image_shape.x, //5472, //260, //26.285736083984375,
-            height: height, //300, // image_shape.y, //3648, //0.2,//200, //20.399093627929688,
-            className: "annotation_guide"
-        }
-
-        annotation_guides[cur_img_name].push(overlay);
-
-
-
-        //overlayElement.style.background = 'rgba(255, 0, 0, 0.3)'; 
-        //let overlay = viewer.viewport.imageToViewportCoordinates(20, 20);
-        //var tiledImage = viewer.world.getItemAt(0);
-        /*
-        var rect = new OpenSeadragon.Rect(overlay.px, overlay.py, overlay.width, overlay.height);
-        rect = viewer.viewport.imageToViewportRectangle(rect);
-        overlay.x = rect.x;
-        overlay.y = rect.y;
-        overlay.width = rect.width;
-        overlay.height = rect.height;
-        delete overlay.px;
-        delete overlay.py;*/
-
-
-
-        console.log("overlay", overlay);
-        //viewer.addOverlay(overlay);
-        viewer.addOverlay(overlay); //overlayElement, overlay); //,OpenSeadragon.OverlayPlacement.TOP_LEFT);
-
-        update_stage("fill_guide");
-    }
-    else if (cur_init_stage === "fill_guide") {
-        init_annotation = null;
-        disable_buttons(["init_next_button"]);
-        if (num_annotations < REQ_INIT_ANNOTATIONS) {
-            update_stage("no_guide");
-        }
-
-        else {
-            //submit_initialization_request();
-            //update_stage("submitted");
-            update_stage("no_bg_guide");
-        }
-    }
-    else if (cur_init_stage === "no_bg_guide") {
-        num_bg_areas++;
-
-        let rev_annotations = {};
-        for (image_name of Object.keys(annotations)) {
-            rev_annotations[image_name] = {"annotations": []};
-            for (annotation of annotations[image_name]["annotations"]) {
-                const bodies = Array.isArray(annotation.body) ?
-                                annotation.body : [ annotation.body ];
-                            
-                //const scoreTag = bodies.find(b => b.purpose == 'score');
-                const highlightBody = bodies.find(b => b.purpose == 'highlighting');
-                if (!highlightBody || highlightBody.value !== "COLOR_3") {
-                    rev_annotations[image_name]["annotations"].push(annotation)
-                }
-            }
-            if (rev_annotations[image_name]["annotations"].length > 0) {
-                rev_annotations[image_name]["status"] = "started";
-            }
-            else {
-                rev_annotations[image_name]["status"] = "unannotated";
-            }
-        }
-        annotations = rev_annotations;
-        
-        anno.removeAnnotation(init_annotation);
-        num_annotations--;
-        // add_annotation = false;
-        let coords_str = init_annotation.target.selector.value;
-        let coords = coords_str.substring(11).split(",").map(parseFloat); //.map(Math.round);
-
-        let overlay = {
-            id: "guide_" + cur_img_name + "_" + annotation_guides[cur_img_name].length,
-            px: coords[0],
-            py: coords[1],
-            width: coords[2],
-            height: coords[3],
-            className: "annotation_guide"
-        }
-
-        annotation_guides[cur_img_name].push(overlay);
-        viewer.addOverlay(overlay);
-
-        if (num_bg_areas < REQ_INIT_BG_AREAS) {
-
-            init_annotation = null;
-            disable_buttons(["init_next_button"]);
-            update_stage("no_bg_guide");
-        }
-        else {
-            submit_initialization_request();
-            update_stage("submitted");
-        }
-    }
-
-
-}
-
 function create_anno() {
 
 
@@ -452,53 +295,13 @@ function create_anno() {
 
     anno.on('createAnnotation', function(annotation) {
 
-        //annotations[cur_img_name]["annotations"] = anno.getAnnotations();
-        //num_annotations++;
-        //if (num_annotations <= REQ_INIT_ANNOTATIONS) {
-        //if (cur_stage == "init") {
-        let add_annotation = true;
-        if (cur_view === "initialize") {
-            //$("#num_annotations").html(REQ_INIT_ANNOTATIONS - num_annotations);
-            if (cur_init_stage === "no_guide" || cur_init_stage === "no_bg_guide") {
-                
-                if (init_annotation) {
-                    anno.removeAnnotation(annotation);
-                    add_annotation = false;
-                }
-                else {
-                    init_annotation = annotation;
-                    enable_buttons(["init_next_button"]);
-                }
-            }
-            /*
-            else if (cur_init_stage === "fill_guide") {
-
-            }*/
-            // if (cur_init_stage === "no_bg_guide") {
-            //     annotation["body"].push({"value": "COLOR_3", "purpose": "highlighting"});
-            // }
-
-        }
-
-
-        /*
-        if (num_annotations == REQ_INIT_ANNOTATIONS && !(data["baseline_initialized"])) {
-            $("#initial_annotations_complete").show();
-        }*/
-        if (add_annotation) {
-            annotations[cur_img_name]["annotations"] = anno.getAnnotations();
-            num_annotations++;
-        }
-
+        annotations[cur_img_name]["annotations"] = anno.getAnnotations();
+        num_annotations++;
 
         update_image_status();
         set_image_status_combo();
         $("#save_icon").css("color", "#ed452b");
         create_image_set_table();
-        /*
-        if (cur_init_stage === "no_bg_guide") {
-            advance_init();
-        }*/
     });
 
     anno.on('createSelection', async function(selection) {
@@ -515,10 +318,6 @@ function create_anno() {
         let updated_px_str = resize_px_str(px_str);
 
         selection.target.selector.value = updated_px_str;
-
-        if (cur_init_stage === "no_bg_guide") {
-            selection.body.push({"value": "COLOR_3", "purpose": "highlighting"});
-        }
 
         // Make sure to wait before saving!
         await anno.updateSelected(selection);
@@ -537,20 +336,8 @@ function create_anno() {
         annotations[cur_img_name]["annotations"] = anno.getAnnotations();
         $("#save_icon").css("color", "#ed452b");
 
-        if (init_annotation) {
-            init_annotation = annotation;
-        }
-
         add_annotations();
     });
-
-    /*
-    anno.on('selectAnnotation', function(annotation, element) {
-        console.log("selectAnnotation");
-    });
-    */
-
-    //return anno;
 
 }
 
@@ -596,20 +383,12 @@ function create_viewer_and_anno(viewer_id) {
     viewer.innerTracker.keyDownHandler = function(e) {
 
         if (e.keyCode == 46) {
-            if (init_annotation) {
-                init_annotation = null;
-            }
 
             let selected = anno.getSelected();
             anno.removeAnnotation(selected);
 
             annotations[cur_img_name]["annotations"] = anno.getAnnotations();
             num_annotations--;
-            /*
-            if (num_annotations < REQ_INIT_ANNOTATIONS && !(data["baseline_initialized"])) {
-                $("#num_annotations").html(REQ_INIT_ANNOTATIONS - num_annotations);
-                $("#initial_annotations_complete").hide();
-            }*/
 
             update_image_status();
             set_image_status_combo();
@@ -636,13 +415,15 @@ function create_viewer_and_anno(viewer_id) {
         $("#image_name").text(cur_img_name);
         set_image_status_combo();
 
-        
+        /*
         if (pending_predictions[cur_img_name]) {
             disable_buttons(["request_prediction_button"]);
         }
         else {
             enable_buttons(["request_prediction_button"]);
-        }
+        }*/
+
+
 
         //console.log(cur_bounds);
 
@@ -660,16 +441,11 @@ function create_viewer_and_anno(viewer_id) {
         //viewer.viewport.zoomTo(1, null, true);
         //viewer.viewport.applyConstraints();
 
-        if (cur_view === "initialize") {
-            for (overlay of annotation_guides[cur_img_name]) {
-                viewer.addOverlay(overlay);
-            }
-        }
-
-        if (cur_bounds)
+        if (cur_bounds) {
             withFastOSDAnimation(viewer.viewport, function() {
                 viewer.viewport.fitBounds(cur_bounds);
             });
+        }
         
     });
 
@@ -705,31 +481,6 @@ function withFastOSDAnimation(viewport, f) {
 
 
 
-function disable_buttons(button_ids) {
-
-    for (button_id of button_ids) {
-        console.log("disabling", button_id);
-        $("#" + button_id).prop('disabled', true);
-        $("#" + button_id).removeClass("table_button_hover");
-        $("#" + button_id).css("opacity", 0.5);
-        $("#" + button_id).css("cursor", "default");
-    }
-}
-
-
-function enable_buttons(button_ids) {
-
-    
-    for (button_id of button_ids) {
-        console.log("enabling", button_id);
-        $("#" + button_id).prop('disabled', false);
-        $("#" + button_id).addClass("table_button_hover");
-        $("#" + button_id).css("opacity", 1);
-        $("#" + button_id).css("cursor", "pointer");
-    }
-}
-
-
 
 function build_map() {
     disable_buttons(["build_map_button"]);
@@ -752,15 +503,15 @@ function build_map() {
         $("#build_loader").hide();
         enable_buttons(["build_map_button"]);
 
-        if (response.error) {    
-            console.log(response.error);
+        if (response.error) {  
+            show_modal_message("Error", "An error occurred during the generation of the density map.");  
             map_url = null;
             draw_map_chart();
         }
         else {
             let timestamp = new Date().getTime();    
 
-            map_url = "/plant_detection/usr/data/image_sets/" + image_set_info["farm_name"] + "/" + 
+            map_url = "/plant_detection/usr/data/" + username + "/image_sets/" + image_set_info["farm_name"] + "/" + 
                             image_set_info["field_name"] + "/" + image_set_info["mission_date"] + 
                             "/maps/annotated_map.svg?t=" + timestamp;
             draw_map_chart();
@@ -811,28 +562,6 @@ function show_map() {
     draw_map_chart();
 }
 
-function show_initialize(image_name) {
-    cur_view = "initialize";
-
-    //$("#image_view_container").hide();
-    $("#map_view_container").hide();
-    $("#image_view_container").show();
-
-    $("#ctl_left_panel").hide();
-    $("#ctl_right_panel").hide();
-    $("#init_left_panel").show();
-    $("#init_right_panel").show();
-    //$("#initialize_container").show();
-    //$("#image_view_container").show();
-
-    //change_image(image_name);
-    //cur_img_name = img_name;
-    //init_show_annotation();
-    disable_buttons(["init_next_button"]);
-    update_stage("no_guide");
-    change_image(image_name);
-}
-
 
 function show_image(image_name) {
     cur_view = "image";
@@ -845,10 +574,6 @@ function show_image(image_name) {
     $("#map_view_container").hide();
     $("#image_view_container").show();
 
-    $("#init_left_panel").hide();
-    $("#init_right_panel").hide();
-    $("#ctl_left_panel").show();
-    $("#ctl_right_panel").show();
 
     change_image(image_name);
     /*
@@ -865,31 +590,6 @@ function show_image(image_name) {
     create_image_set_table();*/
 }
 
-
-function submit_initialization_request() {
-
-
-    $.post($(location).attr('href'),
-    {
-        action: "initialize_model",
-        annotations: JSON.stringify(annotations),
-        annotation_guides: JSON.stringify(annotation_guides)
-    },
-    
-    function(response, status) {
-
-        if (response.error) {
-            //create_image_set_table();
-            show_modal_message("Error", "Request to initialize model has failed.");
-        }
-        else {
-            show_modal_message("Success", response.message);
-            $("#save_icon").css("color", "white");
-            show_image(cur_img_name);
-        }
-
-    });
-}
 
 function save_annotations() {
 
@@ -914,21 +614,6 @@ function save_annotations() {
         }
     });
 
-    /*
-    if (num_annotations >= REQ_INIT_ANNOTATIONS && !data["baseline_initialized"]) {
-        $("#init_panel").hide();
-        $("#ctl_panel").show();
-    }*/
-    /*
-        $.post($(location).attr('href'),
-        {
-            action: "request_weight_initialization"
-        },
-        function(response, status) {
-            show_modal_message("A baseline model is being selected. You can continue annotating in the meantime.")
-
-        });
-    }*/
 }
 
 
@@ -944,12 +629,9 @@ function refresh() {
     function(response, status) {
 
         if (response.error) {
-            if (cur_view !== "initialize") {
-                save_annotations();
-            }
-        }
-        else {
-            console.log("refreshed");
+            show_modal_message("Error", "Your annotation session has failed to refresh. " +
+                                        "The system will now attempt to save your annotations to prevent the loss of any work.");
+            save_annotations();
         }
 
     });
@@ -958,9 +640,8 @@ function refresh() {
 
 function expired_session() {
 
-    if (cur_view !== "initialize") {
-        save_annotations();
-    }
+    save_annotations();
+
     $.post($(location).attr('href'),
     {
         action: "expired_lock_file"
@@ -1226,10 +907,10 @@ function show_segmentation_inner() {
 
     let timestamp = new Date().getTime();
 
-    let exg_src = "/plant_detection/usr/data/image_sets/" + image_set_info["farm_name"] + "/"
+    let exg_src = "/plant_detection/usr/data/" + username + "/image_sets/" + image_set_info["farm_name"] + "/"
                     + image_set_info["field_name"] + "/" + image_set_info["mission_date"] + 
                     "/excess_green/" + cur_img_name + ".png"; //?t=" + timestamp;
-    let rgb_src = "/plant_detection/usr/data/image_sets/" + image_set_info["farm_name"] + "/"
+    let rgb_src = "/plant_detection/usr/data/" + username + "/image_sets/" + image_set_info["farm_name"] + "/"
                     + image_set_info["field_name"] + "/" + image_set_info["mission_date"] + 
                     "/images/" + cur_img_name + image_set_info["image_ext"]; //".JPG"; //?t=" + timestamp;
 
@@ -1600,11 +1281,11 @@ $(document).ready(function() {
     metadata = data["metadata"];
     excess_green_record = data["excess_green_record"];
 
+    /*
     pending_predictions = {};
     for (image_name of Object.keys(annotations)) {
         pending_predictions[image_name] = false;
-        annotation_guides[image_name] = [];
-    }
+    }*/
 
 
     $("#image_set_name").text(image_set_info["farm_name"] + "  |  " + 
@@ -1643,9 +1324,26 @@ $(document).ready(function() {
     }*/
 
     let socket = io();
-    socket.emit('join_message', image_set_info["farm_name"] + "/" + image_set_info["field_name"] + "/" + image_set_info["mission_date"]);
+    socket.emit('join_message', username + "/" + image_set_info["farm_name"] + "/" + image_set_info["field_name"] + "/" + image_set_info["mission_date"]);
 
     socket.on('status_change', function(status) {
+        console.log("status", status);
+
+        if (status["error"] === 'True') {
+            let error_message = `An error occurred during ` + status["error_setting"] + 
+            `:<br><br>` + status["error_message"];
+            
+
+            if (status["error_setting"] === "prediction") {
+                error_message = error_message + `<br><br>Please report this error to the site administrator.`;
+            }
+            else if (status["error_setting"] === "training") {
+                error_message = error_message + `<br><br>The model will be prevented from training until the error is resolved. Please contact the site administrator.`;
+            }
+
+            show_modal_message("Error", error_message);
+        }
+
         let update_num = status["update_num"];
         if (update_num > cur_update_num) {
             cur_update_num = update_num;
@@ -1660,10 +1358,11 @@ $(document).ready(function() {
                     num_available++;
                 }
             }
+            /*
             if (cur_status === "uninitialized" || cur_status === "initializing") {
                 $("#model_training_status").html("N/A");
-            }
-            else if (cur_num_trained_on == num_available) {
+            }*/
+            if (cur_num_trained_on == num_available) {
                 $("#model_training_status").html("yes");
             }
             else {
@@ -1682,19 +1381,39 @@ $(document).ready(function() {
             create_image_set_table();
             set_image_status_combo();
         }*/
+        /*
+        if (cur_status === "predicting") {
+            disable_buttons(["request_prediction_button", "request_result_button"]);
+        }
+        else {
+            enable_buttons(["request_prediction_button", "request_result_button"]);
+        }*/
 
 
+        if ("prediction_image_names" in status && cur_panel === "prediction") {
+            show_prediction();
+        }
+
+
+
+        if (status["outstanding_prediction_requests"] === "True") {
+            disable_buttons(["request_prediction_button", "request_result_button"]);
+        }
+        else {
+            enable_buttons(["request_prediction_button", "request_result_button"]);
+        }
+        /*
         if ("prediction_image_names" in status) {
 
             let prediction_image_names = status["prediction_image_names"].split(",");
 
             console.log("pending_predictions", pending_predictions);
             console.log("prediction_image_names", prediction_image_names);
-            /*
-            let index = pending_predictions.indexOf(status["prediction_image_name"]);
-            if (index !== -1) {
-                pending_predictions.splice(index, 1);
-            }*/
+            
+            //let index = pending_predictions.indexOf(status["prediction_image_name"]);
+            //if (index !== -1) {
+            //    pending_predictions.splice(index, 1);
+            //}
             if (prediction_image_names.length == 1) {
                 let prediction_image_name = prediction_image_names[0];
 
@@ -1702,7 +1421,7 @@ $(document).ready(function() {
                 console.log("pending_predictions", pending_predictions);
                 console.log(cur_img_name, prediction_image_name);
                 if (cur_img_name === prediction_image_name) {
-                    enable_buttons(["request_prediction_button"])
+                    //enable_buttons(["request_prediction_button"])
                     console.log("cur_panel", cur_panel);
                     if (cur_panel === "prediction") {
                         show_prediction();
@@ -1710,12 +1429,12 @@ $(document).ready(function() {
                 }
             }
             else {
-                enable_buttons(["request_result_button"]);
+                //enable_buttons(["request_result_button"]);
                 if (cur_panel === "prediction") {
                     show_prediction();
                 }
             }
-        }
+        }*/
     });
 
 
@@ -1724,28 +1443,22 @@ $(document).ready(function() {
 
 
     //show_image();
+    if ((!(metadata["missing"]["latitude"]) && !(metadata["missing"]["longitude"])) && (!(metadata["missing"]["area_m2"]))) {
 
-    if (num_annotations > 0) {
-        if ((!(metadata["missing"]["latitude"]) && !(metadata["missing"]["longitude"])) && (!(metadata["missing"]["area_m2"]))) {
+        $("#view_button_container").show();
 
-            $("#view_button_container").show();
-    
-    
-            $("#view_button").click(function() {
-                if (cur_view == "image") {
-                    show_map();
-                }
-                else {
-                    show_image(cur_img_name);
-                }
-            });
-        }
-        show_image(cur_img_name);
+
+        $("#view_button").click(function() {
+            if (cur_view == "image") {
+                show_map();
+            }
+            else {
+                show_image(cur_img_name);
+            }
+        });
     }
-    else {
-        show_modal_message("Welcome!", "Please follow the instructions to help the system initialize the detection model.");
-        show_initialize(cur_img_name);
-    }
+    show_image(cur_img_name);
+
 
 
     //show_annotation();
@@ -1788,9 +1501,10 @@ $(document).ready(function() {
     $("#help_button").click(function() {
 
         let head = "Help";
-        let message = "Hold the <i>SHIFT</i> key and drag the mouse to create a new annotation." +
-        "<br><br>Use the <i>DELETE</i> key to remove annotations." + 
-        "<br><br>Don't forget to save your work!"
+        let message = "&#8226; Hold the <i>SHIFT</i> key and drag the mouse to create a new annotation." +
+        "<br><br>&#8226; Click on an existing annotation to select it and change its boundaries." +
+        "<br><br>&#8226; Use the <i>DELETE</i> key to remove a selected annotation." + 
+        "<br><br>&#8226; Don't forget to save your work!";
         show_modal_message(head, message);
     })
 
@@ -1802,7 +1516,7 @@ $(document).ready(function() {
         },
         
         function(response, status) {
-            window.location.href = "/plant_detection/home";
+            window.location.href = "/plant_detection/home/" + username;
         });
     })
 
@@ -1819,7 +1533,7 @@ $(document).ready(function() {
     });
 
     $("#request_result_button").click(function() {
-        disable_buttons(["request_result_button"]);
+        disable_buttons(["request_prediction_button", "request_result_button"]);
         $.post($(location).attr("href"),
         {
             action: "get_result"
@@ -1830,8 +1544,8 @@ $(document).ready(function() {
             }
             else {
                 show_modal_message("Success", 
-                "The result request was successfully submitted. Upon completion, the " +
-                "results will be preserved under this image set's 'Results' tab.");
+                "Your request was successfully submitted. Upon completion, the " +
+                "results will be preserved under this image set's 'Results' tab (accessible from the site's home page).");
             }
         });
 
@@ -1840,9 +1554,9 @@ $(document).ready(function() {
 
     $("#request_prediction_button").click(function() {
 
-        disable_buttons(["request_prediction_button"]);
-        console.log("pushing", cur_img_name);
-        pending_predictions[cur_img_name] = true;
+        disable_buttons(["request_prediction_button", "request_result_button"]);
+        //console.log("pushing", cur_img_name);
+        //pending_predictions[cur_img_name] = true;
         $.post($(location).attr('href'),
         {
             action: "predict",

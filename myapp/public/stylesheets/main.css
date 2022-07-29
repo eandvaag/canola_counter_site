@@ -696,7 +696,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 input:-webkit-autofill,
 input:-webkit-autofill:hover, 
 input:-webkit-autofill:focus, 
-input:-webkit-autofill:active{
+input:-webkit-autofill:active {
     -webkit-box-shadow: 0 0 0 30px #222621 inset !important;
     -webkit-text-fill-color: white !important;
 }
@@ -732,7 +732,7 @@ input:-webkit-autofill:active{
   margin: auto;
   padding: 0;
   width: 80%;
-  max-width:  450px;
+  max-width:  550px;
   box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2),0 6px 20px 0 rgba(0,0,0,0.19);
   -webkit-animation-name: animatetop;
   -webkit-animation-duration: 0.4s;

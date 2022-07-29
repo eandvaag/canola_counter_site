@@ -111,3 +111,32 @@ function timestamp_to_date(timestamp){
     let patch_size = Math.round(Math.sqrt(patch_area));
     return patch_size;
   }
+
+
+
+
+
+function disable_buttons(button_ids) {
+
+    for (button_id of button_ids) {
+        console.log("disabling", button_id);
+        $("#" + button_id).prop('disabled', true);
+        $("#" + button_id).removeClass("table_button_hover");
+        $("#" + button_id).css("opacity", 0.5);
+        $("#" + button_id).css("cursor", "default");
+    }
+}
+
+
+function enable_buttons(button_ids) {
+
+    
+    for (button_id of button_ids) {
+        console.log("enabling", button_id);
+        $("#" + button_id).prop('disabled', false);
+        $("#" + button_id).addClass("table_button_hover");
+        $("#" + button_id).css("opacity", 1);
+        $("#" + button_id).css("cursor", "pointer");
+    }
+}
+

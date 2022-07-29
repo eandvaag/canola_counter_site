@@ -33,11 +33,13 @@ function set_count_chart_data() {
     if (metric === "Count" || metric === "Count per square metre") {
         for (image_name of Object.keys(annotations)) {
             for (const [overlay_name, overlay] of Object.entries(overlays)) {
-                //console.log(overlay);
-                for (annotation of overlay["overlays"][image_name]["annotations"]) {
-                    let score_el = annotation["body"].find(b => b.purpose == 'score');
-                    if (!score_el || score_el.value >= slider_val) {
-                        count_chart_data[image_name][overlay_name]++;
+                console.log(overlay);
+                if (image_name in overlay["overlays"]) {
+                    for (annotation of overlay["overlays"][image_name]["annotations"]) {
+                        let score_el = annotation["body"].find(b => b.purpose == 'score');
+                        if (!score_el || score_el.value >= slider_val) {
+                            count_chart_data[image_name][overlay_name]++;
+                        }
                     }
                 }
             }

@@ -187,7 +187,7 @@ function initialize_upload() {
             console.log("All done!");
             $("#modal_header_text").html("Success!");
             $("#modal_message").html("Your image set was successfully uploaded!" +
-                                     "<br>The image set should now appear in the <i>Browse</i> tab.");
+                                     "<br><br>The image set should now appear in the <i>Browse</i> tab.");
             $("#result_modal").css("display", "block");
             console.log($("#farm_input").val());
             let uploaded_farm = $("#farm_input").val();

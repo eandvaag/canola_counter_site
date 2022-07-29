@@ -2,6 +2,7 @@ const path = require('path');
 const fs = require('fs');
 
 const socket_io = require('socket.io');
+const glob = require('glob');
 const io = socket_io();
 
 /*var socket_api = {};
@@ -20,9 +21,9 @@ io.on('connection', function(socket) {
         console.log(key);
         socket_lookup[key] = socket.id;
 
-        let [farm_name, field_name, mission_date] = key.split("/");
+        let [username, farm_name, field_name, mission_date] = key.split("/");
 
-        let status_path = path.join(USR_DATA_ROOT, "image_sets", farm_name, field_name, mission_date, "model", "status.json");
+        let status_path = path.join(USR_DATA_ROOT, username, "image_sets", farm_name, field_name, mission_date, "model", "status.json");
         let status;
         try {
             status = JSON.parse(fs.readFileSync(status_path, 'utf8'));
@@ -31,24 +32,68 @@ io.on('connection', function(socket) {
             console.log(error);
         }
 
-        io.to(socket_lookup[key]).emit("status_change", status)
+        emit_status_change(username, farm_name, field_name, mission_date, status);
+
+        //io.to(socket_lookup[key]).emit("status_change", status)
 
     });
 });
 
+function emit_status_change(username, farm_name, field_name, mission_date, status) {
 
+    let key = username + "/" + farm_name + "/" + field_name + "/" + mission_date;
+
+    let prediction_dir = path.join("usr", "data", username, "image_sets",
+                                        farm_name, field_name, mission_date, "model", "prediction");
+    let num_outstanding;
+    glob(path.join(prediction_dir, "image_requests", "*"), function(error, image_prediction_paths) {
+        if (error) {
+            console.log(error);
+        }
+        num_outstanding = image_prediction_paths.length;
+        glob(path.join(prediction_dir, "image_set_requests", "pending", "*"), function(error, image_set_prediction_paths) {
+            if (error) {
+                console.log(error);
+            }
+            num_outstanding = num_outstanding + image_set_prediction_paths.length;
+
+            if (num_outstanding > 0) {
+                status["outstanding_prediction_requests"] = "True";
+            }
+            else {
+                status["body.outstanding_prediction_requests"] = "False";
+            }
+
+            console.log("checking socket lookup", socket_lookup);
+            if (key in socket_lookup) {
+                console.log("emitting");
+                let socket_id = socket_lookup[key];
+                console.log("sending to socket_id", socket_id);
+        
+                io.to(socket_lookup[key]).emit("status_change", status);
+                
+                //io.emit("status_change");
+                
+            }
+
+        });
+    });
+
+
+
+}
 
 exports.post_notification = function(req, res, next) {
 
     console.log("got notification");
     console.log(req.body);
 
-    
+    let username = req.body.username;
     let farm_name = req.body.farm_name;
     let field_name = req.body.field_name;
     let mission_date = req.body.mission_date;
 
-    let key = farm_name + "/" + field_name + "/" + mission_date;
+    let key = username + "/" + farm_name + "/" + field_name + "/" + mission_date;
 
     /*
     let status_path = path.join(USR_DATA_ROOT, "image_sets", farm_name, field_name, mission_date, "model", "status.json");
@@ -59,15 +104,7 @@ exports.post_notification = function(req, res, next) {
     catch (error) {
         console.log(error);
     }*/
-
-    console.log("checking socket lookup", socket_lookup);
-    if (key in socket_lookup) {
-        console.log("emitting");
-        let socket_id = socket_lookup[key];
-        console.log("sending to socket_id", socket_id);
-        io.to(socket_lookup[key]).emit("status_change", req.body);
-        //io.emit("status_change");
-    }
+    emit_status_change(username, farm_name, field_name, mission_date, req.body);
 
 
     let response = {};

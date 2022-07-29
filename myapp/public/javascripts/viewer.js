@@ -155,7 +155,7 @@ function create_image_set_table() {
         "completed_for_testing": "C. Te."
     };
 
-    for (image_name of Object.keys(annotations)) {
+    for (image_name of natsort(Object.keys(annotations))) {
         if ((filter_val === "all") || (annotations[image_name]["status"] === filter_val)) {
 
             //for (image_name of selected_image_names) {
@@ -229,7 +229,7 @@ function update_overlays() {
     //for (overlay_id of sorted_overlay_ids) {
     console.log("overlays", overlays);
     for (const [overlay_name, overlay] of Object.entries(overlays)) {
-        if ($("#" + overlay_name).is(":checked")) {
+        if (cur_img_name in overlay["overlays"] && $("#" + overlay_name).is(":checked")) {
             for (annotation of overlay["overlays"][cur_img_name]["annotations"]) {
                 //annotation["body"].push({"value": "COLOR_1", "purpose": "highlighting"})
                 /*
@@ -333,7 +333,7 @@ function build_map() {
 
             let timestamp = new Date().getTime();
             
-            let base = "/plant_detection/usr/data/image_sets/" + image_set_info["farm_name"] + "/" + 
+            let base = "/plant_detection/usr/data/" + username + "/image_sets/" + image_set_info["farm_name"] + "/" + 
                         image_set_info["field_name"] + "/" + image_set_info["mission_date"] + "/model/results/" +
                         image_set_info["timestamp"] + "/maps/";
 
@@ -514,7 +514,7 @@ $(document).ready(function() {
     let mission_date = image_set_info["mission_date"];
     let timestamp = image_set_info["timestamp"];
     
-    let download_path = "/plant_detection/usr/data/image_sets/" + farm_name + "/" +
+    let download_path = "/plant_detection/usr/data/" + username + "/image_sets/" + farm_name + "/" +
                         field_name + "/" + mission_date + "/model/results/" + timestamp + "/results.csv";
     
     console.log("download_path", download_path);
