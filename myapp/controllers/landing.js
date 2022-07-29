@@ -183,7 +183,6 @@ exports.get_home = function(req, res, next) {
 
         let image_sets_data = {};
         let image_sets_root = path.join(USR_DATA_ROOT, req.session.user.username, "image_sets");
-        //let results_root = path.join(USR_DATA_ROOT, "results");
         let farm_names = get_subdirs(image_sets_root);
 
         console.log("farm_names", farm_names);
@@ -211,17 +210,7 @@ exports.get_home = function(req, res, next) {
                         if (!(field_name in image_sets_data[farm_name])) {
                             image_sets_data[farm_name][field_name] = []
                         }
-                        image_sets_data[farm_name][field_name].push(mission_date); // = [];
-                        
-                        /*
-                        results_dir = path.join(results_root, farm_name, field_name, mission_date);
-                        if (fs.existsSync(results_dir)) {
-                            let jobs = get_subdirs(results_dir);
-                            image_sets_data[farm_name][field_name][mission_date] = jobs;
-                        }
-                        else {
-                            image_sets_data[farm_name][field_name][mission_date] = [];
-                        }*/
+                        image_sets_data[farm_name][field_name].push(mission_date);
                     }
 
                     //else {
@@ -580,10 +569,6 @@ exports.post_annotate = function(req, res, next) {
 
         let request_uuid = uuidv4().toString();
         let request = {
-            //"username": req.session.user.username,
-            // "farm_name": farm_name,
-            // "field_name": field_name,
-            // "mission_date": mission_date,
             "request_uuid": request_uuid,
             "start_time": Math.floor(Date.now() / 1000),
             "image_names": [image_name],
@@ -594,8 +579,7 @@ exports.post_annotate = function(req, res, next) {
         let request_path = path.join(USR_DATA_ROOT, req.session.user.username,
                                     "image_sets", farm_name, field_name, mission_date,
                                     "model", "prediction", "image_requests", request_uuid + ".json");
-        //let request_path = path.join(USR_REQUESTS_ROOT, "prediction",
-        //                             request_uuid + ".json");
+
         try {
             fs.writeFileSync(request_path, JSON.stringify(request));
         }
@@ -611,7 +595,6 @@ exports.post_annotate = function(req, res, next) {
     }
     else if (action === "get_result") {
 
-        //let image_name = req.body.image_name;
         let annotations_path = path.join(image_set_dir, "annotations", "annotations_w3c.json")
 
         try {
@@ -633,19 +616,12 @@ exports.post_annotate = function(req, res, next) {
         }
         let request_uuid = uuidv4().toString();
         let request = {
-            // "username": req.session.user.username,
-            // "farm_name": farm_name,
-            // "field_name": field_name,
-            // "mission_date": mission_date,
             "request_uuid": request_uuid,
             "start_time": Math.floor(Date.now() / 1000),
-            "image_names": image_names, //Object.keys(annotations),
+            "image_names": image_names,
             "save_result": true
         };
         
-        
-        // let request_path = path.join(USR_REQUESTS_ROOT, "prediction",
-        //                              request_uuid + ".json");
         let request_path = path.join(USR_DATA_ROOT, req.session.user.username,
                                      "image_sets", farm_name, field_name, mission_date,
                                      "model", "prediction", "image_set_requests", "pending", request_uuid + ".json");
@@ -774,35 +750,6 @@ exports.post_annotate = function(req, res, next) {
         return res.json(response);
 
     }*/
-    /*
-    else if (action === "crop_image") {
-
-        let image_name = req.body.image_name;
-        let coord_0 = req.body.coord_0;
-        let coord_1 = req.body.coord_1;
-        let coord_2 = req.body.coord_2;
-        let coord_3 = req.body.coord_3;
-
-        let image_path = "usr/data/image_sets/" + farm_name + "/" + field_name + "/" +
-                          mission_date + "/segmentations/" + image_name + ".png";
-
-        let crop_command = "python ../../plant_detection/src/crop.py " + image_path + " " + 
-                            coord_0 + " " + coord_1 + " " + coord_2 + " " + coord_3;
-
-        let result = exec(crop_command, {shell: "/bin/bash"}, function (error, stdout, stderr) {
-            if (error) {
-                console.log(error.stack);
-                console.log('Error code: '+error.code);
-                console.log('Signal received: '+error.signal);
-                response.error = true;
-            }
-            else {
-                response.error = false;
-            }
-            return res.json(response);
-        });
-
-    }*/
 
 /*
     }
@@ -862,7 +809,6 @@ exports.post_upload = function(req, res, next) {
         farm_name = req.body.farm_name[0];
         field_name = req.body.field_name[0];
         mission_date = req.body.mission_date[0];
-        //first_batch = req.body.first_batch[0];
         first = false;
         last = false;
         queued_filenames = req.body.queued_filenames[0].split(",");
@@ -906,7 +852,6 @@ exports.post_upload = function(req, res, next) {
             }
         }
         if (format.test(file.originalname)) {
-        //if (!(file.originalname.match(/^[^a-zA-Z0-9.]+$/))) {
             remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
             if (!sent_response) {
                 sent_response = true;
@@ -923,9 +868,7 @@ exports.post_upload = function(req, res, next) {
     let field_dir = path.join(farm_dir, field_name);
     let mission_dir = path.join(field_dir, mission_date);
     let images_dir = path.join(mission_dir, "images");
-    //let patches_dir = path.join(mission_dir, "patches");
     let dzi_images_dir = path.join(mission_dir, "dzi_images");
-    //let segmentations_dir = path.join(mission_dir, "segmentations");
     let conversion_tmp_dir = path.join(dzi_images_dir, "conversion_tmp");
     let annotations_dir = path.join(mission_dir, "annotations");
     let metadata_dir = path.join(mission_dir, "metadata");
@@ -972,7 +915,6 @@ exports.post_upload = function(req, res, next) {
             console.log("Making the image set directories");
             fs.mkdirSync(images_dir, { recursive: true });
             fs.mkdirSync(dzi_images_dir, { recursive: true });
-            //fs.mkdirSync(segmentations_dir, { recursive: true });
             fs.mkdirSync(conversion_tmp_dir, { recursive: true });
             fs.mkdirSync(annotations_dir, { recursive: true });
             fs.mkdirSync(metadata_dir, { recursive: true });
@@ -1021,7 +963,7 @@ exports.post_upload = function(req, res, next) {
             }
 
             let status = {
-                "status": "idle", //"uninitialized", //"idle",
+                "status": "idle",
                 "num_images_fully_trained_on": 0,
                 "update_num": 0
             };
@@ -1162,16 +1104,6 @@ exports.post_upload = function(req, res, next) {
             let slice_cmd = "./MagickSlicer/magick-slicer.sh '" + tmp_path + "' '" + img_dzi_path + "'";
             let result = exec(conv_cmd, {shell: "/bin/bash"}, function (error, stdout, stderr) {
                 if (error) {
-                    /*
-                    fs.rmSync(mission_dir, { recursive: true, force: true });
-                    let missions = get_subdirs(field_dir);
-                    if (missions.length == 0) {
-                        fs.rmSync(field_dir, { recursive: true, force: true });
-                        let fields = get_subdirs(farm_dir);
-                        if (fields.length == 0) {
-                            fs.rmSync(farm_dir, { recursive: true, force: true });
-                        }
-                    }*/
 
                     console.log(error.stack);
                     console.log('Error code: '+error.code);
@@ -1191,16 +1123,6 @@ exports.post_upload = function(req, res, next) {
                             console.log(error.stack);
                             console.log('Error code: '+error.code);
                             console.log('Signal received: '+error.signal);
-                            /*
-                            fs.rmSync(mission_dir, { recursive: true, force: true });
-                            let missions = get_subdirs(field_dir);
-                            if (missions.length == 0) {
-                                fs.rmSync(field_dir, { recursive: true, force: true });
-                                let fields = get_subdirs(farm_dir);
-                                if (fields.length == 0) {
-                                    fs.rmSync(farm_dir, { recursive: true, force: true });
-                                }
-                            }*/
 
                             remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
                             if (!sent_response) {
@@ -1216,17 +1138,6 @@ exports.post_upload = function(req, res, next) {
                             }
                             catch (error) {
                                 console.log(error);
-                                /*
-                                fs.rmSync(mission_dir, { recursive: true, force: true });
-                                let missions = get_subdirs(field_dir);
-                                if (missions.length == 0) {
-                                    fs.rmSync(field_dir, { recursive: true, force: true });
-                                    let fields = get_subdirs(farm_dir);
-                                    if (fields.length == 0) {
-                                        fs.rmSync(farm_dir, { recursive: true, force: true });
-                                    }
-                                }*/
-
                                 remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
                                 if (!sent_response) {
                                     sent_response = true;
@@ -1245,16 +1156,6 @@ exports.post_upload = function(req, res, next) {
             let slice_cmd = "./MagickSlicer/magick-slicer.sh '" + fpath + "' '" + img_dzi_path + "'";
             let result = exec(slice_cmd, {shell: "/bin/bash"}, function (error, stdout, stderr) {
                 if (error) {
-                    /*
-                    fs.rmSync(mission_dir, { recursive: true, force: true });
-                    let missions = get_subdirs(field_dir);
-                    if (missions.length == 0) {
-                        fs.rmSync(field_dir, { recursive: true, force: true });
-                        let fields = get_subdirs(farm_dir);
-                        if (fields.length == 0) {
-                            fs.rmSync(farm_dir, { recursive: true, force: true });
-                        }
-                    }*/
 
                     console.log(error.stack);
                     console.log('Error code: '+error.code);
@@ -1271,8 +1172,6 @@ exports.post_upload = function(req, res, next) {
         }
 
         let exg_command = "python ../../plant_detection/src/excess_green.py " + mission_dir + " " + extensionless_fname;
-        //console.log("Creating excess green images...")
-        //console.log(exg_command);
         let result = exec(exg_command, {shell: "/bin/bash"}, function(error, stdout, stderr) {
             if (error) {
                 console.log(error.stack);
@@ -1287,9 +1186,7 @@ exports.post_upload = function(req, res, next) {
                     });
                 }
             }
-        });
-
-        
+        });  
     }
 
 
@@ -1360,63 +1257,6 @@ exports.post_upload = function(req, res, next) {
                     sent_response = true;
                     return res.sendStatus(200);
                 }
-
-
-
-                /*
-                let excess_green_record = {};
-                console.log("Consolidating excess green records...");
-                glob(path.join(mission_dir, "excess_green", "*_record.json"), function(error, image_paths) {
-                    if (error) {
-                        if (!sent_response) {
-                            sent_response = true;
-                            return res.status(422).json({
-                                error: "Error occurred while reading excess green records."
-                            });
-                        }
-                    }
-                    for (image_path of image_paths) {
-                        let fname = path.basename(image_path);
-                        let image_name = fname.substring(0, fname.length - "_record.json".length);
-                        try {
-                            image_record = JSON.parse(fs.readFileSync(image_path, 'utf8'));
-                        }
-                        catch (error) {
-                            if (!sent_response) {
-                                sent_response = true;
-                                return res.status(422).json({
-                                    error: "Error occurred while reading excess green records."
-                                });
-                            }
-                        }
-                        excess_green_record[image_name] = image_record;
-                        try {
-                            fs.unlinkSync(image_path);
-                        }
-                        catch (error) {
-                            if (!sent_response) {
-                                sent_response = true;
-                                return res.status(422).json({
-                                    error: "Error occurred while reading excess green records."
-                                });
-                            }
-                        }
-                    }
-                    let excess_green_record_path = path.join(mission_dir, "excess_green", "record.json");
-                    try {
-                        fs.writeFileSync(excess_green_record_path, JSON.stringify(excess_green_record));
-                    }
-                    catch (error) {
-                        if (!sent_response) {
-                            sent_response = true;
-                            return res.status(422).json({
-                                error: "Error occurred while writing excess green record."
-                            });
-                        }
-                    }*/
-
-
-                //});
             }
         });
 
@@ -1428,34 +1268,6 @@ exports.post_upload = function(req, res, next) {
             return res.sendStatus(200);
         }
     }
-}
-
-function dataset_is_annotated(dataset_name) {
-    return (dataset_name !== "all");
-}
-
-function get_dict_keys(d, prefix="", root=true) {
-
-    let keys = [];
-
-    let r_keys;
-    for (k of Object.keys(d)) {
-        if (d[k].constructor == Object) {
-            if (root) {
-                r_keys = get_dict_keys(d[k], prefix + k, false);
-            } else {
-                r_keys = get_dict_keys(d[k], prefix + "/" + k, false);
-            }
-            keys.push(...r_keys);
-        } 
-        else {
-            if (root)
-                keys.push(prefix + k);
-            else
-                keys.push(prefix + "/" + k);
-        }
-    }
-    return keys;
 }
 
 
@@ -1520,7 +1332,7 @@ exports.post_home = function(req, res, next) {
                 return res.json(response);
             }
             else {
-                console.log("no annotations found, deleting image set");
+                console.log("No annotations found, deleting image set");
 
                 fs.rmSync(mission_dir, { recursive: true, force: true });
 
@@ -1534,23 +1346,6 @@ exports.post_home = function(req, res, next) {
                         fs.rmSync(farm_dir, { recursive: true, force: true });
                     }
                 }
-                
-                /*
-                let results_mission_dir = path.join(USR_DATA_ROOT, "results", farm_name, field_name, mission_date);
-                if (fs.existsSync(results_mission_dir)) {
-                    fs.rmSync(results_mission_dir, { recursive: true, force: true });
-                    let results_field_dir = path.join(USR_DATA_ROOT, "results", farm_name, field_name);
-                    let results_missions = get_subdirs(results_field_dir);
-                    if (results_missions.length == 0) {
-                        fs.rmSync(results_field_dir, { recursive: true, force: true });
-                        let results_farm_dir = path.join(USR_DATA_ROOT, "results", farm_name);
-                        let results_fields = get_subdirs(results_farm_dir);
-                        if (results_fields.length == 0) {
-                            fs.rmSync(results_farm_dir, { recursive: true, force: true });
-                        }
-                    }
-                }*/
-
 
                 // TODO: remove unneeded keys from cameras.json
                 
@@ -1692,11 +1487,8 @@ exports.post_home = function(req, res, next) {
                         }
                     }
 
-                    //let results = get_subdirs(results_dir);
-                    //response.results = results;
                     response.error = false;
                     return res.json(response);
-
                 });
             });
         });
@@ -1744,200 +1536,12 @@ exports.post_home = function(req, res, next) {
                 response.error = true;
                 return res.json(response);
             }
-            
-
         }
-
 
         response.error = false;
         return res.json(response);
 
     }
-    // else if (action === "manage_jobs_request") {
-    //     response.redirect = APP_PREFIX + "/manage";
-    //     res.json(response);
-    
-    // }
-    // else if (action === "submit_training_request") {
-
-        
-
-    //     let job_uuid = uuidv4().toString();
-    //     let farm_name = req.body.farm_name;
-    //     let field_name = req.body.field_name;
-    //     let mission_date = req.body.mission_date;
-    //     let job_name = req.body.job_name;
-
-    //     let format = /[ `!@#$%^&*()+\=\[\]{};':"\\|,<>\/?~]/;
-    //     if (format.test(job_name)) {
-    //         response.error = true;
-    //         response.message = "Group name contains illegal characters.";
-    //         res.json(response);
-    //     }
-    //     else {
-
-
-            
-    //         let job_manager_path = path.join(USR_DATA_ROOT, "jobs", "jobs.json");
-    //         let job_config_path = path.join(USR_DATA_ROOT, "jobs", job_uuid + ".json");
-    //         let job_config = {
-    //             "job_uuid": job_uuid,
-    //             "job_name": job_name,
-    //             "target_farm_name": farm_name,
-    //             "target_field_name": field_name,
-    //             "target_mission_date": mission_date,
-    //             "source_construction_params": {
-    //                 "method": "even_subset",
-    //                 "size": 5000
-    //             }
-    //         }
-
-
-            
-    //         //let jobs = JSON.parse(fs.readFileSync(jobs_path, 'utf8'));
-
-    //         job_lock.acquire(jobs, function() {
-                
-                
-    //             jobs = JSON.parse(fs.readFileSync(job_manager_path, 'utf8'));
-
-    //             if (jobs["num_active_jobs"] >= jobs["max_jobs"]) {
-    //             //if (false) {
-                    
-    //                 //throw new Error("Maximum number of active jobs reached");
-    //                 response.error = true;
-    //                 response.message = "Too many active jobs.";
-    //             }
-    //             else {
-    //                 //let jobs = {"num_active_jobs": 0, "active_jobs": []};
-    //                 jobs["num_active_jobs"] += 1;
-    //                 jobs["active_jobs"].push(job_uuid);
-    //                 try {
-    //                     fs.writeFileSync(job_manager_path, JSON.stringify(jobs));
-    //                     fs.writeFileSync(job_config_path, JSON.stringify(job_config));
-    //                     response.error = false;
-    //                     response.message = "Starting to run job.";
-    //                 }
-    //                 catch (error) {
-    //                     console.log("error occurred");
-    //                     console.log(error);
-    //                     response.error = true;
-    //                     response.message = "File I/O error occurred.";
-    //                 }
-
-    //             }
-    //         }).catch(function(error) {
-    //             console.log(error.message);
-    //             response.message = "Failed to acquire jobs lock.";
-    //             response.error = true;
-    //             res.json(response);
-    //         });
-    //         if (!(response.error)) {
-
-    //             let subprocess = spawn("python3", ["../../plant_detection/src/main.py", 
-    //                                     job_uuid]);
-
-    //             console.log("adding subprocess");
-    //             job_lock.acquire(active_subprocesses, function() {
-    //                 active_subprocesses[job_uuid] = subprocess.pid;
-    //                 console.log("Active subprocesses", active_subprocesses);
-    //             }).catch(function(error) {
-    //                 console.log(error.message);
-    //                 response.message = "Failed to acquire active_subprocesses lock.";
-    //                 response.error = true;
-    //                 res.json(response);
-    //             });
-
-
-    //             //let subprocess = spawn("sleep", ["15"]);
-    //             subprocess.on('close', (code) => {
-    //                 console.log("Process finished.");
-    //                 console.log("code", code);
-
-
-    //                 //let jobs_path = path.join("usr", "jobs", "jobs.json");
-    //                 //let jobs = JSON.parse(fs.readFileSync(jobs_path, 'utf8'));
-    //                 job_lock.acquire(jobs, function() {
-    //                     jobs = JSON.parse(fs.readFileSync(job_manager_path, 'utf8'));
-    //                     jobs["num_active_jobs"] -= 1;
-    //                     let index = jobs["active_jobs"].indexOf(job_uuid);
-    //                     if (index > -1) {
-    //                         jobs["active_jobs"].splice(index, 1); // 2nd parameter means remove one item only
-    //                     }
-    //                     try {
-    //                         fs.writeFileSync(job_manager_path, JSON.stringify(jobs));
-    //                     }
-    //                     catch (error) {
-    //                         console.log(error);
-    //                     }
-                    
-    //                 }).catch(function(error) {
-    //                     console.log(error);
-    //                 });
-
-    //                 job_lock.acquire(active_subprocesses, function() {
-    //                     delete active_subprocesses[job_uuid];
-    //                 }).catch(function(error) {
-    //                     console.log(error);
-    //                 });
-                    
-    //             })
-                
-    //             subprocess.stderr.on('data', (data) => {
-    //                 /* for some reason listening on stderr is required for files to be 
-    //                     output correctly by the subprocess ?? */
-    //                 console.error(`subprocess stderr: ${data}`);
-    //             });
-    //             subprocess.stdout.on('data', (data) => {
-    //                 console.log(`subprocess stdout: ${data}`);
-    //             });
-
-    //             subprocess.on('SIGINT', function() {
-    //                 console.log('Received SIGINT signal');
-    //                 job_lock.acquire(jobs, function() {
-    //                     delete active_subprocesses[job_uuid];
-    //                 }).catch(function(error) {
-    //                     console.log(error);
-    //                 });
-    //             });
-            
-    //             subprocess.on('error', (err) => {
-    //                 console.log("Failed to start subprocess.");
-    //                 job_lock.acquire(jobs, function() {
-    //                     jobs = JSON.parse(fs.readFileSync(job_manager_path, 'utf8'));
-    //                     jobs["num_active_jobs"] -= 1;
-    //                     let index = jobs["active_jobs"].indexOf(job_uuid);
-    //                     if (index > -1) {
-    //                         jobs["active_jobs"].splice(index, 1); // 2nd parameter means remove one item only
-    //                     }
-    //                     try {
-    //                         fs.writeFileSync(job_manager_path, JSON.stringify(jobs));
-    //                     }
-    //                     catch (error) {
-    //                         console.log(error);
-    //                     }
-                        
-    //                 }).catch(function(error) {
-    //                     console.log(error);
-    //                 });
-                    
-
-    //                 job_lock.acquire(active_subprocesses, function() {
-    //                     delete active_subprocesses[job_uuid];
-    //                 }).catch(function(error) {
-    //                     console.log(error);
-    //                 });
-    //             });
-
-    //             res.json(response);
-    //         }
-    //         else {
-    //             res.json(response);
-    //         }
-    //     }
-    // }
-
-
     else if (action === "add_camera") {
 
         let make = req.body.make;
@@ -1959,7 +1563,7 @@ exports.post_home = function(req, res, next) {
             }
         }
         for (input of [make, model]) {
-            if (input.length < 3 || input.length > 20) {
+            if ((input.length < 3 || input.length > 20) || input === "???") {
                 response.message = "Provided metadata is invalid."
                 response.error = true;
                 return res.json(response);
@@ -2163,7 +1767,6 @@ exports.get_viewer = function(req, res, next) {
 
         let sel_results_dir = path.join(image_set_dir, "model", "results", timestamp);
 
-        //let annotations_path = path.join(image_set_dir, "annotations", "annotations_w3c.json");
         let annotations_path = path.join(sel_results_dir, "annotations_w3c.json")
         let annotations;
         try {
@@ -2204,9 +1807,6 @@ exports.get_viewer = function(req, res, next) {
         catch (error) {
             console.log(error);
         }
-
-        //overlays["annotations"] = annotations;
-
         
         let dzi_images_dir = path.join(image_set_dir, "dzi_images");
 
@@ -2225,16 +1825,12 @@ exports.get_viewer = function(req, res, next) {
         };
 
 
-
         let data = {};
 
         data["image_set_info"] = image_set_info;
-        //data["job_config"] = job_config;
-        //data["overlays"] = overlays;
         data["annotations"] = annotations;
         data["predictions"] = predictions;
         data["metadata"] = metadata;
-        //data["predictions"] = predictions;
         data["excess_green_record"] = excess_green_record;
         data["metrics"] = metrics;
         data["dzi_dir"] = path.join(APP_PREFIX, dzi_images_dir);
@@ -2250,13 +1846,10 @@ exports.get_viewer = function(req, res, next) {
 
 exports.post_viewer = function(req, res, next) {
 
-
     //if (req.session.user && req.cookies.user_sid) {
 
     let response = {};
-    console.log(req.params);
 
-    //let job_uuid = req.params.job_uuid;
     let farm_name = req.params.farm_name;
     let field_name = req.params.field_name;
     let mission_date = req.params.mission_date;
@@ -2269,20 +1862,12 @@ exports.post_viewer = function(req, res, next) {
         console.log(farm_name);
         console.log(field_name);
         console.log(mission_date);
-
-        //let model_uuid = req.body.model_uuid;
-
-        
         
         let model_results_dir = path.join(USR_DATA_ROOT, req.session.user.username, "image_sets", farm_name, field_name, mission_date,
                                           "model", "results", timestamp);
         let annotations_path = path.join(model_results_dir, "annotations_w3c.json");
         let pred_path = path.join(model_results_dir, "predictions_w3c.json");
         let out_dir = path.join(model_results_dir, "maps");
-        //let pred_path = path.join(USR_DATA_ROOT, "results", farm_name, field_name, mission_date,
-        //                            job_uuid, model_uuid, "predictions.json");
-        //let out_dir = path.join(USR_DATA_ROOT, "results", farm_name, field_name, mission_date,
-        //                            job_uuid, model_uuid, "maps");
 
         let rebuild_command = "python ../../plant_detection/src/interpolate.py " + req.session.user.username + " " +
                             farm_name + " " + field_name + " " + mission_date + " " + annotations_path + " " +
@@ -2330,33 +1915,4 @@ exports.logout = function(req, res, next) {
     }
     console.log("redirecting");
     res.redirect(APP_PREFIX);
-}
-
-
-
-function get_annotations(xml_path) {
-    let class_name;
-    let parsed_annotations = {"class_boxes": {}, "class_counts": {}};
-    let xml = fs.readFileSync(xml_path, 'utf8');
-
-    let annotations = JSON.parse(xml_js_convert.xml2json(xml, {compact: true, spaces: 4}));
-
-    for (annotation of annotations["annotation"]["object"]) {
-
-        class_name = annotation["name"]["_text"];
-        if (!(class_name in parsed_annotations["class_counts"])) {
-            parsed_annotations["class_boxes"][class_name] = [];
-            parsed_annotations["class_counts"][class_name] = 0;
-        }
-        parsed_annotations["class_boxes"][class_name].push([
-            parseInt(annotation["bndbox"]["ymin"]["_text"]),
-            parseInt(annotation["bndbox"]["xmin"]["_text"]),
-            parseInt(annotation["bndbox"]["ymax"]["_text"]),
-            parseInt(annotation["bndbox"]["xmax"]["_text"]),
-        ]);
-        parsed_annotations["class_counts"][class_name] = parsed_annotations["class_counts"][class_name] + 1;
-    }
-
-
-    return parsed_annotations;
 }
