@@ -6,7 +6,7 @@ const { v4: uuidv4 } = require('uuid');
 const fs = require('fs');
 const xml_js_convert = require('xml-js');
 const nat_orderBy = require('natural-orderby');
-const { spawn, exec } = require('child_process');
+const { spawn, exec, execSync, fork } = require('child_process');
 const sanitize = require('sanitize-filename');
 
 const models = require('../models');
@@ -58,7 +58,8 @@ const ANNOTATION_LOCK_TIMEOUT = 240000; // 4 minutes
 
 // let jobs;
 // let active_subprocesses = {};
-let sockets = {};
+let active_uploads = {};
+// let sockets = {};
 var Mutex = require('async-mutex').Mutex;
 
 
@@ -177,7 +178,7 @@ function fpath_exists(fpath) {
 
 exports.get_home = function(req, res, next) {
 
-    if (req.session.user && req.cookies.user_sid) {
+    if ((req.session.user && req.cookies.user_sid) && (req.params.username === req.session.user.username)) {
 
         console.log("gathering image_sets data");
 
@@ -201,16 +202,24 @@ exports.get_home = function(req, res, next) {
                 for (mission_date of mission_dates) {
                     let mission_root = path.join(field_root, mission_date);
 
-                    let upload_complete_path = path.join(mission_root, "upload_complete.json");
-                    if (fs.existsSync(upload_complete_path)) {
+                    let upload_status_path = path.join(mission_root, "upload_status.json");
+                    if (fs.existsSync(upload_status_path)) {
+
+                        try {
+                            upload_status = JSON.parse(fs.readFileSync(upload_status_path, 'utf8'));
+                        }
+                        catch (error) {
+                            return res.redirect(APP_PREFIX);
+                        }
 
                         if (!(farm_name in image_sets_data)) {
                             image_sets_data[farm_name] = {};
                         }
                         if (!(field_name in image_sets_data[farm_name])) {
-                            image_sets_data[farm_name][field_name] = []
+                            image_sets_data[farm_name][field_name] = {};
                         }
-                        image_sets_data[farm_name][field_name].push(mission_date);
+
+                        image_sets_data[farm_name][field_name][mission_date] = upload_status;
                     }
 
                     //else {
@@ -250,7 +259,7 @@ exports.get_home = function(req, res, next) {
             
             res.render("home", {
                 username: req.session.user.username, 
-                image_sets_data: image_sets_data, 
+                image_sets_data: image_sets_data,
                 camera_specs: camera_specs
             });
 
@@ -269,12 +278,17 @@ exports.get_home = function(req, res, next) {
 
 exports.get_annotate = function(req, res, next) {
 
-    if (req.session.user && req.cookies.user_sid) {
+    if ((req.session.user && req.cookies.user_sid) && (req.params.username === req.session.user.username)) {
         
         let farm_name = req.params.farm_name;
         let field_name = req.params.field_name;
         let mission_date = req.params.mission_date;
         let image_set_dir = path.join(USR_DATA_ROOT, req.session.user.username, "image_sets", farm_name, field_name, mission_date);
+
+        if (!(fpath_exists(image_set_dir))) {
+            return res.redirect(APP_PREFIX);
+        }
+
 
         glob(path.join(image_set_dir, "images", "*"), function(error, image_paths) {
             if (error) {
@@ -688,7 +702,41 @@ exports.post_annotate = function(req, res, next) {
             return res.json(response);
         });
     }
+    else if (action === "block_training") {
 
+        let block_op = req.body.block_op;
+        console.log("block_op", block_op);
+        let usr_block_path = path.join(USR_DATA_ROOT, req.session.user.username,
+            "image_sets", farm_name, field_name, mission_date,
+            "model", "training", "usr_block.json");
+        if (block_op === "block") {
+            // create block file
+            console.log("creating usr block file");
+            try {
+                fs.writeFileSync(usr_block_path, JSON.stringify({}));
+            }
+            catch (error) {
+                console.log(error);
+                response.error = true;
+                return res.json(response);
+            }
+        }
+        else {
+            // delete block file
+            console.log("deleting usr block file");
+            try {
+                fs.unlinkSync(usr_block_path);
+            }
+            catch (error) {
+                console.log(error);
+                response.error = true;
+                return res.json(response);                
+            }
+        }
+
+        response.error = false;
+        return res.json(response);
+    }
     /*
     else if (action === "restart_model") {
         
@@ -796,7 +844,7 @@ function remove_image_set(username, farm_name, field_name, mission_date) {
 exports.post_upload = function(req, res, next) {
     //if (req.session.user && req.cookies.user_sid) {
 
-
+    let upload_uuid;
     let farm_name;
     let field_name;
     let mission_date;
@@ -804,8 +852,9 @@ exports.post_upload = function(req, res, next) {
     let last;
     let queued_filenames;
     let flight_height;
-    let sent_response = false;
+    // let sent_response = false;
     if (req.files.length > 1) {
+        upload_uuid = req.body.upload_uuid[0];
         farm_name = req.body.farm_name[0];
         field_name = req.body.field_name[0];
         mission_date = req.body.mission_date[0];
@@ -816,7 +865,7 @@ exports.post_upload = function(req, res, next) {
         let num_sent;
         for (let i = 0; i < req.body.num_sent.length; i++) {
             num_sent = parseInt(req.body.num_sent[i])
-            console.log("num_sent", num_sent);
+            // console.log("num_sent", num_sent);
             if (num_sent == 1) {
                 first = true;
             }
@@ -827,6 +876,7 @@ exports.post_upload = function(req, res, next) {
         
     }
     else {
+        upload_uuid = req.body.upload_uuid;
         farm_name = req.body.farm_name;
         field_name = req.body.field_name;
         mission_date = req.body.mission_date;
@@ -837,438 +887,678 @@ exports.post_upload = function(req, res, next) {
     }
     console.log(req.body.num_sent);
 
+    console.log("upload_uuid", upload_uuid);
+    console.log("active_uploads", active_uploads);
+    
+    if (first) {
+        if (upload_uuid in active_uploads) {
+            return res.status(422).json({
+                error: "Upload key conflict."
+            });
+        }
+        else {
+            active_uploads[upload_uuid] = "active";
+        }
+    }
+    else {
+        if (!(upload_uuid in active_uploads)) {
+            // if (active_uploads[upload_uuid] !== "valid") {
+            //     if (last) {
+            //         delete active_uploads[upload_uuid];
+            //     }
+    
+            //     return res.status(422).json({
+            //         error: "The image set upload has failed."
+            //     });
+            // }
+        // }
+        // else {
+            return res.status(422).json({
+                error: "Upload is no longer active."
+            });
+        }
+        // }
+    }
+
+    // if (!upload_uuid in active_uploads) {
+    //     if (first) {
+    //         active_uploads[upload_uuid] = "valid";
+    //     }
+    // }
+    // else {
+    //     if (active_uploads[upload_uuid] !== "valid") {
+    //         if (last) {
+    //             delete active_uploads[upload_uuid];
+    //         }
+
+    //         return res.status(422).json({
+    //             error: "The image set upload has failed."
+    //         });
+    //     }
+    // }
+
     console.log("contains first?", first);
     console.log("queued_filenames", queued_filenames);
 
     let format = /[ `!@#$%^&*()+\=\[\]{};':"\\|,<>\/?~]/;
-    for (file of req.files) {
-        if (!(file.mimetype.startsWith('image/'))) {
-            remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
-            if (!sent_response) {
-                sent_response = true;
-                return res.status(422).json({
-                    error: "One or more provided files is not an image."
-                });
-            }
-        }
-        if (format.test(file.originalname)) {
-            remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
-            if (!sent_response) {
-                sent_response = true;
-                return res.status(422).json({
-                    error: "One or more provided filenames contains illegal characters."
-                });
-            }
-        }
-    }
-
 
     let image_sets_root = path.join(USR_DATA_ROOT, req.session.user.username, "image_sets");
     let farm_dir = path.join(image_sets_root, farm_name);
     let field_dir = path.join(farm_dir, field_name);
     let mission_dir = path.join(field_dir, mission_date);
     let images_dir = path.join(mission_dir, "images");
-    let dzi_images_dir = path.join(mission_dir, "dzi_images");
-    let conversion_tmp_dir = path.join(dzi_images_dir, "conversion_tmp");
-    let annotations_dir = path.join(mission_dir, "annotations");
-    let metadata_dir = path.join(mission_dir, "metadata");
-    
-    let patches_dir = path.join(mission_dir, "patches");
-    let excess_green_dir = path.join(mission_dir, "excess_green");
-
-    let model_dir = path.join(mission_dir, "model");
-    let training_dir = path.join(model_dir, "training");
-    let prediction_dir = path.join(model_dir, "prediction");
-    let image_requests_dir = path.join(prediction_dir, "image_requests");
-    let image_set_requests_dir = path.join(prediction_dir, "image_set_requests");
-    let pending_dir = path.join(image_set_requests_dir, "pending");
-    let aborted_dir = path.join(image_set_requests_dir, "aborted");
-    let weights_dir = path.join(model_dir, "weights");
-    let results_dir = path.join(model_dir, "results");
-
 
     
     if (first) {
+
+        if (fpath_exists(mission_dir)) {
+            // if (!sent_response) {
+            //     sent_response = true;
+            // active_uploads[upload_uuid] = "failed";
+            
+            delete active_uploads[upload_uuid];
+            return res.status(422).json({
+                error: "The provided farm-field-mission combination already exists."
+            });
+            // }
+        }
         console.log("checking components");
         let id_components = [farm_name, field_name, mission_date];
         for (id_component of id_components) {
             if (format.test(id_component)) {
-                if (!sent_response) {
-                    sent_response = true;
-                    remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
-                    return res.status(422).json({
-                        error: "The provided farm, field, or mission date contains illegal characters."
-                    });
-                }
-            }
-        }
-        if (fpath_exists(mission_dir)) {
-            remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
-            if (!sent_response) {
-                sent_response = true;
+                // if (!sent_response) {
+                //     sent_response = true;
+                // active_uploads[upload_uuid] = "failed";
+                delete active_uploads[upload_uuid];
                 return res.status(422).json({
-                    error: "The provided farm-field-mission combination already exists."
+                    error: "The provided farm, field, or mission date contains illegal characters."
                 });
+                // }
             }
         }
-        else {
-            console.log("Making the image set directories");
-            fs.mkdirSync(images_dir, { recursive: true });
-            fs.mkdirSync(dzi_images_dir, { recursive: true });
-            fs.mkdirSync(conversion_tmp_dir, { recursive: true });
-            fs.mkdirSync(annotations_dir, { recursive: true });
-            fs.mkdirSync(metadata_dir, { recursive: true });
-            fs.mkdirSync(patches_dir, { recursive: true });
-            fs.mkdirSync(excess_green_dir, { recursive: true });
-            fs.mkdirSync(model_dir, { recursive: true });
-            fs.mkdirSync(training_dir, { recursive: true });
-            fs.mkdirSync(prediction_dir, { recursive: true });
-            fs.mkdirSync(image_requests_dir, { recursive: true });
-            fs.mkdirSync(image_set_requests_dir, { recursive: true });
-            fs.mkdirSync(pending_dir, { recursive: true });
-            fs.mkdirSync(aborted_dir, { recursive: true });
-            fs.mkdirSync(weights_dir, { recursive: true });
-            fs.mkdirSync(results_dir, { recursive: true});
+        console.log("Making the images directory");
+        fs.mkdirSync(images_dir, { recursive: true });
 
-            
-            console.log("Copying initial model weights");
-            let source_weights_path = path.join(USR_SHARED_ROOT, "weights", "default_weights.h5");
-            let best_weights_path = path.join(weights_dir, "best_weights.h5");
-            let cur_weights_path = path.join(weights_dir, "cur_weights.h5");
-            try {
-                fs.copyFileSync(source_weights_path, best_weights_path);
-            }
-            catch (error) {
-                console.log("Error occurred while copying weights", error);
-                remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
-                if (!sent_response) {
-                    sent_response = true;
-                    return res.status(422).json({
-                        error: "Error occurred while copying weights."
-                    });
-                }
-            }
-            try {
-                fs.copyFileSync(source_weights_path, cur_weights_path);
-            }
-            catch (error) {
-                console.log("Error occurred while copying weights", error);
-                remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
-                if (!sent_response) {
-                    sent_response = true;
-                    return res.status(422).json({
-                        error: "Error occurred while copying weights."
-                    });
-                }
-            }
-
-            let status = {
-                "status": "idle",
-                "num_images_fully_trained_on": 0,
-                "update_num": 0
-            };
-            let status_path = path.join(model_dir, "status.json");
-            try {
-                fs.writeFileSync(status_path, JSON.stringify(status));
-            }
-            catch (error) {
-                console.log(error);
-                remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
-                if (!sent_response) {
-                    sent_response = true;
-                    return res.status(422).json({
-                        error: "Error occurred when writing status file."
-                    });
-                }
-            }
-
-
-            console.log("Making the annotations file");
-            let annotations_path = path.join(annotations_dir, "annotations_w3c.json");
-            let annotations = {};
-            for (filename of queued_filenames) {
-                let sanitized_fname = sanitize(filename);
-                let extensionless_fname = sanitized_fname.substring(0, sanitized_fname.length-4);
-                annotations[extensionless_fname] = {
-                    "status": "unannotated",
-                    //"available_for_training": false,
-                    "annotations": []
-                };
-            }
-            console.log("Writing the annotations file");
-            try {
-                fs.writeFileSync(annotations_path, JSON.stringify(annotations));
-            }
-            catch (error) {
-                console.log(error);
-                remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
-                if (!sent_response) {
-                    sent_response = true;
-                    return res.status(422).json({
-                        error: "Error occurred when writing annotations file."
-                    });
-                }
-            }
-            let annotations_lock_path = path.join(annotations_dir, "lock.json")
-            let annotations_lock = {
-                "last_refresh": 0
-            };
-            try {
-                fs.writeFileSync(annotations_lock_path, JSON.stringify(annotations_lock));
-            }
-            catch (error) {
-                console.log(error);
-                remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
-                if (!sent_response) {
-                    sent_response = true;
-                    return res.status(422).json({
-                        error: "Error occurred when writing annotations lock file."
-                    });
-                }
-            }
-
-            let loss_record_path = path.join(training_dir, "loss_record.json")
-            let loss_record = {
-                "training_loss": { "values": [],
-                                   "best": 100000000,
-                                   "epochs_since_improvement": 100000000}, 
-                "validation_loss": {"values": [],
-                                    "best": 100000000,
-                                    "epochs_since_improvement": 100000000},
-                "num_training_images": 0
-            }
-            try {
-                fs.writeFileSync(loss_record_path, JSON.stringify(loss_record));
-            }
-            catch (error) {
-                console.log(error);
-                remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
-                if (!sent_response) {
-                    sent_response = true;
-                    return res.status(422).json({
-                        error: "Error occurred when writing loss record."
-                    });
-                }
-            }
-        }
     }
     else {
         if (!(fpath_exists(mission_dir))) {
             remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
-            if (!sent_response) {
-                sent_response = true;
-                return res.status(422).json({
-                    error: "Image set directories were not created by initial request."
-                });
-            }
+            // if (!sent_response) {
+            //     sent_response = true;
+            delete active_uploads[upload_uuid];
+            return res.status(422).json({
+                error: "Image set directories were not created by initial request."
+            });
+            // }
         }
     }
-    console.log("Converting the files");
+
+    console.log("Writing the image files");
     for (file of req.files) {
+
+        if (!(file.mimetype.startsWith('image/'))) {
+            remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
+            // if (!sent_response) {
+            //     sent_response = true;
+            delete active_uploads[upload_uuid];
+            return res.status(422).json({
+                error: "One or more provided files is not an image."
+            });
+            // }
+        }
+        if (format.test(file.originalname)) {
+            remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
+            // if (!sent_response) {
+            //     sent_response = true;
+            delete active_uploads[upload_uuid];
+            return res.status(422).json({
+                error: "One or more provided filenames contains illegal characters."
+            });
+            // }
+        }
+
         let sanitized_fname = sanitize(file.originalname);
         let extensionless_fname = sanitized_fname.substring(0, sanitized_fname.length-4);
         if (extensionless_fname.length > 50) {
             remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
-            if (!sent_response) {
-                sent_response = true;
-                return res.status(422).json({
-                    error: "One or more filenames exceeds maximum allowed length of 50 characters."
-                });
-            }
+            // if (!sent_response) {
+            //     sent_response = true;
+            delete active_uploads[upload_uuid];
+            return res.status(422).json({
+                error: "One or more filenames exceeds maximum allowed length of 50 characters."
+            });
+            // }
         }
 
-
-
-        let extension = sanitized_fname.substring(sanitized_fname.length-4);
         let fpath = path.join(images_dir, sanitized_fname);
         try {
             fs.writeFileSync(fpath, file.buffer);
         }
         catch (error) {
-            console.log(error);
             remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
-            if (!sent_response) {
-                sent_response = true;
-                return res.status(422).json({
-                    error: "Error occurred when writing image file."
-                });
-            }
-        }
-
-        let img_dzi_path = path.join(dzi_images_dir, extensionless_fname);
-
-        let no_convert_extensions = [".jpg", ".JPG", ".png", ".PNG"];
-        if (!(no_convert_extensions.includes(extension))) {
-            let tmp_path = path.join(conversion_tmp_dir, extensionless_fname + ".jpg");
-            let conv_cmd = "convert " + fpath + " " + tmp_path;
-            let slice_cmd = "./MagickSlicer/magick-slicer.sh '" + tmp_path + "' '" + img_dzi_path + "'";
-            let result = exec(conv_cmd, {shell: "/bin/bash"}, function (error, stdout, stderr) {
-                if (error) {
-
-                    console.log(error.stack);
-                    console.log('Error code: '+error.code);
-                    console.log('Signal received: '+error.signal);
-
-                    remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
-                    if (!sent_response) {
-                        sent_response = true;
-                        return res.status(422).json({
-                            error: "Error occurred during image conversion process."
-                        });
-                    }
-                }
-                else {
-                    let result = exec(slice_cmd, {shell: "/bin/bash"}, function (error, stdout, stderr) {
-                        if (error) {
-                            console.log(error.stack);
-                            console.log('Error code: '+error.code);
-                            console.log('Signal received: '+error.signal);
-
-                            remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
-                            if (!sent_response) {
-                                sent_response = true;
-                                return res.status(422).json({
-                                    error: "Error occurred during image conversion process."
-                                });
-                            }
-                        }
-                        else {
-                            try {
-                                fs.unlinkSync(tmp_path);
-                            }
-                            catch (error) {
-                                console.log(error);
-                                remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
-                                if (!sent_response) {
-                                    sent_response = true;
-                                    return res.status(422).json({
-                                        error: "Error occurred during image conversion process."
-                                    });
-                                }
-                            }
-                        }
-                    });
-
-                }
+            // if (!sent_response) {
+            //     sent_response = true;
+            delete active_uploads[upload_uuid];
+            return res.status(422).json({
+                error: "Error occurred when writing image file."
             });
+            // }
         }
-        else {
-            let slice_cmd = "./MagickSlicer/magick-slicer.sh '" + fpath + "' '" + img_dzi_path + "'";
-            let result = exec(slice_cmd, {shell: "/bin/bash"}, function (error, stdout, stderr) {
-                if (error) {
-
-                    console.log(error.stack);
-                    console.log('Error code: '+error.code);
-                    console.log('Signal received: '+error.signal);
-                    remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
-                    if (!sent_response) {
-                        sent_response = true;
-                        return res.status(422).json({
-                            error: "Error occurred during image conversion process."
-                        });
-                    }
-                }
-            });
-        }
-
-        let exg_command = "python ../../plant_detection/src/excess_green.py " + mission_dir + " " + extensionless_fname;
-        let result = exec(exg_command, {shell: "/bin/bash"}, function(error, stdout, stderr) {
-            if (error) {
-                console.log(error.stack);
-                console.log('Error code: '+error.code);
-                console.log('Signal received: '+error.signal);   
-
-                remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
-                if (!sent_response) {
-                    sent_response = true;
-                    return res.status(422).json({
-                        error: "Error occurred during creation of excess green image."
-                    });
-                }
-            }
-        });  
     }
+
+
+
 
 
     if (last) {
-        console.log("Collecting metadata...");
-        console.log("flight_height", flight_height);
-        let metadata_command = "python ../../plant_detection/src/metadata.py " + mission_dir;
-        if (isNumeric(flight_height)) {
-            numeric_flight_height = parseFloat(flight_height);
-            if (numeric_flight_height < 0.1 || numeric_flight_height > 100) {
-                remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
-                if (!sent_response) {
-                    sent_response = true;
-                    return res.status(422).json({
-                        error: "Provided flight height is invalid."
-                    });
-                }
+        //process_upload(req.session.user.username, farm_name, field_name, mission_date, flight_height);
 
-            }
-            metadata_command = metadata_command + " --flight_height " + flight_height;
-        }
-        else {
-            remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
-            if (!sent_response) {
-                sent_response = true;
-                return res.status(422).json({
-                    error: "Provided flight height is invalid."
-                });
-            }
-        }
-        console.log(metadata_command);
-        let result = exec(metadata_command, {shell: "/bin/bash"}, function(error, stdout, stderr) {
-            if (error) {
-                console.log(error.stack);
-                console.log('Error code: '+error.code);
-                console.log('Signal received: '+error.signal);   
-
-                remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
-                if (!sent_response) {
-                    sent_response = true;
-                    return res.status(422).json({
-                        error: "Error occurred during metadata extraction."
-                    });
-                }
-            }
-            else {
-
-                console.log("Writing upload_complete file...");
-                let upload_complete = {}
-                let upload_complete_path = path.join(mission_dir, "upload_complete.json");
-
-                try {
-                    fs.writeFileSync(upload_complete_path, JSON.stringify(upload_complete));
-                }
-                catch (error) {
-                    console.log(error);
-                    remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
-                    if (!sent_response) {
-                        sent_response = true;
-                        return res.status(422).json({
-                            error: "Error occurred when writing upload completion record."
-                        });
-                    }
-                }
-
-                console.log("Sending final success status");
-                if (!sent_response) {
-                    sent_response = true;
-                    return res.sendStatus(200);
-                }
-            }
-        });
-
+        // TODO if multiple uploads are processed simultaneously, resources may become exhausted
+        fork("process_upload.js", [req.session.user.username, farm_name, field_name, mission_date, flight_height]);
+        delete active_uploads[upload_uuid];
     }
-    else {
-        console.log("Sending success status");
-        if (!sent_response) {
-            sent_response = true;
-            return res.sendStatus(200);
-        }
-    }
+
+    return res.sendStatus(200);
+
+    // console.log("Sending success status");
+    // if (!sent_response) {
+    //     sent_response = true;
+    //     return res.sendStatus(200);
+    // }
+
+    //return;
+    // else {
+    //     console.log("Sending success status");
+    //     if (!sent_response) {
+    //         sent_response = true;
+    //         return res.sendStatus(200);
+    //     }
+    // }
 }
+
+
+
+
+
+
+
+
+// exports.post_upload_dep = function(req, res, next) {
+//     //if (req.session.user && req.cookies.user_sid) {
+
+
+//     let farm_name;
+//     let field_name;
+//     let mission_date;
+//     let first;
+//     let last;
+//     let queued_filenames;
+//     let flight_height;
+//     let sent_response = false;
+//     if (req.files.length > 1) {
+//         farm_name = req.body.farm_name[0];
+//         field_name = req.body.field_name[0];
+//         mission_date = req.body.mission_date[0];
+//         first = false;
+//         last = false;
+//         queued_filenames = req.body.queued_filenames[0].split(",");
+//         flight_height = req.body.flight_height[0];
+//         let num_sent;
+//         for (let i = 0; i < req.body.num_sent.length; i++) {
+//             num_sent = parseInt(req.body.num_sent[i])
+//             console.log("num_sent", num_sent);
+//             if (num_sent == 1) {
+//                 first = true;
+//             }
+//             if (num_sent == queued_filenames.length) {
+//                 last = true;
+//             }
+//         }
+        
+//     }
+//     else {
+//         farm_name = req.body.farm_name;
+//         field_name = req.body.field_name;
+//         mission_date = req.body.mission_date;
+//         queued_filenames = req.body.queued_filenames.split(",");
+//         first = parseInt(req.body.num_sent) == 1;
+//         last = parseInt(req.body.num_sent) == queued_filenames.length;
+//         flight_height = req.body.flight_height;
+//     }
+//     console.log(req.body.num_sent);
+
+//     console.log("contains first?", first);
+//     console.log("queued_filenames", queued_filenames);
+
+//     let format = /[ `!@#$%^&*()+\=\[\]{};':"\\|,<>\/?~]/;
+//     for (file of req.files) {
+//         if (!(file.mimetype.startsWith('image/'))) {
+//             remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
+//             if (!sent_response) {
+//                 sent_response = true;
+//                 return res.status(422).json({
+//                     error: "One or more provided files is not an image."
+//                 });
+//             }
+//         }
+//         if (format.test(file.originalname)) {
+//             remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
+//             if (!sent_response) {
+//                 sent_response = true;
+//                 return res.status(422).json({
+//                     error: "One or more provided filenames contains illegal characters."
+//                 });
+//             }
+//         }
+//     }
+
+
+//     let image_sets_root = path.join(USR_DATA_ROOT, req.session.user.username, "image_sets");
+//     let farm_dir = path.join(image_sets_root, farm_name);
+//     let field_dir = path.join(farm_dir, field_name);
+//     let mission_dir = path.join(field_dir, mission_date);
+//     let images_dir = path.join(mission_dir, "images");
+//     let dzi_images_dir = path.join(mission_dir, "dzi_images");
+//     let conversion_tmp_dir = path.join(dzi_images_dir, "conversion_tmp");
+//     let annotations_dir = path.join(mission_dir, "annotations");
+//     let metadata_dir = path.join(mission_dir, "metadata");
+    
+//     let patches_dir = path.join(mission_dir, "patches");
+//     let excess_green_dir = path.join(mission_dir, "excess_green");
+
+//     let model_dir = path.join(mission_dir, "model");
+//     let training_dir = path.join(model_dir, "training");
+//     let prediction_dir = path.join(model_dir, "prediction");
+//     let image_requests_dir = path.join(prediction_dir, "image_requests");
+//     let image_set_requests_dir = path.join(prediction_dir, "image_set_requests");
+//     let pending_dir = path.join(image_set_requests_dir, "pending");
+//     let aborted_dir = path.join(image_set_requests_dir, "aborted");
+//     let weights_dir = path.join(model_dir, "weights");
+//     let results_dir = path.join(model_dir, "results");
+
+
+    
+//     if (first) {
+//         console.log("checking components");
+//         let id_components = [farm_name, field_name, mission_date];
+//         for (id_component of id_components) {
+//             if (format.test(id_component)) {
+//                 if (!sent_response) {
+//                     sent_response = true;
+//                     remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
+//                     return res.status(422).json({
+//                         error: "The provided farm, field, or mission date contains illegal characters."
+//                     });
+//                 }
+//             }
+//         }
+//         if (fpath_exists(mission_dir)) {
+//             remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
+//             if (!sent_response) {
+//                 sent_response = true;
+//                 return res.status(422).json({
+//                     error: "The provided farm-field-mission combination already exists."
+//                 });
+//             }
+//         }
+//         else {
+//             console.log("Making the image set directories");
+//             fs.mkdirSync(images_dir, { recursive: true });
+//             fs.mkdirSync(dzi_images_dir, { recursive: true });
+//             fs.mkdirSync(conversion_tmp_dir, { recursive: true });
+//             fs.mkdirSync(annotations_dir, { recursive: true });
+//             fs.mkdirSync(metadata_dir, { recursive: true });
+//             fs.mkdirSync(patches_dir, { recursive: true });
+//             fs.mkdirSync(excess_green_dir, { recursive: true });
+//             fs.mkdirSync(model_dir, { recursive: true });
+//             fs.mkdirSync(training_dir, { recursive: true });
+//             fs.mkdirSync(prediction_dir, { recursive: true });
+//             fs.mkdirSync(image_requests_dir, { recursive: true });
+//             fs.mkdirSync(image_set_requests_dir, { recursive: true });
+//             fs.mkdirSync(pending_dir, { recursive: true });
+//             fs.mkdirSync(aborted_dir, { recursive: true });
+//             fs.mkdirSync(weights_dir, { recursive: true });
+//             fs.mkdirSync(results_dir, { recursive: true});
+
+            
+//             console.log("Copying initial model weights");
+//             let source_weights_path = path.join(USR_SHARED_ROOT, "weights", "default_weights.h5");
+//             let best_weights_path = path.join(weights_dir, "best_weights.h5");
+//             let cur_weights_path = path.join(weights_dir, "cur_weights.h5");
+//             try {
+//                 fs.copyFileSync(source_weights_path, best_weights_path);
+//             }
+//             catch (error) {
+//                 console.log("Error occurred while copying weights", error);
+//                 remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
+//                 if (!sent_response) {
+//                     sent_response = true;
+//                     return res.status(422).json({
+//                         error: "Error occurred while copying weights."
+//                     });
+//                 }
+//             }
+//             try {
+//                 fs.copyFileSync(source_weights_path, cur_weights_path);
+//             }
+//             catch (error) {
+//                 console.log("Error occurred while copying weights", error);
+//                 remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
+//                 if (!sent_response) {
+//                     sent_response = true;
+//                     return res.status(422).json({
+//                         error: "Error occurred while copying weights."
+//                     });
+//                 }
+//             }
+
+//             let status = {
+//                 "status": "idle",
+//                 "num_images_fully_trained_on": 0,
+//                 "update_num": 0
+//             };
+//             let status_path = path.join(model_dir, "status.json");
+//             try {
+//                 fs.writeFileSync(status_path, JSON.stringify(status));
+//             }
+//             catch (error) {
+//                 console.log(error);
+//                 remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
+//                 if (!sent_response) {
+//                     sent_response = true;
+//                     return res.status(422).json({
+//                         error: "Error occurred when writing status file."
+//                     });
+//                 }
+//             }
+
+
+//             console.log("Making the annotations file");
+//             let annotations_path = path.join(annotations_dir, "annotations_w3c.json");
+//             let annotations = {};
+//             for (filename of queued_filenames) {
+//                 let sanitized_fname = sanitize(filename);
+//                 let extensionless_fname = sanitized_fname.substring(0, sanitized_fname.length-4);
+//                 annotations[extensionless_fname] = {
+//                     "status": "unannotated",
+//                     //"available_for_training": false,
+//                     "annotations": []
+//                 };
+//             }
+//             console.log("Writing the annotations file");
+//             try {
+//                 fs.writeFileSync(annotations_path, JSON.stringify(annotations));
+//             }
+//             catch (error) {
+//                 console.log(error);
+//                 remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
+//                 if (!sent_response) {
+//                     sent_response = true;
+//                     return res.status(422).json({
+//                         error: "Error occurred when writing annotations file."
+//                     });
+//                 }
+//             }
+//             let annotations_lock_path = path.join(annotations_dir, "lock.json")
+//             let annotations_lock = {
+//                 "last_refresh": 0
+//             };
+//             try {
+//                 fs.writeFileSync(annotations_lock_path, JSON.stringify(annotations_lock));
+//             }
+//             catch (error) {
+//                 console.log(error);
+//                 remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
+//                 if (!sent_response) {
+//                     sent_response = true;
+//                     return res.status(422).json({
+//                         error: "Error occurred when writing annotations lock file."
+//                     });
+//                 }
+//             }
+
+//             let loss_record_path = path.join(training_dir, "loss_record.json")
+//             let loss_record = {
+//                 "training_loss": { "values": [],
+//                                    "best": 100000000,
+//                                    "epochs_since_improvement": 100000000}, 
+//                 "validation_loss": {"values": [],
+//                                     "best": 100000000,
+//                                     "epochs_since_improvement": 100000000},
+//                 "num_training_images": 0
+//             }
+//             try {
+//                 fs.writeFileSync(loss_record_path, JSON.stringify(loss_record));
+//             }
+//             catch (error) {
+//                 console.log(error);
+//                 remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
+//                 if (!sent_response) {
+//                     sent_response = true;
+//                     return res.status(422).json({
+//                         error: "Error occurred when writing loss record."
+//                     });
+//                 }
+//             }
+//         }
+//     }
+//     else {
+//         if (!(fpath_exists(mission_dir))) {
+//             remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
+//             if (!sent_response) {
+//                 sent_response = true;
+//                 return res.status(422).json({
+//                     error: "Image set directories were not created by initial request."
+//                 });
+//             }
+//         }
+//     }
+//     console.log("Converting the files");
+//     for (file of req.files) {
+//         let sanitized_fname = sanitize(file.originalname);
+//         let extensionless_fname = sanitized_fname.substring(0, sanitized_fname.length-4);
+//         if (extensionless_fname.length > 50) {
+//             remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
+//             if (!sent_response) {
+//                 sent_response = true;
+//                 return res.status(422).json({
+//                     error: "One or more filenames exceeds maximum allowed length of 50 characters."
+//                 });
+//             }
+//         }
+
+
+
+//         let extension = sanitized_fname.substring(sanitized_fname.length-4);
+//         let fpath = path.join(images_dir, sanitized_fname);
+//         try {
+//             fs.writeFileSync(fpath, file.buffer);
+//         }
+//         catch (error) {
+//             console.log(error);
+//             remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
+//             if (!sent_response) {
+//                 sent_response = true;
+//                 return res.status(422).json({
+//                     error: "Error occurred when writing image file."
+//                 });
+//             }
+//         }
+
+//         let img_dzi_path = path.join(dzi_images_dir, extensionless_fname);
+
+//         let no_convert_extensions = [".jpg", ".JPG", ".png", ".PNG"];
+//         if (!(no_convert_extensions.includes(extension))) {
+//             let tmp_path = path.join(conversion_tmp_dir, extensionless_fname + ".jpg");
+//             let conv_cmd = "convert " + fpath + " " + tmp_path;
+//             let slice_cmd = "./MagickSlicer/magick-slicer.sh '" + tmp_path + "' '" + img_dzi_path + "'";
+//             let result = exec(conv_cmd, {shell: "/bin/bash"}, function (error, stdout, stderr) {
+//                 if (error) {
+
+//                     console.log(error.stack);
+//                     console.log('Error code: '+error.code);
+//                     console.log('Signal received: '+error.signal);
+
+//                     remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
+//                     if (!sent_response) {
+//                         sent_response = true;
+//                         return res.status(422).json({
+//                             error: "Error occurred during image conversion process."
+//                         });
+//                     }
+//                 }
+//                 else {
+//                     let result = exec(slice_cmd, {shell: "/bin/bash"}, function (error, stdout, stderr) {
+//                         if (error) {
+//                             console.log(error.stack);
+//                             console.log('Error code: '+error.code);
+//                             console.log('Signal received: '+error.signal);
+
+//                             remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
+//                             if (!sent_response) {
+//                                 sent_response = true;
+//                                 return res.status(422).json({
+//                                     error: "Error occurred during image conversion process."
+//                                 });
+//                             }
+//                         }
+//                         else {
+//                             try {
+//                                 fs.unlinkSync(tmp_path);
+//                             }
+//                             catch (error) {
+//                                 console.log(error);
+//                                 remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
+//                                 if (!sent_response) {
+//                                     sent_response = true;
+//                                     return res.status(422).json({
+//                                         error: "Error occurred during image conversion process."
+//                                     });
+//                                 }
+//                             }
+//                         }
+//                     });
+
+//                 }
+//             });
+//         }
+//         else {
+//             let slice_cmd = "./MagickSlicer/magick-slicer.sh '" + fpath + "' '" + img_dzi_path + "'";
+//             let result = exec(slice_cmd, {shell: "/bin/bash"}, function (error, stdout, stderr) {
+//                 if (error) {
+
+//                     console.log(error.stack);
+//                     console.log('Error code: '+error.code);
+//                     console.log('Signal received: '+error.signal);
+//                     remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
+//                     if (!sent_response) {
+//                         sent_response = true;
+//                         return res.status(422).json({
+//                             error: "Error occurred during image conversion process."
+//                         });
+//                     }
+//                 }
+//             });
+//         }
+
+//         let exg_command = "python ../../plant_detection/src/excess_green.py " + mission_dir + " " + extensionless_fname;
+//         let result = exec(exg_command, {shell: "/bin/bash"}, function(error, stdout, stderr) {
+//             if (error) {
+//                 console.log(error.stack);
+//                 console.log('Error code: '+error.code);
+//                 console.log('Signal received: '+error.signal);   
+
+//                 remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
+//                 if (!sent_response) {
+//                     sent_response = true;
+//                     return res.status(422).json({
+//                         error: "Error occurred during creation of excess green image."
+//                     });
+//                 }
+//             }
+//         });  
+//     }
+
+
+//     if (last) {
+//         console.log("Collecting metadata...");
+//         console.log("flight_height", flight_height);
+//         let metadata_command = "python ../../plant_detection/src/metadata.py " + mission_dir;
+//         if (isNumeric(flight_height)) {
+//             numeric_flight_height = parseFloat(flight_height);
+//             if (numeric_flight_height < 0.1 || numeric_flight_height > 100) {
+//                 remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
+//                 if (!sent_response) {
+//                     sent_response = true;
+//                     return res.status(422).json({
+//                         error: "Provided flight height is invalid."
+//                     });
+//                 }
+
+//             }
+//             metadata_command = metadata_command + " --flight_height " + flight_height;
+//         }
+//         else {
+//             remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
+//             if (!sent_response) {
+//                 sent_response = true;
+//                 return res.status(422).json({
+//                     error: "Provided flight height is invalid."
+//                 });
+//             }
+//         }
+//         console.log(metadata_command);
+//         let result = exec(metadata_command, {shell: "/bin/bash"}, function(error, stdout, stderr) {
+//             if (error) {
+//                 console.log(error.stack);
+//                 console.log('Error code: '+error.code);
+//                 console.log('Signal received: '+error.signal);   
+
+//                 remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
+//                 if (!sent_response) {
+//                     sent_response = true;
+//                     return res.status(422).json({
+//                         error: "Error occurred during metadata extraction."
+//                     });
+//                 }
+//             }
+//             else {
+
+//                 console.log("Writing upload_complete file...");
+//                 let upload_complete = {}
+//                 let upload_complete_path = path.join(mission_dir, "upload_complete.json");
+
+//                 try {
+//                     fs.writeFileSync(upload_complete_path, JSON.stringify(upload_complete));
+//                 }
+//                 catch (error) {
+//                     console.log(error);
+//                     remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
+//                     if (!sent_response) {
+//                         sent_response = true;
+//                         return res.status(422).json({
+//                             error: "Error occurred when writing upload completion record."
+//                         });
+//                     }
+//                 }
+
+//                 console.log("Sending final success status");
+//                 if (!sent_response) {
+//                     sent_response = true;
+//                     return res.sendStatus(200);
+//                 }
+//             }
+//         });
+
+//     }
+//     else {
+//         console.log("Sending success status");
+//         if (!sent_response) {
+//             sent_response = true;
+//             return res.sendStatus(200);
+//         }
+//     }
+// }
 
 
 exports.post_home = function(req, res, next) {
@@ -1351,7 +1641,7 @@ exports.post_home = function(req, res, next) {
                 
 
                 response.error = false;
-                response.redirect = APP_PREFIX + "/home/" + req.session.user.usename;
+                response.redirect = APP_PREFIX + "/home/" + req.session.user.username;
                 return res.json(response);
             }
         }).catch(function(error) {
@@ -1414,6 +1704,28 @@ exports.post_home = function(req, res, next) {
 
 
 
+
+    }
+    else if (action === "fetch_upload_status") {
+       
+        let farm_name = req.body.farm_name;
+        let field_name = req.body.field_name;
+        let mission_date = req.body.mission_date;
+
+
+        let upload_status_path = path.join(USR_DATA_ROOT, req.session.user.username, "image_sets",
+                                  farm_name, field_name, mission_date, "upload_status.json");
+
+        try {
+            upload_status = JSON.parse(fs.readFileSync(upload_status_path, 'utf8'));
+        }
+        catch (error) {
+            response.error = true;
+            return res.json(response);
+        }
+        response.error = false;
+        response.status = upload_status;
+        return res.json(response);
 
     }
     else if (action === "fetch_results") {
@@ -1754,7 +2066,7 @@ exports.post_home = function(req, res, next) {
 
 exports.get_viewer = function(req, res, next) {
     
-    if (req.session.user && req.cookies.user_sid) {
+    if ((req.session.user && req.cookies.user_sid) && (req.params.username === req.session.user.username)) {
         
         let farm_name = req.params.farm_name;
         let field_name = req.params.field_name;
@@ -1766,6 +2078,11 @@ exports.get_viewer = function(req, res, next) {
                                       farm_name, field_name, mission_date);
 
         let sel_results_dir = path.join(image_set_dir, "model", "results", timestamp);
+
+
+        if (!(fpath_exists(sel_results_dir))) {
+            return res.redirect(APP_PREFIX);
+        }
 
         let annotations_path = path.join(sel_results_dir, "annotations_w3c.json")
         let annotations;

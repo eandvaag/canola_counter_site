@@ -2,6 +2,7 @@ let viewing_results = false;
 let active_results_tab_btn = "completed_results_tab_btn";
 let cur_results;
 let fetch_results_interval;
+let fetch_status_interval;
 global_disabled = false;
 
 
@@ -588,7 +589,7 @@ function show_overview() {
             `</tr>` +
         `</table>` +
     `</th>` +
-    `<tr>`);
+    `</tr>`);
 
     let make = metadata["camera_info"]["make"];
     let model = metadata["camera_info"]["model"];
@@ -775,6 +776,27 @@ function show_overview() {
 }
 
 
+function fetch_upload_status(farm_name, field_name, mission_date) {
+
+    let prev_status = image_sets_data[farm_name][field_name][mission_date];
+
+    $.post($(location).attr('href'),
+    {
+        action: "fetch_upload_status",
+        farm_name: farm_name,
+        field_name: field_name,
+        mission_date: mission_date,
+        //upload_status: upload_status,
+    },
+    function(response, status) {
+        image_sets_data[farm_name][field_name][mission_date] = response.status;
+        //if ((prev_status["status"] === "processing") && (response.status["status"] === "uploaded")) {
+        if (prev_status["status"] !== response.status["status"]) {
+            show_image_set_details();
+        }
+    });
+}
+
 function fetch_results(farm_name, field_name, mission_date) {
 
     $.post($(location).attr('href'),
@@ -783,6 +805,7 @@ function fetch_results(farm_name, field_name, mission_date) {
         farm_name: farm_name,
         field_name: field_name,
         mission_date: mission_date,
+        //upload_status: upload_status,
     },
     function(response, status) {
         if (response.error) {
@@ -791,6 +814,9 @@ function fetch_results(farm_name, field_name, mission_date) {
             $("#result_modal").css("display", "block");
         }
         else {
+            // if (response.upload_status !== upload_status) {
+
+            // }
             console.log("response", response);
             cur_results = response;
             if (viewing_results) {
@@ -931,15 +957,20 @@ function show_results() {
         return b["start_time"] - a["start_time"];
     });
     if (aborted_results.length > 0) {
+        let i = 0;
         for (result of aborted_results) {
             let start_date = timestamp_to_date(result["start_time"]);
             let aborted_date = timestamp_to_date(result["aborted_time"]);
+            //let error_message = escapeHtml(result["error_message"]);
+            //let error_message = escapeHtml("list object 'numpy'");
+            //console.log(error_message);
             $("#aborted_table").append(
                 `<tr>` +
                     `<td class="table_entry" style="width: 220px">` + start_date + `</td>` +
                     `<td class="table_entry" style="width: 220px">` + aborted_date + `</td>` +
                     `<td style="width: 180px"><div class="std-button std-button-hover" style="width: 100px" ` +
-                        `onclick="show_error_message('Error Message', '${result["error_message"]}')"><i class="fa-solid fa-circle-info"></i></div></td>` +
+                        `onclick="show_error_message('Error Message', \`${result["error_message"]}\`)"><i class="fa-solid fa-circle-info"></i></div></td>` +
+                        //`><i class="fa-solid fa-circle-info"></i></div></td>` +
                     `<td style="width: 180px"><div class="x-button x-button-hover" style="width: 100px" ` +
                         `onclick="delete_result('aborted', '${result["request_uuid"]}')"><i class="fa-regular fa-circle-xmark"></i></div></td>` +       
                 `</tr>`
@@ -991,25 +1022,55 @@ function show_image_set_details() {
     let field_name = $("#field_combo").val();
     let mission_date = $("#mission_combo").val();
 
+    clearInterval(fetch_status_interval);
     clearInterval(fetch_results_interval);
-    fetch_results(farm_name, field_name, mission_date);
-    fetch_results_interval = setInterval(function() { fetch_results(farm_name, field_name, mission_date); }, 30000); // 30 seconds
 
     $("#image_set_container").empty();
 
-    $("#image_set_container").append(`<ul class="nav" id="image_set_tabs"></ul>`);
 
-    $("#image_set_tabs").append(
-        `<li id="overview_tab_btn" class="nav tab-btn-active" onclick="show_image_set_tab(this.id)">` +
-        `<a class="nav"><span><i class="fa-regular fa-rectangle-list" style="margin-right:3px"></i> Overview</span></a></li>`);
+    let image_set_status = image_sets_data[farm_name][field_name][mission_date]["status"];
+    if (image_set_status === "uploaded") {
+        fetch_results(farm_name, field_name, mission_date);
+        fetch_results_interval = setInterval(function() { fetch_results(farm_name, field_name, mission_date); }, 30000); // 30 seconds
 
-    $("#image_set_tabs").append(
-        `<li id="results_tab_btn" class="nav" onclick="show_image_set_tab(this.id)">` +
-        `<a class="nav"><span><i class="fa-solid fa-chart-line" style="margin-right:3px"></i> Results</span></a></li>`);
 
-    $("#image_set_container").append(`<div id="tab_details"></div>`);
+        $("#image_set_container").append(`<ul class="nav" id="image_set_tabs"></ul>`);
 
-    show_image_set_tab("overview_tab_btn");
+        $("#image_set_tabs").append(
+            `<li id="overview_tab_btn" class="nav tab-btn-active" onclick="show_image_set_tab(this.id)">` +
+            `<a class="nav"><span><i class="fa-regular fa-rectangle-list" style="margin-right:3px"></i> Overview</span></a></li>`);
+    
+        $("#image_set_tabs").append(
+            `<li id="results_tab_btn" class="nav" onclick="show_image_set_tab(this.id)">` +
+            `<a class="nav"><span><i class="fa-solid fa-chart-line" style="margin-right:3px"></i> Results</span></a></li>`);
+        $("#image_set_container").append(`<div id="tab_details"></div>`);
+
+        show_image_set_tab("overview_tab_btn");
+    }
+    else if (image_set_status === "failed") {
+        let error_message = image_sets_data[farm_name][field_name][mission_date]["error"];
+
+        $("#image_set_container").append(`<div id="tab_details"></div>`);
+
+        $("#tab_details").append(
+        `<br><br><div>The following error occurred while processing the image set:</div><br><div>` + error_message + `</div><br>`);
+
+        $("#tab_details").append(
+            `<br><hr style="width: 100px"><button class="x-button x-button-hover" style="width: 220px; height: 35px;" onclick="delete_request()">`+
+            `<span><i class="fa-regular fa-circle-xmark" style="margin-right:8px"></i>Delete Image Set</span></button>`);
+
+    }
+    else {
+        //fetch_upload_status(farm_name, field_name, mission_date);
+        fetch_upload_status(farm_name, field_name, mission_date);
+        fetch_status_interval = setInterval(function() { fetch_upload_status(farm_name, field_name, mission_date); }, 30000); // 30 seconds
+
+        $("#image_set_container").append(`<div id="tab_details"></div>`);
+
+        $("#tab_details").append(`<br><br><div class="loader"></div><br>` +
+        `<div>This image set is currently being processed. ` +
+        `This page will automatically update when the image set is ready to be viewed.<br></div>`);
+    }
         
 }
 
@@ -1058,7 +1119,7 @@ function initialize_browse() {
         $("#mission_combo").empty();
         $("#right_panel").empty();
 
-        for (mission_date of natsort(image_sets_data[farm_name][field_name])) {
+        for (mission_date of natsort(Object.keys(image_sets_data[farm_name][field_name]))) {
             $("#mission_combo").append($('<option>', {
                 value: mission_date,
                 text: mission_date

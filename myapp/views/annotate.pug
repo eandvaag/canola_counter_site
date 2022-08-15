@@ -174,21 +174,57 @@ html
 
                                         div(style="padding: 8px 8px;")
                                             div(id="annotation_panel")
+                                                div(style="height: 40px")
                                                 table(class="transparent_table")
                                                     tr
-                                                        td(style="text-align: left;")
-                                                            h(class="header2" style="width: 120px") Model Status
+                                                        td(style="text-align: left")
+                                                            h(class="header2" style="width: 150px") Model Status
 
                                                         td(style="width: 100%; text-align: left; padding-left: 12px")
                                                             h(id="model_status")
 
                                                     tr
-                                                        td(style="text-align: left;")
-                                                            h(class="header2" style="width: 120px") Fully Trained?
+                                                        td(style="text-align: left")
+                                                            h(class="header2" style="width: 150px") Fully Trained?
 
                                                         td(style="width: 100%; text-align: left; padding-left: 12px")
                                                             h(id="model_training_status")
+
+                                                table(class="transparent_table")
+                                                    tr 
+                                                        td(style="text-align: left")
+                                                            h(class="header2" style="width: 150px") Training Blocked?
+
+                                                        td(style="text-align: left; padding-left: 12px;")
+                                                            div(style="width: 50px")
+                                                                h(id="train_block_text")
+
+                                                        
+                                                        td(style="width: 100%; text-align: left;")
+                                                            label(class="switch" id="train_block_label")
+                                                                input(id="train_block_switch" type="checkbox" disabled)
+                                                                span(class="switch_slider round" id="train_block_slider")
+
+                                                div(style="height: 5px")
+                                                div(id="train_block_message" style="height: 20px; font-size: 14px; color: #ed452b") 
+
                                                 hr
+                                                //-
+                                                    table(class="transparent_table")
+                                                        tr
+                                                            td
+                                                                label(class="table_label" style="width: 215px; background-color: black")
+                                                                    table(class="transparent_table")
+                                                                        tr
+                                                                            td(style="width: 40px")
+                                                                                label(class="switch")
+                                                                                    input(id="train_lock" type="checkbox")
+                                                                                    span(class="switch_slider round")
+                                                                            td(style="width: 100%")
+                                                                                div(style="margin-left: 8px") Block Training 
+
+
+
 
                                                 //-
                                                     div(style="height: 455px")
@@ -267,7 +303,7 @@ html
                                             div(id="segmentation_panel" hidden)
 
                                                 //div(id="my_result" style="border: 1px solid white; height: 280px")
-
+                                                div(style="height: 40px")
                                                 table(class="transparent_table")
                                                     tr
                                                         td(style="width: 90px")

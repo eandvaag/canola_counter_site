@@ -43,6 +43,9 @@ function emit_status_change(username, farm_name, field_name, mission_date, statu
 
     let key = username + "/" + farm_name + "/" + field_name + "/" + mission_date;
 
+    let training_dir = path.join("usr", "data", username, "image_sets",
+                                    farm_name, field_name, mission_date, "model", "training");
+
     let prediction_dir = path.join("usr", "data", username, "image_sets",
                                         farm_name, field_name, mission_date, "model", "prediction");
     let num_outstanding;
@@ -61,7 +64,25 @@ function emit_status_change(username, farm_name, field_name, mission_date, statu
                 status["outstanding_prediction_requests"] = "True";
             }
             else {
-                status["body.outstanding_prediction_requests"] = "False";
+                status["outstanding_prediction_requests"] = "False";
+            }
+
+            status["usr_training_blocked"] = "True";
+            let block_file_path = path.join(training_dir, "usr_block.json");
+            try {
+                fs.accessSync(block_file_path, fs.constants.F_OK);
+            }
+            catch (e) {
+                status["usr_training_blocked"] = "False";
+            }
+
+            status["sys_training_blocked"] = "True";
+            block_file_path = path.join(training_dir, "sys_block.json");
+            try {
+                fs.accessSync(block_file_path, fs.constants.F_OK);
+            }
+            catch (e) {
+                status["sys_training_blocked"] = "False";
             }
 
             console.log("checking socket lookup", socket_lookup);

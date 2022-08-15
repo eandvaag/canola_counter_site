@@ -885,6 +885,17 @@ function show_prediction(force_reset=false) {
     viewer.open(dzi_image_path);
 }
 
+var imageCollector = function(expectedCount, completeFn){
+    var receivedCount;
+    console.log("imagecollector called");
+    return function(){
+      if(++receivedCount == expectedCount){
+        completeFn();
+      }
+    };
+  }();
+
+
 function show_segmentation_inner() {
 
     cur_panel = "segmentation";
@@ -912,7 +923,7 @@ function show_segmentation_inner() {
                     "/excess_green/" + cur_img_name + ".png"; //?t=" + timestamp;
     let rgb_src = "/plant_detection/usr/data/" + username + "/image_sets/" + image_set_info["farm_name"] + "/"
                     + image_set_info["field_name"] + "/" + image_set_info["mission_date"] + 
-                    "/images/" + cur_img_name + image_set_info["image_ext"]; //".JPG"; //?t=" + timestamp;
+                    "/images/" + cur_img_name + image_set_info["image_ext"]; // + "?t=" + timestamp; //".JPG"; //?t=" + timestamp;
 
 
     let min_val = excess_green_record[cur_img_name]["min_val"];
@@ -1006,10 +1017,18 @@ function show_segmentation_inner() {
     //let zoomCtx = $("#my_result").append(`<canvas></canvas>`).getContext("2d");
 
     let viewer_width = $("#seadragon_viewer").width();
-    let viewer_height = $('#seadragon_viewer').height(); 
+    let viewer_height = $('#seadragon_viewer').height();
 
-    exg_image.onload = function() {
-        rgb_image.onload = function() {
+        
+    exg_image.src = exg_src;
+    rgb_image.src = rgb_src;
+
+    let images_loaded = 0;
+
+
+
+    let all_images_loaded = function() {
+
 
         let org_height = rgb_image.height;
         let org_width = rgb_image.width;
@@ -1046,7 +1065,7 @@ function show_segmentation_inner() {
         
         //console.log(d.data);
 
-/*
+    /*
         for (var i=0; i<d.data.length; i+=4) { // 4 is for RGBA channels
             // R=G=B=R>T?255:0
             d.data[i] = d.data[i+1] = d.data[i+2] = d.data[i+1] > threshold ? 255 : 0;
@@ -1110,16 +1129,29 @@ function show_segmentation_inner() {
         enable_buttons(["request_segment_button"]);
         
 
-        //$("#right_panel").append(`<div id="my_result" style="border: 1px solid white; height: 280px"></div>`);
-        //imageZoom("my_image", "my_result")
-        };
+            //$("#right_panel").append(`<div id="my_result" style="border: 1px solid white; height: 280px"></div>`);
+            //imageZoom("my_image", "my_result")
+    //    };
     };
 
 
+    exg_image.onload = function() {
+        images_loaded++;
+        if (images_loaded == 2) {
+            all_images_loaded();
+        }
+    }
 
+    rgb_image.onload = function() {
+        images_loaded++;
+        if (images_loaded == 2) {
+            all_images_loaded();
+        }
+    }
     
-    exg_image.src = exg_src;
-    rgb_image.src = rgb_src;
+
+
+
 }
 
 
@@ -1368,40 +1400,103 @@ $(document).ready(function() {
             else {
                 $("#model_training_status").html("no");
             }
-        }
+        
 
-        /*
-        if ("restarted" in status) {
-            for (image_name of Object.keys(annotations)) {
-                if (annotations[image_name]["status"] === "completed_for_training") {
-                    annotations[image_name]["status"] = "completed_for_testing";
+            /*
+            if ("restarted" in status) {
+                for (image_name of Object.keys(annotations)) {
+                    if (annotations[image_name]["status"] === "completed_for_training") {
+                        annotations[image_name]["status"] = "completed_for_testing";
+                    }
+                }
+                close_modal();
+                create_image_set_table();
+                set_image_status_combo();
+            }*/
+            /*
+            if (cur_status === "predicting") {
+                disable_buttons(["request_prediction_button", "request_result_button"]);
+            }
+            else {
+                enable_buttons(["request_prediction_button", "request_result_button"]);
+            }*/
+
+
+            if ("prediction_image_names" in status && cur_panel === "prediction") {
+                show_prediction();
+            }
+
+
+
+            if (status["outstanding_prediction_requests"] === "True") {
+                disable_buttons(["request_prediction_button", "request_result_button"]);
+            }
+            else {
+                enable_buttons(["request_prediction_button", "request_result_button"]);
+            }
+
+
+            if (status["sys_training_blocked"] === "True") {
+                $("#train_block_text").html("yes");
+                $("#train_block_switch").prop("checked", true);
+
+                $("#train_block_switch").prop('disabled', true);
+                $("#train_block_label").css("opacity", 0.5);
+                $("#train_block_slider").css("cursor", "default");
+
+                $("#train_block_message").html("Training blocked due to system error.");
+
+            }
+
+            else {
+
+                $("#train_block_switch").prop('disabled', false);
+                $("#train_block_label").css("opacity", 1);
+                $("#train_block_slider").css("cursor", "pointer");
+
+                $("#train_block_message").html("");
+
+                if (status["usr_training_blocked"] === "True") {
+                    $("#train_block_text").html("yes");
+                    $("#train_block_switch").prop("checked", true);
+                }
+                else {
+                    $("#train_block_text").html("no");
+                    $("#train_block_switch").prop("checked", false);
                 }
             }
-            close_modal();
-            create_image_set_table();
-            set_image_status_combo();
-        }*/
-        /*
-        if (cur_status === "predicting") {
-            disable_buttons(["request_prediction_button", "request_result_button"]);
+            /*
+            if (cur_status === "training") {
+                $("#train_block_switch").prop('disabled', true);
+                $("#train_block_label").css("opacity", 0.5);
+                $("#train_block_slider").css("cursor", "default");
+            }
+            else {
+                $("#train_block_switch").prop('disabled', false);
+                $("#train_block_label").css("opacity", 1);
+                $("#train_block_slider").css("cursor", "pointer");
+            }*/
+        }
+
+
+/*
+        let train_block_switch_active = $("#train_block_switch").is(":checked");
+        let flip_switch = false;
+        if (status["training_blocked"] === "True") {
+            $("#train_block_text").html("yes");
+            if (!train_block_switch_active) {
+                flip_switch = true;
+            }
+
         }
         else {
-            enable_buttons(["request_prediction_button", "request_result_button"]);
-        }*/
-
-
-        if ("prediction_image_names" in status && cur_panel === "prediction") {
-            show_prediction();
+            $("#train_block_text").html("no");
+            if (train_block_switch_active) {
+                flip_switch = false;
+            }
         }
+        console.log("flip_switch", flip_switch);*/
 
-
-
-        if (status["outstanding_prediction_requests"] === "True") {
-            disable_buttons(["request_prediction_button", "request_result_button"]);
-        }
-        else {
-            enable_buttons(["request_prediction_button", "request_result_button"]);
-        }
         /*
         if ("prediction_image_names" in status) {
 
@@ -1612,7 +1707,52 @@ $(document).ready(function() {
 
     $("#score_switch").change(function() {
         add_annotations();
-    })
+    });
+
+    // $("#train_block_switch").change(function() {
+    //     return;
+    //     console.log("train block switch toggled");
+
+    // });
+
+    $("#train_block_switch").click(function() {
+        
+        console.log("train block switch clicked");
+        let block_training = $("#train_block_switch").is(":checked");
+        if (block_training) {
+            $("#train_block_text").html("yes");
+            block_op = "block";
+        }
+        else {
+            $("#train_block_text").html("no");
+            block_op = "unblock"
+        }
+        //$("#train_block_switch").prop('disabled', false);
+        //$("#train_block_switch").change();
+        //$("#train_block_switch").prop('disabled', true);
+
+        
+        $.post($(location).attr('href'),
+        {
+            action: "block_training",
+            block_op: block_op
+        },
+        
+        function(response, status) {
+
+            if (response.error) {
+                if (block_training) {
+                    $("#train_block_text").html("no");
+                }
+                else {
+                    $("#train_block_text").html("yes");
+                }
+                $("#train_block_switch").change();
+                show_modal_message("Error", "An error occurred during the attempt to block training.")
+            }
+
+        });
+    });
 
 
 
@@ -1676,3 +1816,4 @@ $(document).ready(function() {
 
 
 });
+

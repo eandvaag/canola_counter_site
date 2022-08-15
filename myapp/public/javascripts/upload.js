@@ -1,8 +1,8 @@
-
+let upload_uuid;
 let dropzone_handler;
 let num_sent = 0;
 let queued_filenames;
-let errors = [];
+// let errors = [];
 let format = /[ `!@#$%^&*()+\=\[\]{};':"\\|,<>\/?~]/;
 
 function clear_form() {
@@ -142,6 +142,7 @@ function initialize_upload() {
 
     disable_submit();
 
+
     dropzone_handler = new Dropzone("#file-drop", { 
         url: "/plant_detection/upload",
         autoProcessQueue: false,
@@ -156,38 +157,45 @@ function initialize_upload() {
 
     dropzone_handler.on("processing", function() {
         console.log("started processing");
+        
         dropzone_handler.options.autoProcessQueue = true;
     });
 
-    dropzone_handler.on("queuecomplete", function(files, response) {
-        num_sent = 0;
-        dropzone_handler.options.autoProcessQueue = false;
+    // dropzone_handler.on("queuecomplete", function(files, response) {
+    //     num_sent = 0;
+    //     dropzone_handler.options.autoProcessQueue = false;
 
-        if (dropzone_handler.getAcceptedFiles().length > 0) {
-            console.log("An error occurred");
-            $("#modal_header_text").html("Error");
-            $("#modal_message").html("An error occurred during the upload process:<br>" + errors[0]);
-            $("#result_modal").css("display", "block");
-            errors = [];
+    //     if (dropzone_handler.getAcceptedFiles().length > 0) {
+    //         console.log("An error occurred");
+    //         $("#modal_header_text").html("Error");
+    //         $("#modal_message").html("An error occurred during the upload process:<br>" + errors[0]);
+    //         $("#result_modal").css("display", "block");
+    //         errors = [];
 
-            clear_form();
-            enable_input();
-            disable_submit();
-            $("#upload_loader").hide();
-        }
+    //         clear_form();
+    //         enable_input();
+    //         disable_submit();
+    //         $("#upload_loader").hide();
+    //     }
 
-    });
-    dropzone_handler.on("success", function(file, response) {    
+    // });
+    dropzone_handler.on("success", function(file, response) {   
+        
         console.log("complete!");
         console.log("response", response);
         console.log("response.message", response.message);
         console.log("file", file);
         dropzone_handler.removeFile(file);
         if (dropzone_handler.getAcceptedFiles().length == 0) {
+
+            dropzone_handler.removeAllFiles(true);
+            num_sent = 0;
+            dropzone_handler.options.autoProcessQueue = false;
+
             console.log("All done!");
             $("#modal_header_text").html("Success!");
-            $("#modal_message").html("Your image set was successfully uploaded!" +
-                                     "<br><br>The image set should now appear in the <i>Browse</i> tab.");
+            $("#modal_message").html("Your images have been successfully uploaded.<br>Additional processing is now being performed." +
+                                     "<br><br>The image set can now be viewed in the <i>Browse</i> tab.");
             $("#result_modal").css("display", "block");
             console.log($("#farm_input").val());
             let uploaded_farm = $("#farm_input").val();
@@ -197,9 +205,12 @@ function initialize_upload() {
                 image_sets_data[uploaded_farm] = {};
             }
             if (!(uploaded_field in image_sets_data[uploaded_farm])) {
-                image_sets_data[uploaded_farm][uploaded_field] = [];
+                image_sets_data[uploaded_farm][uploaded_field] = {};
             }
-            image_sets_data[uploaded_farm][uploaded_field].push(uploaded_mission);
+            image_sets_data[uploaded_farm][uploaded_field][uploaded_mission] = {
+                "status": "processing"
+            };
+            //.push(uploaded_mission);
             initialize_browse();
             clear_form();
             enable_input();
@@ -209,12 +220,29 @@ function initialize_upload() {
     });
 
     dropzone_handler.on("error", function(files, response) {
+        //dropzone_handler.options.autoProcessQueue = false;
+        // console.log("error!");
+        // console.log("response", response);
+        // console.log("files", files);
+        // console.log("response.error", response.error);
+        // errors.push(response.error);
 
-        console.log("error!");
-        console.log("response", response);
-        console.log("files", files);
-        console.log("response.error", response.error);
-        errors.push(response.error);
+
+        dropzone_handler.removeAllFiles(true);
+        num_sent = 0;
+        dropzone_handler.options.autoProcessQueue = false;
+
+        console.log("An error occurred");
+        $("#modal_header_text").html("Error");
+        $("#modal_message").html("An error occurred during the upload process:<br>" + response.error);
+        $("#result_modal").css("display", "block");
+        // errors = [];
+
+        clear_form();
+        enable_input();
+        disable_submit();
+        $("#upload_loader").hide();
+
     });
 
 
@@ -231,8 +259,13 @@ function initialize_upload() {
         formData.append('mission_date', $("#mission_input").val());
         formData.append("queued_filenames", queued_filenames.join(","));
         formData.append('flight_height', $("#flight_height_input").val());
+        if (num_sent == 0) {
+            upload_uuid = uuidv4();
+        }
+        formData.append('upload_uuid', upload_uuid);
         num_sent++;
         formData.append("num_sent", num_sent.toString());
+
     });
 
 
