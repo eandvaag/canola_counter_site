@@ -2,9 +2,16 @@ const path = require('path');
 const fs = require('fs');
 const { spawn, exec, execSync, fork } = require('child_process');
 const { exit } = require('process');
+const http = require('http');
+
 
 const USR_DATA_ROOT = path.join("usr", "data");
 const USR_SHARED_ROOT = path.join("usr", "shared");
+
+
+
+
+// let socket_api = require("./socket_api");
 
 function isNumeric(str) {
     if (typeof str != "string") return false // we only process strings!  
@@ -21,6 +28,12 @@ function write_upload_status(upload_status_path, upload_status) {
     catch (error) {
         console.log(error);
     }
+
+}
+
+function write_and_notify(upload_status_path, upload_status, notify_data) {
+    write_upload_status(upload_status_path, upload_status)
+    upload_notify(notify_data["username"], notify_data["farm_name"], notify_data["field_name"], notify_data["mission_date"]);
 }
 
 // function sleep(ms) {
@@ -30,7 +43,54 @@ function write_upload_status(upload_status_path, upload_status) {
 // }
 
 
+function upload_notify(username, farm_name, field_name, mission_date) {
+
+    console.log("attempting to notify the server");
+
+    const data = JSON.stringify({
+        username: username,
+        farm_name: farm_name,
+        field_name: field_name,
+        mission_date: mission_date
+    });
+
+    const options = {
+        hostname: '172.16.1.71',
+        port: 8110,
+        path: '/plant_detection/upload_notification',
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Content-Length': data.length,
+        },
+    };
+
+    const req = http.request(options, res => {
+        console.log(`statusCode: ${res.statusCode}`);
+
+        res.on("data", d => {
+            process.stdout.write(d);
+        });
+    });
+
+    req.on("error", error => {
+        console.log(error);
+    });
+
+    req.write(data);
+    req.end();
+}
+
+
+
 async function process_upload(username, farm_name, field_name, mission_date, flight_height) {
+
+    let notify_data = {
+        "username": username,
+        "farm_name": farm_name,
+        "field_name": field_name,
+        "mission_date": mission_date
+    }
 
     console.log("processing upload");
 
@@ -99,7 +159,7 @@ async function process_upload(username, farm_name, field_name, mission_date, fli
         fs.copyFileSync(source_weights_path, cur_weights_path);
     }
     catch (error) {
-        write_upload_status(upload_status_path, {"status": "failed", "error": error.toString()});
+        write_and_notify(upload_status_path, {"status": "failed", "error": error.toString()}, notify_data);
         return;
     }
 
@@ -113,7 +173,7 @@ async function process_upload(username, farm_name, field_name, mission_date, fli
         fs.writeFileSync(status_path, JSON.stringify(status));
     }
     catch (error) {
-        write_upload_status(upload_status_path, {"status": "failed", "error": error.toString()});
+        write_and_notify(upload_status_path, {"status": "failed", "error": error.toString()}, notify_data);
         return;
     }
 
@@ -135,7 +195,7 @@ async function process_upload(username, farm_name, field_name, mission_date, fli
         fs.writeFileSync(annotations_path, JSON.stringify(annotations));
     }
     catch (error) {
-        write_upload_status(upload_status_path, {"status": "failed", "error": error.toString()});
+        write_and_notify(upload_status_path, {"status": "failed", "error": error.toString()}, notify_data);
         return;
     }
 
@@ -147,7 +207,7 @@ async function process_upload(username, farm_name, field_name, mission_date, fli
         fs.writeFileSync(annotations_lock_path, JSON.stringify(annotations_lock));
     }
     catch (error) {
-        write_upload_status(upload_status_path, {"status": "failed", "error": error.toString()});
+        write_and_notify(upload_status_path, {"status": "failed", "error": error.toString()}, notify_data);
         return;
     }
 
@@ -165,7 +225,7 @@ async function process_upload(username, farm_name, field_name, mission_date, fli
         fs.writeFileSync(loss_record_path, JSON.stringify(loss_record));
     }
     catch (error) {
-        write_upload_status(upload_status_path, {"status": "failed", "error": error.toString()});
+        write_and_notify(upload_status_path, {"status": "failed", "error": error.toString()}, notify_data);
         return;
     }
     // try {
@@ -188,6 +248,9 @@ async function process_upload(username, farm_name, field_name, mission_date, fli
 
     while (num_converted < image_names.length) {
         if (num_converting < max_subprocesses && conv_index < image_names.length) {
+
+            console.log("Creating DZI image (%i / %i)", conv_index+1, image_names.length);
+
             image_name = image_names[conv_index];
             conv_index++;
             num_converting++;
@@ -199,7 +262,7 @@ async function process_upload(username, farm_name, field_name, mission_date, fli
 
 
             if (!(no_convert_extensions.includes(extension))) {
-                console.log("conversion is required");
+                // console.log("conversion is required");
                 let tmp_path = path.join(conversion_tmp_dir, extensionless_fname + ".jpg");
                 let conv_cmd = "convert " + fpath + " " + tmp_path;
                 let slice_cmd = "./MagickSlicer/magick-slicer.sh '" + tmp_path + "' '" + img_dzi_path + "'";
@@ -210,8 +273,9 @@ async function process_upload(username, farm_name, field_name, mission_date, fli
                         console.log(error.stack);
                         console.log('Error code: '+error.code);
                         console.log('Signal received: '+error.signal);
-                        write_upload_status(upload_status_path, {"status": "failed", "error": error.toString()});
-                        process.exit(1);
+                        write_and_notify(upload_status_path, {"status": "failed", "error": error.toString()}, notify_data);
+                        //process.exit(1);
+                        return;
                     }
 
                     exec(slice_cmd, {shell: "/bin/bash"}, function (error, stdout, stderr) {
@@ -220,15 +284,16 @@ async function process_upload(username, farm_name, field_name, mission_date, fli
                             console.log(error.stack);
                             console.log('Error code: '+error.code);
                             console.log('Signal received: '+error.signal);
-                            write_upload_status(upload_status_path, {"status": "failed", "error": error.toString()});
+                            write_and_notify(upload_status_path, {"status": "failed", "error": error.toString()}, notify_data);
                             process.exit(1);
                         }
                         try {
                             fs.unlinkSync(tmp_path);
                         }
                         catch (error) {
-                            write_upload_status(upload_status_path, {"status": "failed", "error": error.toString()});
-                            process.exit(1);
+                            write_and_notify(upload_status_path, {"status": "failed", "error": error.toString()}, notify_data);
+                            //process.exit(1);
+                            return;
                         }
 
                         num_converting--;
@@ -239,7 +304,7 @@ async function process_upload(username, farm_name, field_name, mission_date, fli
             }
             else {
 
-                console.log("conversion is not required");
+                // console.log("conversion is not required");
                 let slice_cmd = "./MagickSlicer/magick-slicer.sh '" + fpath + "' '" + img_dzi_path + "'";
                 // try {
                 //     execSync(slice_cmd, {shell: "/bin/bash"});
@@ -250,8 +315,9 @@ async function process_upload(username, farm_name, field_name, mission_date, fli
                         console.log(error.stack);
                         console.log('Error code: '+error.code);
                         console.log('Signal received: '+error.signal);
-                        write_upload_status(upload_status_path, {"status": "failed", "error": error.toString()});
-                        process.exit(1);
+                        write_and_notify(upload_status_path, {"status": "failed", "error": error.toString()}, notify_data);
+                        //process.exit(1);
+                        return;
                     }
                     num_converting--;
                     num_converted++;
@@ -341,25 +407,28 @@ async function process_upload(username, farm_name, field_name, mission_date, fli
         console.log(error.stack);
         console.log('Error code: '+error.code);
         console.log('Signal received: '+error.signal);
-        write_upload_status(upload_status_path, {"status": "failed", "error": error.toString()});
+        write_and_notify(upload_status_path, {"status": "failed", "error": error.toString()}, notify_data);
         return;
     }
 
     console.log("Collecting metadata...");
     console.log("flight_height", flight_height);
     let metadata_command = "python ../../plant_detection/src/metadata.py " + mission_dir;
-    if (isNumeric(flight_height)) {
-        numeric_flight_height = parseFloat(flight_height);
-        if (numeric_flight_height < 0.1 || numeric_flight_height > 100) {
-            write_upload_status(upload_status_path, {"status": "failed", "error": "Provided flight height is invalid."});
+    if (flight_height.length > 0) {
+        if (isNumeric(flight_height)) {
+            numeric_flight_height = parseFloat(flight_height);
+            if (numeric_flight_height < 0.01 || numeric_flight_height > 1000) {
+                //write_upload_status(upload_status_path, {"status": "failed", "error": "Provided flight height is invalid."});
+                write_and_notify(upload_status_path, {"status": "failed", "error": "Provided flight height is invalid."}, notify_data);
+                return;
+            }
+        }
+        else {
+            write_and_notify(upload_status_path, {"status": "failed", "error": "Provided flight height is invalid."}, notify_data);
             return;
         }
+        metadata_command = metadata_command + " --flight_height " + flight_height;
     }
-    else {
-        write_upload_status(upload_status_path, {"status": "failed", "error": "Provided flight height is invalid."});
-        return;
-    }
-    metadata_command = metadata_command + " --flight_height " + flight_height;
     console.log(metadata_command);
     try {
         execSync(metadata_command, {shell: "/bin/bash"});
@@ -368,14 +437,25 @@ async function process_upload(username, farm_name, field_name, mission_date, fli
         console.log(error.stack);
         console.log('Error code: '+error.code);
         console.log('Signal received: '+error.signal);  
-        write_upload_status(upload_status_path, {"status": "failed", "error": "Error occurred during metadata extraction."});
+        write_and_notify(upload_status_path, {"status": "failed", "error": error.toString()}, notify_data);
         return;
     }
 
-    write_upload_status(upload_status_path, {"status": "uploaded"});
+    write_and_notify(upload_status_path, {"status": "uploaded"}, notify_data);
+
+    console.log("finished processing");
+
+    //socket_api.upload_update(username, farm_name, field_name, mission_date);
+    
     return;
 }
 
+
+// function process_and_notify(username, farm_name, field_name, mission_date, flight_height) {
+//     process_upload(username, farm_name, field_name, mission_date, flight_height);
+//     //console.log("now notifying");
+//     //upload_notify(username, farm_name, field_name, mission_date);
+// }
 
 
 let username = process.argv[2]
@@ -385,3 +465,4 @@ let mission_date = process.argv[5];
 let flight_height=  process.argv[6];
 
 process_upload(username, farm_name, field_name, mission_date, flight_height);
+//process_and_notify(username, farm_name, field_name, mission_date, flight_height);

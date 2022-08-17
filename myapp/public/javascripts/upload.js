@@ -2,6 +2,7 @@ let upload_uuid;
 let dropzone_handler;
 let num_sent = 0;
 let queued_filenames;
+let upload_error = null;
 // let errors = [];
 let format = /[ `!@#$%^&*()+\=\[\]{};':"\\|,<>\/?~]/;
 
@@ -138,6 +139,28 @@ function update_submit() {
 }
 
 
+function display_upload_error() {
+
+    console.log("display_upload_error");
+
+    console.log(upload_error);
+
+    num_sent = 0;
+    dropzone_handler.options.autoProcessQueue = false;
+
+    console.log("An error occurred");
+    $("#modal_header_text").html("Error");
+    $("#modal_message").html("An error occurred during the upload process:<br>" + upload_error);
+    $("#result_modal").css("display", "block");
+    // errors = [];
+    //upload_error = null;
+    clear_form();
+    enable_input();
+    disable_submit();
+    $("#upload_loader").hide();
+}
+
+
 function initialize_upload() {
 
     disable_submit();
@@ -155,11 +178,10 @@ function initialize_upload() {
         maxUploads: 10000
     });
 
-    dropzone_handler.on("processing", function() {
-        console.log("started processing");
-        
-        dropzone_handler.options.autoProcessQueue = true;
-    });
+    // dropzone_handler.on("processing", function() {
+    //     console.log("started processing");
+    //     dropzone_handler.options.autoProcessQueue = true;
+    // });
 
     // dropzone_handler.on("queuecomplete", function(files, response) {
     //     num_sent = 0;
@@ -219,29 +241,28 @@ function initialize_upload() {
         }
     });
 
-    dropzone_handler.on("error", function(files, response) {
+    dropzone_handler.on("error", function(file, response) {
         //dropzone_handler.options.autoProcessQueue = false;
         // console.log("error!");
         // console.log("response", response);
-        // console.log("files", files);
+        //console.log("files", files);
         // console.log("response.error", response.error);
         // errors.push(response.error);
 
+        // console.log("error occurred", error_num, response.error);
+        // error_num++;
+        // let k = 0;
+        // for (let i = 0; i < 1000000000; i++) { k = k + i; }
+        //await new Promise(r => setTimeout(r, 60000));
+        //console.log("waking up");
 
-        dropzone_handler.removeAllFiles(true);
-        num_sent = 0;
-        dropzone_handler.options.autoProcessQueue = false;
+        if (!upload_error) {
 
-        console.log("An error occurred");
-        $("#modal_header_text").html("Error");
-        $("#modal_message").html("An error occurred during the upload process:<br>" + response.error);
-        $("#result_modal").css("display", "block");
-        // errors = [];
+            upload_error = response.error;
+            dropzone_handler.removeAllFiles(true);
 
-        clear_form();
-        enable_input();
-        disable_submit();
-        $("#upload_loader").hide();
+            display_upload_error();
+        }
 
     });
 
@@ -295,6 +316,8 @@ function initialize_upload() {
             $("#upload_loader").hide();
         }
         else {
+            upload_error = null;
+            dropzone_handler.options.autoProcessQueue = true;
             dropzone_handler.processQueue();
         }
     });

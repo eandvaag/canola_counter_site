@@ -36,6 +36,17 @@ function draw_map_chart() {
     );
 
 
+    // let make = metadata["camera_info"]["make"];
+    // let model = metadata["camera_info"]["model"];
+
+    // let camera_entry = camera_specs[make][model];
+    // let sensor_height = camera_entry["sensor_height"];
+    // let sensor_width = camera_entry["sensor_width"];
+    // let focal_length = camera_entry["focal_length"];
+
+    // let flight_height = metadata["flight_height"];
+
+
 
     chart_width = $("#map_container").width();
     chart_height = $("#map_container").height();
@@ -50,14 +61,12 @@ function draw_map_chart() {
         
     let margin = 110;
 
-
-
     let circle_data = [];
     let max_latitude = -10000;
     let min_latitude = 10000;
     let max_longitude = -10000;
     let min_longitude = 10000;
-    let max_density = 0;
+    // let max_density = 0;
     for (dzi_image_path of dzi_image_paths) {
         let image_name = basename(dzi_image_path)
         image_name = image_name.substring(0, image_name.length - 4);
@@ -69,10 +78,22 @@ function draw_map_chart() {
         let color;
         if ((status === "completed_for_training") || (status === "completed_for_testing")) {
             color = "#0080C0";
-            let density = annotations[image_name]["annotations"].length / metadata["images"][image_name]["area_m2"];
-            if (Math.ceil(density) > max_density) {
-                max_density = density;
-            }
+
+            // let gsd_h = (flight_height * sensor_height) / (focal_length * metadata["images"][image_name]["height_px"]);
+            // let gsd_w = (flight_height * sensor_width) / (focal_length * metadata["images"][image_name]["width_px"]);     
+            
+            // let gsd = Math.min(gsd_h, gsd_w);
+
+            // let image_height_m = metadata["images"][image_name]["height_px"] * gsd;
+            // let image_width_m = metadata["images"][image_name]["width_px"] * gsd;
+
+            // let area_m2 = image_width_m * image_height_m;
+
+
+            // let density = annotations[image_name]["annotations"].length / area_m2;
+            // if (Math.ceil(density) > max_density) {
+            //     max_density = density;
+            // }
         }
         else {
             color = "white";
@@ -163,57 +184,85 @@ function draw_map_chart() {
             .attr("height", chart_height - 2 * margin)
             .attr("xlink:href", map_url);
 
+        let vmin;
+        let vmax;
+        if (min_max_rec !== null) {
+            vmin = min_max_rec["vmin"];
+            vmax = min_max_rec["vmax"];
+            let legend_svg = d3.select("#legend_container")
+            .append("svg")
+            .attr("width", "60px")
+            .attr("height", chart_height);
 
-        let legend_svg = d3.select("#legend_container")
-        .append("svg")
-        .attr("width", "60px")
-        .attr("height", chart_height);
+            let cmap = d3.select("#legend_container").select("svg").append("g");
 
-        let cmap = d3.select("#legend_container").select("svg").append("g");
+            let min_color = wheat;
+            let max_color = forestgreen;
+            let rects = [];
+            
+            let num_rects = 1000;
+            for (let i = 0; i < num_rects; i++) {
 
-        let min_color = wheat;
-        let max_color = forestgreen;
-        let rects = [];
-        
-        let num_rects = 1000;
-        for (let i = 0; i < num_rects; i++) {
-            let c = color_map((i / num_rects) * max_density, 0, max_density, min_color, max_color);
-            rects.push({
-                "color": "rgb(" + c[0] + ", " + c[1] + ", " + c[2] + ")"
+                let v = range_map(i, 0, num_rects, vmin, vmax);
+                let c = color_map(v, vmin, vmax, min_color, max_color);
+                //let c = color_map((i / num_rects) * max_density, 0, max_density, min_color, max_color);
+                rects.push({
+                    "color": "rgb(" + c[0] + ", " + c[1] + ", " + c[2] + ")",
+                    "v": v
+                });
+            }
+
+            let legend_yScale = d3.scaleLinear()
+                //.domain([0, max_density])
+                .domain([vmin, vmax])
+                .range([chart_height - margin, margin]);
+
+
+            let legend_y_axis = legend_svg.append("g")
+                .attr("class", "map_legend axis")
+                .attr("transform", "translate(" + 60 + ", 0)");
+
+            //console.log("max_density", max_density);
+
+            //legend_y_axis.call(d3.axisLeft(legend_yScale).tickValues([0, max_density]).tickFormat(d3.format("d")).tickSize(25));
+            legend_y_axis.call(d3.axisLeft(legend_yScale).tickValues([vmin, vmax]).tickFormat(d3.format("d")).tickSize(25));
+
+            cmap.selectAll(".rect")
+            .data(rects)
+            .enter()
+            .append("rect")
+            .attr("x", function(d) {
+                return 40;
+            })
+            // .attr("y", function(d, i) {
+            //     return legend_yScale(((i+1) / num_rects) * max_density);
+            // })
+            // .attr("height", function(d, i) {
+            //     return legend_yScale((i / num_rects) * max_density) - legend_yScale(((i+1) / num_rects) * max_density) + 1;
+            // })
+            .attr("y", function(d, i) {
+                //return legend_yScale(i+1);
+                //return legend_yScale(((i+1) / num_rects) * vmax);
+                return legend_yScale(d.v);
+            })
+            .attr("height", function(d, i) {
+                //return 1; //legend_yScale(i) - legend_yScale(i+1) + 1;
+                //return legend_yScale((i / num_rects) * vmax) - legend_yScale(((i+1) / num_rects) * vmax) + 1;
+                if (i == num_rects -1) {
+                    return (legend_yScale(d.v) - legend_yScale(vmax)) + 1;
+                }
+                else {
+                    return (legend_yScale(d.v) - legend_yScale(rects[i+1]["v"])) + 1;
+                }
+            })
+
+
+            .attr("width", 20)
+            .attr("fill", function(d) {
+                return d["color"];
             });
+
         }
-
-        let legend_yScale = d3.scaleLinear()
-            .domain([0, max_density])
-            .range([chart_height - margin, margin]);
-
-
-        let legend_y_axis = legend_svg.append("g")
-            .attr("class", "map_legend axis")
-            .attr("transform", "translate(" + 60 + ", 0)");
-
-        console.log("max_density", max_density);
-
-        legend_y_axis.call(d3.axisLeft(legend_yScale).tickValues([0, max_density]).tickFormat(d3.format("d")).tickSize(25));
-
-        cmap.selectAll(".rect")
-        .data(rects)
-        .enter()
-        .append("rect")
-        .attr("x", function(d) {
-            return 40;
-        })
-        .attr("y", function(d, i) {
-            return legend_yScale(((i+1) / num_rects) * max_density);
-        })
-        .attr("height", function(d, i) {
-            return legend_yScale((i / num_rects) * max_density) - legend_yScale(((i+1) / num_rects) * max_density) + 1;
-        })
-        .attr("width", 20)
-        .attr("fill", function(d) {
-            return d["color"];
-        });
-
     }
 
 

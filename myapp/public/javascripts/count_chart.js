@@ -13,7 +13,24 @@ function set_count_chart_data() {
 
 
     count_chart_data = {};
-    
+
+    let metric = $("#chart_combo").val();
+
+    let sensor_height;
+    let sensor_width;
+    let focal_length;
+    let flight_height;
+    if (metric == "Count per square metre") {
+        let make = metadata["camera_info"]["make"];
+        let model = metadata["camera_info"]["model"];
+
+        let camera_entry = camera_specs[make][model];
+        sensor_height = camera_entry["sensor_height"];
+        sensor_width = camera_entry["sensor_width"];
+        focal_length = camera_entry["focal_length"];
+        flight_height = metadata["flight_height"];
+    }
+
     /*
     let annotated_count;
     let pred_count;*/
@@ -28,7 +45,7 @@ function set_count_chart_data() {
         }
     }
 
-    let metric = $("#chart_combo").val();
+    
     //console.log("cur_metric", metric);
     if (metric === "Count" || metric === "Count per square metre") {
         for (image_name of Object.keys(annotations)) {
@@ -50,10 +67,25 @@ function set_count_chart_data() {
             //for (class_name of Object.keys(job_config["arch"]["class_map"])) {
             for (overlay_name of Object.keys(count_chart_data[image_name])) {
                 let v = count_chart_data[image_name][overlay_name];
-                if (metric == "Count per square metre")
-                    v = v / metadata["images"][image_name]["area_m2"];
+                if (metric == "Count per square metre") {
+
+
+                    let gsd_h = (flight_height * sensor_height) / (focal_length * metadata["images"][image_name]["height_px"]);
+                    let gsd_w = (flight_height * sensor_width) / (focal_length * metadata["images"][image_name]["width_px"]);     
+                    
+                    let gsd = Math.min(gsd_h, gsd_w);
+
+                    let image_height_m = metadata["images"][image_name]["height_px"] * gsd;
+                    let image_width_m = metadata["images"][image_name]["width_px"] * gsd;
+
+                    let area_m2 = image_width_m * image_height_m;
+
+
+                    v = v / area_m2;
                     v = Math.round((v + Number.EPSILON) * 100) / 100;
+
                     count_chart_data[image_name][overlay_name] = v;
+                }
                 if (v > max_count) {
                     max_count = v;
                 }

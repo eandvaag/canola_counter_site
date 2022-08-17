@@ -4,6 +4,7 @@ let image_set_info;
 let job_config;
 let overlays;
 let metadata;
+let camera_specs;
 let predictions;
 let annotations;
 let metrics;
@@ -35,27 +36,8 @@ let cur_map_model_uuid;
 
 let map_url = null;
 let pred_map_url = null;
-let diff_map = false;
+// let diff_map = false;
 let min_max_rec = null;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -322,7 +304,7 @@ function build_map() {
 
         if (response.error) {    
             console.log("error occurred");
-            diff_map = false;
+            // diff_map = false;
             pred_map_url = null;
             map_url = null;
             draw_map_chart();
@@ -340,17 +322,17 @@ function build_map() {
             map_url = base + "annotated_map.svg?t=" + timestamp;
 
 
-            if (comparison_type === "diff") {
-                pred_map_url = base + "difference_map.svg?t=" + timestamp;
-                diff_map = true;
-            }
-            else {
-                pred_map_url = base + "predicted_map.svg?t=" + timestamp;
-                diff_map = false;
-            }
+            // if (comparison_type === "diff") {
+            //     pred_map_url = base + "difference_map.svg?t=" + timestamp;
+            //     diff_map = true;
+            // }
+            // else {
+            pred_map_url = base + "predicted_map.svg?t=" + timestamp;
+                // diff_map = false;
+            // }
 
 
-            let min_max_rec_url = base + "min_max_rec.json";
+            let min_max_rec_url = base + "min_max_rec.json?t=" + timestamp;
             min_max_rec = get_json(min_max_rec_url);
 
             console.log("showing map");
@@ -487,6 +469,7 @@ $(document).ready(function() {
     annotations = data["annotations"];
     predictions = data["predictions"];
     metadata = data["metadata"];
+    camera_specs = data["camera_specs"];
     metrics = data["metrics"];
     dzi_dir = data["dzi_dir"];
     dzi_image_paths = data["dzi_image_paths"];
@@ -541,7 +524,7 @@ $(document).ready(function() {
         value: "Count",
         text: "Count"
     }));
-    if (!(metadata["missing"]["area_m2"])) {
+    if (can_calculate_density(metadata, camera_specs)) {
         $('#chart_combo').append($('<option>', {
             value: "Count per square metre",
             text: "Count per square metre"
@@ -600,11 +583,14 @@ $(document).ready(function() {
 
     cur_view = "image";
 
-    if ((!(metadata["missing"]["latitude"]) && !(metadata["missing"]["longitude"])) && (!(metadata["missing"]["area_m2"]))) {
+    if (can_calculate_density(metadata, camera_specs)) {
 
         $("#view_button_container").show();
 
         $("#view_button").click(function() {
+
+            console.log("Clicked view button");
+
             if (cur_view == "image") {
                 show_map();
             }

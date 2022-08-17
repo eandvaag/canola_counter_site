@@ -5,6 +5,7 @@ var router = express.Router();
 let landing = require('../controllers/landing');
 let socket_api = require("../socket_api");
 
+
 router.get('/', landing.get_sign_in);
 router.post('/', landing.post_sign_in);
 router.get('/home/:username', landing.get_home);
@@ -31,6 +32,9 @@ router.post('/viewer/:username/:farm_name/:field_name/:mission_date/:timestamp',
 
 router.get('/logout', landing.logout);
 
-router.post('/notification', socket_api.post_notification);
+router.post('/status_notification', socket_api.post_status_notification);
+router.post('/upload_notification', socket_api.post_upload_notification);
+router.post('/results_notification', socket_api.post_results_notification);
+
 
 module.exports = router;

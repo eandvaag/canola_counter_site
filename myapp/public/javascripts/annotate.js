@@ -5,6 +5,7 @@
 
 let image_set_info;
 let metadata;
+let camera_specs;
 let dzi_image_paths;
 let annotations;
 let num_annotations;
@@ -26,6 +27,7 @@ let cur_status;
 
 
 let map_url = null;
+let min_max_rec = null;
 
 let formatter = function(annotation) {
 
@@ -505,15 +507,22 @@ function build_map() {
 
         if (response.error) {  
             show_modal_message("Error", "An error occurred during the generation of the density map.");  
-            map_url = null;
-            draw_map_chart();
+            // map_url = null;
+            // draw_map_chart();
         }
         else {
-            let timestamp = new Date().getTime();    
+            let timestamp = new Date().getTime();   
+            
+            let base = "/plant_detection/usr/data/" + username + "/image_sets/" + image_set_info["farm_name"] + "/" + 
+                    image_set_info["field_name"] + "/" + image_set_info["mission_date"] + "/maps/"
 
-            map_url = "/plant_detection/usr/data/" + username + "/image_sets/" + image_set_info["farm_name"] + "/" + 
-                            image_set_info["field_name"] + "/" + image_set_info["mission_date"] + 
-                            "/maps/annotated_map.svg?t=" + timestamp;
+            map_url = base + "annotated_map.svg?t=" + timestamp;
+
+
+
+            let min_max_rec_url = base + "min_max_rec.json?t=" + timestamp;
+            min_max_rec = get_json(min_max_rec_url);
+
             draw_map_chart();
         }
     });
@@ -1311,6 +1320,7 @@ $(document).ready(function() {
     dzi_image_paths = data["dzi_image_paths"];
     annotations = data["annotations"];
     metadata = data["metadata"];
+    camera_specs = data["camera_specs"];
     excess_green_record = data["excess_green_record"];
 
     /*
@@ -1356,9 +1366,9 @@ $(document).ready(function() {
     }*/
 
     let socket = io();
-    socket.emit('join_message', username + "/" + image_set_info["farm_name"] + "/" + image_set_info["field_name"] + "/" + image_set_info["mission_date"]);
+    socket.emit("join_annotate", username + "/" + image_set_info["farm_name"] + "/" + image_set_info["field_name"] + "/" + image_set_info["mission_date"]);
 
-    socket.on('status_change', function(status) {
+    socket.on("status_change", function(status) {
         console.log("status", status);
 
         if (status["error"] === 'True') {
@@ -1376,11 +1386,11 @@ $(document).ready(function() {
             show_modal_message("Error", error_message);
         }
 
-        let update_num = status["update_num"];
+        let update_num = parseInt(status["update_num"]);
         if (update_num > cur_update_num) {
             cur_update_num = update_num;
             cur_status = status["status"];
-            let cur_num_trained_on = status["num_images_fully_trained_on"];
+            let cur_num_trained_on = parseInt(status["num_images_fully_trained_on"]);
             
             $("#model_status").html(cur_status);
 
@@ -1422,7 +1432,7 @@ $(document).ready(function() {
             }*/
 
 
-            if ("prediction_image_names" in status && cur_panel === "prediction") {
+            if (("prediction_image_names" in status) && (cur_panel === "prediction")) {
                 show_prediction();
             }
 
@@ -1538,7 +1548,7 @@ $(document).ready(function() {
 
 
     //show_image();
-    if ((!(metadata["missing"]["latitude"]) && !(metadata["missing"]["longitude"])) && (!(metadata["missing"]["area_m2"]))) {
+    if (can_calculate_density(metadata, camera_specs)) {
 
         $("#view_button_container").show();
 
@@ -1640,7 +1650,7 @@ $(document).ready(function() {
             else {
                 show_modal_message("Success", 
                 "Your request was successfully submitted. Upon completion, the " +
-                "results will be preserved under this image set's 'Results' tab (accessible from the site's home page).");
+                "results will be preserved under this image set's <br>Results<br> tab (accessible from the site's home page).");
             }
         });
 

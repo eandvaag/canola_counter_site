@@ -32,7 +32,8 @@ function draw_map_chart() {
             num_completed++;
         }
     }
-    let include_annotated_map = (!(diff_map) && num_completed >= 3);
+    //let include_annotated_map = (!(diff_map) && num_completed >= 3);
+    let include_annotated_map = num_completed >= 3;
 
     //let chart_height = $("#seadragon_viewer").height() + "px";
     //let chart_width = chart_height;
@@ -265,12 +266,12 @@ function draw_map_chart() {
                 });
         }
         let pred_text;
-        if (diff_map) {
-            pred_text = "Predicted Minus Actual Seedling Number Per Square Metre";
-        }
-        else {
-            pred_text = "Number of Predicted Seedlings Per Square Metre";
-        }
+        // if (diff_map) {
+        //     pred_text = "Predicted Minus Actual Seedling Number Per Square Metre";
+        // }
+        // else {
+        pred_text = "Number of Predicted Seedlings Per Square Metre";
+        // }
 
         pred_chart.selectAll("text")
             .data([pred_text])
@@ -317,14 +318,14 @@ function draw_map_chart() {
 
             let min_color;
             let max_color;
-            if (diff_map) {
-                min_color = royalblue;
-                max_color = tomato;
-            }
-            else {
-                min_color = wheat;
-                max_color = forestgreen;
-            }
+            // if (diff_map) {
+            //     min_color = royalblue;
+            //     max_color = tomato;
+            // }
+            // else {
+            min_color = wheat;
+            max_color = forestgreen;
+            // }
             let rects = [];
             
             let num_rects = 1000;
@@ -332,22 +333,23 @@ function draw_map_chart() {
                 //(old_val, old_min, old_max, new_min, new_max
 
                 let v = range_map(i, 0, num_rects, vmin, vmax);
-                let c;
-                if (diff_map) {
-                    let vc;
-                    if (i < num_rects / 2) {
-                        vc = range_map(i, 0, num_rects / 2, vmin, 0);
-                        c = color_map(vc, vmin, 0, min_color, oldlace);
-                    }
-                    else {
-                        vc = range_map(i, num_rects / 2, num_rects, 0, vmax);
-                        c = color_map(vc, 0, vmax, oldlace, max_color);
-                    }
-                }
-                else {
-                    //v = range_map(i, 0, num_rects, vmin, vmax);
-                    c = color_map(v, vmin, vmax, min_color, max_color);
-                }
+                let c = color_map(v, vmin, vmax, min_color, max_color);
+                // if (diff_map) {
+                //     let vc;
+                //     if (i < num_rects / 2) {
+                //         vc = range_map(i, 0, num_rects / 2, vmin, 0);
+                //         c = color_map(vc, vmin, 0, min_color, oldlace);
+                //     }
+                //     else {
+                //         vc = range_map(i, num_rects / 2, num_rects, 0, vmax);
+                //         c = color_map(vc, 0, vmax, oldlace, max_color);
+                //     }
+                // }
+                // else {
+                //     //v = range_map(i, 0, num_rects, vmin, vmax);
+                //     c = color_map(v, vmin, vmax, min_color, max_color);
+                // }
+                
                 rects.push({
                     "color": "rgb(" + c[0] + ", " + c[1] + ", " + c[2] + ")",
                     "v": v

@@ -7,12 +7,15 @@ const fs = require('fs');
 const xml_js_convert = require('xml-js');
 const nat_orderBy = require('natural-orderby');
 const { spawn, exec, execSync, fork } = require('child_process');
-const sanitize = require('sanitize-filename');
+//const sanitize = require('sanitize-filename');
 
 const models = require('../models');
 const { response } = require('express');
 
 const glob = require("glob");
+
+
+
 /*
 const express = require('express');
 const app = express();
@@ -352,6 +355,17 @@ exports.get_annotate = function(req, res, next) {
                     return res.redirect(APP_PREFIX);
                 }
 
+                let camera_specs_path = path.join(USR_DATA_ROOT, req.session.user.username, "cameras", "cameras.json");
+                let camera_specs;
+                try {
+                    camera_specs = JSON.parse(fs.readFileSync(camera_specs_path, 'utf8'));
+                }
+                catch (error) {
+                    console.log(error);
+                    return res.redirect(APP_PREFIX);
+                }
+
+
                 let excess_green_record_path = path.join(image_set_dir, "excess_green", "record.json");
                 let excess_green_record;
                 try {
@@ -388,6 +402,7 @@ exports.get_annotate = function(req, res, next) {
                 data["dzi_image_paths"] = nat_orderBy.orderBy(dzi_image_paths);
                 data["annotations"] = annotations;
                 data["excess_green_record"] = excess_green_record;
+                data["camera_specs"] = camera_specs;
                 res.render("annotate", {username: req.session.user.username, data: data});
     
     
@@ -938,7 +953,7 @@ exports.post_upload = function(req, res, next) {
     // }
 
     console.log("contains first?", first);
-    console.log("queued_filenames", queued_filenames);
+    // console.log("queued_filenames", queued_filenames);
 
     let format = /[ `!@#$%^&*()+\=\[\]{};':"\\|,<>\/?~]/;
 
@@ -1017,8 +1032,26 @@ exports.post_upload = function(req, res, next) {
             // }
         }
 
-        let sanitized_fname = sanitize(file.originalname);
-        let extensionless_fname = sanitized_fname.substring(0, sanitized_fname.length-4);
+        if (file.originalname.split(".").length !== 2) {
+            remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
+            delete active_uploads[upload_uuid];
+            return res.status(422).json({
+                error: "At least one filename contains an illegal '.' character."
+            });
+        }
+
+        //let sanitized_fname = sanitize(file.originalname);
+        let extension = file.originalname.substring(file.originalname.length-4);
+        let valid_extensions = [".jpg", ".JPG", ".png", ".PNG", ".tif", ".TIF"];
+        if (!(valid_extensions.includes(extension))) {
+            remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
+            delete active_uploads[upload_uuid];
+            return res.status(422).json({
+                error: "At least one of the provided files does not have an accepted file extension. (Accepted extensions are '.jpg', '.png', and '.tif')."
+            });
+        }
+
+        let extensionless_fname = file.originalname.substring(0, file.originalname.length-4);
         if (extensionless_fname.length > 50) {
             remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
             // if (!sent_response) {
@@ -1030,7 +1063,7 @@ exports.post_upload = function(req, res, next) {
             // }
         }
 
-        let fpath = path.join(images_dir, sanitized_fname);
+        let fpath = path.join(images_dir, file.originalname);
         try {
             fs.writeFileSync(fpath, file.buffer);
         }
@@ -1729,6 +1762,8 @@ exports.post_home = function(req, res, next) {
 
     }
     else if (action === "fetch_results") {
+
+        console.log("fetching results");
        
         let farm_name = req.body.farm_name;
         let field_name = req.body.field_name;
@@ -1901,9 +1936,9 @@ exports.post_home = function(req, res, next) {
             }
         }
 
-        sensor_width = sensor_width + " mm";
-        sensor_height = sensor_height + " mm";
-        focal_length = focal_length + " mm";
+        sensor_width = parseFloat(sensor_width);
+        sensor_height = parseFloat(sensor_height);
+        focal_length = parseFloat(focal_length);
 
         camera_mutex.acquire()
         .then(function(release) {
@@ -1948,6 +1983,8 @@ exports.post_home = function(req, res, next) {
             metadata["camera_info"]["make"] = make;
             metadata["camera_info"]["model"] = model;
 
+            console.log("updating metadata for image_set", metadata);
+
             try {
                 fs.writeFileSync(metadata_path, JSON.stringify(metadata));
             }
@@ -1965,6 +2002,10 @@ exports.post_home = function(req, res, next) {
             let farm_names = get_subdirs(image_sets_root);
             console.log("farm_names", farm_names);
             let used_cameras = {};
+            let cur_make;
+            let cur_model;
+            //let cur_flight_height;
+            //let metadata_commands = [];
             for (farm_name of farm_names) {
             
                 let farm_root = path.join(image_sets_root, farm_name);
@@ -1982,25 +2023,37 @@ exports.post_home = function(req, res, next) {
 
                         let metadata_path = path.join(mission_root, "metadata", "metadata.json");
 
-                        try {
-                            metadata = JSON.parse(fs.readFileSync(metadata_path, 'utf8'));
-                        }
-                        catch (error) {
-                            release();
-                            console.log(error);
-                            response.message = "Failed to read image set metadata file.";
-                            response.error = true;
-                            return res.json(response);
-                        }
+                        if (fpath_exists(metadata_path)) {
 
-                        make = metadata["camera_info"]["make"];
-                        model = metadata["camera_info"]["model"];
+                            try {
+                                metadata = JSON.parse(fs.readFileSync(metadata_path, 'utf8'));
+                            }
+                            catch (error) {
+                                release();
+                                console.log(error);
+                                response.message = "Failed to read image set metadata file.";
+                                response.error = true;
+                                return res.json(response);
+                            }
 
-                        if (!(make in used_cameras)) {
-                            used_cameras[make] = [];
-                        }
-                        if (!(used_cameras[make].includes(model))) {
-                            used_cameras[make].push(model);
+                            cur_make = metadata["camera_info"]["make"];
+                            cur_model = metadata["camera_info"]["model"];
+                            // cur_flight_height = metadata["flight_height"];
+
+                            if (!(cur_make in used_cameras)) {
+                                used_cameras[cur_make] = [];
+                            }
+                            if (!(used_cameras[cur_make].includes(cur_model))) {
+                                used_cameras[cur_make].push(cur_model);
+                            }
+
+                            // if (cur_make == make && cur_model == model) {
+                            //     let metadata_command = "python ../../plant_detection/src/metadata.py " + mission_root;
+                            //     if (cur_flight_height !== "???") {
+                            //         metadata_command = metadata_command + " --flight_height " + cur_flight_height;
+                            //     }
+                            //     metadata_commands.push(metadata_command);
+                            // }
                         }
                     }
                 }
@@ -2031,12 +2084,19 @@ exports.post_home = function(req, res, next) {
                 return res.json(response);
             }
 
-
-
             release();
             
             response.error = false;
             response.camera_specs = camera_specs;
+
+            // for (metadata_command of metadata_commands) {
+            //     console.log("re-running metadata extraction:", metadata_command);
+            //     exec(metadata_command,  {shell: "/bin/bash"}, function (error, stdout, stderr) {
+            //         if (error) {
+            //             console.log( error);
+            //         }
+            //     });
+            // }
             return res.json(response);
 
 
@@ -2100,6 +2160,15 @@ exports.get_viewer = function(req, res, next) {
         catch (error) {
             console.log(error);
         }
+        let camera_specs_path = path.join(USR_DATA_ROOT, req.session.user.username, "cameras", "cameras.json");
+        let camera_specs;
+        try {
+            camera_specs = JSON.parse(fs.readFileSync(camera_specs_path, 'utf8'));
+        }
+        catch (error) {
+            console.log(error);
+            return res.redirect(APP_PREFIX);
+        }
         let predictions_path = path.join(sel_results_dir, "predictions_w3c.json")
         let predictions;
         try {
@@ -2148,6 +2217,7 @@ exports.get_viewer = function(req, res, next) {
         data["annotations"] = annotations;
         data["predictions"] = predictions;
         data["metadata"] = metadata;
+        data["camera_specs"] = camera_specs;
         data["excess_green_record"] = excess_green_record;
         data["metrics"] = metrics;
         data["dzi_dir"] = path.join(APP_PREFIX, dzi_images_dir);

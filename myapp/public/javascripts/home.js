@@ -1,8 +1,9 @@
+let socket;
 let viewing_results = false;
 let active_results_tab_btn = "completed_results_tab_btn";
-let cur_results;
-let fetch_results_interval;
-let fetch_status_interval;
+//let cur_results;
+// let fetch_results_interval;
+// let fetch_status_interval;
 global_disabled = false;
 
 
@@ -197,7 +198,7 @@ function show_image_set_tab(sel_tab_btn_id) {
         show_overview();
     }
     else {
-        show_results();
+        fetch_and_show_results();
     }
 }
 
@@ -207,12 +208,12 @@ function update_make_model() {
 
     let inputs_to_check = ["make_input", "model_input"];
     for (input of inputs_to_check) {
-        let input = $("#" + input).val();
-        let input_length = input.length;
+        let input_val = $("#" + input).val();
+        let input_length = input_val.length;
         if ((input_length < 3) || (input_length > 20)) {
             return false;
         }
-        if (input === "???") {
+        if (input_val === "???") {
             return false;
         }
     }
@@ -252,12 +253,12 @@ function edit_metadata(make, model) {
     add_sensor_fields("150px")
     
 
-    let sensor_width_str = camera_specs[make][model]["sensor_width"];
-    let sensor_height_str = camera_specs[make][model]["sensor_height"];
-    let focal_length_str = camera_specs[make][model]["focal_length"];
-    let sensor_width = parseFloat(sensor_width_str.substring(0, sensor_width_str.length - 3));
-    let sensor_height = parseFloat(sensor_height_str.substring(0, sensor_height_str.length - 3));
-    let focal_length = parseFloat(focal_length_str.substring(0, focal_length_str.length - 3));
+    let sensor_width = camera_specs[make][model]["sensor_width"];
+    let sensor_height = camera_specs[make][model]["sensor_height"];
+    let focal_length = camera_specs[make][model]["focal_length"];
+    // let sensor_width = parseFloat(sensor_width_str.substring(0, sensor_width_str.length - 3));
+    // let sensor_height = parseFloat(sensor_height_str.substring(0, sensor_height_str.length - 3));
+    // let focal_length = parseFloat(focal_length_str.substring(0, focal_length_str.length - 3));
 
     $("#make_input").val(make);
     $("#model_input").val(model);
@@ -416,6 +417,7 @@ function add_make_model_metadata() {
 
 
     for (input of ["make_input", "model_input"]) {
+        console.log("input", input);
         $("#" + input).on("input", function(e) {
             if (update_make_model()) {
                 enable_buttons(["camera_search_button"]);
@@ -659,9 +661,9 @@ function show_overview() {
 
         if (make in camera_specs && model in camera_specs[make]) {
 
-            let sensor_height = camera_specs[make][model]["sensor_height"];
-            let sensor_width = camera_specs[make][model]["sensor_width"];
-            let focal_length = camera_specs[make][model]["focal_length"];
+            let sensor_height = camera_specs[make][model]["sensor_height"].toString() + " mm";
+            let sensor_width = camera_specs[make][model]["sensor_width"].toString() + " mm";
+            let focal_length = camera_specs[make][model]["focal_length"].toString() + " mm";
 
             $("#camera_specs_table").append(`<tr>` +
                     `<th><div class="table_head" style="width: ${label_width};">Sensor Width</div></th>` +
@@ -726,8 +728,8 @@ function show_overview() {
                 `<table class="transparent_table" id="left_table">` +
                 `<tr>` +
                 `<td>` +
-                `<button class="std-button std-button-hover" style="width: 220px; height: 50px;" onclick="annotate_request()">`+
-                    `<span><i class="fa-regular fa-clone" style="margin-right:8px"></i>Annotate</span></button>` +
+                `<button class="std-button std-button-hover" style="width: 220px; height: 80px; border-radius: 100px" onclick="annotate_request()">`+
+                    `<span><i class="fa-solid fa-pen-to-square" style="margin-right:8px"></i>Workspace</span></button>` +
                 `</td>` +
                 `</tr>` +
                 `</table>`);
@@ -778,7 +780,7 @@ function show_overview() {
 
 function fetch_upload_status(farm_name, field_name, mission_date) {
 
-    let prev_status = image_sets_data[farm_name][field_name][mission_date];
+    // let prev_status = image_sets_data[farm_name][field_name][mission_date];
 
     $.post($(location).attr('href'),
     {
@@ -791,20 +793,28 @@ function fetch_upload_status(farm_name, field_name, mission_date) {
     function(response, status) {
         image_sets_data[farm_name][field_name][mission_date] = response.status;
         //if ((prev_status["status"] === "processing") && (response.status["status"] === "uploaded")) {
-        if (prev_status["status"] !== response.status["status"]) {
-            show_image_set_details();
+
+        
+        if ((farm_name === $("#farm_combo").val() && field_name === $("#field_combo").val()) 
+                && mission_date == $("#mission_combo").val()) {
+            show_image_set_details();   
         }
+        // if (prev_status["status"] !== response.status["status"]) {
+        //     show_image_set_details();
+        // }
     });
 }
 
-function fetch_results(farm_name, field_name, mission_date) {
+function fetch_and_show_results() {
+
+    console.log("fetch_and_show_results");
 
     $.post($(location).attr('href'),
     {
         action: "fetch_results",
-        farm_name: farm_name,
-        field_name: field_name,
-        mission_date: mission_date,
+        farm_name: $("#farm_combo").val(),
+        field_name: $("#field_combo").val(),
+        mission_date: $("#mission_combo").val(),
         //upload_status: upload_status,
     },
     function(response, status) {
@@ -818,10 +828,11 @@ function fetch_results(farm_name, field_name, mission_date) {
 
             // }
             console.log("response", response);
-            cur_results = response;
-            if (viewing_results) {
-                show_results();
-            }
+            //cur_results = response;
+            // if (viewing_results) {
+            //     show_results();
+            // }
+            show_results(response);
         }
 
     });
@@ -854,17 +865,17 @@ function delete_result(result_type, result_id) {
         if (response.error) {
             show_error_message("Error", "An error occurred while deleting the result.");
         }
-        fetch_results(farm_name, field_name, mission_date);
+        fetch_and_show_results();
         //show_results();
     });
 }
 
-function show_results() {
+function show_results(results) {
 
     viewing_results = true;
 
 
-    console.log("cur_results", cur_results);
+    //console.log("cur_results", cur_results);
 
     $("#tab_details").empty();
 
@@ -910,7 +921,7 @@ function show_results() {
         `<div style="height: 375px; overflow-y: scroll">` +
         `<table class="transparent_table" id="aborted_table"></table></div></div>`
     );
-    let completed_results = cur_results.completed_results.sort(function(a, b) {
+    let completed_results = results.completed_results.sort(function(a, b) {
         return b["start_time"] - a["start_time"];
     });
     if (completed_results.length > 0) {
@@ -934,7 +945,7 @@ function show_results() {
         $("#completed_results").append(`<div style="height: 120px"></div>`);
         $("#completed_results").append(`<div>No Completed Results Found</div>`);
     }
-    let pending_results = cur_results.pending_results.sort(function(a, b) {
+    let pending_results = results.pending_results.sort(function(a, b) {
         return b["start_time"] - a["start_time"];
     });
     if (pending_results.length > 0) {
@@ -953,7 +964,7 @@ function show_results() {
         $("#pending_results").append(`<div style="height: 120px"></div>`);
         $("#pending_results").append(`<div>No Pending Results Found</div>`);
     }
-    let aborted_results = cur_results.aborted_results.sort(function(a, b) {
+    let aborted_results = results.aborted_results.sort(function(a, b) {
         return b["start_time"] - a["start_time"];
     });
     if (aborted_results.length > 0) {
@@ -1022,16 +1033,18 @@ function show_image_set_details() {
     let field_name = $("#field_combo").val();
     let mission_date = $("#mission_combo").val();
 
-    clearInterval(fetch_status_interval);
-    clearInterval(fetch_results_interval);
+
+
+    // clearInterval(fetch_status_interval);
+    // clearInterval(fetch_results_interval);
 
     $("#image_set_container").empty();
 
 
     let image_set_status = image_sets_data[farm_name][field_name][mission_date]["status"];
     if (image_set_status === "uploaded") {
-        fetch_results(farm_name, field_name, mission_date);
-        fetch_results_interval = setInterval(function() { fetch_results(farm_name, field_name, mission_date); }, 30000); // 30 seconds
+        //fetch_results(farm_name, field_name, mission_date);
+        // fetch_results_interval = setInterval(function() { fetch_results(farm_name, field_name, mission_date); }, 30000); // 30 seconds
 
 
         $("#image_set_container").append(`<ul class="nav" id="image_set_tabs"></ul>`);
@@ -1062,8 +1075,8 @@ function show_image_set_details() {
     }
     else {
         //fetch_upload_status(farm_name, field_name, mission_date);
-        fetch_upload_status(farm_name, field_name, mission_date);
-        fetch_status_interval = setInterval(function() { fetch_upload_status(farm_name, field_name, mission_date); }, 30000); // 30 seconds
+        // fetch_upload_status(farm_name, field_name, mission_date);
+        // fetch_status_interval = setInterval(function() { fetch_upload_status(farm_name, field_name, mission_date); }, 30000); // 30 seconds
 
         $("#image_set_container").append(`<div id="tab_details"></div>`);
 
@@ -1130,6 +1143,35 @@ function initialize_browse() {
 }
 
 $(document).ready(function() {
+
+    console.log("welcome", username);
+
+    socket = io();
+    // socket.disconnect();
+    // socket = io();
+
+    socket.emit("join_home", username);
+
+    socket.on("upload_change", function(message) {
+        console.log("upload change message", message);
+        fetch_upload_status(message["farm_name"], message["field_name"], message["mission_date"]);
+
+    });
+
+
+    socket.on("results_change", function(message) {
+        let farm_name = message["farm_name"];
+        let field_name = message["field_name"];
+        let mission_date = message["mission_date"];
+        if ((farm_name === $("#farm_combo").val() && field_name === $("#field_combo").val()) 
+            && mission_date == $("#mission_combo").val()) {
+            if (viewing_results) {
+                fetch_and_show_results();
+            }
+        }
+    })
+
+
 
     $("#browse_tab_btn").click(function() {
         if (!global_disabled)

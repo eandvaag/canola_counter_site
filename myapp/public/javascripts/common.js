@@ -159,3 +159,24 @@ function escapeHtml(unsafe)
       (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
     );
   }
+
+function can_calculate_density(metadata, camera_specs) {
+
+    let make = metadata["camera_info"]["make"];
+    let model = metadata["camera_info"]["model"];
+
+    if (((metadata["missing"]["latitude"]) || metadata["missing"]["longitude"]) || (metadata["flight_height"] === "???")) {
+        return false;
+    }
+
+    if (!(make in camera_specs)) {
+        return false;
+    }
+
+    if (!(model in camera_specs[make])) {
+        return false;
+    }
+
+    return true;
+
+}
