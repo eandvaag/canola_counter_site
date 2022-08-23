@@ -1,9 +1,14 @@
 const path = require('path');
 const fs = require('fs');
+const glob = require('glob');
 
 const socket_io = require('socket.io');
-const glob = require('glob');
-const io = socket_io();
+const io = socket_io({
+    "path": "/plant_detection/socket.io"
+});
+
+// import { Server } from "socket.io";
+// const io = new Server();
 
 /*var socket_api = {};
 
@@ -138,6 +143,14 @@ function emit_status_change(username, farm_name, field_name, mission_date, statu
                 status["sys_training_blocked"] = "False";
             }
 
+            // status["restart_requested"] = "True";
+            // let restart_file_path = path.join(training_dir, "restart.json");
+            // try {
+            //     fs.accessSync(restart_file_path, fs.constants.F_OK);
+            // }
+            // catch (e) {
+            //     status["restart_requested"] = "False";
+            // }
             
             if (key in workspace_key_to_id) {
                 let socket_id = workspace_key_to_id[key];

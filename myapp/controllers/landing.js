@@ -382,29 +382,57 @@ exports.get_annotate = function(req, res, next) {
                     let dzi_image_path = path.join(APP_PREFIX, dzi_images_dir, image_name + ".dzi");
                     dzi_image_paths.push(dzi_image_path);
                 }
-        
-                let image_set_info = {
-                    "farm_name": farm_name,
-                    "field_name": field_name,
-                    "mission_date": mission_date,
-                    "image_ext": image_ext
-                }
-        
-                console.log("ready to render");
-                let data = {};
 
-                //let cur_weights_path = path.join(image_set_dir, "model", "weights", "best_weights.h5");
-                //data["baseline_initialized"] = fs.existsSync(cur_weights_path);
-                //console.log("baseline_initialized", data["baseline_initialized"]);
+                let prediction_dir = path.join(image_set_dir, "model", "prediction");
+                let predictions = {};
+                glob(path.join(prediction_dir, "images", "*"), function(error, image_prediction_dirs) {
 
-                data["image_set_info"] = image_set_info;
-                data["metadata"] = metadata;
-                data["dzi_image_paths"] = nat_orderBy.orderBy(dzi_image_paths);
-                data["annotations"] = annotations;
-                data["excess_green_record"] = excess_green_record;
-                data["camera_specs"] = camera_specs;
-                res.render("annotate", {username: req.session.user.username, data: data});
-    
+                    if (error) {
+                        console.log(error);
+                        return res.redirect(APP_PREFIX);
+                    }
+
+                    for (image_prediction_dir of image_prediction_dirs) {
+                        let image_name = path.basename(image_prediction_dir);
+
+                        let predictions_path = path.join(image_prediction_dir, "predictions_w3c.json");
+                        let image_predictions;
+                        try {
+                            image_predictions = JSON.parse(fs.readFileSync(predictions_path, 'utf8'));
+                        }
+                        catch {
+                            console.log(error);
+                            return res.redirect(APP_PREFIX);
+                        }
+                        predictions[image_name] = image_predictions[image_name];
+                        // predicted_counts[image_name] = predictions[image_name].length;
+                        
+                    }
+            
+                    let image_set_info = {
+                        "farm_name": farm_name,
+                        "field_name": field_name,
+                        "mission_date": mission_date,
+                        "image_ext": image_ext
+                    }
+            
+                    console.log("ready to render");
+                    let data = {};
+
+                    //let cur_weights_path = path.join(image_set_dir, "model", "weights", "best_weights.h5");
+                    //data["baseline_initialized"] = fs.existsSync(cur_weights_path);
+                    //console.log("baseline_initialized", data["baseline_initialized"]);
+
+                    data["image_set_info"] = image_set_info;
+                    data["metadata"] = metadata;
+                    data["dzi_image_paths"] = nat_orderBy.orderBy(dzi_image_paths);
+                    data["annotations"] = annotations;
+                    data["excess_green_record"] = excess_green_record;
+                    data["camera_specs"] = camera_specs;
+                    data["predictions"] = predictions;
+                    res.render("annotate", {username: req.session.user.username, data: data});
+                });
+        
     
             }).catch(function(error) {
                 console.log(error);
@@ -667,33 +695,73 @@ exports.post_annotate = function(req, res, next) {
         response.error = false;
         return res.json(response);
     }
-    else if (action === "retrieve_prediction") {
-        let image_name = req.body.image_name;
-        let prediction_path = path.join(image_set_dir, "model", "prediction",
-            "images", image_name, "predictions_w3c.json");
+    else if (action === "retrieve_predictions") {
 
-        
-        if (fs.existsSync(prediction_path)) {
+        console.log("retrieve_predictions");
 
-            try {
-                predictions = JSON.parse(fs.readFileSync(prediction_path, 'utf8'));
-                response.error = false;
-                response.predictions = predictions;
-                return res.json(response);
+
+        let image_names = req.body.image_names.split(",");
+        response.predictions = {};
+        // response.metrics = {};
+
+        console.log("image_names", image_names);
+
+        for (image_name of image_names) {
+            let prediction_path = path.join(image_set_dir, "model", "prediction",
+                "images", image_name, "predictions_w3c.json");
+            let metrics_path = path.join(image_set_dir, "model", "prediction",
+                "images", image_name, "metrics.json");    
+
+
+            if (fs.existsSync(prediction_path)) {
+                let image_predictions;
+                try {
+                    image_predictions = JSON.parse(fs.readFileSync(prediction_path, 'utf8'));
+                    // response.error = false;
+                    // response.predictions = predictions;
+                    // return res.json(response);
+                    
+                }
+                catch (error) {
+                    console.log(error);
+                    response.message = "Failed to retrieve predictions.";
+                    response.error = true;
+                    return res.json(response);
+                }
+                response.predictions[image_name] = image_predictions[image_name];
             }
-            catch (error) {
-                console.log(error);
-                response.message = "Failed to retrieve predictions.";
+            else {
+                console.log("No predictions exist for this image");
+                response.message = "No predictions found for the current image.";
                 response.error = true;
                 return res.json(response);
             }
+
+            // if (fs.existsSync(metrics_path)) {
+            //     let image_metrics;
+            //     try {
+            //         image_metrics = JSON.parse(fs.readFileSync(metrics_path, 'utf8'));
+            //     }
+            //     catch (error) {
+            //         console.log(error);
+            //         response.message = "Failed to retrieve prediction metrics.";
+            //         response.error = true;
+            //         return res.json(response);
+            //     }
+            //     response.metrics[image_name] = image_metrics[image_name];
+            // }
+            // else {
+            //     console.log("No prediction metrics exist for this image");
+            //     response.metrics[image_name] = "";
+            //     // response.message = "No prediction metrics found for the current image.";
+            //     // response.error = true;
+            //     // return res.json(response);
+            // }
         }
-        else {
-            console.log("No predictions exist for this image");
-            response.message = "No predictions found for the current image.";
-            response.error = true;
-            return res.json(response);
-        }
+
+        console.log("returning response", response);
+        response.error = false;
+        return res.json(response);
 
     }
     else if (action === "segment") {
@@ -866,7 +934,7 @@ exports.post_upload = function(req, res, next) {
     let first;
     let last;
     let queued_filenames;
-    let flight_height;
+    let camera_height;
     // let sent_response = false;
     if (req.files.length > 1) {
         upload_uuid = req.body.upload_uuid[0];
@@ -876,7 +944,7 @@ exports.post_upload = function(req, res, next) {
         first = false;
         last = false;
         queued_filenames = req.body.queued_filenames[0].split(",");
-        flight_height = req.body.flight_height[0];
+        camera_height = req.body.camera_height[0];
         let num_sent;
         for (let i = 0; i < req.body.num_sent.length; i++) {
             num_sent = parseInt(req.body.num_sent[i])
@@ -898,7 +966,7 @@ exports.post_upload = function(req, res, next) {
         queued_filenames = req.body.queued_filenames.split(",");
         first = parseInt(req.body.num_sent) == 1;
         last = parseInt(req.body.num_sent) == queued_filenames.length;
-        flight_height = req.body.flight_height;
+        camera_height = req.body.camera_height;
     }
     console.log(req.body.num_sent);
 
@@ -953,7 +1021,8 @@ exports.post_upload = function(req, res, next) {
     // }
 
     console.log("contains first?", first);
-    // console.log("queued_filenames", queued_filenames);
+    console.log("queued_filenames", queued_filenames);
+
 
     let format = /[ `!@#$%^&*()+\=\[\]{};':"\\|,<>\/?~]/;
 
@@ -965,6 +1034,49 @@ exports.post_upload = function(req, res, next) {
 
     
     if (first) {
+        let image_set_extension = queued_filenames[0].substring(queued_filenames[0].length-4);
+        let valid_extensions = [".jpg", ".JPG", ".png", ".PNG", ".tif", ".TIF"];
+        if (!(valid_extensions.includes(image_set_extension))) {
+            delete active_uploads[upload_uuid];
+            return res.status(422).json({
+                error: "At least one of the provided files does not have an accepted file extension. (Accepted extensions are '.jpg', '.png', and '.tif')."
+            });
+        }
+
+        for (filename of queued_filenames) {
+            if (format.test(filename)) {
+                delete active_uploads[upload_uuid];
+                return res.status(422).json({
+                    error: "One or more provided filenames contains illegal characters."
+                });
+            }
+    
+            if (filename.split(".").length !== 2) {
+                delete active_uploads[upload_uuid];
+                return res.status(422).json({
+                    error: "At least one filename contains an illegal '.' character."
+                });
+            }
+    
+            let extension = filename.substring(filename.length-4);
+            
+            if (extension !== image_set_extension) {
+                delete active_uploads[upload_uuid];
+                return res.status(422).json({
+                    error: "All images within an image set must have the same file extension."
+                });
+            }
+    
+            let extensionless_fname = filename.substring(0, filename.length-4);
+            if (extensionless_fname.length > 50) {
+                delete active_uploads[upload_uuid];
+                return res.status(422).json({
+                    error: "One or more filenames exceeds maximum allowed length of 50 characters."
+                });
+            }
+    
+        }
+
 
         if (fpath_exists(mission_dir)) {
             // if (!sent_response) {
@@ -1021,6 +1133,7 @@ exports.post_upload = function(req, res, next) {
             });
             // }
         }
+        /*
         if (format.test(file.originalname)) {
             remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
             // if (!sent_response) {
@@ -1050,6 +1163,7 @@ exports.post_upload = function(req, res, next) {
                 error: "At least one of the provided files does not have an accepted file extension. (Accepted extensions are '.jpg', '.png', and '.tif')."
             });
         }
+        */
 
         let extensionless_fname = file.originalname.substring(0, file.originalname.length-4);
         if (extensionless_fname.length > 50) {
@@ -1084,10 +1198,10 @@ exports.post_upload = function(req, res, next) {
 
 
     if (last) {
-        //process_upload(req.session.user.username, farm_name, field_name, mission_date, flight_height);
+        //process_upload(req.session.user.username, farm_name, field_name, mission_date, camera_height);
 
         // TODO if multiple uploads are processed simultaneously, resources may become exhausted
-        fork("process_upload.js", [req.session.user.username, farm_name, field_name, mission_date, flight_height]);
+        fork("process_upload.js", [req.session.user.username, farm_name, field_name, mission_date, camera_height]);
         delete active_uploads[upload_uuid];
     }
 
@@ -1126,7 +1240,7 @@ exports.post_upload = function(req, res, next) {
 //     let first;
 //     let last;
 //     let queued_filenames;
-//     let flight_height;
+//     let camera_height;
 //     let sent_response = false;
 //     if (req.files.length > 1) {
 //         farm_name = req.body.farm_name[0];
@@ -1135,7 +1249,7 @@ exports.post_upload = function(req, res, next) {
 //         first = false;
 //         last = false;
 //         queued_filenames = req.body.queued_filenames[0].split(",");
-//         flight_height = req.body.flight_height[0];
+//         camera_height = req.body.camera_height[0];
 //         let num_sent;
 //         for (let i = 0; i < req.body.num_sent.length; i++) {
 //             num_sent = parseInt(req.body.num_sent[i])
@@ -1156,7 +1270,7 @@ exports.post_upload = function(req, res, next) {
 //         queued_filenames = req.body.queued_filenames.split(",");
 //         first = parseInt(req.body.num_sent) == 1;
 //         last = parseInt(req.body.num_sent) == queued_filenames.length;
-//         flight_height = req.body.flight_height;
+//         camera_height = req.body.camera_height;
 //     }
 //     console.log(req.body.num_sent);
 
@@ -1515,28 +1629,28 @@ exports.post_upload = function(req, res, next) {
 
 //     if (last) {
 //         console.log("Collecting metadata...");
-//         console.log("flight_height", flight_height);
+//         console.log("camera_height", camera_height);
 //         let metadata_command = "python ../../plant_detection/src/metadata.py " + mission_dir;
-//         if (isNumeric(flight_height)) {
-//             numeric_flight_height = parseFloat(flight_height);
-//             if (numeric_flight_height < 0.1 || numeric_flight_height > 100) {
+//         if (isNumeric(camera_height)) {
+//             numeric_camera_height = parseFloat(camera_height);
+//             if (numeric_camera_height < 0.1 || numeric_camera_height > 100) {
 //                 remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
 //                 if (!sent_response) {
 //                     sent_response = true;
 //                     return res.status(422).json({
-//                         error: "Provided flight height is invalid."
+//                         error: "Provided camera height is invalid."
 //                     });
 //                 }
 
 //             }
-//             metadata_command = metadata_command + " --flight_height " + flight_height;
+//             metadata_command = metadata_command + " --camera_height " + camera_height;
 //         }
 //         else {
 //             remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
 //             if (!sent_response) {
 //                 sent_response = true;
 //                 return res.status(422).json({
-//                     error: "Provided flight height is invalid."
+//                     error: "Provided camera height is invalid."
 //                 });
 //             }
 //         }
@@ -1910,7 +2024,7 @@ exports.post_home = function(req, res, next) {
             }
         }
         for (input of [make, model]) {
-            if ((input.length < 3 || input.length > 20) || input === "???") {
+            if ((input.length < 3 || input.length > 20)) {
                 response.message = "Provided metadata is invalid."
                 response.error = true;
                 return res.json(response);
@@ -2004,7 +2118,7 @@ exports.post_home = function(req, res, next) {
             let used_cameras = {};
             let cur_make;
             let cur_model;
-            //let cur_flight_height;
+            //let cur_camera_height;
             //let metadata_commands = [];
             for (farm_name of farm_names) {
             
@@ -2038,7 +2152,7 @@ exports.post_home = function(req, res, next) {
 
                             cur_make = metadata["camera_info"]["make"];
                             cur_model = metadata["camera_info"]["model"];
-                            // cur_flight_height = metadata["flight_height"];
+                            // cur_camera_height = metadata["camera_height"];
 
                             if (!(cur_make in used_cameras)) {
                                 used_cameras[cur_make] = [];
@@ -2046,14 +2160,6 @@ exports.post_home = function(req, res, next) {
                             if (!(used_cameras[cur_make].includes(cur_model))) {
                                 used_cameras[cur_make].push(cur_model);
                             }
-
-                            // if (cur_make == make && cur_model == model) {
-                            //     let metadata_command = "python ../../plant_detection/src/metadata.py " + mission_root;
-                            //     if (cur_flight_height !== "???") {
-                            //         metadata_command = metadata_command + " --flight_height " + cur_flight_height;
-                            //     }
-                            //     metadata_commands.push(metadata_command);
-                            // }
                         }
                     }
                 }
@@ -2106,6 +2212,79 @@ exports.post_home = function(req, res, next) {
             response.error = true;
             return res.json(response);
         });
+
+    }
+    else if (action === "update_camera_height") {
+
+        let farm_name = req.body.farm_name;
+        let field_name = req.body.field_name;
+        let mission_date = req.body.mission_date;
+        let camera_height = req.body.camera_height;
+
+        let image_set_dir = path.join(USR_DATA_ROOT, req.session.user.username, "image_sets",
+                                      farm_name, field_name, mission_date);
+
+        let metadata_path = path.join(image_set_dir, "metadata", "metadata.json");
+
+        console.log("metadata_path", metadata_path);
+
+        console.log("camera_height", camera_height);
+
+        let camera_height_val;
+        if (camera_height.length == 0) {
+            camera_height_val = "";
+        }
+        else {
+            // response.error = true;
+            // response.message = "Provided camera height is invalid";
+            // return res.json(response);
+
+            if (!(isNumeric(camera_height))) {
+                response.error = true;
+                response.message = "Provided camera height is invalid.";
+                return res.json(response);
+            }
+            camera_height_val = parseFloat(camera_height);
+            if (camera_height_val < 0.01 || camera_height_val > 1000) {
+                response.error = true;
+                response.message = "Provided camera height is invalid.";
+                return res.json(response);
+            }
+        }
+
+
+
+        if (fpath_exists(metadata_path)) {
+            try {
+                metadata = JSON.parse(fs.readFileSync(metadata_path, 'utf8'));
+            }
+            catch (error) {
+                response.error = true;
+                response.message = "Failed to read camera metadata file.";
+                return res.json(response);
+            }
+            metadata["camera_height"] = camera_height_val;
+            try {
+                fs.writeFileSync(metadata_path, JSON.stringify(metadata));
+            }
+            catch (error) {
+                response.error = true;
+                response.message = "Failed to write camera metadata file.";
+                return res.json(response);
+            }
+            response.error = false;
+            return res.json(response);
+
+        }
+        else {
+            response.error = true;
+            response.message = "Metadata file does not exist.";
+            return res.json(response);
+        }
+
+        
+
+
 
     }
     else {

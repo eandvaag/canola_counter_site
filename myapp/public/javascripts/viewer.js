@@ -2,7 +2,7 @@
 
 let image_set_info;
 let job_config;
-let overlays;
+// let overlays;
 let metadata;
 let camera_specs;
 let predictions;
@@ -40,8 +40,21 @@ let pred_map_url = null;
 let min_max_rec = null;
 
 
+// let overlay_colors = [
+//     "#0080C0",        
+//     "#FF4040"
+// ];
+
+// let overlay_names = [
+//     "annotations",
+//     "predictions"
+// ];
 
 
+let overlay_colors = {
+    "annotations": "#0080C0",
+    "predictions": "#FF4040"
+};
 
 
 function change_image(image_name) {
@@ -52,34 +65,42 @@ function change_image(image_name) {
     viewer.open(image_to_dzi[cur_img_name]);
 }
 
-function overlay_initialization() {
+function set_prediction_overlay_color() {
 
-    for (const [overlay_name, overlay] of Object.entries(overlays)) {
-
-        let color_id = overlay["color_id"];
-        for (image_name of Object.keys(overlay["overlays"])) {
-            for (annotation of overlay["overlays"][image_name]["annotations"]) {
-                annotation["body"].push({"value": color_id, "purpose": "highlighting"})
-            }
+    for (image_name of Object.keys(predictions)) {
+        for (annotation of predictions[image_name]["annotations"]) {
+            annotation["body"].push({"value": "COLOR_1", "purpose": "highlighting"})
         }
     }
+    // for (const [overlay_name, overlay] of Object.entries(overlays)) {
+
+    //     let color_id = overlay["color_id"];
+    //     for (image_name of Object.keys(overlay["overlays"])) {
+    //         for (annotation of overlay["overlays"][image_name]["annotations"]) {
+    //             annotation["body"].push({"value": color_id, "purpose": "highlighting"})
+    //         }
+    //     }
+    // }
 }
 
 
 function create_overlays_table() {
 
     let models_col_width = "215px";
-    for (const [overlay_name, overlay] of Object.entries(overlays)) {
-        let overlay_color = overlay["color"];
+
+    //for (let i = 0; i < Object.keys(overlay_data); i++) {
+    for (overlay_name of Object.keys(overlay_colors)) {
+        let overlay_color = overlay_colors[overlay_name];
+        //let overlay_name = overlay_data[i]["name"];
         let model_row_id = overlay_name + "_row";
-        $("#models_table").append(`<tr id=${model_row_id}>` +
+        $("#overlays_table").append(`<tr id=${model_row_id}>` +
             `<td><label class="table_label" ` +
             `style="width: ${models_col_width}; background-color: ${overlay_color};">` +
             `<table class="transparent_table">` +
             `<tr>` + 
             `<td style="width: 40px">` +
                 `<label class="switch">` +
-                `<input id=${overlay_name} type="checkbox"></input>` +
+                `<input id=${overlay_name} type="checkbox" checked></input>` +
                 `<span class="switch_slider round"></span></label>` +
             `</td>` +
             `<td style="width: 100%">` +
@@ -92,6 +113,33 @@ function create_overlays_table() {
             `</tr>`);
     }
 }
+
+// function create_overlays_table() {
+
+//     let models_col_width = "215px";
+//     for (const [overlay_name, overlay] of Object.entries(overlays)) {
+//         let overlay_color = overlay["color"];
+//         let model_row_id = overlay_name + "_row";
+//         $("#models_table").append(`<tr id=${model_row_id}>` +
+//             `<td><label class="table_label" ` +
+//             `style="width: ${models_col_width}; background-color: ${overlay_color};">` +
+//             `<table class="transparent_table">` +
+//             `<tr>` + 
+//             `<td style="width: 40px">` +
+//                 `<label class="switch">` +
+//                 `<input id=${overlay_name} type="checkbox"></input>` +
+//                 `<span class="switch_slider round"></span></label>` +
+//             `</td>` +
+//             `<td style="width: 100%">` +
+//                 `<div style="margin-left: 8px">${overlay_name}</div>` +
+//             `</td>` +
+//             `</tr>` +
+//             `</table>` +
+//             `</label>` +
+//             `</td>`+
+//             `</tr>`);
+//     }
+// }
 
 
 function create_image_set_table() {
@@ -203,75 +251,72 @@ let formatter = function(annotation) {
   
 
 
-
 function update_overlays() {
-    anno.clearAnnotations();
-    console.log("update_overlays");
-    let slider_val = Number.parseFloat($("#confidence_slider").val()).toFixed(2);
-    //for (overlay_id of sorted_overlay_ids) {
-    console.log("overlays", overlays);
-    for (const [overlay_name, overlay] of Object.entries(overlays)) {
-        if (cur_img_name in overlay["overlays"] && $("#" + overlay_name).is(":checked")) {
-            for (annotation of overlay["overlays"][cur_img_name]["annotations"]) {
-                //annotation["body"].push({"value": "COLOR_1", "purpose": "highlighting"})
-                /*
-                let tag = {
-                    purpose: "score",
-                    type: "TextualBody",
-                    value: "0.94" //"MyTag"
-                }
-                annotation.body.push(tag);*/
-                //annotation["TAG"] = "MY TEXT"
-                //console.log(annotation)'
 
-                let bodies = Array.isArray(annotation.body) ?
-                annotation.body : [ annotation.body ];
-                let scoreTag = bodies.find(b => b.purpose == 'score');
-                if (!scoreTag || scoreTag.value >= slider_val) {
-                    anno.addAnnotation(annotation);
-                }
+    anno.clearAnnotations();
+    if ($("#annotations").is(":checked")) {
+        for (annotation of annotations[cur_img_name]["annotations"]) {
+            anno.addAnnotation(annotation);
+        }
+    }
+    let slider_val = Number.parseFloat($("#confidence_slider").val()).toFixed(2);
+    if ((cur_img_name in predictions) && ($("#predictions").is(":checked"))) {
+        for (annotation of predictions[cur_img_name]["annotations"]) {
+
+            let bodies = Array.isArray(annotation.body) ?
+            annotation.body : [ annotation.body ];
+            let scoreTag = bodies.find(b => b.purpose == 'score');
+            if (!scoreTag || scoreTag.value >= slider_val) {
+                anno.addAnnotation(annotation);
             }
         }
-
-    }
-/*
-    if $("#annotations")
-    for (annotation of annotations[cur_img_name]["annotations"]) {
-        anno.addAnnotation(annotation);
-    }*/
-}
-
-
-
-function disable_build() {
-
-    let buttons = ["#build_map_button"];
-
-    for (button of buttons) {
-        $(button).prop('disabled', true);
-        $(button).removeClass("table_button_hover");
-        $(button).css("opacity", 0.5);
-        $(button).css("cursor", "default");
     }
 }
 
 
-function enable_build() {
+// function update_overlays() {
+//     anno.clearAnnotations();
+//     console.log("update_overlays");
+//     let slider_val = Number.parseFloat($("#confidence_slider").val()).toFixed(2);
+//     //for (overlay_id of sorted_overlay_ids) {
+//     console.log("overlays", overlays);
+//     for (const [overlay_name, overlay] of Object.entries(overlays)) {
+//         if (cur_img_name in overlay["overlays"] && $("#" + overlay_name).is(":checked")) {
+//             for (annotation of overlay["overlays"][cur_img_name]["annotations"]) {
+//                 //annotation["body"].push({"value": "COLOR_1", "purpose": "highlighting"})
+//                 /*
+//                 let tag = {
+//                     purpose: "score",
+//                     type: "TextualBody",
+//                     value: "0.94" //"MyTag"
+//                 }
+//                 annotation.body.push(tag);*/
+//                 //annotation["TAG"] = "MY TEXT"
+//                 //console.log(annotation)'
 
-    let buttons = ["#build_map_button"];
+//                 let bodies = Array.isArray(annotation.body) ?
+//                 annotation.body : [ annotation.body ];
+//                 let scoreTag = bodies.find(b => b.purpose == 'score');
+//                 if (!scoreTag || scoreTag.value >= slider_val) {
+//                     anno.addAnnotation(annotation);
+//                 }
+//             }
+//         }
+// 
+//     }
+// /*
+//     if $("#annotations")
+//     for (annotation of annotations[cur_img_name]["annotations"]) {
+//         anno.addAnnotation(annotation);
+//     }*/
+// }
 
-    for (button of buttons) {
-        $(button).prop('disabled', false);
-        $(button).addClass("table_button_hover");
-        $(button).css("opacity", 1);
-        $(button).css("cursor", "pointer");
-    }
-}
+
 
 
 
 function build_map() {
-    disable_build();
+    disable_buttons(["build_map_button"]);
     $("#build_loader").show();
     //let sel_metric = $("input[type='radio'][name='metric']:checked").val();
     let sel_interpolation = $("input[type='radio'][name='interpolation']:checked").val();
@@ -299,8 +344,8 @@ function build_map() {
     },
     
     function(response, status) {
-        $("#build_loader").hide();
-        enable_build();
+        $("#build_loader").hide();;
+        enable_buttons(["build_map_button"]);
 
         if (response.error) {    
             console.log("error occurred");
@@ -474,18 +519,18 @@ $(document).ready(function() {
     dzi_dir = data["dzi_dir"];
     dzi_image_paths = data["dzi_image_paths"];
 
-    overlays = {
-        "annotations": {   
-            "overlays": annotations,
-            "color_id": "COLOR_0",
-            "color": "#0080C0",
-        },
-        "predictions": {
-            "overlays": predictions,
-            "color_id": "COLOR_1",
-            "color": "#FF4040",
-        }
-    };
+    // overlays = {
+    //     "annotations": {   
+    //         "overlays": annotations,
+    //         "color_id": "COLOR_0",
+    //         "color": "#0080C0",
+    //     },
+    //     "predictions": {
+    //         "overlays": predictions,
+    //         "color_id": "COLOR_1",
+    //         "color": "#FF4040",
+    //     }
+    // };
 
     /*
     let download_path = "/plant_detection/usr/data/results/" + image_set_info["farm_name"] + "/" +
@@ -538,10 +583,10 @@ $(document).ready(function() {
         value: "PASCAL VOC mAP",
         text: "PASCAL VOC mAP"
     }));
-    $('#chart_combo').append($('<option>', {
-        value: "Ground Cover Percentage",
-        text: "Ground Cover Percentage"
-    }));
+    // $('#chart_combo').append($('<option>', {
+    //     value: "Ground Cover Percentage",
+    //     text: "Ground Cover Percentage"
+    // }));
 
 
     /*
@@ -606,7 +651,8 @@ $(document).ready(function() {
     //cur_img_name = img_files_name.substring(0, img_files_name.length - 4);
 
     //assemble_datasets();
-    overlay_initialization();
+    // overlay_initialization();
+    set_prediction_overlay_color();
     //create_image_set_table(); //dataset_images["all"]);
     create_image_set_table();
     
@@ -619,7 +665,7 @@ $(document).ready(function() {
     //show_image();
 
 
-    $("#models_table").change(function() {
+    $("#overlays_table").change(function() {
         update_overlays();
     });
 

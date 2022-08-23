@@ -44,7 +44,7 @@ function draw_map_chart() {
     // let sensor_width = camera_entry["sensor_width"];
     // let focal_length = camera_entry["focal_length"];
 
-    // let flight_height = metadata["flight_height"];
+    // let camera_height = metadata["camera_height"];
 
 
 
@@ -79,8 +79,8 @@ function draw_map_chart() {
         if ((status === "completed_for_training") || (status === "completed_for_testing")) {
             color = "#0080C0";
 
-            // let gsd_h = (flight_height * sensor_height) / (focal_length * metadata["images"][image_name]["height_px"]);
-            // let gsd_w = (flight_height * sensor_width) / (focal_length * metadata["images"][image_name]["width_px"]);     
+            // let gsd_h = (camera_height * sensor_height) / (focal_length * metadata["images"][image_name]["height_px"]);
+            // let gsd_w = (camera_height * sensor_width) / (focal_length * metadata["images"][image_name]["width_px"]);     
             
             // let gsd = Math.min(gsd_h, gsd_w);
 

@@ -114,13 +114,34 @@ function timestamp_to_date(timestamp){
 
 
 
+function disable_std_buttons(button_ids) {
+
+    for (button_id of button_ids) {
+        console.log("disabling", button_id);
+        $("#" + button_id).prop("disabled", true);
+        $("#" + button_id).removeClass("std-button-hover");
+        $("#" + button_id).css("opacity", 0.5);
+        $("#" + button_id).css("cursor", "default");
+    }
+}
+
+function enable_std_buttons(button_ids) {
+
+    for (button_id of button_ids) {
+        console.log("enabling", button_id);
+        $("#" + button_id).prop("disabled", false);
+        $("#" + button_id).addClass("std-button-hover");
+        $("#" + button_id).css("opacity", 1);
+        $("#" + button_id).css("cursor", "pointer");
+    }
+}
 
 
 function disable_buttons(button_ids) {
 
     for (button_id of button_ids) {
         console.log("disabling", button_id);
-        $("#" + button_id).prop('disabled', true);
+        $("#" + button_id).prop("disabled", true);
         $("#" + button_id).removeClass("table_button_hover");
         $("#" + button_id).css("opacity", 0.5);
         $("#" + button_id).css("cursor", "default");
@@ -130,10 +151,9 @@ function disable_buttons(button_ids) {
 
 function enable_buttons(button_ids) {
 
-    
     for (button_id of button_ids) {
         console.log("enabling", button_id);
-        $("#" + button_id).prop('disabled', false);
+        $("#" + button_id).prop("disabled", false);
         $("#" + button_id).addClass("table_button_hover");
         $("#" + button_id).css("opacity", 1);
         $("#" + button_id).css("cursor", "pointer");
@@ -165,7 +185,7 @@ function can_calculate_density(metadata, camera_specs) {
     let make = metadata["camera_info"]["make"];
     let model = metadata["camera_info"]["model"];
 
-    if (((metadata["missing"]["latitude"]) || metadata["missing"]["longitude"]) || (metadata["flight_height"] === "???")) {
+    if (((metadata["missing"]["latitude"]) || metadata["missing"]["longitude"]) || (metadata["camera_height"] === "")) {
         return false;
     }
 

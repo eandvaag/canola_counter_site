@@ -19,7 +19,7 @@ function set_count_chart_data() {
     let sensor_height;
     let sensor_width;
     let focal_length;
-    let flight_height;
+    let camera_height;
     if (metric == "Count per square metre") {
         let make = metadata["camera_info"]["make"];
         let model = metadata["camera_info"]["model"];
@@ -28,7 +28,7 @@ function set_count_chart_data() {
         sensor_height = camera_entry["sensor_height"];
         sensor_width = camera_entry["sensor_width"];
         focal_length = camera_entry["focal_length"];
-        flight_height = metadata["flight_height"];
+        camera_height = metadata["camera_height"];
     }
 
     /*
@@ -40,19 +40,22 @@ function set_count_chart_data() {
 
     for (image_name of Object.keys(annotations)) {
         count_chart_data[image_name] = {};
-        for (const [overlay_name, overlay] of Object.entries(overlays)) {
+        for (overlay_name of Object.keys(overlay_colors)) {
             count_chart_data[image_name][overlay_name] = 0;
         }
     }
-
     
+    let overlay_map = {
+        "annotations": annotations,
+        "predictions": predictions
+    }
+
     //console.log("cur_metric", metric);
     if (metric === "Count" || metric === "Count per square metre") {
         for (image_name of Object.keys(annotations)) {
-            for (const [overlay_name, overlay] of Object.entries(overlays)) {
-                console.log(overlay);
-                if (image_name in overlay["overlays"]) {
-                    for (annotation of overlay["overlays"][image_name]["annotations"]) {
+            for (overlay_name of Object.keys(overlay_colors)) {
+                if (image_name in overlay_map[overlay_name]) {
+                    for (annotation of overlay_map[overlay_name][image_name]["annotations"]) {
                         let score_el = annotation["body"].find(b => b.purpose == 'score');
                         if (!score_el || score_el.value >= slider_val) {
                             count_chart_data[image_name][overlay_name]++;
@@ -60,6 +63,17 @@ function set_count_chart_data() {
                     }
                 }
             }
+            // for (const [overlay_name, overlay] of Object.entries(overlays)) {
+            //     console.log(overlay);
+            //     if (image_name in overlay["overlays"]) {
+            //         for (annotation of overlay["overlays"][image_name]["annotations"]) {
+            //             let score_el = annotation["body"].find(b => b.purpose == 'score');
+            //             if (!score_el || score_el.value >= slider_val) {
+            //                 count_chart_data[image_name][overlay_name]++;
+            //             }
+            //         }
+            //     }
+            // }
         }
 
         max_count = 0;
@@ -70,8 +84,8 @@ function set_count_chart_data() {
                 if (metric == "Count per square metre") {
 
 
-                    let gsd_h = (flight_height * sensor_height) / (focal_length * metadata["images"][image_name]["height_px"]);
-                    let gsd_w = (flight_height * sensor_width) / (focal_length * metadata["images"][image_name]["width_px"]);     
+                    let gsd_h = (camera_height * sensor_height) / (focal_length * metadata["images"][image_name]["height_px"]);
+                    let gsd_w = (camera_height * sensor_width) / (focal_length * metadata["images"][image_name]["width_px"]);     
                     
                     let gsd = Math.min(gsd_h, gsd_w);
 
@@ -79,6 +93,9 @@ function set_count_chart_data() {
                     let image_width_m = metadata["images"][image_name]["width_px"] * gsd;
 
                     let area_m2 = image_width_m * image_height_m;
+
+                    console.log("area_m2", area_m2);
+                    console.log("gsd", gsd);
 
 
                     v = v / area_m2;
@@ -92,14 +109,14 @@ function set_count_chart_data() {
             }
         }
     }
-    else if (metric === "Ground Cover Percentage") {
+    // else if (metric === "Ground Cover Percentage") {
 
-        for (image_name of Object.keys(annotations)) {
-            count_chart_data[image_name]["annotations"] = excess_green_record[image_name]["ground_cover_percentage"];
-            count_chart_data[image_name]["predictions"] = 0;
-        }
-        max_count = 100;
-    }
+    //     for (image_name of Object.keys(annotations)) {
+    //         count_chart_data[image_name]["annotations"] = excess_green_record[image_name]["ground_cover_percentage"];
+    //         count_chart_data[image_name]["predictions"] = 0;
+    //     }
+    //     max_count = 100;
+    // }
     else {
         let key_map = {
             "MS COCO mAP": "Image MS COCO mAP",
@@ -144,10 +161,15 @@ function draw_count_chart() {
     let chart_width = $("#count_chart").width() - 10;
     let chart_height = $('#count_chart').height() - 10;
 
+    //let chart_width = 270;
+
+
+    //console.log("chart_width", chart_width);
+
 
     count_margin = 30;
 
-    let num_bars = Object.keys(overlays).length;
+    let num_bars = Object.keys(overlay_colors).length;
 
 
     count_svg = d3.select("#count_chart")
@@ -215,6 +237,7 @@ function draw_count_chart() {
          .style("cursor", "default");
 
 
+
     chart.selectAll(".bar")
          .data(Object.keys(count_chart_data[cur_img_name]))
          .enter()
@@ -234,7 +257,7 @@ function draw_count_chart() {
             return 25; //chart_height / (1.65 * num_bars);
          })
          .attr("fill", function(d) {
-            return overlays[d]["color"]; //d.color;
+            return overlay_colors[d]; //d.color;
          })
          .on("mouseover", tip_mouseover)
          .on("mousemove", tip_mousemove)
@@ -263,26 +286,4 @@ function update_count_chart() {
         .attr("width", function(d) {
             return count_xScale(count_chart_data[cur_img_name][d]) - 2 * count_margin;
         });
-}
-
-function zero_count_chart() {
-
-    let sel_class = "plant"; //$("#class_combo").val();
-
-    let data = [];
-    for (overlay of Object.keys(overlays)) {
-        data.push(0);
-    }
-
-    d3.selectAll(".bar")
-        .data(data)
-        .transition()
-        .duration(1000)
-        .attr("x", function(d, i) {
-            return 3 * count_margin;
-        })
-        .attr("width", function(d) {
-            return count_xScale(d) - 2 * count_margin;
-        });
-
 }

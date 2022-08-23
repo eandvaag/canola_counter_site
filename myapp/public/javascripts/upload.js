@@ -10,7 +10,7 @@ function clear_form() {
     $("#farm_input").val("");
     $("#field_input").val("");
     $("#mission_input").val("");
-    $("#flight_height_input").val("");
+    $("#camera_height_input").val("");
     dropzone_handler.removeAllFiles();
 }
 
@@ -34,7 +34,7 @@ function disable_input() {
     }
 
 
-    let inputs = ["farm_input", "field_input", "mission_input", "flight_height_input"];
+    let inputs = ["farm_input", "field_input", "mission_input", "camera_height_input"];
 
     for (input of inputs) {
         $("#" + input).prop("disabled", true);
@@ -75,7 +75,7 @@ function enable_input() {
         $("#" + button).css("cursor", "pointer");
     }
 
-    let inputs = ["farm_input", "field_input", "mission_input", "flight_height_input"];
+    let inputs = ["farm_input", "field_input", "mission_input", "camera_height_input"];
 
     for (input of inputs) {
         $("#" + input).prop("disabled", false);
@@ -113,13 +113,13 @@ function form_is_complete() {
         }
     }
     
-    let flight_height = $("#flight_height_input").val();
-    if (flight_height !== "") {
-        if (!isNumeric(flight_height)) {
+    let camera_height = $("#camera_height_input").val();
+    if (camera_height !== "") {
+        if (!isNumeric(camera_height)) {
             return false;
         }
-        flight_height = parseFloat(flight_height);
-        if (flight_height < 0.1 || flight_height > 100) {
+        camera_height = parseFloat(camera_height);
+        if (camera_height < 0.01 || camera_height > 1000) {
             return false;
         }
     }
@@ -279,7 +279,7 @@ function initialize_upload() {
         formData.append('field_name', $("#field_input").val());
         formData.append('mission_date', $("#mission_input").val());
         formData.append("queued_filenames", queued_filenames.join(","));
-        formData.append('flight_height', $("#flight_height_input").val());
+        formData.append('camera_height', $("#camera_height_input").val());
         if (num_sent == 0) {
             upload_uuid = uuidv4();
         }
@@ -334,7 +334,7 @@ function initialize_upload() {
         update_submit();
     });
 
-    $("#flight_height_input").on("input", function(e) {
+    $("#camera_height_input").on("input", function(e) {
         update_submit();
     });
 

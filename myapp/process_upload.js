@@ -4,7 +4,6 @@ const { spawn, exec, execSync, fork } = require('child_process');
 const { exit } = require('process');
 const http = require('http');
 
-
 const USR_DATA_ROOT = path.join("usr", "data");
 const USR_SHARED_ROOT = path.join("usr", "shared");
 
@@ -83,7 +82,7 @@ function upload_notify(username, farm_name, field_name, mission_date) {
 
 
 
-async function process_upload(username, farm_name, field_name, mission_date, flight_height) {
+async function process_upload(username, farm_name, field_name, mission_date, camera_height) {
 
     let notify_data = {
         "username": username,
@@ -165,7 +164,8 @@ async function process_upload(username, farm_name, field_name, mission_date, fli
 
     let status = {
         "status": "idle",
-        "num_images_fully_trained_on": 0,
+        // "num_images_fully_trained_on": 0,
+        "fully_trained": "True",
         "update_num": 0
     };
     let status_path = path.join(model_dir, "status.json");
@@ -187,7 +187,9 @@ async function process_upload(username, farm_name, field_name, mission_date, fli
         let extensionless_fname = image_name.substring(0, image_name.length-4);
         annotations[extensionless_fname] = {
             "status": "unannotated",
-            "annotations": []
+            "annotations": [],
+            "update_time": 0
+            // "write_time": 0
         };
     }
     console.log("Writing the annotations file");
@@ -263,9 +265,12 @@ async function process_upload(username, farm_name, field_name, mission_date, fli
 
             if (!(no_convert_extensions.includes(extension))) {
                 // console.log("conversion is required");
-                let tmp_path = path.join(conversion_tmp_dir, extensionless_fname + ".jpg");
-                let conv_cmd = "convert " + fpath + " " + tmp_path;
-                let slice_cmd = "./MagickSlicer/magick-slicer.sh '" + tmp_path + "' '" + img_dzi_path + "'";
+                //let tmp_path = path.join(conversion_tmp_dir, extensionless_fname + ".jpg");
+
+                // convert to .png
+                let new_path = path.join(images_dir, extensionless_fname + ".png");
+                let conv_cmd = "convert " + fpath + " " + new_path;
+                let slice_cmd = "./MagickSlicer/magick-slicer.sh '" + new_path + "' '" + img_dzi_path + "'";
 
                 exec(conv_cmd, {shell: "/bin/bash"}, function (error, stdout, stderr) {
 
@@ -287,8 +292,10 @@ async function process_upload(username, farm_name, field_name, mission_date, fli
                             write_and_notify(upload_status_path, {"status": "failed", "error": error.toString()}, notify_data);
                             process.exit(1);
                         }
+
+                        // delete original file
                         try {
-                            fs.unlinkSync(tmp_path);
+                            fs.unlinkSync(fpath);
                         }
                         catch (error) {
                             write_and_notify(upload_status_path, {"status": "failed", "error": error.toString()}, notify_data);
@@ -412,22 +419,21 @@ async function process_upload(username, farm_name, field_name, mission_date, fli
     }
 
     console.log("Collecting metadata...");
-    console.log("flight_height", flight_height);
+    console.log("camera_height", camera_height);
     let metadata_command = "python ../../plant_detection/src/metadata.py " + mission_dir;
-    if (flight_height.length > 0) {
-        if (isNumeric(flight_height)) {
-            numeric_flight_height = parseFloat(flight_height);
-            if (numeric_flight_height < 0.01 || numeric_flight_height > 1000) {
-                //write_upload_status(upload_status_path, {"status": "failed", "error": "Provided flight height is invalid."});
-                write_and_notify(upload_status_path, {"status": "failed", "error": "Provided flight height is invalid."}, notify_data);
+    if (camera_height.length > 0) {
+        if (isNumeric(camera_height)) {
+            let numeric_camera_height = parseFloat(camera_height);
+            if (numeric_camera_height < 0.01 || numeric_camera_height > 1000) {
+                write_and_notify(upload_status_path, {"status": "failed", "error": "Provided camera height is invalid."}, notify_data);
                 return;
             }
         }
         else {
-            write_and_notify(upload_status_path, {"status": "failed", "error": "Provided flight height is invalid."}, notify_data);
+            write_and_notify(upload_status_path, {"status": "failed", "error": "Provided camera height is invalid."}, notify_data);
             return;
         }
-        metadata_command = metadata_command + " --flight_height " + flight_height;
+        metadata_command = metadata_command + " --camera_height " + camera_height;
     }
     console.log(metadata_command);
     try {
@@ -451,8 +457,8 @@ async function process_upload(username, farm_name, field_name, mission_date, fli
 }
 
 
-// function process_and_notify(username, farm_name, field_name, mission_date, flight_height) {
-//     process_upload(username, farm_name, field_name, mission_date, flight_height);
+// function process_and_notify(username, farm_name, field_name, mission_date, camera_height) {
+//     process_upload(username, farm_name, field_name, mission_date, camera_height);
 //     //console.log("now notifying");
 //     //upload_notify(username, farm_name, field_name, mission_date);
 // }
@@ -462,7 +468,7 @@ let username = process.argv[2]
 let farm_name = process.argv[3];
 let field_name = process.argv[4];
 let mission_date = process.argv[5];
-let flight_height=  process.argv[6];
+let camera_height = process.argv[6];
 
-process_upload(username, farm_name, field_name, mission_date, flight_height);
-//process_and_notify(username, farm_name, field_name, mission_date, flight_height);
+process_upload(username, farm_name, field_name, mission_date, camera_height);
+//process_and_notify(username, farm_name, field_name, mission_date, camera_height);

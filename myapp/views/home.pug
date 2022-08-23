@@ -15,7 +15,8 @@ html
         script(src="https://code.jquery.com/jquery-3.6.0.js")
         script(src="https://unpkg.com/dropzone@6.0.0-beta.1/dist/dropzone-min.js")
 
-        script(type='text/javascript' src="/socket.io/socket.io.js")
+        //script(type='text/javascript' src="/plant_detection/socket.io/socket.io.js")
+        script(src="https://cdn.socket.io/4.5.0/socket.io.min.js" integrity="sha384-7EyYLQZgWBi67fBtVxw60/OWl1kjsfrPFcaU0pp0nAh+i8FD068QogUvg85Ewy1k" crossorigin="anonymous")
         
 
         script(type='text/javascript' src='/plant_detection/javascripts/home.js')
@@ -122,7 +123,7 @@ html
                                         table(class="transparent_table" id="input_table")
                                             tr 
                                                 th 
-                                                    div(class="table_head" style="width: 130px") Farm Name 
+                                                    div(class="table_head" style="width: 140px") Farm Name 
                                                         span(style="color: yellow") *
                                                 th 
                                                     div(style="width: 250px")
@@ -130,7 +131,7 @@ html
                                         
                                             tr 
                                                 th 
-                                                    div(class="table_head" style="width: 130px") Field Name 
+                                                    div(class="table_head" style="width: 140px") Field Name 
                                                         span(style="color: yellow") *
                                                 th 
                                                     div(style="width: 250px")
@@ -138,7 +139,7 @@ html
 
                                             tr 
                                                 th 
-                                                    div(class="table_head" style="width: 130px") Mission Date 
+                                                    div(class="table_head" style="width: 140px") Mission Date 
                                                         span(style="color: yellow") *
                                                 th 
                                                     div(style="width: 250px")
@@ -147,10 +148,10 @@ html
 
                                             tr 
                                                 th 
-                                                    div(class="table_head" style="width: 130px") Flight Height (m)
+                                                    div(class="table_head" style="width: 140px") Camera Height (m)
                                                 th 
                                                     div(style="width: 250px")
-                                                        input(id="flight_height_input" class="nonfixed_input")
+                                                        input(id="camera_height_input" class="nonfixed_input")
                                         
                                         br
                                         div(style="color: yellow") * 

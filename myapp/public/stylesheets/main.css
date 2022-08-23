@@ -326,6 +326,16 @@ tr:first-child{ ;}*/
 }
 
 
+.table_button:active {
+  background-color: rgba(0,0,0,0.8); /* white; *//*#e5e5e5;*/
+  -webkit-box-shadow: inset 0px 0px 5px #c1c1c1;
+     -moz-box-shadow: inset 0px 0px 5px #c1c1c1;
+          box-shadow: inset 0px 0px 5px #c1c1c1;
+   outline: none;
+}
+
+
+
 .std-button {
   display: inline-block;
   border-radius: 30px;

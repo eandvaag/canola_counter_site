@@ -30,10 +30,14 @@ html
 
         //script(src="/socket.io/socket.io.js")
         //script(type='text/javascript' src="http://" + location.hostname + ":8110/socket.io/socket.io.js")
-        script(type='text/javascript' src="/socket.io/socket.io.js")
+        //script(type='text/javascript' src="/socket.io/socket.io.js")
+        script(src="https://cdn.socket.io/4.5.0/socket.io.min.js" integrity="sha384-7EyYLQZgWBi67fBtVxw60/OWl1kjsfrPFcaU0pp0nAh+i8FD068QogUvg85Ewy1k" crossorigin="anonymous")
+        
         //script(src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js" integrity="sha512-eVL5Lb9al9FzgR63gDs1MxcDS2wFu3loYAgjIH0+Hg38tCS8Ag62dwKyH+wzDb+QauDpEZjXbMn11blw8cbTJQ==" crossorigin="anonymous")
 
         script(type='text/javascript' src='/plant_detection/javascripts/annotate.js')
+        script(type='text/javascript' src='/plant_detection/javascripts/count_chart.js')
+        script(type='text/javascript' src='/plant_detection/javascripts/ground_cover_chart.js')
         script(type='text/javascript' src='/plant_detection/javascripts/map_chart.js')
         script(type='text/javascript' src='/plant_detection/javascripts/common.js')
 
@@ -151,190 +155,241 @@ html
                                         
 
 
-                                    td(class="dark-bg" style="vertical-align:top; padding: 0px 0px;")
+                                    td(class="dark-bg" style="vertical-align:top; padding: 0px 0px")
+                                        //padding: 0px 0px;")
                                 
-                                        div(style="width: 280px;")
+                                        div(style="width: 100%;")
+                                            // margin: -8px 0px")
 
                                             div
                                                 ul.nav
 
 
-                                                    li.nav(id="show_annotation_button" class="tab-btn-active" style="width: 93px" onclick="show_annotation()") 
+                                                    li.nav(id="show_annotation_button" class="tab-btn-active" style="width: 99px" onclick="show_annotation()") 
                                                         a.nav
                                                             i(class="fa-solid fa-pen-to-square")
 
-                                                    li.nav(id="show_prediction_button" onclick="show_prediction()" style="width: 93px") 
+                                                    li.nav(id="show_prediction_button" onclick="show_prediction()" style="width: 98px") 
                                                         a.nav
                                                             i(class="fa-regular fa-clone")
 
-                                                    li.nav(id="show_segmentation_button" onclick="show_segmentation()" style="width: 93px") 
+                                                    li.nav(id="show_segmentation_button" onclick="show_segmentation()" style="width: 99px") 
                                                         a.nav
                                                             i(class="fa-solid fa-image")
 
 
-                                        div(style="padding: 8px 8px;")
-                                            div(id="annotation_panel")
-                                                div(style="height: 40px")
-                                                table(class="transparent_table")
-                                                    tr
-                                                        td(style="text-align: left")
-                                                            h(class="header2" style="width: 150px") Model Status
-
-                                                        td(style="width: 100%; text-align: left; padding-left: 12px")
-                                                            h(id="model_status")
-
-                                                    tr
-                                                        td(style="text-align: left")
-                                                            h(class="header2" style="width: 150px") Fully Trained?
-
-                                                        td(style="width: 100%; text-align: left; padding-left: 12px")
-                                                            h(id="model_training_status")
-
-                                                table(class="transparent_table")
-                                                    tr 
-                                                        td(style="text-align: left")
-                                                            h(class="header2" style="width: 150px") Training Blocked?
-
-                                                        td(style="text-align: left; padding-left: 12px;")
-                                                            div(style="width: 50px")
-                                                                h(id="train_block_text")
-
-                                                        
-                                                        td(style="width: 100%; text-align: left;")
-                                                            label(class="switch" id="train_block_label")
-                                                                input(id="train_block_switch" type="checkbox" disabled)
-                                                                span(class="switch_slider round" id="train_block_slider")
-
-                                                div(style="height: 5px")
-                                                div(id="train_block_message" style="height: 20px; font-size: 14px; color: #ed452b") 
-
-                                                hr
-                                                //-
+                                        div(style="padding: 8px 8px")
+                                            div(style="width: 280px;")
+                                                // padding: 8px 8px;")
+                                                div(id="annotation_panel")
+                                                    div(style="height: 40px")
                                                     table(class="transparent_table")
                                                         tr
-                                                            td
-                                                                label(class="table_label" style="width: 215px; background-color: black")
-                                                                    table(class="transparent_table")
-                                                                        tr
-                                                                            td(style="width: 40px")
-                                                                                label(class="switch")
-                                                                                    input(id="train_lock" type="checkbox")
-                                                                                    span(class="switch_slider round")
-                                                                            td(style="width: 100%")
-                                                                                div(style="margin-left: 8px") Block Training 
+                                                            td(style="text-align: left")
+                                                                h(class="header2" style="width: 170px") Model Status
 
+                                                            td(style="width: 100%; text-align: left; padding-left: 12px")
+                                                                h(id="model_status")
 
+                                                        tr
+                                                            td(style="text-align: left")
+                                                                h(class="header2" style="width: 170px") Fully Trained?
 
-
-                                                //-
-                                                    div(style="height: 455px")
-                                                    button(id="restart_button" class="std-button std-button-hover" style="width: 190px" onclick="restart_model()")
-                                                        span
-                                                            i(class="fa-solid fa-rotate-right" style="margin-right:8px") 
-                                                            |
-                                                            | Restart Model
-
-
-                                            div(id="prediction_panel" hidden)
-
-                                                
-                                                br
-                                                br
-                                                br
-                                                button(id="request_prediction_button" class="table_button table_button_hover") Request Predictions: This Image
-                                            
-                                                br
-                                                br
-                                                button(id="request_result_button" class="table_button table_button_hover") Request Predictions: All Images
-
-
-                                                div(id="predictions_available" hidden)
-
-                                                    br
-                                                    br
-                                                    button(id="use_predictions_button" class="std-button std-button-hover" style="font-size: 16px") Use Predictions As Annotations
-
-                                                    br
-                                                    br
-                                                    br
-
-
-                                                    hr
-                                                    br
-
-
-                                                    div(style="height: 255px")
-                                                        table(class="transparent_table" id="overlays_table")
-
-                                                    hr
+                                                            td(style="width: 100%; text-align: left; padding-left: 12px")
+                                                                h(id="model_training_status")
 
                                                     table(class="transparent_table")
-                                                        tr 
-                                                            td(style="width: 140px")
-                                                                div(style="width: 140px; text-align:left" class="header2") Show scores
-                                                            td(style="width: 40px")
-                                                                label(class="switch")
-                                                                    input(id="score_switch" type="checkbox")
-                                                                    span(class="switch_slider round")
-                                                            td(style="width: 100%")
+                                                        //- tr 
+                                                        //-     td(style="text-align: left")
+                                                        //-         h(class="header2" style="width: 170px") Restart Requested?
 
-                                                    table(class="transparent_table")                   
-                                                        tr
-                                                            td(style="width: 50px")
-                                                                div(style="width: 50px; text-align:left" class="header2") Filter
+                                                        //-     td(style="text-align: left; padding-left: 12px;")
+                                                        //-         div(style="width: 50px")
+                                                        //-             h(id="restart_requested_text")
 
-                                                            td
-                                                                button(id="score_down" class="table_button table_button_hover" style="margin: 0px; border-radius: 50px; padding-bottom: 4.5px")
-                                                                    i(class="fa-solid fa-circle-chevron-left")
-                                                                    
-                                                            td(style="width: 100%")
-                                                                div(class="slidecontainer" style="width: 100%")
-                                                                    input(type="range" min="0.25" max="1" step="0.01" value="0.5" class="slider" id="confidence_slider")
-
-                                                            td
-                                                                button(id="score_up" class="table_button table_button_hover" style="margin: 0px; border-radius: 50px; padding-bottom: 4.5px")
-                                                                    i(class="fa-solid fa-circle-chevron-right")
                                                             
+                                                        //-     td(style="width: 100%; text-align: left;")
+                                                        //-         label(class="switch" id="restart_requested_label")
+                                                        //-             input(id="restart_requested_switch" type="checkbox" disabled)
+                                                        //-             span(class="switch_slider round" id="restart_requested_slider")
+
+
+
+                                                        tr 
+                                                            td(style="text-align: left")
+                                                                h(class="header2" style="width: 170px") Training Blocked?
+
+                                                            td(style="text-align: left; padding-left: 12px;")
+                                                                div(style="width: 50px")
+                                                                    h(id="train_block_text")
+
+                                                            
+                                                            td(style="width: 100%; text-align: left;")
+                                                                label(class="switch" id="train_block_label")
+                                                                    input(id="train_block_switch" type="checkbox" disabled)
+                                                                    span(class="switch_slider round" id="train_block_slider")
+
+                                                    div(style="height: 5px")
+                                                    div(id="train_block_message" style="height: 20px; font-size: 14px; color: #ed452b") 
+
+                                                    hr
+                                                    //-
+                                                        table(class="transparent_table")
+                                                            tr
+                                                                td
+                                                                    label(class="table_label" style="width: 215px; background-color: black")
+                                                                        table(class="transparent_table")
+                                                                            tr
+                                                                                td(style="width: 40px")
+                                                                                    label(class="switch")
+                                                                                        input(id="train_lock" type="checkbox")
+                                                                                        span(class="switch_slider round")
+                                                                                td(style="width: 100%")
+                                                                                    div(style="margin-left: 8px") Block Training 
+
+
+
+
+                                                    
+                                                    //- div(style="height: 455px")
+                                                    //- button(id="restart_button" class="std-button std-button-hover" style="width: 190px" onclick="restart_model()")
+                                                    //-     span
+                                                    //-         i(class="fa-solid fa-rotate-right" style="margin-right:8px") 
+                                                    //-         |
+                                                    //-         | Restart Model
+
+
+                                                div(id="prediction_panel" hidden)
+
+                                                    
+                                                    br
+                                                    br
+                                                    br
+                                                    button(id="request_prediction_button" class="table_button table_button_hover") Request Predictions: This Image
+                                                
+                                                    br
+                                                    br
+                                                    button(id="request_result_button" class="table_button table_button_hover") Request Predictions: All Images
+
+
+                                                    div(id="predictions_available" hidden)
+
+                                                        br
+                                                        
+                                                        button(id="use_predictions_button" class="std-button std-button-hover" style="font-size: 16px") Use Predictions As Annotations
+
+                                                        br
+                                                        br
+                                                        
+
+
+                                                        hr
+                                                        
+                                                        //- div(style="height: 255px")
+                                                        //-     table(class="transparent_table" id="overlays_table")
+
+
+                                                        div(style="height: 40px")
+                                                            table(class="transparent_table")
+                                                                td(style="text-align: left")
+                                                                    h(class="header2") Metric
+                                                                td(style="width: 100%")
+                                                                    select(id="chart_combo" class="nonfixed_dropdown")
+                                                                        
+                                                        div(id="count_chart" class="scrollable_area" style="height: 115px; width: 270px; border:none")
+                                                            div(id="count_chart_tooltip" class="tooltip" style="z-index: 10")
+
+                                                        hr
+                                                        
+                                                        h(class="header2" style="text-align:left") Overlays
+
+                                                        div(style="height: 100px")
+                                                            table(class="transparent_table" id="overlays_table")
+
+                                                        hr
+
+                                                        table(class="transparent_table")
+                                                            tr 
+                                                                td(style="width: 140px")
+                                                                    div(style="width: 140px; text-align:left" class="header2") Show scores
+                                                                td(style="width: 40px")
+                                                                    label(class="switch")
+                                                                        input(id="score_switch" type="checkbox")
+                                                                        span(class="switch_slider round")
+                                                                td(style="width: 100%")
+
+                                                        table(class="transparent_table")                   
+                                                            tr
+                                                                td(style="width: 50px")
+                                                                    div(style="width: 50px; text-align:left" class="header2") Filter
+
+                                                                td
+                                                                    button(id="score_down" class="table_button table_button_hover" style="margin: 0px; border-radius: 50px; padding-bottom: 4px")
+                                                                        i(class="fa-solid fa-circle-chevron-left")
+                                                                        
+                                                                td(style="width: 100%")
+                                                                    div(class="slidecontainer" style="width: 100%")
+                                                                        input(type="range" min="0.25" max="1" step="0.01" value="0.5" class="slider" id="confidence_slider")
+
+                                                                td
+                                                                    button(id="score_up" class="table_button table_button_hover" style="margin: 0px; border-radius: 50px; padding-bottom: 4px")
+                                                                        i(class="fa-solid fa-circle-chevron-right")
+                                                                
+                                                                td(style="width: 50px")
+                                                                    div(id="confidence_slider_val" style="margin-left: 12px" class="header2") 0.50
+
+
+                                            
+                                                div(id="segmentation_panel" hidden)
+
+                                                    //div(id="my_result" style="border: 1px solid white; height: 280px")
+                                                    div(style="height: 40px")
+                                                    table(class="transparent_table")
+                                                        tr
+                                                            td(style="width: 90px")
+                                                                div(style="width: 90px; text-align:left" class="header2") Threshold:
                                                             td(style="width: 50px")
-                                                                div(id="confidence_slider_val" style="margin-left: 12px" class="header2") 0.50
+                                                                div(id="threshold_slider_val_container" style="text-align: right; width: 50px")
+                                                    table(class="transparent_table")
+                                                        tr
+                                                            td
+                                                                button(id="threshold_score_down" class="table_button table_button_hover" style="margin: 0px; border-radius: 50px; padding-bottom: 4px")
+                                                                    //4.5px")
+                                                                    i(class="fa-solid fa-circle-chevron-left")
+
+                                                            td(style="width: 100%")
+                                                                div(id="threshold_slider_container" class="slidecontainer" style="width: 100%")
+                                                                    //input(type="range" min="-2" max="2" step="0.01" value="0.0" class="slider" id="threshold_slider")
+                                                            
+                                                            td
+                                                                button(id="threshold_score_up" class="table_button table_button_hover" style="margin: 0px; border-radius: 50px; padding-bottom: 4px")
+                                                                    i(class="fa-solid fa-circle-chevron-right")
+                                                                    // style="padding-bottom: 4px")                                                        
+                                                            
+                                                            
+                                                                //div(id="threshold_slider_val" style="margin-left: 12px" class="header2")  
+
+                                                    br
+                                                    br
+                                                    button(id="request_segment_button" class="table_button table_button_hover" style="width: 265px") Segment
+
+                                                    br
+                                                    br
+                                                    button(id="apply_threshold_to_all_button" class="table_button table_button_hover" style="width: 265px") Apply This Threshold To All Images
+
+                                                    br
+                                                    br
+                                                    div(style="height: 210px")
+                                                        div(id="image_loader" class="loader")
+
+                                                    hr
 
 
-                                        
-                                            div(id="segmentation_panel" hidden)
-
-                                                //div(id="my_result" style="border: 1px solid white; height: 280px")
-                                                div(style="height: 40px")
-                                                table(class="transparent_table")
-                                                    tr
-                                                        td(style="width: 90px")
-                                                            div(style="width: 90px; text-align:left" class="header2") Threshold:
-                                                        td(style="width: 50px")
-                                                            div(id="threshold_slider_val_container" style="text-align: right; width: 50px")
-                                                table(class="transparent_table")
-                                                    tr
-                                                        td
-                                                            button(id="threshold_score_down" class="table_button table_button_hover" style="margin: 0px; border-radius: 50px; padding-bottom: 4.5px")
-                                                                i(class="fa-solid fa-circle-chevron-left")
-
-                                                        td(style="width: 100%")
-                                                            div(id="threshold_slider_container" class="slidecontainer" style="width: 100%")
-                                                                //input(type="range" min="-2" max="2" step="0.01" value="0.0" class="slider" id="threshold_slider")
-                                                        
-                                                        td
-                                                            button(id="threshold_score_up" class="table_button table_button_hover" style="margin: 0px; border-radius: 50px; padding-bottom: 4.5px")
-                                                                i(class="fa-solid fa-circle-chevron-right")
-                                                                // style="padding-bottom: 4px")                                                        
-                                                        
-                                                        
-                                                            //div(id="threshold_slider_val" style="margin-left: 12px" class="header2")  
-
-                                                br
-                                                br
-                                                button(id="request_segment_button" class="table_button table_button_hover" style="width: 240px") Segment
-
-                                                br
-                                                br
-                                                div(id="image_loader" class="loader")
+                                                    div(style="text-align:left" class="header2") Ground Cover Percentage: 
+                                                        span(id="ground_cover_text")
+                                                    //div(style="align: center;")
+                                                    div(id="ground_cover_chart" style="margin: auto; height: 115px; width: 115px;")
+                                                    // border:none")
 
                         div(id="map_view_container" hidden)
                             table(class="transparent_table")
