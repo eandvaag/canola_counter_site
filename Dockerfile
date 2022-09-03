@@ -17,6 +17,9 @@ RUN apt update && apt-get install -y linux-libc-dev
 RUN apt update && apt install -y nodejs
 RUN apt update && apt install -y python3
 RUN apt update && apt install -y python3-pip
+RUN apt update && apt install -y iproute2
+RUN apt update && apt install -y iputils-ping
+RUN apt update && apt install -y dnsutils
 RUN mkdir -p /opt/app
 WORKDIR /opt/app
 RUN adduser app

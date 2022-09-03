@@ -88,8 +88,9 @@ exports.sessionChecker = function(req, res, next) {
 //     setTimeout(scheduler, 5000);
 
 // }
+
 /*
-console.log("STARTING THE PYTHON PROCESS");
+console.log("Starting the scheduler...");
 
 let scheduler = spawn("python3", ["../../plant_detection/src/scheduler.py"]);
 
@@ -187,7 +188,14 @@ exports.get_home = function(req, res, next) {
 
         let image_sets_data = {};
         let image_sets_root = path.join(USR_DATA_ROOT, req.session.user.username, "image_sets");
-        let farm_names = get_subdirs(image_sets_root);
+        let farm_names;
+        try {
+           farm_names = get_subdirs(image_sets_root);
+        }
+        catch (error) {
+            console.log("error while fetching subdirectories", error);
+            return res.redirect(APP_PREFIX);
+        }
 
         console.log("farm_names", farm_names);
         for (farm_name of farm_names) {
@@ -1109,7 +1117,13 @@ exports.post_upload = function(req, res, next) {
     }
     else {
         if (!(fpath_exists(mission_dir))) {
-            remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
+            try {
+                remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
+            }
+            catch (error) {
+                console.log("Failed to remove image set");
+                console.log(error);
+            }
             // if (!sent_response) {
             //     sent_response = true;
             delete active_uploads[upload_uuid];
@@ -1124,7 +1138,13 @@ exports.post_upload = function(req, res, next) {
     for (file of req.files) {
 
         if (!(file.mimetype.startsWith('image/'))) {
-            remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
+            try {
+                remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
+            }
+            catch (error) {
+                console.log("Failed to remove image set");
+                console.log(error);
+            }
             // if (!sent_response) {
             //     sent_response = true;
             delete active_uploads[upload_uuid];
@@ -1167,7 +1187,13 @@ exports.post_upload = function(req, res, next) {
 
         let extensionless_fname = file.originalname.substring(0, file.originalname.length-4);
         if (extensionless_fname.length > 50) {
-            remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
+            try {
+                remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
+            }
+            catch (error) {
+                console.log("Failed to remove image set");
+                console.log(error);
+            }
             // if (!sent_response) {
             //     sent_response = true;
             delete active_uploads[upload_uuid];
@@ -1182,7 +1208,13 @@ exports.post_upload = function(req, res, next) {
             fs.writeFileSync(fpath, file.buffer);
         }
         catch (error) {
-            remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
+            try {
+                remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
+            }
+            catch (error) {
+                console.log("Failed to remove image set");
+                console.log(error);
+            }
             // if (!sent_response) {
             //     sent_response = true;
             delete active_uploads[upload_uuid];
@@ -1771,17 +1803,25 @@ exports.post_home = function(req, res, next) {
             else {
                 console.log("No annotations found, deleting image set");
 
-                fs.rmSync(mission_dir, { recursive: true, force: true });
+                try {
+                    fs.rmSync(mission_dir, { recursive: true, force: true });
 
-                let field_dir = path.join(USR_DATA_ROOT, req.session.user.username, "image_sets", farm_name, field_name);
-                let missions = get_subdirs(field_dir);
-                if (missions.length == 0) {
-                    fs.rmSync(field_dir, { recursive: true, force: true });
-                    let farm_dir = path.join(USR_DATA_ROOT, req.session.user.username, "image_sets", farm_name);
-                    let fields = get_subdirs(farm_dir);
-                    if (fields.length == 0) {
-                        fs.rmSync(farm_dir, { recursive: true, force: true });
+                    let field_dir = path.join(USR_DATA_ROOT, req.session.user.username, "image_sets", farm_name, field_name);
+                    let missions = get_subdirs(field_dir);
+                    if (missions.length == 0) {
+                        fs.rmSync(field_dir, { recursive: true, force: true });
+                        let farm_dir = path.join(USR_DATA_ROOT, req.session.user.username, "image_sets", farm_name);
+                        let fields = get_subdirs(farm_dir);
+                        if (fields.length == 0) {
+                            fs.rmSync(farm_dir, { recursive: true, force: true });
+                        }
                     }
+                }
+                catch (error) {
+                    console.log(error);
+                    response.error = true;
+                    response.message = "An error occurred while deleting the image set: " + error.toString();
+                    return res.json(response);
                 }
 
                 // TODO: remove unneeded keys from cameras.json
@@ -2330,6 +2370,7 @@ exports.get_viewer = function(req, res, next) {
         }
         catch (error) {
             console.log(error);
+            return res.redirect(APP_PREFIX)
         }
         let metadata_path = path.join(image_set_dir, "metadata", "metadata.json");
         let metadata;
@@ -2338,6 +2379,7 @@ exports.get_viewer = function(req, res, next) {
         }
         catch (error) {
             console.log(error);
+            return res.redirect(APP_PREFIX)
         }
         let camera_specs_path = path.join(USR_DATA_ROOT, req.session.user.username, "cameras", "cameras.json");
         let camera_specs;
@@ -2355,6 +2397,7 @@ exports.get_viewer = function(req, res, next) {
         }
         catch (error) {
             console.log(error);
+            return res.redirect(APP_PREFIX)
         }
         let metrics_path = path.join(sel_results_dir, "metrics.json");
         let metrics;
@@ -2363,6 +2406,7 @@ exports.get_viewer = function(req, res, next) {
         }
         catch (error) {
             console.log(error);
+            return res.redirect(APP_PREFIX)
         }
         let excess_green_record_path = path.join(sel_results_dir, "excess_green_record.json");
         let excess_green_record;
@@ -2371,6 +2415,7 @@ exports.get_viewer = function(req, res, next) {
         }
         catch (error) {
             console.log(error);
+            return res.redirect(APP_PREFIX)
         }
         
         let dzi_images_dir = path.join(image_set_dir, "dzi_images");

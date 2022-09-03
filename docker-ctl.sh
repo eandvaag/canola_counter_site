@@ -1,26 +1,27 @@
 #/bin/bash
 
-if [[ "$#" -ne 1 ]]; then
-	echo "Usage: docker-ctl [CMD]"
+if [[ "$#" -ne 2 ]]; then
+	echo "Usage: docker-ctl [CPU_NAME] [CMD]"
 	exit 2
 fi
-if [[ "$1" = "start" ]] || [[ "$1" = "start-headless" ]]; then
-	cp docker-compose.yml ..
+
+if [[ "$2" = "start" ]] || [[ "$2" = "start-headless" ]]; then
+	cp docker-compose-"$1".yml ../docker-compose.yml
 	cp Dockerfile ..
 	cp .dockerignore ..
 	cd ..
-	if [ "$1" = "start" ]; then
+	if [ "$2" = "start" ]; then
 		docker-compose up
 	else
 		docker-compose up -d
 	fi
 
-elif [[ "$1" = "stop" ]]; then
+elif [[ "$2" = "stop" ]]; then
 	cd ..
 	docker-compose down -v --rmi local
 
 else
-	echo "Invalid command argument: $1"
+	echo "Invalid command argument"
 
 fi
 

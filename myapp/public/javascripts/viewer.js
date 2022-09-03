@@ -31,6 +31,7 @@ let image_names = {
 let viewer;
 let anno;
 let cur_img_name;
+let cur_img_list;
 let cur_view;
 let cur_map_model_uuid;
 
@@ -60,6 +61,22 @@ let overlay_colors = {
 function change_image(image_name) {
     console.log("change_image", image_name);
     cur_img_name = image_name;
+    
+    let index = cur_img_list.findIndex(x => x == cur_img_name);
+    if (index == 0) {
+        disable_std_buttons(["prev_image_button"]);
+    }
+    else {
+        enable_std_buttons(["prev_image_button"]);
+    }
+    if (index == cur_img_list.length - 1) {
+        disable_std_buttons(["next_image_button"]);
+    }
+    else {
+        enable_std_buttons(["next_image_button"]);
+    }
+
+
     $("#seadragon_viewer").empty();
     create_viewer_and_anno();
     viewer.open(image_to_dzi[cur_img_name]);
@@ -185,6 +202,7 @@ function create_image_set_table() {
         "completed_for_testing": "C. Te."
     };
 
+    cur_img_list = [];
     for (image_name of natsort(Object.keys(annotations))) {
         if ((filter_val === "all") || (annotations[image_name]["status"] === filter_val)) {
 
@@ -208,6 +226,8 @@ function create_image_set_table() {
             //`</div></td>` + 
             //`<td><div class="table_entry">${img_dataset}</div></td>` +
             `</tr>`);
+
+            cur_img_list.push(image_name);
         }
     }
 }
@@ -500,6 +520,7 @@ function create_viewer_and_anno() {
 
         update_overlays();
         update_count_chart();
+        update_score_chart();
 
     });
 
@@ -557,7 +578,10 @@ $(document).ready(function() {
     let init_image_name = basename(dzi_image_paths[0]);
     cur_img_name = init_image_name.substring(0, init_image_name.length - 4);
 
-
+    disable_std_buttons(["prev_image_button"]);
+    if (dzi_image_paths.length == 1) {
+        disable_std_buttons(["next_image_button"]);
+    }
 
     $("#image_set_name").text(farm_name + "  |  " + 
                               field_name + "  |  " + 
@@ -574,6 +598,7 @@ $(document).ready(function() {
             value: "Count per square metre",
             text: "Count per square metre"
         }));
+        // $('#chart_combo').append(`<option value="Count per square meter">Count / m&sup2;</option>`);
     }
     $('#chart_combo').append($('<option>', {
         value: "MS COCO mAP",
@@ -658,7 +683,9 @@ $(document).ready(function() {
     
     create_overlays_table();
     set_count_chart_data();
+    set_score_chart_data();
     draw_count_chart();
+    draw_score_chart();
 
     create_viewer_and_anno();
 
@@ -676,6 +703,7 @@ $(document).ready(function() {
         $("#slider_val").html(slider_val);
         update_overlays();
         set_count_chart_data();
+        update_score_chart();
         update_count_chart();
     });
 
@@ -695,6 +723,23 @@ $(document).ready(function() {
 
     $("#filter_combo").change(function() {
         create_image_set_table();
+        if (cur_img_list.length > 0) {
+            $("#image_set_table_container").scrollTop(0);
+            $("#right_panel").show();
+            $("#image_navigation_buttons").show();
+            // disable_std_buttons(["prev_image_button"]);
+            // if (cur_img_list.length == 1) {
+            //     disable_std_buttons(["next_image_button"]);
+            // }
+            change_image(cur_img_list[0]);
+        }
+        else {
+            $("#image_name").text("");
+            $("#image_status").text("");
+            $("#seadragon_viewer").empty();
+            $("#right_panel").hide();
+            $("#image_navigation_buttons").hide();
+        }
     });
 
     $("#download_button").click(function() {
@@ -721,7 +766,31 @@ $(document).ready(function() {
         clearInterval(score_handler);
     });
 
+    $("#next_image_button").click(function() {
 
+        let index = cur_img_list.findIndex(x => x == cur_img_name) + 1;
+        // if (index > 0) {
+        //     enable_std_buttons(["prev_image_button"]);
+        // }
+        // if (index == dzi_image_paths.length - 1) {
+        //     disable_std_buttons(["next_image_button"]);
+        // }
+        change_image(cur_img_list[index]);
+    
+    });
+
+    $("#prev_image_button").click(function() {
+
+        let index = cur_img_list.findIndex(x => x == cur_img_name) - 1;
+        // if (index < dzi_image_paths.length - 1) {
+        //     enable_std_buttons(["next_image_button"]);
+        // }
+        // if (index == 0) {
+        //     disable_std_buttons(["prev_image_button"]);
+        // }
+        change_image(cur_img_list[index]);
+    
+    });
 
 });
 

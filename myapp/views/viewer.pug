@@ -24,6 +24,7 @@ html
 
         script(type='text/javascript' src='/plant_detection/javascripts/viewer.js')
         script(type='text/javascript' src='/plant_detection/javascripts/count_chart.js')
+        script(type='text/javascript' src='/plant_detection/javascripts/score_chart.js')
         script(type='text/javascript' src='/plant_detection/javascripts/viewer_map_chart.js')
         script(type='text/javascript' src='/plant_detection/javascripts/common.js')
 
@@ -116,15 +117,27 @@ html
                                                         td(style="width:100%")
                                                             select(id="filter_combo" class="nonfixed_dropdown")
                                                                 option all
-                                                                option completed_for_testing
-                                                                option completed_for_training
                                                                 option unannotated
+                                                                option completed_for_training
+                                                                option completed_for_testing
 
                                                 br
-                                                div(class="scrollable_area" style="height: 460px; border:none")
+                                                div(id="image_set_table_container" class="scrollable_area" style="height: 475px; border:none")
                                                     table(id="image_set_table")
 
-                                                br
+                                                div(style="height: 10px")
+                                                div(style="height: 40px")
+                                                    table(id="image_navigation_buttons")
+                                                        tr
+                                                            td(style="width: 140px")
+                                                                button(id="prev_image_button" class="std-button std-button-hover" style="font-size: 16px; width: 100%") 
+                                                                    i(class="fa-solid fa-circle-chevron-left")
+                                                                    | 
+                                                                    | Previous
+                                                            td(style="width: 140px")
+                                                                button(id="next_image_button" class="std-button std-button-hover" style="font-size: 16px; width: 100%") Next 
+                                                                    i(class="fa-solid fa-circle-chevron-right")                                                    
+
                                                 hr
                                                 div(style="height: 5px")
 
@@ -132,7 +145,7 @@ html
                                                     i(class="fa fa-download fa-sm")
                                                     span(style="margin-left: 10px") Download Results 
                                                 
-                                                div(style="height: 5px")                                     
+                                                //div(style="height: 5px")                                     
 
 
                                     td(style="width: 100%" class="viewer" id="seadragon_viewer")
@@ -140,57 +153,65 @@ html
 
                                     td(class="dark-bg" style="vertical-align:top")
                                         div(style="width: 280px;")
-                                            div(style="height: 40px")
-                                                table(class="transparent_table")
-                                                    td(style="text-align: left")
-                                                        h(class="header2") Metric
-                                                    td(style="width: 100%")
-                                                        select(id="chart_combo" class="nonfixed_dropdown")
-                                                            
-                                            div(id="count_chart" class="scrollable_area" style="height: 215px; border:none")
-                                                div(id="count_chart_tooltip" class="tooltip" style="z-index: 10")
-                                            
-                                            
-                                            hr
 
-                                            h(class="header2" style="text-align:left") Overlays
+                                            div(id="right_panel")
+                                                div(style="height: 40px")
+                                                    table(class="transparent_table")
+                                                        td(style="text-align: left")
+                                                            h(class="header2") Metric
+                                                        td(style="width: 100%")
+                                                            select(id="chart_combo" class="nonfixed_dropdown")
+                                                                
+                                                div(id="count_chart" style="height: 130px; border:none")
+                                                    div(id="count_chart_tooltip" class="tooltip" style="z-index: 10")
 
-                                            div(class="scrollable_area" style="height: 280px; border:none")
-                                                table(id="overlays_table" class="transparent_table")     
-
-
-                                            hr
+                                                hr
                                                 
-                                            table(class="transparent_table")
-                                                tr
-                                                    td(style="width: 155px")
-                                                        div(style="width: 155px; text-align:left" class="header2") Show scores
-                                                    td(style="width:40px")
-                                                        label(class="switch")
-                                                            input(id="scores_checkbox" type="checkbox")
-                                                            span(class="switch_slider round")
-                                                    td(style="width: 100%")
 
-                                            table(class="transparent_table")
+                                                h(class="header2" style="text-align:left") Overlays
+
+                                                div(class="scrollable_area" style="height: 120px; border:none")
+                                                    table(id="overlays_table" class="transparent_table")
+
+
+                                                hr  
+
+                                                h(class="header2" style="text-align:left") Score Distribution
+                                                div(id="score_chart" style="height: 210px; border:none")
+                                                
+                                                div(style="height: 20px")
+                                                hr
                                                     
-                                                tr
-                                                    td(style="width: 50px")
-                                                        div(style="width: 50px; text-align:left" class="header2") Filter
+                                                table(class="transparent_table")
+                                                    tr
+                                                        td(style="width: 155px")
+                                                            div(style="width: 155px; text-align:left" class="header2") Show scores
+                                                        td(style="width:40px")
+                                                            label(class="switch")
+                                                                input(id="scores_checkbox" type="checkbox")
+                                                                span(class="switch_slider round")
+                                                        td(style="width: 100%")
 
-                                                    td
-                                                        button(id="score_down" class="table_button table_button_hover" style="margin: 0px; border-radius: 50px; padding-bottom: 4px")
-                                                            i(class="fa-solid fa-circle-chevron-left")
-                                                            
-                                                    td(style="width: 100%")
-                                                        div(class="slidecontainer" style="width: 100%")
-                                                            input(type="range" min="0.25" max="1" step="0.01" value="0.5" class="slider" id="confidence_slider")
+                                                table(class="transparent_table")
+                                                        
+                                                    tr
+                                                        td(style="width: 50px")
+                                                            div(style="width: 50px; text-align:left" class="header2") Filter
 
-                                                    td
-                                                        button(id="score_up" class="table_button table_button_hover" style="margin: 0px; border-radius: 50px; padding-bottom: 4px")
-                                                            i(class="fa-solid fa-circle-chevron-right")
-                                                    
-                                                    td(style="width: 50px")
-                                                        div(id="slider_val" style="margin-left: 12px" class="header2") 0.50
+                                                        td
+                                                            button(id="score_down" class="table_button table_button_hover" style="margin: 0px; border-radius: 50px; padding-bottom: 4px")
+                                                                i(class="fa-solid fa-circle-chevron-left")
+                                                                
+                                                        td(style="width: 100%")
+                                                            div(class="slidecontainer" style="width: 100%")
+                                                                input(type="range" min="0.25" max="1" step="0.01" value="0.5" class="slider" id="confidence_slider")
+
+                                                        td
+                                                            button(id="score_up" class="table_button table_button_hover" style="margin: 0px; border-radius: 50px; padding-bottom: 4px")
+                                                                i(class="fa-solid fa-circle-chevron-right")
+                                                        
+                                                        td(style="width: 50px")
+                                                            div(id="slider_val" style="margin-left: 12px" class="header2") 0.50
 
 
                         div(id="map_view_container" hidden)

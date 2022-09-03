@@ -37,6 +37,7 @@ html
 
         script(type='text/javascript' src='/plant_detection/javascripts/annotate.js')
         script(type='text/javascript' src='/plant_detection/javascripts/count_chart.js')
+        script(type='text/javascript' src='/plant_detection/javascripts/score_chart.js')
         script(type='text/javascript' src='/plant_detection/javascripts/ground_cover_chart.js')
         script(type='text/javascript' src='/plant_detection/javascripts/map_chart.js')
         script(type='text/javascript' src='/plant_detection/javascripts/common.js')
@@ -143,9 +144,25 @@ html
 
                                             br
                                             br
+
+
                                             h(class="header2" style="text-align: left") Images
-                                            div(class="scrollable_area" style="height: 390px; border: none")
+
+                                            div(class="scrollable_area" style="height: 480px; border: none")
                                                 table(id="image_set_table")
+
+                                            div(style="height: 10px")
+                                            table
+                                                tr
+                                                    td(style="width: 140px")
+                                                        button(id="prev_image_button" class="std-button std-button-hover" style="font-size: 16px; width: 100%") 
+                                                            i(class="fa-solid fa-circle-chevron-left")
+                                                            | 
+                                                            | Previous
+                                                    td(style="width: 140px")
+                                                        button(id="next_image_button" class="std-button std-button-hover" style="font-size: 16px; width: 100%") Next 
+                                                            i(class="fa-solid fa-circle-chevron-right")
+
 
 
                                     td(style="width: 100%; position: relative" class="viewer" id="seadragon_viewer")
@@ -262,24 +279,24 @@ html
                                                 div(id="prediction_panel" hidden)
 
                                                     
-                                                    br
-                                                    br
-                                                    br
-                                                    button(id="request_prediction_button" class="table_button table_button_hover") Request Predictions: This Image
+                                                    
+                                                    //br
+                                                    //br
+                                                    div(style="height: 35px")
+                                                    button(id="request_prediction_button" class="table_button table_button_hover" style="width: 250px") Request Predictions: This Image
                                                 
-                                                    br
-                                                    br
-                                                    button(id="request_result_button" class="table_button table_button_hover") Request Predictions: All Images
+                                                    div(style="height: 10px")
+                                                    //br
+                                                    button(id="request_result_button" class="table_button table_button_hover" style="width: 250px") Request Predictions: All Images
 
 
                                                     div(id="predictions_available" hidden)
 
-                                                        br
+                                                        div(style="height: 10px")
                                                         
                                                         button(id="use_predictions_button" class="std-button std-button-hover" style="font-size: 16px") Use Predictions As Annotations
 
-                                                        br
-                                                        br
+                                                        div(style="height: 5px")
                                                         
 
 
@@ -296,16 +313,20 @@ html
                                                                 td(style="width: 100%")
                                                                     select(id="chart_combo" class="nonfixed_dropdown")
                                                                         
-                                                        div(id="count_chart" class="scrollable_area" style="height: 115px; width: 270px; border:none")
+                                                        div(id="count_chart" style="height: 95px; width: 270px; border:none")
                                                             div(id="count_chart_tooltip" class="tooltip" style="z-index: 10")
 
                                                         hr
                                                         
                                                         h(class="header2" style="text-align:left") Overlays
 
-                                                        div(style="height: 100px")
+                                                        div(style="height: 90px")
                                                             table(class="transparent_table" id="overlays_table")
 
+                                                        hr
+
+                                                        h(class="header2" style="text-align:left") Score Distribution
+                                                        div(id="score_chart" style="height: 130px; width: 270px; border:none")
                                                         hr
 
                                                         table(class="transparent_table")

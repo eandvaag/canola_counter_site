@@ -1,0 +1,55 @@
+version: "3.7"
+services:
+  db:
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_USER: plant_detection_dbuser
+      POSTGRES_PASSWORD: pass
+      POSTGRES_DB: plant_detection_db
+    ports:
+      - '8120:5432'
+    volumes:
+      - plant_detection_db:/var/lib/postgresql/data
+    networks: 
+      - container_net
+
+
+  myapp:
+    build: 
+      context: .
+    environment:
+      DB_SCHEMA: plant_detection_db
+      DB_USER: plant_detection_dbuser
+      DB_PASSWORD: pass
+      DB_HOST: db 
+      DB_PORT: 5432 
+      NODE_ENV: 'docker'
+      CC_IP: myapp
+      CC_PORT: '8110'
+    depends_on:
+      - db
+    ports:
+      - '8110:8110'
+    volumes:
+      - type: bind
+        source: /home/erik/Documents/plant_detection/plant_detection_viewer/myapp/usr
+        target: /opt/app/plant_detection_viewer/myapp/usr
+    networks: 
+      - container_net
+
+    runtime: nvidia
+
+networks:
+  container_net:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.26.0.0/24
+    #internal: true
+
+
+
+volumes:
+  plant_detection_db:

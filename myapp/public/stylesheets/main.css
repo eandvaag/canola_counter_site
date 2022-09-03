@@ -81,7 +81,8 @@ hr {
   color: #ddccbb;
   font-weight: 400;
   display: block;
-  margin: 10px 0;
+  /*margin: 10px 0;*/
+  margin: 5px 0;
 }
 
 .selector_label {
@@ -213,7 +214,7 @@ hr {
 */
 
 .viewer {
-  height: 650px;
+  height: 720px; /*650px;*/
   border:  1px solid white;
   background-color: #222621;
 }

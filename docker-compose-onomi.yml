@@ -16,6 +16,7 @@ services:
 
 
   myapp:
+    user: "${UID}:${GID}"
     build: 
       context: .
     environment:
@@ -25,18 +26,18 @@ services:
       DB_HOST: db 
       DB_PORT: 5432 
       NODE_ENV: 'docker'
+      CC_IP: myapp
+      CC_PORT: '8110'
     depends_on:
       - db
     ports:
       - '8110:8110'
     volumes:
       - type: bind
-        source: /home/eaa299/workspace/plant_detection/plant_detection_viewer/myapp/usr
-        target: /opt/app/plant_detection_viewer/myapp/usr
+        source: /data/home/erik/plant_detection/plant_detection/src/usr
+        target: /opt/app/plant_detection/src/usr
     networks: 
       - container_net
-
-    runtime: nvidia
 
 networks:
   container_net:

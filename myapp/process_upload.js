@@ -9,7 +9,6 @@ const USR_SHARED_ROOT = path.join("usr", "shared");
 
 
 
-
 // let socket_api = require("./socket_api");
 
 function isNumeric(str) {
@@ -54,8 +53,8 @@ function upload_notify(username, farm_name, field_name, mission_date) {
     });
 
     const options = {
-        hostname: '172.16.1.71',
-        port: 8110,
+        hostname: process.env.CC_IP, //'172.16.1.75', //71',
+        port: parseInt(process.env.CC_PORT), //8110,
         path: '/plant_detection/upload_notification',
         method: 'POST',
         headers: {
@@ -124,29 +123,40 @@ async function process_upload(username, farm_name, field_name, mission_date, cam
 
 
     let image_names = [];
-    fs.readdirSync(images_dir).forEach(image_name => {
-        image_names.push(image_name);
-    });
-    
+    try {
+        fs.readdirSync(images_dir).forEach(image_name => {
+            image_names.push(image_name);
+        });
+    }
+    catch (error) {
+        write_and_notify(upload_status_path, {"status": "failed", "error": error.toString()}, notify_data);
+        return;
+    }
+
     console.log("image_names", image_names);
 
     console.log("creating image set directories");
-
-    fs.mkdirSync(dzi_images_dir, { recursive: true });
-    fs.mkdirSync(conversion_tmp_dir, { recursive: true });
-    fs.mkdirSync(annotations_dir, { recursive: true });
-    fs.mkdirSync(metadata_dir, { recursive: true });
-    fs.mkdirSync(patches_dir, { recursive: true });
-    fs.mkdirSync(excess_green_dir, { recursive: true });
-    fs.mkdirSync(model_dir, { recursive: true });
-    fs.mkdirSync(training_dir, { recursive: true });
-    fs.mkdirSync(prediction_dir, { recursive: true });
-    fs.mkdirSync(image_requests_dir, { recursive: true });
-    fs.mkdirSync(image_set_requests_dir, { recursive: true });
-    fs.mkdirSync(pending_dir, { recursive: true });
-    fs.mkdirSync(aborted_dir, { recursive: true });
-    fs.mkdirSync(weights_dir, { recursive: true });
-    fs.mkdirSync(results_dir, { recursive: true});
+    try {
+        fs.mkdirSync(dzi_images_dir, { recursive: true });
+        fs.mkdirSync(conversion_tmp_dir, { recursive: true });
+        fs.mkdirSync(annotations_dir, { recursive: true });
+        fs.mkdirSync(metadata_dir, { recursive: true });
+        fs.mkdirSync(patches_dir, { recursive: true });
+        fs.mkdirSync(excess_green_dir, { recursive: true });
+        fs.mkdirSync(model_dir, { recursive: true });
+        fs.mkdirSync(training_dir, { recursive: true });
+        fs.mkdirSync(prediction_dir, { recursive: true });
+        fs.mkdirSync(image_requests_dir, { recursive: true });
+        fs.mkdirSync(image_set_requests_dir, { recursive: true });
+        fs.mkdirSync(pending_dir, { recursive: true });
+        fs.mkdirSync(aborted_dir, { recursive: true });
+        fs.mkdirSync(weights_dir, { recursive: true });
+        fs.mkdirSync(results_dir, { recursive: true});
+    }
+    catch (error) {
+        write_and_notify(upload_status_path, {"status": "failed", "error": error.toString()}, notify_data);
+        return;
+    }    
 
     
     console.log("Copying initial model weights");

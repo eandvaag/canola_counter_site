@@ -158,8 +158,8 @@ function set_count_chart_data() {
 function draw_count_chart() {
     
 
-    let chart_width = $("#count_chart").width() - 10;
-    let chart_height = $('#count_chart').height() - 10;
+    let chart_width = $("#count_chart").width(); // - 10;
+    let chart_height = $('#count_chart').height(); // - 10;
 
     //let chart_width = 270;
 
@@ -204,11 +204,14 @@ function draw_count_chart() {
         let html = count_chart_data[cur_img_name][d];
         tooltip.html(html)
                .style("opacity", 1.0);
+        d3.select(this).style("cursor", "default"); 
     }
 
     let tip_mousemove = function(d) {
         tooltip.style("left", (d3.event.pageX+20) + "px")
                .style("top", (d3.event.pageY) + "px");
+        d3.select(this).style("cursor", "default"); 
+
     }
 
     let tip_mouseleave = function(d) {
@@ -269,7 +272,7 @@ function draw_count_chart() {
 
 function update_count_chart() {
 
-    let chart_width = $("#count_chart").width() - 10;
+    let chart_width = $("#count_chart").width(); // - 10;
 
     //let sel_class = "plant"; //$("#class_combo").val();
 

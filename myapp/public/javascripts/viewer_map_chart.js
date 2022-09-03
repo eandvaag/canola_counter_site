@@ -447,6 +447,8 @@ function draw_map_chart() {
                 .attr("stroke-width", 1)
 
                 .on("click", function(d) {
+                    $("#filter_combo").val("all");
+                    create_image_set_table();
                     show_image(d["image_name"]);
                     //change_image(d["image_name"]);
                 })
@@ -495,6 +497,8 @@ function draw_map_chart() {
             .attr("stroke-width", 1)
 
             .on("click", function(d) {
+                $("#filter_combo").val("all");
+                create_image_set_table();
                 show_image(d["image_name"]);
                 //change_image(d["image_name"]);
             })

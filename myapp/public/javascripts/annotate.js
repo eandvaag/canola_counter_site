@@ -15,6 +15,7 @@ let viewer;
 let anno;
 let prediction_anno;
 let cur_img_name;
+let cur_img_list;
 let cur_view;
 let countdown_handle;
 let ask_to_continue_handle;
@@ -124,10 +125,25 @@ function close_modal() {
 }
 
 
+
+
 function change_image(img_name) {
-    
+
     cur_img_name = img_name;
 
+    let index = cur_img_list.findIndex(x => x == cur_img_name);
+    if (index == 0) {
+        disable_std_buttons(["prev_image_button"]);
+    }
+    else {
+        enable_std_buttons(["prev_image_button"]);
+    }
+    if (index == cur_img_list.length - 1) {
+        disable_std_buttons(["next_image_button"]);
+    }
+    else {
+        enable_std_buttons(["next_image_button"]);
+    }
         
     // let img_files_name = basename(event.source);
     // let img_name = img_files_name.substring(0, img_files_name.length - 4);
@@ -150,11 +166,12 @@ function change_image(img_name) {
 }
 
 
-function create_image_set_table(table_id) {
+function create_image_set_table() {
 
     let image_name_col_width = "170px";
     let image_status_col_width = "60px";
 
+    cur_img_list = [];
     $("#image_set_table").empty();
     /*
     $("#image_set_table").append(`<tr>` +
@@ -170,14 +187,14 @@ function create_image_set_table(table_id) {
         "completed_for_testing": "C. Te."
     };
 
-    for (dzi_image_path of dzi_image_paths) {
-        let image_name = basename(dzi_image_path);
-        let extensionless_name = image_name.substring(0, image_name.length - 4);
+    for (image_name of natsort(Object.keys(annotations))) {
+        // let image_name = basename(dzi_image_path);
+        // let extensionless_name = image_name.substring(0, image_name.length - 4);
 
 
         //let img_status = image_set_data["images"][extensionless_name]["status"];
 
-        let image_status = annotations[extensionless_name]["status"];
+        let image_status = annotations[image_name]["status"];
         let abbreviated_status = abbreviation[image_status];
         
             
@@ -189,11 +206,13 @@ function create_image_set_table(table_id) {
 
             `<td><div class="table_button table_button_hover" style="width: ${image_name_col_width}" ` +
             // `onclick="change_image('${dzi_image_path}')">${extensionless_name}</div></td>` +
-             `onclick="change_image('${extensionless_name}')">${extensionless_name}</div></td>` +
+             `onclick="change_image('${image_name}')">${image_name}</div></td>` +
             //`</div></td>` + 
             //`<td><div class="table_entry">${img_dataset}</div></td>` +
             `</tr>`;
         $("#image_set_table").append(item);
+
+        cur_img_list.push(image_name);
 
     }
 }
@@ -944,8 +963,9 @@ function show_prediction(force_reset=false) {
     $("#predictions_available").hide();
     if (cur_img_name in predictions) {
         $("#predictions_available").show();
-        set_count_chart_data();
+        //set_count_chart_data();
         update_count_chart();
+        update_score_chart();
     }
     add_annotations();
     
@@ -1414,7 +1434,10 @@ $(document).ready(function() {
     for (image_name of Object.keys(annotations)) {
         pending_predictions[image_name] = false;
     }*/
-
+    disable_std_buttons(["prev_image_button"]);
+    if (dzi_image_paths.length == 1) {
+        disable_std_buttons(["next_image_button"]);
+    }
 
     $("#image_set_name").text(image_set_info["farm_name"] + "  |  " + 
                               image_set_info["field_name"] + "  |  " + 
@@ -1619,7 +1642,10 @@ $(document).ready(function() {
                             //if (cur_img_name in predictions) {
                             $("#predictions_available").show();
                             set_count_chart_data();
+                            set_score_chart_data();
+                            
                             update_count_chart();
+                            update_score_chart();
                             //}
                             add_annotations();
                         }
@@ -1714,6 +1740,7 @@ $(document).ready(function() {
             value: "Count per square metre",
             text: "Count per square metre"
         }));
+        //$('#chart_combo').append(`<option value="Count per square meter">Count / m&sup2;</option>`);
     }
     // $('#chart_combo').append($('<option>', {
     //     value: "MS COCO mAP",
@@ -1731,7 +1758,10 @@ $(document).ready(function() {
 
 
     set_count_chart_data();
+    set_score_chart_data();
+    
     draw_count_chart();
+    draw_score_chart();
 
     draw_ground_cover_chart();
 
@@ -1991,6 +2021,7 @@ $(document).ready(function() {
         add_annotations();
         set_count_chart_data();
         update_count_chart();
+        update_score_chart();
     });
 
     $("#confidence_slider").on("input", function() {
@@ -2051,6 +2082,47 @@ $(document).ready(function() {
         }
     });
 
+
+
+    $("#next_image_button").click(function() {
+
+        // $("#image_set_table tr").each(function(i, row) {
+        //     console.log(i, row);
+        //     $(this).find('td').each(function(j, col) {
+        //         console.log(j, col);
+        //         if (j == 1) {
+
+        //         }
+        //     });
+        // })
+        let index = cur_img_list.findIndex(x => x == cur_img_name) + 1;
+
+        //let index = dzi_image_paths.findIndex(x => x == image_to_dzi[cur_img_name]) + 1;
+
+        // let dzi_image_path = dzi_image_paths[index];
+        // let image_name = basename(dzi_image_path);
+        // let extensionless_name = image_name.substring(0, image_name.length - 4);
+        change_image(cur_img_list[index]);
+    
+    });
+
+    $("#prev_image_button").click(function() {
+
+        let index = cur_img_list.findIndex(x => x == cur_img_name) - 1;
+        //let index = dzi_image_paths.findIndex(x => x == image_to_dzi[cur_img_name]) - 1;
+        // if (index < dzi_image_paths.length - 1) {
+        //     enable_std_buttons(["next_image_button"]);
+        // }
+        // if (index == 0) {
+        //     disable_std_buttons(["prev_image_button"]);
+        // }
+ 
+        // let dzi_image_path = dzi_image_paths[index];
+        // let image_name = basename(dzi_image_path);
+        // let extensionless_name = image_name.substring(0, image_name.length - 4);
+        change_image(cur_img_list[index]);
+    
+    });
 
 });
 
