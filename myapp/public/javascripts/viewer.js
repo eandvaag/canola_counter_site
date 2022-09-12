@@ -54,10 +54,6 @@ let min_max_rec = null;
 // ];
 
 
-let overlay_colors = {
-    "annotations": "#0080C0",
-    "predictions": "#FF4040"
-};
 
 
 function change_image(image_name) {
@@ -110,6 +106,8 @@ function create_overlays_table() {
     //for (let i = 0; i < Object.keys(overlay_data); i++) {
     for (overlay_name of Object.keys(overlay_colors)) {
         let overlay_color = overlay_colors[overlay_name];
+        let overlay_id = overlay_name.toLowerCase();
+
         //let overlay_name = overlay_data[i]["name"];
         let model_row_id = overlay_name + "_row";
         $("#overlays_table").append(`<tr id=${model_row_id}>` +
@@ -119,7 +117,7 @@ function create_overlays_table() {
             `<tr>` + 
             `<td style="width: 40px">` +
                 `<label class="switch">` +
-                `<input id=${overlay_name} type="checkbox" checked></input>` +
+                `<input id=${overlay_id} type="checkbox" checked></input>` +
                 `<span class="switch_slider round"></span></label>` +
             `</td>` +
             `<td style="width: 100%">` +
@@ -221,8 +219,10 @@ function create_image_set_table() {
             $("#image_set_table").append(`<tr>` +
            
             //`<td><div>${extensionless_name}</div></td>` +
-            `<td><div class="table_entry std_tooltip" style="background-color: ${image_color}; cursor: default; position: relative; width: ${image_status_col_width}; border: 1px solid white">${abbreviated_status}` +
-            `<span class="std_tooltiptext">${image_status}</span></div></td>` +
+            //`<td><div class="table_entry std_tooltip" style="background-color: ${image_color}; cursor: default; position: relative; width: ${image_status_col_width}; border: 1px solid white">${abbreviated_status}` +
+            //`<span class="std_tooltiptext">${image_status}</span></div></td>` +
+
+            `<td><div class="table_entry std_tooltip" style="background-color: ${image_color}; cursor: default; position: relative; width: ${image_status_col_width}; border: 1px solid white">${abbreviated_status}</div></td>` +
 
             `<td><div class="table_button table_button_hover" style="width: ${image_name_col_width}" ` +
             // `onclick="change_image('${dzi_image_path}')">${extensionless_name}</div></td>` +
@@ -566,9 +566,11 @@ $(document).ready(function() {
 
     //$("#filter_combo").append(`<option value="all">all</option>`);
 
+
     for (image_status of Object.keys(status_color)) {
         let color = status_color[image_status];
-        $("#filter_combo").append(`<option style="background-color: ${color}" value="${image_status}">${image_status}</option>`);
+        let text = status_to_text[image_status];
+        $("#filter_combo").append(`<option style="background-color: ${color}" value="${image_status}">${text}</option>`);
     }
 
     /*

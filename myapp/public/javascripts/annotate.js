@@ -43,10 +43,6 @@ let min_max_rec = null;
 //     "predictions"
 // ];
 
-let overlay_colors = {
-    "annotations": "#0080C0",
-    "predictions": "#FF4040",
-};
 
 
 
@@ -204,8 +200,11 @@ function create_image_set_table() {
         let item = `<tr>` +
            
             //`<td><div>${extensionless_name}</div></td>` +
-            `<td><div class="table_entry std_tooltip" style="background-color: ${image_color}; cursor: default; position: relative; width: ${image_status_col_width}; border: 1px solid white">${abbreviated_status}` +
-            `<span class="std_tooltiptext">${image_status}</span></div></td>` +
+            //`<td><div class="table_entry std_tooltip" style="background-color: ${image_color}; cursor: default; position: relative; width: ${image_status_col_width}; border: 1px solid white">${abbreviated_status}` +
+            //`<span class="std_tooltiptext">${image_status}</span></div></td>` +
+
+            `<td><div class="table_entry std_tooltip" style="background-color: ${image_color}; cursor: default; position: relative; width: ${image_status_col_width}; border: 1px solid white">${abbreviated_status}</div></td>` +
+
 
             `<td><div class="table_button table_button_hover" style="width: ${image_name_col_width};" ` +
             // `onclick="change_image('${dzi_image_path}')">${extensionless_name}</div></td>` +
@@ -333,11 +332,14 @@ function set_image_status_combo() {
         image_status_options = ["unannotated", "completed_for_training", "completed_for_testing"];
     }
 
+
     $("#status_combo").empty();
     $("#status_combo").css("background-color", status_color[cur_image_status]);
     for (image_status of image_status_options) {
         let color = status_color[image_status];
-        $("#status_combo").append(`<option style="background-color: ${color}" value="${image_status}">${image_status}</option>`);
+        let text = status_to_text[image_status];
+        //$("#status_combo").append(`<option style="background-color: ${color}" value="${image_status}">${image_status}</option>`);
+        $("#status_combo").append(`<option style="background-color: ${color}" value="${image_status}">${text}</option>`);
         /*
         $("#status_combo").append($('<option style="background-color: red">', {
             value: image_status,
@@ -802,6 +804,7 @@ function create_overlays_table() {
 
     for (overlay_name of Object.keys(overlay_colors)) {
         let overlay_color = overlay_colors[overlay_name];
+        let overlay_id = overlay_name.toLowerCase();
 
         let model_row_id = overlay_name + "_row";
         $("#overlays_table").append(`<tr id=${model_row_id}>` +
@@ -811,7 +814,7 @@ function create_overlays_table() {
             `<tr>` + 
             `<td style="width: 40px">` +
                 `<label class="switch">` +
-                `<input id=${overlay_name} type="checkbox" checked></input>` +
+                `<input id=${overlay_id} type="checkbox" checked></input>` +
                 `<span class="switch_slider round"></span></label>` +
             `</td>` +
             `<td style="width: 100%">` +
@@ -1559,7 +1562,7 @@ $(document).ready(function() {
             cur_status = status["status"];
             // let cur_num_trained_on = parseInt(status["num_images_fully_trained_on"]);
             
-            $("#model_status").html(cur_status);
+            $("#model_status").html(capitalizeFirstLetter(cur_status));
 
             // let num_available = 0;
             // for (image_name of Object.keys(annotations)) {
@@ -1573,10 +1576,10 @@ $(document).ready(function() {
             }*/
             //if (cur_num_trained_on == num_available) {
             if (status["fully_trained"] === "True") {
-                $("#model_training_status").html("yes");
+                $("#model_training_status").html("Yes");
             }
             else {
-                $("#model_training_status").html("no");
+                $("#model_training_status").html("No");
             }
         
 
@@ -1614,7 +1617,7 @@ $(document).ready(function() {
 
 
             if (status["sys_training_blocked"] === "True") {
-                $("#train_block_text").html("yes");
+                $("#train_block_text").html("Yes");
                 $("#train_block_switch").prop("checked", true);
 
                 $("#train_block_switch").prop('disabled', true);
@@ -1634,11 +1637,11 @@ $(document).ready(function() {
                 $("#train_block_message").html("");
 
                 if (status["usr_training_blocked"] === "True") {
-                    $("#train_block_text").html("yes");
+                    $("#train_block_text").html("Yes");
                     $("#train_block_switch").prop("checked", true);
                 }
                 else {
-                    $("#train_block_text").html("no");
+                    $("#train_block_text").html("No");
                     $("#train_block_switch").prop("checked", false);
                 }
             }
@@ -2014,11 +2017,11 @@ $(document).ready(function() {
         let block_training = $("#train_block_switch").is(":checked");
         let block_op;
         if (block_training) {
-            $("#train_block_text").html("yes");
+            $("#train_block_text").html("Yes");
             block_op = "block";
         }
         else {
-            $("#train_block_text").html("no");
+            $("#train_block_text").html("No");
             block_op = "unblock";
         }
         //$("#train_block_switch").prop('disabled', false);
@@ -2036,10 +2039,10 @@ $(document).ready(function() {
 
             if (response.error) {
                 if (block_training) {
-                    $("#train_block_text").html("no");
+                    $("#train_block_text").html("No");
                 }
                 else {
-                    $("#train_block_text").html("yes");
+                    $("#train_block_text").html("Yes");
                 }
                 $("#train_block_switch").change();
                 show_modal_message("Error", "An error occurred during the attempt to block training.")

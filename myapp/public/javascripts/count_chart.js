@@ -46,8 +46,8 @@ function set_count_chart_data() {
     }
     
     let overlay_map = {
-        "annotations": annotations,
-        "predictions": predictions
+        "Annotations": annotations,
+        "Predictions": predictions
     }
 
     //console.log("cur_metric", metric);
@@ -187,7 +187,7 @@ function draw_count_chart() {
 
     count_xScale = d3.scaleLinear()
                 .domain([0, max_count])
-                .range([2 * count_margin, chart_width - 1.5 * count_margin]);
+                .range([2.5 * count_margin, chart_width - 1.5 * count_margin]);
 
     count_yScale = d3.scaleLinear()
                 .domain([0, num_bars])
@@ -228,7 +228,7 @@ function draw_count_chart() {
          .append("text")
          .attr("class", "chart_text")
          .attr("x", function(d, i) {
-            return count_margin * 2.75;
+            return count_margin * 3; //2.75;
          })
          .attr("y", function(d, i) {
             return count_margin + 30 * i + 12; //count_yScale(i) + ((chart_height / (1.65 * num_bars)) / 2);
@@ -248,13 +248,13 @@ function draw_count_chart() {
          .attr("class", "bar")
          .attr("id", function (d, i) { return "rect" + i; })
          .attr("x", function(d, i) {
-            return 3 * count_margin;
+            return 3.5 * count_margin;
          })
          .attr("y", function(d, i) {
             return count_margin + 30 * i; //count_yScale(i);
          })
          .attr("width", function(d) {
-            return count_xScale(count_chart_data[cur_img_name][d]) - 2 * count_margin;
+            return count_xScale(count_chart_data[cur_img_name][d]) - 2.5 * count_margin;
          })
          .attr("height", function(d) {
             return 25; //chart_height / (1.65 * num_bars);
@@ -283,10 +283,10 @@ function update_count_chart() {
         .data(Object.keys(count_chart_data[cur_img_name])) //[sel_class])
         .transition()
         .duration(250)
-        .attr("x", function(d, i) {
-            return 3 * count_margin;
-        })
+        // .attr("x", function(d, i) {
+        //     return 3 * count_margin;
+        // })
         .attr("width", function(d) {
-            return count_xScale(count_chart_data[cur_img_name][d]) - 2 * count_margin;
+            return count_xScale(count_chart_data[cur_img_name][d]) - 2.5 * count_margin;
         });
 }

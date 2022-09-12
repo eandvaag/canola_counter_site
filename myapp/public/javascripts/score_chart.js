@@ -65,6 +65,8 @@ function evaluate_scores(bins, scores) {
     }
     // console.log("quality_score", quality_score);
 
+    quality_score = range_map(quality_score, 0.25, 1.0, 0.0, 1.0);
+
     let certainty;
     if (scores.length < 10) {
         certainty = "low";

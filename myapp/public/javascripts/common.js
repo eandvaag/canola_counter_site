@@ -1,10 +1,24 @@
 let status_color = {
     "all": "#222621",
     "unannotated": "#222621",
-    "started": "#848484", //"#bbb",
-    "completed_for_training": "#45633d",
-    "completed_for_testing": "#998866" //#998866"
+    "started": "#79919c", //"#79839c", //"#7d8591", // "#848484", //"aa", //"#bbb",
+    "completed_for_training": "#809c79", //"#7d917d", //"#45633d",
+    "completed_for_testing": "#9c9179" //"#918b7d" //#998866" //#998866"
 };
+
+let status_to_text = {
+    "all": "All",
+    "unannotated": "Unannotated",
+    "started": "Started",
+    "completed_for_training": "Completed for Training",
+    "completed_for_testing": "Completed for Testing",
+};
+
+let overlay_colors = {
+    "Annotations": "#0080C0",
+    "Predictions": "#FF4040"
+};
+
 
 /**
   * Uses canvas.measureText to compute and return the width of the given text of given font in pixels.
@@ -83,6 +97,9 @@ function range_map(old_val, old_min, old_max, new_min, new_max) {
     return new_val;
 }
 
+function capitalizeFirstLetter(string) {
+    return string.charAt(0).toUpperCase() + string.slice(1);
+  }
 
 function timestamp_to_date(timestamp){
     // https://stackoverflow.com/questions/847185/convert-a-unix-timestamp-to-time-in-javascript
