@@ -45,21 +45,24 @@ html
     body
         div(id="container")
 
-            div(id="header"  style="background-color: #2b3628")
-                table(class="transparent_table")
-                    tr
-                        td
-                            div(style="width: 320px")
-                                a(id="home_button" style="font-size: 22px; margin: 0px 5px" class="table_button table_button_hover") Canola Counter
-                        td(style="width:100%")
+            include ./header.pug
 
-                        td
-                            div(style="font-weight: bold; margin-right:15px") #{username} 
-                        td
-                            div(style="width: 100px")
-                                a(class="table_button table_button_hover" id="log_out") Log Out
+            //-
+                div(id="header"  style="background-color: #2b3628")
+                    table(class="transparent_table")
+                        tr
+                            td
+                                div(style="width: 320px")
+                                    a(id="home_button" style="font-size: 22px; margin: 0px 5px" class="table_button table_button_hover") Canola Counter
+                            td(style="width:100%")
 
-                hr
+                            td
+                                div(style="font-weight: bold; margin-right:15px") #{username} 
+                            td
+                                div(style="width: 100px")
+                                    a(class="table_button table_button_hover" id="log_out") Log Out
+
+                    hr
 
             div(id="modal" class="modal")
                 div(class="modal-content")
@@ -148,7 +151,7 @@ html
 
                                             h(class="header2" style="text-align: left") Images
 
-                                            div(class="scrollable_area" style="height: 480px; border: none")
+                                            div(class="scrollable_area" style="height: 475px; border: none")
                                                 table(id="image_set_table")
 
                                             div(style="height: 10px")
@@ -156,12 +159,12 @@ html
                                                 tr
                                                     td(style="width: 140px")
                                                         button(id="prev_image_button" class="std-button std-button-hover" style="font-size: 16px; width: 100%") 
-                                                            i(class="fa-solid fa-circle-chevron-left")
+                                                            i(class="fa-solid fa-circle-chevron-left" style="padding-right: 5px")
                                                             | 
                                                             | Previous
                                                     td(style="width: 140px")
                                                         button(id="next_image_button" class="std-button std-button-hover" style="font-size: 16px; width: 100%") Next 
-                                                            i(class="fa-solid fa-circle-chevron-right")
+                                                            i(class="fa-solid fa-circle-chevron-right" style="padding-left: 5px")    
 
 
 
@@ -196,9 +199,12 @@ html
 
 
                                         div(style="padding: 8px 8px")
+                                            
                                             div(style="width: 280px;")
+                                               
                                                 // padding: 8px 8px;")
                                                 div(id="annotation_panel")
+                        
                                                     div(style="height: 40px")
                                                     table(class="transparent_table")
                                                         tr
@@ -214,24 +220,8 @@ html
 
                                                             td(style="width: 100%; text-align: left; padding-left: 12px")
                                                                 h(id="model_training_status")
-
+                                                    
                                                     table(class="transparent_table")
-                                                        //- tr 
-                                                        //-     td(style="text-align: left")
-                                                        //-         h(class="header2" style="width: 170px") Restart Requested?
-
-                                                        //-     td(style="text-align: left; padding-left: 12px;")
-                                                        //-         div(style="width: 50px")
-                                                        //-             h(id="restart_requested_text")
-
-                                                            
-                                                        //-     td(style="width: 100%; text-align: left;")
-                                                        //-         label(class="switch" id="restart_requested_label")
-                                                        //-             input(id="restart_requested_switch" type="checkbox" disabled)
-                                                        //-             span(class="switch_slider round" id="restart_requested_slider")
-
-
-
                                                         tr 
                                                             td(style="text-align: left")
                                                                 h(class="header2" style="width: 170px") Training Blocked?
@@ -245,12 +235,37 @@ html
                                                                 label(class="switch" id="train_block_label")
                                                                     input(id="train_block_switch" type="checkbox" disabled)
                                                                     span(class="switch_slider round" id="train_block_slider")
-
+                                                    
                                                     div(style="height: 5px")
                                                     div(id="train_block_message" style="height: 20px; font-size: 14px; color: #ed452b") 
+                                                    hr
 
+                                                    //div(style="height: 35px")
+                                                    div(style="height: 5px")
+                                                    h(class="header2" style="text-align: left") Request Predictions
+                                                    div(style="height: 10px")
+                                                    button(id="predict_single_button" class="std-button std-button-hover" style="font-size: 16px; width: 220px") This Image
+                                                
+                                                    div(style="height: 10px")
+                                                    //br
+                                                    button(id="predict_all_button" class="std-button std-button-hover" style="font-size: 16px; width: 220px") All Images
+
+                                                    div(style="height: 10px")
+
+                                                    button(id="request_result_button" class="std-button std-button-hover" style="font-size: 16px; width: 220px") All Images + Save Result
+
+                                                    div(style="height: 10px")
+                                                    hr
+
+                                                    div(style="height: 10px")
+                                                    button(id="suggest_image_button" class="std-button std-button-hover" style="font-size: 16px; width: 260px") Suggest An Image For Annotation
+                                                    
+                                                    div(style="height: 10px;")
+                                                    div(style="font-size: 13px; text-align: justify") Image suggestions are based on score distributions of predictions. For best results, generate predictions for all images before requesting a suggestion.
+                                                    
                                                     hr
                                                     //-
+
                                                         table(class="transparent_table")
                                                             tr
                                                                 td
@@ -282,17 +297,14 @@ html
                                                     
                                                     //br
                                                     //br
-                                                    div(style="height: 35px")
-                                                    button(id="request_prediction_button" class="table_button table_button_hover" style="width: 250px") Request Predictions: This Image
-                                                
-                                                    div(style="height: 10px")
-                                                    //br
-                                                    button(id="request_result_button" class="table_button table_button_hover" style="width: 250px") Request Predictions: All Images
 
+                                                    div(id="predictions_unavailable" hidden)
+                                                        div(style="height: 50px")
+                                                        div No predictions found!
 
                                                     div(id="predictions_available" hidden)
 
-                                                        div(style="height: 10px")
+                                                        div(style="height: 40px")
                                                         
                                                         button(id="use_predictions_button" class="std-button std-button-hover" style="font-size: 16px") Use Predictions As Annotations
 
@@ -325,8 +337,10 @@ html
 
                                                         hr
 
-                                                        h(class="header2" style="text-align:left") Score Distribution
-                                                        div(id="score_chart" style="height: 130px; width: 270px; border:none")
+                                                        h(class="header2" style="text-align: left") Score Distribution
+                                                        h(class="header2" style="text-align: left; font-size: 16px") Est. Quality: 
+                                                            span(id="quality_score" style="color: white; text-align: left")
+                                                        div(id="score_chart" style="height: 190px; width: 270px; border:none")
                                                         hr
 
                                                         table(class="transparent_table")
@@ -390,16 +404,13 @@ html
                                                             
                                                                 //div(id="threshold_slider_val" style="margin-left: 12px" class="header2")  
 
-                                                    br
-                                                    br
-                                                    button(id="request_segment_button" class="table_button table_button_hover" style="width: 265px") Segment
+                                                    div(style="height: 30px")
+                                                    button(id="request_segment_button" class="std-button std-button-hover" style="font-size: 16px; width: 265px") Segment
 
-                                                    br
-                                                    br
-                                                    button(id="apply_threshold_to_all_button" class="table_button table_button_hover" style="width: 265px") Apply This Threshold To All Images
+                                                    div(style="height: 10px")
+                                                    button(id="apply_threshold_to_all_button" class="std-button std-button-hover" style="font-size: 16px; width: 265px") Apply This Threshold To All Images
 
-                                                    br
-                                                    br
+                                                    div(style="height: 10px")
                                                     div(style="height: 210px")
                                                         div(id="image_loader" class="loader")
 
@@ -416,7 +427,7 @@ html
                             table(class="transparent_table")
 
                                 tr
-                                    td(class="dark-bg" style="vertical-align:top")
+                                    td(class="dark-bg" style="vertical-align:top; height: 720px")
                                         div(style="width: 280px;")
 
                                             div(id="map_builder_controls_container" hidden)

@@ -21,6 +21,7 @@ html
 
         script(type='text/javascript' src='/plant_detection/javascripts/home.js')
         script(type='text/javascript' src='/plant_detection/javascripts/common.js')
+        script(type='text/javascript' src='/plant_detection/javascripts/modal.js')
         script(type='text/javascript' src='/plant_detection/javascripts/upload.js')
         //script(type='text/javascript' src='/plant_detection/javascripts/train.js')
 
@@ -29,14 +30,24 @@ html
 
             include ./header.pug
 
-            div(id="result_modal" class="modal")
+
+            div(id="modal" class="modal")
                 div(class="modal-content")
-                    div(class="modal-header")
-                        span(class="close close-hover" id="modal_close") &times;
-                        p(id="modal_header_text" style="white-space: pre-line;")
+                    div(class="modal-header" id="modal_head")
+
                     div(class="modal-body" id="modal_body")
-                        p(id="modal_message")
+
                     div(class="modal-footer")
+
+            //-
+                div(id="modal" class="modal")
+                    div(class="modal-content")
+                        div(class="modal-header" id="modal_header")
+                            span(class="close close-hover" id="modal_close") &times;
+                            p(id="modal_header_text" style="white-space: pre-line;")
+                        div(class="modal-body" id="modal_body")
+                            p(id="modal_message")
+                        div(class="modal-footer")
 
             div(id="body")
                     

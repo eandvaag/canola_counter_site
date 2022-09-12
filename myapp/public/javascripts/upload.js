@@ -14,11 +14,12 @@ function clear_form() {
     dropzone_handler.removeAllFiles();
 }
 
+/*
 function close_modal() {
     $("#modal_header_text").val("");
     $("#modal_message").val("");
     $("#result_modal").css("display", "none");
-}
+}*/
 
 function disable_input() {
 
@@ -149,9 +150,10 @@ function display_upload_error() {
     dropzone_handler.options.autoProcessQueue = false;
 
     console.log("An error occurred");
-    $("#modal_header_text").html("Error");
-    $("#modal_message").html("An error occurred during the upload process:<br>" + upload_error);
-    $("#result_modal").css("display", "block");
+    show_modal_message(`Error`, `An error occurred during the upload process:<br>` + upload_error);
+    //$("#modal_header_text").html("Error");
+    //$("#modal_message").html("An error occurred during the upload process:<br>" + upload_error);
+    //$("#result_modal").css("display", "block");
     // errors = [];
     //upload_error = null;
     clear_form();
@@ -215,10 +217,13 @@ function initialize_upload() {
             dropzone_handler.options.autoProcessQueue = false;
 
             console.log("All done!");
+            show_modal_message(`Success!`, `<div align="center">Your images have been successfully uploaded.<br>Additional processing is now being performed.` +
+            `<br><br>The image set can now be viewed in the <i>Browse</i> tab.</div>`);
+            /*
             $("#modal_header_text").html("Success!");
             $("#modal_message").html("Your images have been successfully uploaded.<br>Additional processing is now being performed." +
                                      "<br><br>The image set can now be viewed in the <i>Browse</i> tab.");
-            $("#result_modal").css("display", "block");
+            $("#result_modal").css("display", "block");*/
             console.log($("#farm_input").val());
             let uploaded_farm = $("#farm_input").val();
             let uploaded_field = $("#field_input").val();
@@ -307,9 +312,10 @@ function initialize_upload() {
             queued_filenames.push(f.name);
         }
         if (illegal) {
-            $("#modal_header_text").html("Error");
-            $("#modal_message").html("One or more filenames contains illegal characters");
-            $("#result_modal").css("display", "block");
+            show_modal_message(`Error`, `One or more filenames contains illegal characters.`);
+            //$("#modal_header_text").html("Error");
+            //$("#modal_message").html("One or more filenames contains illegal characters");
+            //$("#result_modal").css("display", "block");
             clear_form();
             enable_input();
             disable_submit();
@@ -343,8 +349,9 @@ function initialize_upload() {
         update_submit();
     });
 
+    /*
     $("#modal_close").click(function() {
         console.log("closing modal");
         close_modal();
-    });
+    });*/
 }

@@ -118,14 +118,14 @@ function set_count_chart_data() {
     //     max_count = 100;
     // }
     else {
-        let key_map = {
-            "MS COCO mAP": "Image MS COCO mAP",
-            "PASCAL VOC mAP": "Image PASCAL VOC mAP"
-        }
+        // let key_map = {
+            // "MS COCO mAP": "Image MS COCO mAP",
+            //"PASCAL VOC mAP": "Image PASCAL VOC mAP"
+        // }
         for (image_name of Object.keys(annotations)) {
             count_chart_data[image_name]["annotations"] = 0;
-            if (image_name in metrics) {
-                count_chart_data[image_name]["predictions"] = metrics[image_name][key_map[metric]].toFixed(2);
+            if ((image_name in metrics) && (metric in metrics[image_name])) {
+                count_chart_data[image_name]["predictions"] = metrics[image_name][metric].toFixed(2);
             }
             else {
                 count_chart_data[image_name]["predictions"] = 0;

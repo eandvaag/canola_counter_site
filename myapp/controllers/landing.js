@@ -13,8 +13,10 @@ const models = require('../models');
 const { response } = require('express');
 
 const glob = require("glob");
+const { parse, join } = require('path');
 
 
+var socket_api = require('../socket_api');
 
 /*
 const express = require('express');
@@ -55,7 +57,7 @@ const USR_DATA_ROOT = path.join("usr", "data");
 //const USR_REQUESTS_ROOT = path.join("usr", "requests");
 const USR_SHARED_ROOT = path.join("usr", "shared");
 
-const ANNOTATION_LOCK_TIMEOUT = 240000; // 4 minutes
+//const ANNOTATION_LOCK_TIMEOUT = 240000; // 4 minutes
 // const AsyncLock = require('async-lock');
 // const job_lock = new AsyncLock();
 
@@ -300,6 +302,144 @@ exports.get_annotate = function(req, res, next) {
             return res.redirect(APP_PREFIX);
         }
 
+        console.log("creating key");
+        let key = req.session.user.username + "/" + farm_name + "/" + field_name + "/" + mission_date;
+        console.log("checking if key is in the dictionary", key);
+
+        annotation_mutex.acquire()
+        .then(function(release) {
+            if (key in socket_api.workspace_key_to_id) {
+                console.log("somebody is using the annotation file", key);
+                release();
+                return res.redirect(APP_PREFIX + "/home/" + req.session.user.username);
+            }
+
+            socket_api.workspace_key_to_id[key] = "tmp_hold";
+            release();
+
+
+            glob(path.join(image_set_dir, "images", "*"), function(error, image_paths) {
+                if (error) {
+                    return res.redirect(APP_PREFIX);
+                }
+
+                console.log("image_paths", image_paths);
+                let image_ext = image_paths[0].substring(image_paths[0].length - 4);
+                console.log("image_ext", image_ext);
+
+
+
+                let annotations_dir = path.join(image_set_dir, "annotations");
+                let annotations_path = path.join(annotations_dir, "annotations_w3c.json");
+                let annotations;
+                try {
+                    annotations = JSON.parse(fs.readFileSync(annotations_path, 'utf8'));
+                }
+                catch (error) {
+                    console.log(error);
+                    return res.redirect(APP_PREFIX);
+                }
+        
+                let metadata_path = path.join(image_set_dir, "metadata", "metadata.json");
+                let metadata;
+                try {
+                    metadata = JSON.parse(fs.readFileSync(metadata_path, 'utf8'));
+                }
+                catch (error) {
+                    console.log(error);
+                    return res.redirect(APP_PREFIX);
+                }
+
+                let camera_specs_path = path.join(USR_DATA_ROOT, req.session.user.username, "cameras", "cameras.json");
+                let camera_specs;
+                try {
+                    camera_specs = JSON.parse(fs.readFileSync(camera_specs_path, 'utf8'));
+                }
+                catch (error) {
+                    console.log(error);
+                    return res.redirect(APP_PREFIX);
+                }
+
+
+                let excess_green_record_path = path.join(image_set_dir, "excess_green", "record.json");
+                let excess_green_record;
+                try {
+                    excess_green_record = JSON.parse(fs.readFileSync(excess_green_record_path, 'utf8'));
+                }
+                catch (error) {
+                    console.log(error);
+                    return res.redirect(APP_PREFIX);
+                }
+        
+                let dzi_images_dir = path.join(image_set_dir, "dzi_images");
+                let dzi_image_paths = [];
+                for (image_name of Object.keys(annotations)) {
+                    let dzi_image_path = path.join(APP_PREFIX, dzi_images_dir, image_name + ".dzi");
+                    dzi_image_paths.push(dzi_image_path);
+                }
+
+                let prediction_dir = path.join(image_set_dir, "model", "prediction");
+                let predictions = {};
+                glob(path.join(prediction_dir, "images", "*"), function(error, image_prediction_dirs) {
+
+                    if (error) {
+                        console.log(error);
+                        return res.redirect(APP_PREFIX);
+                    }
+
+                    for (image_prediction_dir of image_prediction_dirs) {
+                        let image_name = path.basename(image_prediction_dir);
+
+                        let predictions_path = path.join(image_prediction_dir, "predictions_w3c.json");
+                        if (fs.existsSync(predictions_path)) {
+                            let image_predictions;
+                            try {
+                                image_predictions = JSON.parse(fs.readFileSync(predictions_path, 'utf8'));
+                            }
+                            catch {
+                                console.log(error);
+                                return res.redirect(APP_PREFIX);
+                            }
+                            predictions[image_name] = image_predictions[image_name];
+                        }
+                        
+                    }
+            
+                    let image_set_info = {
+                        "farm_name": farm_name,
+                        "field_name": field_name,
+                        "mission_date": mission_date,
+                        "image_ext": image_ext
+                    }
+            
+                    console.log("ready to render");
+                    let data = {};
+
+                    //let cur_weights_path = path.join(image_set_dir, "model", "weights", "best_weights.h5");
+                    //data["baseline_initialized"] = fs.existsSync(cur_weights_path);
+                    //console.log("baseline_initialized", data["baseline_initialized"]);
+
+                    data["image_set_info"] = image_set_info;
+                    data["metadata"] = metadata;
+                    data["dzi_image_paths"] = nat_orderBy.orderBy(dzi_image_paths);
+                    data["annotations"] = annotations;
+                    data["excess_green_record"] = excess_green_record;
+                    data["camera_specs"] = camera_specs;
+                    data["predictions"] = predictions;
+                    res.render("annotate", {username: req.session.user.username, data: data});
+
+
+                });
+
+            });
+
+        }).catch(function(error) {
+            console.log(error);
+            return res.redirect(APP_PREFIX);
+        });
+
+/*
+        console.log("check finished");
 
         glob(path.join(image_set_dir, "images", "*"), function(error, image_paths) {
             if (error) {
@@ -404,16 +544,17 @@ exports.get_annotate = function(req, res, next) {
                         let image_name = path.basename(image_prediction_dir);
 
                         let predictions_path = path.join(image_prediction_dir, "predictions_w3c.json");
-                        let image_predictions;
-                        try {
-                            image_predictions = JSON.parse(fs.readFileSync(predictions_path, 'utf8'));
+                        if (fs.existsSync(predictions_path)) {
+                            let image_predictions;
+                            try {
+                                image_predictions = JSON.parse(fs.readFileSync(predictions_path, 'utf8'));
+                            }
+                            catch {
+                                console.log(error);
+                                return res.redirect(APP_PREFIX);
+                            }
+                            predictions[image_name] = image_predictions[image_name];
                         }
-                        catch {
-                            console.log(error);
-                            return res.redirect(APP_PREFIX);
-                        }
-                        predictions[image_name] = image_predictions[image_name];
-                        // predicted_counts[image_name] = predictions[image_name].length;
                         
                     }
             
@@ -451,7 +592,7 @@ exports.get_annotate = function(req, res, next) {
 
         });
         
-        
+        */
     }
     else {
         return res.redirect(APP_PREFIX);
@@ -506,10 +647,18 @@ exports.post_annotate = function(req, res, next) {
         console.log(farm_name);
         console.log(field_name);
         console.log(mission_date);
+
+
+        let map_download_uuid = req.body.map_download_uuid;
+        if (map_download_uuid === "") {
+            map_download_uuid = uuidv4().toString();
+        }
+
         let out_dir = path.join(image_set_dir, "maps");
         let annotations_path = path.join(image_set_dir, "annotations", "annotations_w3c.json");
         let rebuild_command = "python ../../plant_detection/src/interpolate.py " + req.session.user.username + " " +
-                            farm_name + " " + field_name + " " + mission_date + " " + annotations_path + " " + out_dir;
+                            farm_name + " " + field_name + " " + mission_date + " " + annotations_path + 
+                            " " + out_dir + " " + map_download_uuid;
 
         if (req.body.interpolation == "nearest") {
             rebuild_command = rebuild_command + " -nearest";
@@ -523,12 +672,13 @@ exports.post_annotate = function(req, res, next) {
                 response.error = true;
             }
             else {
+                response.map_download_uuid = map_download_uuid;
                 response.error = false;
             }
-
             return res.json(response);
         });
     }
+    /*
     else if (action === "refresh_lock_file") {
 
         let annotations_lock_path = path.join(image_set_dir, "annotations", "lock.json");
@@ -627,69 +777,39 @@ exports.post_annotate = function(req, res, next) {
             return res.json(response);
         });
 
-    }
+    }*/
     else if (action === "predict") {
 
-        let image_name = req.body.image_name;
+        let image_names = req.body.image_names.split(",");
+        let save_result = req.body.save_result === "True";
 
-        let request_uuid = uuidv4().toString();
-        let request = {
-            "request_uuid": request_uuid,
-            "start_time": Math.floor(Date.now() / 1000),
-            "image_names": [image_name],
-            "save_result": false
-        };
-        
-        
-        let request_path = path.join(USR_DATA_ROOT, req.session.user.username,
-                                    "image_sets", farm_name, field_name, mission_date,
-                                    "model", "prediction", "image_requests", request_uuid + ".json");
+        // let image_name = req.body.image_name;
 
-        try {
-            fs.writeFileSync(request_path, JSON.stringify(request));
-        }
-        catch (error) {
-            console.log(error);
-            response.message = "Failed to create prediction request.";
-            response.error = true;
-            return res.json(response);
-        }
-
-        response.error = false;
-        return res.json(response);
-    }
-    else if (action === "get_result") {
-
-        let annotations_path = path.join(image_set_dir, "annotations", "annotations_w3c.json")
-
-        try {
-            annotations = JSON.parse(fs.readFileSync(annotations_path, 'utf8'));
-        }
-        catch (error) {
-            response.message = "Failed to read annotation file."
-            response.error = true;
-            return res.json(response);
-        }
-
-        let image_names = [];
-        for (image_name of Object.keys(annotations)) {
-            image_names.push(image_name);
-            /*
-            if (annotations[image_name]["status"] === "completed_for_testing") {
-                image_names.push(image_name);
-            }*/
-        }
         let request_uuid = uuidv4().toString();
         let request = {
             "request_uuid": request_uuid,
             "start_time": Math.floor(Date.now() / 1000),
             "image_names": image_names,
-            "save_result": true
+            "save_result": save_result
         };
-        
-        let request_path = path.join(USR_DATA_ROOT, req.session.user.username,
-                                     "image_sets", farm_name, field_name, mission_date,
-                                     "model", "prediction", "image_set_requests", "pending", request_uuid + ".json");
+
+        let request_path;
+        if (save_result) {
+            request_path = path.join(USR_DATA_ROOT, req.session.user.username,
+                "image_sets", farm_name, field_name, mission_date,
+                "model", "prediction", "image_set_requests", "pending", request_uuid + ".json");            
+        }
+        else {
+
+            request_path = path.join(USR_DATA_ROOT, req.session.user.username,
+                                "image_sets", farm_name, field_name, mission_date,
+                                "model", "prediction", "image_requests", request_uuid + ".json");
+        }
+
+        // let request_path = path.join(USR_DATA_ROOT, req.session.user.username,
+        //                             "image_sets", farm_name, field_name, mission_date,
+        //                             "model", "prediction", "image_requests", request_uuid + ".json");
+
         try {
             fs.writeFileSync(request_path, JSON.stringify(request));
         }
@@ -703,6 +823,51 @@ exports.post_annotate = function(req, res, next) {
         response.error = false;
         return res.json(response);
     }
+    // else if (action === "get_result") {
+
+    //     let annotations_path = path.join(image_set_dir, "annotations", "annotations_w3c.json")
+
+    //     try {
+    //         annotations = JSON.parse(fs.readFileSync(annotations_path, 'utf8'));
+    //     }
+    //     catch (error) {
+    //         response.message = "Failed to read annotation file."
+    //         response.error = true;
+    //         return res.json(response);
+    //     }
+
+    //     let image_names = [];
+    //     for (image_name of Object.keys(annotations)) {
+    //         image_names.push(image_name);
+    //         /*
+    //         if (annotations[image_name]["status"] === "completed_for_testing") {
+    //             image_names.push(image_name);
+    //         }*/
+    //     }
+    //     let request_uuid = uuidv4().toString();
+    //     let request = {
+    //         "request_uuid": request_uuid,
+    //         "start_time": Math.floor(Date.now() / 1000),
+    //         "image_names": image_names,
+    //         "save_result": true
+    //     };
+        
+    //     let request_path = path.join(USR_DATA_ROOT, req.session.user.username,
+    //                                  "image_sets", farm_name, field_name, mission_date,
+    //                                  "model", "prediction", "image_set_requests", "pending", request_uuid + ".json");
+    //     try {
+    //         fs.writeFileSync(request_path, JSON.stringify(request));
+    //     }
+    //     catch (error) {
+    //         console.log(error);
+    //         response.message = "Failed to create prediction request.";
+    //         response.error = true;
+    //         return res.json(response);
+    //     }
+
+    //     response.error = false;
+    //     return res.json(response);
+    // }
     else if (action === "retrieve_predictions") {
 
         console.log("retrieve_predictions");
@@ -1754,8 +1919,68 @@ exports.post_home = function(req, res, next) {
         let mission_dir = path.join(USR_DATA_ROOT, req.session.user.username, "image_sets", 
                                     farm_name, field_name, mission_date);
 
-        let annotations_lock_path = path.join(mission_dir, "annotations", "lock.json");
+        //let annotations_lock_path = path.join(mission_dir, "annotations", "lock.json");
 
+
+        let key = req.session.user.username + "/" + farm_name + "/" + field_name + "/" + mission_date;
+        if (key in socket_api.workspace_key_to_id) {
+            response.message = "The image set cannot be deleted since the corresponding annotation file is currently in use. Please try again later.";
+            response.error = true;
+            return res.json(response);
+        }
+
+        console.log("reading annotations file");
+            
+        let annotations_path = path.join(mission_dir, "annotations", "annotations_w3c.json");
+        let annotations = JSON.parse(fs.readFileSync(annotations_path, 'utf8'));
+        console.log("checking number of annotations");
+        let empty = true;
+        for (image_name of Object.keys(annotations)) {
+            if (annotations[image_name]["annotations"].length > 0) {
+                empty = false;
+                break;
+            }
+        }
+        if (!(empty)) {
+            response.error = true;
+            response.message = "Cannot delete an image set with annotations."
+            return res.json(response);
+        }
+        else {
+            console.log("No annotations found, deleting image set");
+
+            try {
+                fs.rmSync(mission_dir, { recursive: true, force: true });
+
+                let field_dir = path.join(USR_DATA_ROOT, req.session.user.username, "image_sets", farm_name, field_name);
+                let missions = get_subdirs(field_dir);
+                if (missions.length == 0) {
+                    fs.rmSync(field_dir, { recursive: true, force: true });
+                    let farm_dir = path.join(USR_DATA_ROOT, req.session.user.username, "image_sets", farm_name);
+                    let fields = get_subdirs(farm_dir);
+                    if (fields.length == 0) {
+                        fs.rmSync(farm_dir, { recursive: true, force: true });
+                    }
+                }
+            }
+            catch (error) {
+                console.log(error);
+                response.error = true;
+                response.message = "An error occurred while deleting the image set: " + error.toString();
+                return res.json(response);
+            }
+
+            // TODO: remove unneeded keys from cameras.json
+            
+
+            response.error = false;
+            response.redirect = APP_PREFIX + "/home/" + req.session.user.username;
+            return res.json(response);
+        }
+
+
+
+        /*
         console.log("acquiring annotation mutex");
         annotation_mutex.acquire()
         .then(function(release) {
@@ -1837,6 +2062,7 @@ exports.post_home = function(req, res, next) {
             response.error = true;
             return res.json(response);
         });
+        */
     }
     else if (action === "annotate_image_set") {
 
@@ -1844,49 +2070,68 @@ exports.post_home = function(req, res, next) {
         let field_name = req.body.field_name;
         let mission_date = req.body.mission_date;
 
-        let mission_dir = path.join(USR_DATA_ROOT, req.session.user.username, "image_sets", farm_name, field_name, mission_date);
-        let annotations_dir = path.join(mission_dir, "annotations");
-        let annotations_lock_path = path.join(annotations_dir, "lock.json")
 
-        //annotations_lock.acquire(anno_lock_key, function() {
-        console.log("acquiring annotation mutex");
-        annotation_mutex.acquire()
-        .then(function(release) {
-            let annotations_lock;
-            try {
-                annotations_lock = JSON.parse(fs.readFileSync(annotations_lock_path, 'utf8'));
-            }
-            catch (error) {
-                release();
-                console.log(error);
-                response.message = "Failed to read annotation lock file.";
-                response.error = true;
-                return res.json(response);
-            }
-
-            let last_refresh = annotations_lock["last_refresh"];
-            let cur_time = Date.now();
-            if ((cur_time - last_refresh) < ANNOTATION_LOCK_TIMEOUT) {
-                release();
-                console.log("Annotation file is currently locked");
-                response.message = "The requested annotation file is currently in use. Please try again later.";
-                response.error = true;
-                return res.json(response);
-            }
-
-            // success
-            release();
+        console.log("creating key");
+        let key = req.session.user.username + "/" + farm_name + "/" + field_name + "/" + mission_date;
+        console.log("checking if key is in the dictionary", key);
+        if (key in socket_api.workspace_key_to_id) {
+            console.log("somebody is using the annotation file", key);
+            response.error = true;
+            response.message = "The requested annotation file is currently in use. Please try again later.";
+            return res.json(response);
+        }
+        else {
             response.error = false;
             response.redirect = APP_PREFIX + "/annotate/" + req.session.user.username + "/" + farm_name + "/" +
                                 field_name + "/" + mission_date;
             return res.json(response);
+        }
 
-        }).catch(function(error) {
-            console.log(error);
-            response.message = "Failed to acquire annotation mutex.";
-            response.error = true;
-            return res.json(response);
-        });
+
+
+        // let mission_dir = path.join(USR_DATA_ROOT, req.session.user.username, "image_sets", farm_name, field_name, mission_date);
+        // let annotations_dir = path.join(mission_dir, "annotations");
+        // let annotations_lock_path = path.join(annotations_dir, "lock.json")
+
+        // //annotations_lock.acquire(anno_lock_key, function() {
+        // console.log("acquiring annotation mutex");
+        // annotation_mutex.acquire()
+        // .then(function(release) {
+        //     let annotations_lock;
+        //     try {
+        //         annotations_lock = JSON.parse(fs.readFileSync(annotations_lock_path, 'utf8'));
+        //     }
+        //     catch (error) {
+        //         release();
+        //         console.log(error);
+        //         response.message = "Failed to read annotation lock file.";
+        //         response.error = true;
+        //         return res.json(response);
+        //     }
+
+        //     let last_refresh = annotations_lock["last_refresh"];
+        //     let cur_time = Date.now();
+        //     if ((cur_time - last_refresh) < ANNOTATION_LOCK_TIMEOUT) {
+        //         release();
+        //         console.log("Annotation file is currently locked");
+        //         response.message = "The requested annotation file is currently in use. Please try again later.";
+        //         response.error = true;
+        //         return res.json(response);
+        //     }
+
+        //     // success
+        //     release();
+        //     response.error = false;
+        //     response.redirect = APP_PREFIX + "/annotate/" + req.session.user.username + "/" + farm_name + "/" +
+        //                         field_name + "/" + mission_date;
+        //     return res.json(response);
+
+        // }).catch(function(error) {
+        //     console.log(error);
+        //     response.message = "Failed to acquire annotation mutex.";
+        //     response.error = true;
+        //     return res.json(response);
+        // });
 
 
 
@@ -2149,9 +2394,10 @@ exports.post_home = function(req, res, next) {
                 return res.json(response);
             }
 
-
+            /*
             // remove unused keys
 
+            
             let image_sets_root = path.join(USR_DATA_ROOT, req.session.user.username, "image_sets");
             let farm_names = get_subdirs(image_sets_root);
             console.log("farm_names", farm_names);
@@ -2219,6 +2465,7 @@ exports.post_home = function(req, res, next) {
                     delete camera_specs[make];
                 }
             }
+            */
 
             try {
                 fs.writeFileSync(camera_specs_path, JSON.stringify(camera_specs));
@@ -2473,26 +2720,43 @@ exports.post_viewer = function(req, res, next) {
         console.log(farm_name);
         console.log(field_name);
         console.log(mission_date);
+
+        let annotation_version = req.body.annotation_version;
         
-        let model_results_dir = path.join(USR_DATA_ROOT, req.session.user.username, "image_sets", farm_name, field_name, mission_date,
-                                          "model", "results", timestamp);
-        let annotations_path = path.join(model_results_dir, "annotations_w3c.json");
-        let pred_path = path.join(model_results_dir, "predictions_w3c.json");
-        let out_dir = path.join(model_results_dir, "maps");
+        let image_set_dir = path.join(USR_DATA_ROOT, req.session.user.username, "image_sets", farm_name, field_name, mission_date);
+        let results_dir = path.join(image_set_dir, "model", "results", timestamp);
+
+        let map_download_uuid = req.body.map_download_uuid;
+        if (map_download_uuid === "") {
+            console.log("generating new uuid");
+            map_download_uuid = uuidv4().toString();
+        }
+        console.log("map_download_uuid is", map_download_uuid);
+        let annotations_path;
+        if (annotation_version === "most_recent") {
+            annotations_path = path.join(image_set_dir, "annotations", "annotations_w3c.json");
+        }
+        else {
+            annotations_path = path.join(results_dir, "annotations_w3c.json");
+        }
+        console.log("annotations_path", annotations_path);
+        //let annotations_path = path.join(model_results_dir, "annotations_w3c.json");
+        let pred_path = path.join(results_dir, "predictions_w3c.json");
+        let out_dir = path.join(results_dir, "maps");
 
         let rebuild_command = "python ../../plant_detection/src/interpolate.py " + req.session.user.username + " " +
                             farm_name + " " + field_name + " " + mission_date + " " + annotations_path + " " +
-                                out_dir + " -p " + pred_path;
+                                out_dir + " " + map_download_uuid + " -pred_path " + pred_path;
 
-        if (req.body.interpolation == "nearest") {
+        if (req.body.interpolation === "nearest") {
             rebuild_command = rebuild_command + " -nearest";
         }
-        if (req.body.pred_image_status == "completed") {
+        if (req.body.pred_image_status === "completed") {
             rebuild_command = rebuild_command + " -completed_only";
         }
-        if (req.body.comparison_type == "diff") {
-            rebuild_command = rebuild_command + " -diff";
-        }
+        // if (req.body.comparison_type == "diff") {
+        //     rebuild_command = rebuild_command + " -diff";
+        // }
         console.log(rebuild_command);
         let result = exec(rebuild_command, {shell: "/bin/bash"}, function (error, stdout, stderr) {
             if (error) {
@@ -2503,7 +2767,175 @@ exports.post_viewer = function(req, res, next) {
             }
             else {
                 response.error = false;
+                response.map_download_uuid = map_download_uuid;
             }
+            return res.json(response);
+        });
+    }
+
+    else if (action === "create_csv") {
+
+        console.log("got request to create csv");
+
+        let download_uuid = req.body.download_uuid;
+
+
+        let results_path = path.join(USR_DATA_ROOT, req.session.user.username,
+                                "image_sets", farm_name, field_name, mission_date,
+                                "model", "results", timestamp, "retrieval", download_uuid, "results.csv");
+
+        console.log("results_path", results_path);
+
+        if ((download_uuid === "") || !(fs.existsSync(results_path))) {
+
+            download_uuid = uuidv4().toString();
+
+            console.log("results not found, new download uuid is", download_uuid);
+
+            let create_csv_command = "python ../../plant_detection/src/create_csv.py " +
+                req.session.user.username + " " +
+                farm_name + " " +
+                field_name + " " + 
+                mission_date + " " + 
+                timestamp + " " +
+                download_uuid + " " +
+                req.body.annotation_version;
+            
+            let result = exec(create_csv_command, {shell: "/bin/bash"}, function (error, stdout, stderr) {
+                if (error) {
+                    console.log(error.stack);
+                    console.log('Error code: '+error.code);
+                    console.log('Signal received: '+error.signal);
+                    response.error = true;
+                    return res.json(response);
+                }
+                response.error = false;
+                response.download_uuid = download_uuid;
+                console.log("returning new download_uuid", download_uuid);
+                return res.json(response);
+            });
+        }
+        else {
+            response.error = false;
+            response.download_uuid = download_uuid;
+            return res.json(response);
+        }
+
+
+
+        /*
+        let download_uuid = uuidv4().toString();
+        console.log("download_uuid", download_uuid);
+
+        let create_csv_command = "python ../../plant_detection/src/create_csv.py " +
+                                req.session.user.username + " " +
+                                farm_name + " " +
+                                field_name + " " + 
+                                mission_date + " " + 
+                                timestamp + " " +
+                                download_uuid + " " +
+                                req.body.annotation_version;
+
+        console.log("executing python command");
+                            
+        let result = exec(create_csv_command, {shell: "/bin/bash"}, function (error, stdout, stderr) {
+            if (error) {
+                console.log(error.stack);
+                console.log('Error code: '+error.code);
+                console.log('Signal received: '+error.signal);
+                response.error = true;
+            }
+            else {
+                response.download_uuid = download_uuid;
+                console.log("download_uuid", download_uuid);
+                response.error = false;
+            }
+            return res.json(response);
+        }); 
+        */                   
+
+    }
+    else if (action === "switch_annotation_version") {
+
+        let annotation_version = req.body.annotation_version;
+        let image_set_dir = path.join(USR_DATA_ROOT, req.session.user.username,
+                                      "image_sets", farm_name, field_name, mission_date);
+        let results_dir = path.join(image_set_dir, "model", "results", timestamp);
+        
+        let download_uuid = uuidv4().toString();
+        console.log("switch annotation version, new download_uuid", download_uuid);
+
+        let create_csv_command = "python ../../plant_detection/src/create_csv.py " +
+                                req.session.user.username + " " +
+                                farm_name + " " +
+                                field_name + " " + 
+                                mission_date + " " + 
+                                timestamp + " " +
+                                download_uuid + " " +
+                                req.body.annotation_version;
+
+        console.log("executing python command");
+                            
+        let result = exec(create_csv_command, {shell: "/bin/bash"}, function (error, stdout, stderr) {
+            if (error) {
+                console.log(error.stack);
+                console.log('Error code: '+error.code);
+                console.log('Signal received: '+error.signal);
+                response.error = true;
+                return res.json(response);
+            }
+
+
+            let metrics_path = path.join(results_dir, "retrieval", download_uuid, "metrics.json");
+            let metrics;
+            try {
+                metrics = JSON.parse(fs.readFileSync(metrics_path, 'utf8'));
+            }
+            catch (error) {
+                console.log(error);
+                response.error = true;
+                return res.json(response);
+            }
+
+            let annotations_path;
+            let excess_green_record_path;
+            if (annotation_version === "most_recent") {
+                annotations_path = path.join(image_set_dir, "annotations", "annotations_w3c.json");
+                excess_green_record_path = path.join(image_set_dir, "excess_green", "record.json");
+            }
+            else {
+                annotations_path = path.join(results_dir, "annotations_w3c.json");
+                excess_green_record_path = path.join(results_dir, "excess_green_record.json");
+            }
+
+            let annotations;
+            try {
+                annotations = JSON.parse(fs.readFileSync(annotations_path, 'utf8'));
+            }
+            catch (error) {
+                console.log(error);
+                response.error = true;
+                return res.json(response);
+            }
+
+            let excess_green_record;
+            try {
+                excess_green_record = JSON.parse(fs.readFileSync(excess_green_record_path, 'utf8'));
+            }
+            catch (error) {
+                console.log(error);
+                response.error = true;
+                return res.json(response);
+            }
+
+            
+            console.log("download_uuid", download_uuid);
+            
+            response.error = false;
+            response["annotations"] = annotations;
+            response["excess_green_record"] = excess_green_record;
+            response["metrics"] = metrics;
+            response["download_uuid"] = download_uuid;
             return res.json(response);
         });
     }
@@ -2515,6 +2947,113 @@ exports.post_viewer = function(req, res, next) {
         return res.json(response);
     }*/
 }
+
+
+/*
+exports.post_download = function(req, res, next) {
+    if ((req.session.user && req.cookies.user_sid) && (req.params.username === req.session.user.username)) {
+
+        console.log("got to get_download (2)");
+
+
+        let response = {};
+
+        let farm_name = req.params.farm_name;
+        let field_name = req.params.field_name;
+        let mission_date = req.params.mission_date;
+        let timestamp = req.params.timestamp;
+        let download_uuid = req.params.download_uuid;
+        
+        let results_path = path.join(USR_DATA_ROOT, req.session.user.username,
+            "image_sets", farm_name, field_name, mission_date,
+            "model", "results", timestamp, "retrieval_" + download_uuid, "results.csv"); //"results_" + download_uuid + ".csv");
+        
+
+        console.log("results_path", results_path);
+        if (fs.existsSync(results_path)) {
+            console.log("path exists, attempting to remove results");
+            try {
+                fs.unlinkSync(results_path);
+            }
+            catch (err) {
+                console.log(err);
+                response.error = true;
+                return res.json(response);
+            }
+        }
+        response.error = false;
+        return res.json(response);
+    }
+
+}*/
+
+exports.get_download = function(req, res, next) {
+    if ((req.session.user && req.cookies.user_sid) && (req.params.username === req.session.user.username)) {
+
+        //let response = {};
+
+        let farm_name = req.params.farm_name;
+        let field_name = req.params.field_name;
+        let mission_date = req.params.mission_date;
+        let timestamp = req.params.timestamp;
+        let download_uuid = req.params.download_uuid;
+
+        // let results_path = path.join(USR_DATA_ROOT, req.session.user.username,
+        //                      "image_sets", farm_name, field_name, mission_date,
+        //                      "model", "results", timestamp, "results_" + download_uuid + ".csv");
+
+        // let create_csv_command = "python ../../plant_detection/src/create_csv.py " +
+        //                         req.session.user.username + " " +
+        //                         farm_name + " " +
+        //                         field_name + " " + 
+        //                         mission_date + " " + 
+        //                         timestamp + " " +
+        //                         download_uuid + " " +
+        //                         req.body.annotation_version;
+
+
+        let results_path = path.join(USR_DATA_ROOT, req.session.user.username,
+                                "image_sets", farm_name, field_name, mission_date,
+                                "model", "results", timestamp, "retrieval", download_uuid, "results.csv");
+
+        res.download(results_path, "results.csv");
+
+
+        // console.log("results_path", results_path);
+
+        // if ((download_uuid === "") || !(fs.existsSync(results_path))) {
+
+        //     let result = exec(create_csv_command, {shell: "/bin/bash"}, function (error, stdout, stderr) {
+        //         if (error) {
+        //             console.log(error.stack);
+        //             console.log('Error code: '+error.code);
+        //             console.log('Signal received: '+error.signal);
+        //             response.error = true;
+        //             return res.json(response);
+        //         }
+        //         res.download(results_path, "results.csv");
+        //     });
+        // }
+        // else {
+        //     res.download(results_path, "results.csv");
+        // }
+        /*, function(err) {
+            if (err) {
+                console.log(err);
+            }
+            console.log("attempting to remove results");
+            try {
+                fs.unlinkSync(results_path)
+            }
+            catch (err) {
+                console.log(err);
+            }
+        });*/
+
+
+    }
+}
+        
 
 
 exports.logout = function(req, res, next) {

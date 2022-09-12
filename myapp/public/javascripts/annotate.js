@@ -22,6 +22,7 @@ let ask_to_continue_handle;
 let cur_update_num = -1;
 //let pending_predictions;
 let predictions;
+let map_download_uuid = "";
 // let metrics = {};
 
 let cur_panel;
@@ -187,6 +188,8 @@ function create_image_set_table() {
         "completed_for_testing": "C. Te."
     };
 
+
+
     for (image_name of natsort(Object.keys(annotations))) {
         // let image_name = basename(dzi_image_path);
         // let extensionless_name = image_name.substring(0, image_name.length - 4);
@@ -196,15 +199,15 @@ function create_image_set_table() {
 
         let image_status = annotations[image_name]["status"];
         let abbreviated_status = abbreviation[image_status];
-        
+        let image_color = status_color[image_status];
             
         let item = `<tr>` +
            
             //`<td><div>${extensionless_name}</div></td>` +
-            `<td><div class="table_entry std_tooltip" style="cursor: default; position: relative; width: ${image_status_col_width}; border: 1px solid white">${abbreviated_status}` +
+            `<td><div class="table_entry std_tooltip" style="background-color: ${image_color}; cursor: default; position: relative; width: ${image_status_col_width}; border: 1px solid white">${abbreviated_status}` +
             `<span class="std_tooltiptext">${image_status}</span></div></td>` +
 
-            `<td><div class="table_button table_button_hover" style="width: ${image_name_col_width}" ` +
+            `<td><div class="table_button table_button_hover" style="width: ${image_name_col_width};" ` +
             // `onclick="change_image('${dzi_image_path}')">${extensionless_name}</div></td>` +
              `onclick="change_image('${image_name}')">${image_name}</div></td>` +
             //`</div></td>` + 
@@ -331,11 +334,15 @@ function set_image_status_combo() {
     }
 
     $("#status_combo").empty();
+    $("#status_combo").css("background-color", status_color[cur_image_status]);
     for (image_status of image_status_options) {
-        $("#status_combo").append($('<option>', {
+        let color = status_color[image_status];
+        $("#status_combo").append(`<option style="background-color: ${color}" value="${image_status}">${image_status}</option>`);
+        /*
+        $("#status_combo").append($('<option style="background-color: red">', {
             value: image_status,
             text: image_status
-        }));
+        }));*/
     }
     $("#status_combo").val(cur_image_status);
 }
@@ -576,7 +583,8 @@ function build_map() {
     $.post($(location).attr('href'),
     {
         action: "build_map",
-        interpolation: sel_interpolation
+        interpolation: sel_interpolation,
+        map_download_uuid: map_download_uuid
     },
     
     function(response, status) {
@@ -589,16 +597,18 @@ function build_map() {
             // draw_map_chart();
         }
         else {
+            map_download_uuid = response.map_download_uuid;
+
             let timestamp = new Date().getTime();   
             
             let base = "/plant_detection/usr/data/" + username + "/image_sets/" + image_set_info["farm_name"] + "/" + 
-                    image_set_info["field_name"] + "/" + image_set_info["mission_date"] + "/maps/"
+                    image_set_info["field_name"] + "/" + image_set_info["mission_date"] + "/maps/" + map_download_uuid;
 
-            map_url = base + "annotated_map.svg?t=" + timestamp;
+            map_url = base + "_annotated_map.svg?t=" + timestamp;
 
 
 
-            let min_max_rec_url = base + "min_max_rec.json?t=" + timestamp;
+            let min_max_rec_url = base + "_min_max_rec.json?t=" + timestamp;
             min_max_rec = get_json(min_max_rec_url);
 
             draw_map_chart();
@@ -638,7 +648,7 @@ function show_map() {
         $("#insufficient_annotation_container").show();
     }
 
-    draw_map_chart();
+    //draw_map_chart();
 }
 
 
@@ -696,7 +706,7 @@ function save_annotations() {
 }
 
 
-
+/*
 function refresh() {
     console.log("refreshing the lock file");
     
@@ -714,13 +724,15 @@ function refresh() {
         }
 
     });
-    
-}
+}*/
 
 function expired_session() {
 
     save_annotations();
 
+    window.location.href = "/plant_detection/home/" + username;
+
+    /*
     $.post($(location).attr('href'),
     {
         action: "expired_lock_file"
@@ -728,7 +740,7 @@ function expired_session() {
     
     function(response, status) {  
         window.location.href = response.redirect;
-    });
+    });*/
     
 }
 
@@ -818,22 +830,23 @@ function confirmed_use_predictions() {
     annotations[cur_img_name]["annotations"] = [];
 
     let slider_val = Number.parseFloat($("#confidence_slider").val()).toFixed(2);
-    for (annotation of predictions[cur_img_name]["annotations"]) {    
-        let bodies = Array.isArray(annotation.body) ? annotation.body : [ annotation.body ];
+    for (annotation of predictions[cur_img_name]["annotations"]) {
+        let new_annotation = structuredClone(annotation);
+        let bodies = Array.isArray(new_annotation.body) ? new_annotation.body : [ new_annotation.body ];
         let highlightBodyIndex = bodies.findIndex(b => b.purpose == 'highlighting');
-        let highlightBody = bodies[highlightBodyIndex];
+        //let highlightBody = bodies[highlightBodyIndex];
         let scoreTagIndex = bodies.findIndex(b => b.purpose == 'score');
         let scoreTag = bodies[scoreTagIndex];
 
         if (scoreTag.value >= slider_val) {
             //let index = annotation["body"].indexOf(highlightBody);
             if (highlightBodyIndex !== -1) {
-                annotation["body"].splice(highlightBodyIndex, 1);
+                new_annotation["body"].splice(highlightBodyIndex, 1);
             }
             if (scoreTagIndex !== -1) {
-                annotation["body"].splice(scoreTagIndex, 1);
+                new_annotation["body"].splice(scoreTagIndex, 1);
             }
-            annotations[cur_img_name]["annotations"].push(annotation);
+            annotations[cur_img_name]["annotations"].push(new_annotation);
         }
     }
     //$("#save_icon").css("color", "#ed452b");
@@ -960,12 +973,18 @@ function show_prediction(force_reset=false) {
 
     //retrieve_predictions();
 
+    $("#predictions_unavailable").hide();
     $("#predictions_available").hide();
     if (cur_img_name in predictions) {
         $("#predictions_available").show();
         //set_count_chart_data();
+        set_count_chart_data();
+        set_score_chart_data();
         update_count_chart();
         update_score_chart();
+    }
+    else {
+        $("#predictions_unavailable").show();
     }
     add_annotations();
     
@@ -991,7 +1010,7 @@ function show_segmentation_inner() {
     //$("#segmentation_viewer").show();
     $("#segmentation_panel").show();
 
-    disable_buttons(["request_segment_button"]);
+    disable_std_buttons(["request_segment_button"]);
     $("#image_loader").show();
 
     console.log("test button clicked");
@@ -1225,7 +1244,7 @@ function show_segmentation_inner() {
             rgb_ctx.canvas
         );
 
-        enable_buttons(["request_segment_button"]);
+        enable_std_buttons(["request_segment_button"]);
         
 
             //$("#right_panel").append(`<div id="my_result" style="border: 1px solid white; height: 280px"></div>`);
@@ -1408,8 +1427,38 @@ function raise_slider() {
     }
 }
 
+
+
+function submit_prediction_request(image_names, save_result) {
+
+    disable_std_buttons(["request_result_button", "predict_single_button", "predict_all_button"]);
+    //disable_buttons(["predict_single_button", "predict_all_button"]);
+    $.post($(location).attr("href"),
+    {
+        //action: "get_result"
+        action: "predict",
+        image_names: image_names.join(","),
+        save_result: save_result ? "True" : "False"
+    },
+    function(response, status) {
+        if (response.error) {
+            show_modal_message("Error", response.message);
+        }
+        else {
+            if (save_result) {
+                show_modal_message("Success", 
+                `<div>Your request was successfully submitted. Upon completion, the ` +
+                `results will be preserved under this image set's <em>Results</em> tab (accessible from the home page).</div>`);
+            }
+        }
+    });
+
+
+
+}
+
 $(document).ready(function() {
-    window.setInterval(refresh, 90000); // 1.5 minutes
+    //window.setInterval(refresh, 90000); // 1.5 minutes
     ask_to_continue_handle = window.setTimeout(ask_to_continue, 7200000); // 2 hours
 
 
@@ -1553,10 +1602,14 @@ $(document).ready(function() {
 
 
             if (status["outstanding_prediction_requests"] === "True") {
-                disable_buttons(["request_prediction_button", "request_result_button"]);
+                //disable_buttons(["request_prediction_button", "request_result_button"]);
+                disable_std_buttons(["request_result_button", "predict_single_button", "predict_all_button"]);
+                //disable_buttons(["predict_single_button", "predict_all_button"]);
             }
             else {
-                enable_buttons(["request_prediction_button", "request_result_button"]);
+                //enable_buttons(["request_prediction_button", "request_result_button"]);
+                enable_std_buttons(["request_result_button", "predict_single_button", "predict_all_button"]);
+                //enable_buttons(["predict_single_button", "predict_all_button"]);
             }
 
 
@@ -1640,6 +1693,7 @@ $(document).ready(function() {
                             //show_prediction();
 
                             //if (cur_img_name in predictions) {
+                            $("#predictions_unavailable").hide();
                             $("#predictions_available").show();
                             set_count_chart_data();
                             set_score_chart_data();
@@ -1835,6 +1889,7 @@ $(document).ready(function() {
         show_modal_message(head, message);
     })
 
+    /*
     $("#home_button").click(function() {
         //save_annotations();
         $.post($(location).attr('href'),
@@ -1857,44 +1912,51 @@ $(document).ready(function() {
         function(response, status) {
             window.location.href = "/plant_detection/logout";
         });
-    });
+    });*/
 
     $("#request_result_button").click(function() {
-        disable_buttons(["request_prediction_button", "request_result_button"]);
-        $.post($(location).attr("href"),
-        {
-            action: "get_result"
-        },
-        function(response, status) {
-            if (response.error) {
-                show_modal_message("Error", response.message);
-            }
-            else {
-                show_modal_message("Success", 
-                `<div>Your request was successfully submitted. Upon completion, the ` +
-                `results will be preserved under this image set's <em>Results</em> tab (accessible from the home page).</div>`);
-            }
-        });
+
+        submit_prediction_request(Object.keys(annotations), true);
+        // disable_buttons(["request_prediction_button", "request_result_button"]);
+        // $.post($(location).attr("href"),
+        // {
+        //     action: "get_result"
+        // },
+        // function(response, status) {
+        //     if (response.error) {
+        //         show_modal_message("Error", response.message);
+        //     }
+        //     else {
+        //         show_modal_message("Success", 
+        //         `<div>Your request was successfully submitted. Upon completion, the ` +
+        //         `results will be preserved under this image set's <em>Results</em> tab (accessible from the home page).</div>`);
+        //     }
+        // });
 
     });
 
 
-    $("#request_prediction_button").click(function() {
+    $("#predict_single_button").click(function() {
+        submit_prediction_request([cur_img_name], false);
 
-        disable_buttons(["request_prediction_button", "request_result_button"]);
-        //console.log("pushing", cur_img_name);
-        //pending_predictions[cur_img_name] = true;
-        $.post($(location).attr('href'),
-        {
-            action: "predict",
-            image_name: cur_img_name
-        },
+        // disable_buttons(["request_prediction_button", "request_result_button"]);
+        // //console.log("pushing", cur_img_name);
+        // //pending_predictions[cur_img_name] = true;
+        // $.post($(location).attr('href'),
+        // {
+        //     action: "predict",
+        //     image_name: cur_img_name
+        // },
 
-        function(response, status) {
-            console.log("got response");
+        // function(response, status) {
+        //     console.log("got response");
             
-        });
+        // });
     });
+
+    $("#predict_all_button").click(function() {
+        submit_prediction_request(Object.keys(annotations), false);
+    })
 
     $("#use_predictions_button").click(function() {
         $("#modal_head").empty();
@@ -1909,9 +1971,9 @@ $(document).ready(function() {
 
         $("#modal_body").append(`<div id="modal_button_container">
         <button class="std-button std-button-hover" `+
-        `style="width: 200px" onclick="confirmed_use_predictions()"><span>Continue</span></button>` +
+        `style="width: 200px" onclick="confirmed_use_predictions()">Continue</button>` +
         `<button class="std-button std-button-hover" ` +
-        `style="width: 200px" onclick="close_modal()"><span>Cancel</span></button>` +
+        `style="width: 200px" onclick="close_modal()">Cancel</button>` +
         `</div>`);
         
         $("#modal_close").click(function() {
@@ -2122,6 +2184,49 @@ $(document).ready(function() {
         // let extensionless_name = image_name.substring(0, image_name.length - 4);
         change_image(cur_img_list[index]);
     
+    });
+
+
+    $("#suggest_image_button").click(function() {
+
+        let num_candidates = 0;
+        for (image_name of Object.keys(annotations)) {
+            let status = annotations[image_name]["status"];
+            if ((status === "unannotated" || status === "started") && (image_name in predictions)) {
+                num_candidates++;
+            }
+        }
+
+        if (num_candidates <= 1) {
+            show_modal_message("Error", "An insufficient number of images have predictions available for assessment." +
+                               " Please generate predictions for more images and try again.");
+        }
+        else {
+
+            set_score_chart_data();
+
+            let qualities = [];
+            for (image_name of Object.keys(score_chart_data)) {
+                let r = evaluate_scores(score_chart_data[image_name]["bins"], score_chart_data[image_name]["scores"]);
+                let quality = r[0];
+                qualities.push({
+                    "quality": quality,
+                    "image_name": image_name
+                });
+            }
+            qualities.sort(function(a, b) {
+                if (a.quality < b.quality) return -1;
+                if (a.quality > b.quality) return 1;
+                return 0;
+            });
+
+            let sel_image_name = qualities[0]["image_name"];
+            console.log("Suggested image:", sel_image_name);
+
+            change_image(sel_image_name);
+        }
+
+
     });
 
 });

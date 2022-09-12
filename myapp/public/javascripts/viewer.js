@@ -11,6 +11,8 @@ let metrics;
 let dzi_dir;
 let dzi_image_paths;
 let excess_green_record;
+let download_uuid = "";
+let map_download_uuid = "";
 /*
 let sorted_overlay_names;
 let sorted_overlay_ids;
@@ -214,10 +216,12 @@ function create_image_set_table() {
             //let img_status = image_set_data["images"][extensionless_name]["status"];
             let image_status = annotations[image_name]["status"];
             let abbreviated_status = abbreviation[image_status];
+            let image_color = status_color[image_status];
+
             $("#image_set_table").append(`<tr>` +
            
             //`<td><div>${extensionless_name}</div></td>` +
-            `<td><div class="table_entry std_tooltip" style="cursor: default; position: relative; width: ${image_status_col_width}; border: 1px solid white">${abbreviated_status}` +
+            `<td><div class="table_entry std_tooltip" style="background-color: ${image_color}; cursor: default; position: relative; width: ${image_status_col_width}; border: 1px solid white">${abbreviated_status}` +
             `<span class="std_tooltiptext">${image_status}</span></div></td>` +
 
             `<td><div class="table_button table_button_hover" style="width: ${image_name_col_width}" ` +
@@ -342,7 +346,7 @@ function build_map() {
     let sel_interpolation = $("input[type='radio'][name='interpolation']:checked").val();
     //let sel_model = $("input[type='radio'][name='map_model']:checked").val();
     let sel_pred_image_status = $("input[type='radio'][name='pred_image_status']:checked").val();
-    let comparison_type = $("input[type='radio'][name='comparison_type']:checked").val();
+    //let comparison_type = $("input[type='radio'][name='comparison_type']:checked").val();
 
     //let include_annotated_map = $("input[type='radio'][name='include_annotated_map']:checked").val() === "yes";
     //console.log("include_annotated_map", include_annotated_map);
@@ -358,33 +362,38 @@ function build_map() {
         interpolation: sel_interpolation,
         //model_uuid: sel_model,
         pred_image_status: sel_pred_image_status,
-        comparison_type: "side_by_side", //comparison_type
+        annotation_version: $("#annotation_version_combo").val(),
+        map_download_uuid: map_download_uuid
+        //comparison_type: "side_by_side", //comparison_type
         //include_annotated_map: include_annotated_map 
         //image_set_data: JSON.stringify(image_set_data)
     },
     
     function(response, status) {
-        $("#build_loader").hide();;
+        $("#build_loader").hide();
         enable_buttons(["build_map_button"]);
 
         if (response.error) {    
             console.log("error occurred");
+            show_modal_message("Error", "An error occurred while creating the density map.");
             // diff_map = false;
-            pred_map_url = null;
-            map_url = null;
-            draw_map_chart();
+            // pred_map_url = null;
+            // map_url = null;
+            // draw_map_chart();
         }
         else {
             console.log("showing map");
+
+            let map_download_uuid = response.map_download_uuid;
             //cur_map_model_uuid = sel_model;
 
             let timestamp = new Date().getTime();
             
             let base = "/plant_detection/usr/data/" + username + "/image_sets/" + image_set_info["farm_name"] + "/" + 
                         image_set_info["field_name"] + "/" + image_set_info["mission_date"] + "/model/results/" +
-                        image_set_info["timestamp"] + "/maps/";
+                        image_set_info["timestamp"] + "/maps/" + map_download_uuid;
 
-            map_url = base + "annotated_map.svg?t=" + timestamp;
+            map_url = base + "_annotated_map.svg?t=" + timestamp;
 
 
             // if (comparison_type === "diff") {
@@ -392,12 +401,12 @@ function build_map() {
             //     diff_map = true;
             // }
             // else {
-            pred_map_url = base + "predicted_map.svg?t=" + timestamp;
+            pred_map_url = base + "_predicted_map.svg?t=" + timestamp;
                 // diff_map = false;
             // }
 
 
-            let min_max_rec_url = base + "min_max_rec.json?t=" + timestamp;
+            let min_max_rec_url = base + "_min_max_rec.json?t=" + timestamp;
             min_max_rec = get_json(min_max_rec_url);
 
             console.log("showing map");
@@ -440,7 +449,9 @@ function show_map() {
     //}
 
     
-    draw_map_chart();
+    //draw_map_chart();
+
+    //build_map();
 }
 
 
@@ -553,21 +564,133 @@ $(document).ready(function() {
     //     }
     // };
 
+    //$("#filter_combo").append(`<option value="all">all</option>`);
+
+    for (image_status of Object.keys(status_color)) {
+        let color = status_color[image_status];
+        $("#filter_combo").append(`<option style="background-color: ${color}" value="${image_status}">${image_status}</option>`);
+    }
+
     /*
     let download_path = "/plant_detection/usr/data/results/" + image_set_info["farm_name"] + "/" +
     image_set_info["field_name"] + "/" + image_set_info["mission_date"] + "/" +
                         job_config["job_uuid"] + "/results.xlsx";*/
 
+
+
+    $("#request_csv_button").click(function() {
+
+        let farm_name = image_set_info["farm_name"];
+        let field_name = image_set_info["field_name"];
+        let mission_date = image_set_info["mission_date"];
+        let timestamp = image_set_info["timestamp"];
+        
+        //let download_path = "/plant_detection/usr/data/" + username + "/image_sets/" + farm_name + "/" +
+        //                    field_name + "/" + mission_date + "/model/results/" + timestamp + "/results.csv";
+
+        console.log("preparing download")
+        show_modal_message("Preparing Download", 
+        `<div id="prep_csv_message">Preparing CSV file...</div><div id="prep_csv_loader" class="loader"></div>` +
+        `<div style="text-align: center; margin-top: 20px"><a class="table_button table_button_hover" id="download_button" hidden>` +
+        `<i class="fa fa-download fa-sm"></i><span style="margin-left: 10px">Download Results</span></a></div>`);
+
+        $("#modal_close").hide();
+
+        // a(class="table_button table_button_hover" style="padding: 5px 10px;" id="download_button" download)
+        //     i(class="fa fa-download fa-sm")
+        //     span(style="margin-left: 10px") Download Results 
+
+        $.post($(location).attr('href'),
+        {
+            action: "create_csv",
+            //username: username,
+            //farm_name: farm_name,
+            ///field_name: field_name,
+            //mission_date: mission_date,
+            // results_timestamp: timestamp,
+            //download_uuid: download_uuid
+            download_uuid: download_uuid,
+            annotation_version: $("#annotation_version_combo").val()
+        },
+        
+        function(response, status) {
+            $("#prep_csv_loader").hide();
+            $("#modal_close").show();
+
+            if (response.error) {
+                $("#modal_head_text").html("Error");
+                $("#prep_csv_message").html("An error occurred while generating the results file.");
+
+            }
+            else {
+                $("#modal_head_text").html("Ready For Download");
+                $("#prep_csv_message").html("Your results file has been created. Click the button to download the results.");
+                $("#download_button").show();
+    
+
+
+                console.log("the new download_uuid is", response.download_uuid);
+                download_uuid = response.download_uuid;
+                console.log("got download_uuid", download_uuid);
+
+                let download_path = "/plant_detection/download/" + 
+                                    username + "/" +
+                                    farm_name + "/" + 
+                                    field_name + "/" + 
+                                    mission_date + "/" +
+                                    timestamp + "/" + 
+                                    download_uuid;
+
+
+                $("#download_button").attr("href", download_path);
+
+
+                let close_timeout_handler = setTimeout(function() {
+                    $("#modal_close").click();
+                }, 3600 * 1000);
+
+                $("#modal_close").click(function() {
+                    clearTimeout(close_timeout_handler);
+                    // $.post(download_path),
+                    // {
+
+                    // },
+                    // function (response, status) {
+                    //     if (response.error) {
+                    //         console.log("Error occurred while attempting to delete results file");
+                    //     }
+                    // }
+                    close_modal();
+                });
+
+
+
+
+                // $("#download_button").click(function() {
+                //     $.post("/plant_detection/download/" + username,
+                //     {
+                //         farm_name: farm_name,
+                //         field_name: field_name,
+                //         mission_date: mission_date,
+                //         timestamp: timestamp,
+                //         download_uuid: download_uuid
+                //     },
+                //     function (response, status) {
+
+                //     });
+                // });
+            }
+
+        });
+
+        // console.log("download_path", download_path);
+        // $("#download_button").attr("href", download_path);
+
+    })
+
     let farm_name = image_set_info["farm_name"];
     let field_name = image_set_info["field_name"];
     let mission_date = image_set_info["mission_date"];
-    let timestamp = image_set_info["timestamp"];
-    
-    let download_path = "/plant_detection/usr/data/" + username + "/image_sets/" + farm_name + "/" +
-                        field_name + "/" + mission_date + "/model/results/" + timestamp + "/results.csv";
-    
-    console.log("download_path", download_path);
-    $("#download_button").attr("href", download_path);
 
     image_to_dzi = {};
     for (dzi_image_path of dzi_image_paths) {
@@ -604,10 +727,10 @@ $(document).ready(function() {
         value: "MS COCO mAP",
         text: "MS COCO mAP"
     }));
-    $('#chart_combo').append($('<option>', {
-        value: "PASCAL VOC mAP",
-        text: "PASCAL VOC mAP"
-    }));
+    // $('#chart_combo').append($('<option>', {
+    //     value: "PASCAL VOC mAP",
+    //     text: "PASCAL VOC mAP"
+    // }));
     // $('#chart_combo').append($('<option>', {
     //     value: "Ground Cover Percentage",
     //     text: "Ground Cover Percentage"
@@ -722,6 +845,7 @@ $(document).ready(function() {
     });
 
     $("#filter_combo").change(function() {
+        $("#filter_combo").css("background-color", status_color[$("#filter_combo").val()]);
         create_image_set_table();
         if (cur_img_list.length > 0) {
             $("#image_set_table_container").scrollTop(0);
@@ -791,6 +915,79 @@ $(document).ready(function() {
         change_image(cur_img_list[index]);
     
     });
+
+
+    $("#annotation_version_combo").change(function() {
+        let version = $("#annotation_version_combo").val();
+
+        show_modal_message("Please Wait", 
+        `<div id="switch_anno_message">Switching annotation versions...</div><div id="switch_anno_loader" class="loader"></div>`);
+
+        $("#modal_close").hide();
+
+        // a(class="table_button table_button_hover" style="padding: 5px 10px;" id="download_button" download)
+        //     i(class="fa fa-download fa-sm")
+        //     span(style="margin-left: 10px") Download Results 
+
+        download_uuid = "";
+        $.post($(location).attr('href'),
+        {
+            action: "switch_annotation_version",
+            // username: username,
+            // farm_name: farm_name,
+            // field_name: field_name,
+            // mission_date: mission_date,
+            // results_timestamp: timestamp,
+            annotation_version: version
+        },
+        
+        function(response, status) {
+            if (response.error) {
+                show_modal_message("Error", "An error occurred while switching annotation versions.");
+                if (version === "most_recent") {
+                    $("#annotation_version_combo").val("preserved");
+                }
+                else {
+                    $("#annotation_version_combo").val("most_recent");
+                }
+            }
+            else {
+                annotations = response["annotations"];
+                metrics = response["metrics"];
+                excess_green_record = response["excess_green_record"];
+                download_uuid = response["download_uuid"];
+
+                //$("#filter_combo").val("all");
+
+                $("#chart_container").empty();
+                $("#interpolation_linear").prop("checked", true);
+                $("#pred_image_status_all").prop("checked", true);
+
+
+                $("#filter_combo").val("all").change();
+                //create_image_set_table();
+                //create_overlays_table();
+                set_count_chart_data();
+                set_score_chart_data();
+                update_count_chart();
+                update_score_chart();
+            
+                // $("#seadragon_viewer").empty();
+                // create_viewer_and_anno();
+
+                let init_image_name = basename(dzi_image_paths[0]);
+                //cur_img_name = init_image_name.substring(0, init_image_name.length - 4);
+                change_image(init_image_name.substring(0, init_image_name.length - 4));
+
+                $("#modal_close").click();
+            }
+
+
+        });
+    });
+
+
+
 
 });
 

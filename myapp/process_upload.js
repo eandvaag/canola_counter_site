@@ -120,6 +120,7 @@ async function process_upload(username, farm_name, field_name, mission_date, cam
     let aborted_dir = path.join(image_set_requests_dir, "aborted");
     let weights_dir = path.join(model_dir, "weights");
     let results_dir = path.join(model_dir, "results");
+    // let retrieval_dir = path.join(model_dir, "retrieval");
 
 
     let image_names = [];
@@ -152,6 +153,7 @@ async function process_upload(username, farm_name, field_name, mission_date, cam
         fs.mkdirSync(aborted_dir, { recursive: true });
         fs.mkdirSync(weights_dir, { recursive: true });
         fs.mkdirSync(results_dir, { recursive: true});
+        // fs.mkdirSync(retrieval_dir, { recursive: true});
     }
     catch (error) {
         write_and_notify(upload_status_path, {"status": "failed", "error": error.toString()}, notify_data);
@@ -211,17 +213,17 @@ async function process_upload(username, farm_name, field_name, mission_date, cam
         return;
     }
 
-    let annotations_lock_path = path.join(annotations_dir, "lock.json")
-    let annotations_lock = {
-        "last_refresh": 0
-    };
-    try {
-        fs.writeFileSync(annotations_lock_path, JSON.stringify(annotations_lock));
-    }
-    catch (error) {
-        write_and_notify(upload_status_path, {"status": "failed", "error": error.toString()}, notify_data);
-        return;
-    }
+    // let annotations_lock_path = path.join(annotations_dir, "lock.json")
+    // let annotations_lock = {
+    //     "last_refresh": 0
+    // };
+    // try {
+    //     fs.writeFileSync(annotations_lock_path, JSON.stringify(annotations_lock));
+    // }
+    // catch (error) {
+    //     write_and_notify(upload_status_path, {"status": "failed", "error": error.toString()}, notify_data);
+    //     return;
+    // }
 
     let loss_record_path = path.join(training_dir, "loss_record.json")
     let loss_record = {
@@ -230,8 +232,7 @@ async function process_upload(username, farm_name, field_name, mission_date, cam
                            "epochs_since_improvement": 100000000}, 
         "validation_loss": {"values": [],
                             "best": 100000000,
-                            "epochs_since_improvement": 100000000},
-        "num_training_images": 0
+                            "epochs_since_improvement": 100000000}
     }
     try {
         fs.writeFileSync(loss_record_path, JSON.stringify(loss_record));

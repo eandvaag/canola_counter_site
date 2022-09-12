@@ -19,6 +19,7 @@ const USR_DATA_ROOT = 'usr/data/';
 
 
 let workspace_key_to_id = {};
+let workspace_id_to_key = {};
 let home_key_to_ids = {};
 let home_id_to_key = {};
 // let socket_key_to_ids = {};
@@ -32,6 +33,9 @@ io.on('connection', function(socket) {
         // let socket_id = (socket.id).toString();
 
         workspace_key_to_id[key] = socket.id;
+        workspace_id_to_key[socket.id] = key;
+
+        console.log("workspace_id_to_key", workspace_id_to_key);
 
         // if (!(key in socket_key_to_ids)) {
         //     socket_key_to_ids[key] = [];
@@ -90,6 +94,11 @@ io.on('connection', function(socket) {
                 }
 
             }
+        }
+        else if (socket.id in workspace_id_to_key) {
+            let key = workspace_id_to_key[socket.id];
+            delete workspace_id_to_key[socket.id];
+            delete workspace_key_to_id[key];
         }
 
         console.log("updated home_key_to_ids", home_key_to_ids);
@@ -152,7 +161,7 @@ function emit_status_change(username, farm_name, field_name, mission_date, statu
             //     status["restart_requested"] = "False";
             // }
             
-            if (key in workspace_key_to_id) {
+            if ((key in workspace_key_to_id) && (workspace_key_to_id[key] !== "tmp_hold")) {
                 let socket_id = workspace_key_to_id[key];
                 io.to(socket_id).emit("status_change", status);
             }
@@ -257,3 +266,4 @@ exports.post_status_notification = function(req, res, next) {
 }
 
 module.exports.io = io;
+module.exports.workspace_key_to_id = workspace_key_to_id;

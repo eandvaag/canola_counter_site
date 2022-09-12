@@ -1,3 +1,11 @@
+let status_color = {
+    "all": "#222621",
+    "unannotated": "#222621",
+    "started": "#848484", //"#bbb",
+    "completed_for_training": "#45633d",
+    "completed_for_testing": "#998866" //#998866"
+};
+
 /**
   * Uses canvas.measureText to compute and return the width of the given text of given font in pixels.
   * 
@@ -113,6 +121,37 @@ function timestamp_to_date(timestamp){
   }
 
 
+function disable_close_buttons(button_ids) {
+
+    for (button_id of button_ids) {
+        console.log("disabling", button_id);
+        $("#" + button_id).prop("disabled", true);
+        $("#" + button_id).removeClass("close-hover");
+        $("#" + button_id).css("opacity", 0.5);
+        $("#" + button_id).css("cursor", "default");
+    }
+}
+
+function disable_x_buttons(button_ids) {
+    for (button_id of button_ids) {
+        console.log("disabling", button_id);
+        $("#" + button_id).prop("disabled", true);
+        $("#" + button_id).removeClass("x-button-hover");
+        $("#" + button_id).css("opacity", 0.5);
+        $("#" + button_id).css("cursor", "default");
+    }
+}
+
+function enable_x_buttons(button_ids) {
+
+    for (button_id of button_ids) {
+        console.log("enabling", button_id);
+        $("#" + button_id).prop("disabled", false);
+        $("#" + button_id).addClass("x-button-hover");
+        $("#" + button_id).css("opacity", 1);
+        $("#" + button_id).css("cursor", "pointer");
+    }
+}
 
 function disable_std_buttons(button_ids) {
 

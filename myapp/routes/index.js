@@ -26,7 +26,8 @@ router.post('/upload', upload_files.array('source_file[]'), landing.post_upload)
 router.get('/viewer/:username/:farm_name/:field_name/:mission_date/:timestamp', landing.get_viewer);
 router.post('/viewer/:username/:farm_name/:field_name/:mission_date/:timestamp', landing.post_viewer);
 
-
+router.get('/download/:username/:farm_name/:field_name/:mission_date/:timestamp/:download_uuid', landing.get_download);
+// router.post('/download/:username/:farm_name/:field_name/:mission_date/:timestamp/:download_uuid', landing.post_download);
 
 //router.get('/transfer', landing.get_transfer);
 
@@ -35,6 +36,9 @@ router.get('/logout', landing.logout);
 router.post('/status_notification', socket_api.post_status_notification);
 router.post('/upload_notification', socket_api.post_upload_notification);
 router.post('/results_notification', socket_api.post_results_notification);
+
+
+
 
 
 module.exports = router;

@@ -27,12 +27,20 @@ html
         script(type='text/javascript' src='/plant_detection/javascripts/score_chart.js')
         script(type='text/javascript' src='/plant_detection/javascripts/viewer_map_chart.js')
         script(type='text/javascript' src='/plant_detection/javascripts/common.js')
+        script(type='text/javascript' src='/plant_detection/javascripts/modal.js')
 
     body
         div(id="container")
 
             include ./header.pug
 
+            div(id="modal" class="modal")
+                div(class="modal-content")
+                    div(class="modal-header" id="modal_head")
+
+                    div(class="modal-body" id="modal_body")
+
+                    div(class="modal-footer")
 
             div(id="body")
                     
@@ -116,13 +124,13 @@ html
 
                                                         td(style="width:100%")
                                                             select(id="filter_combo" class="nonfixed_dropdown")
-                                                                option all
-                                                                option unannotated
-                                                                option completed_for_training
-                                                                option completed_for_testing
+                                                                //- option all
+                                                                //- option unannotated
+                                                                //- option completed_for_training
+                                                                //- option completed_for_testing
 
                                                 br
-                                                div(id="image_set_table_container" class="scrollable_area" style="height: 475px; border:none")
+                                                div(id="image_set_table_container" class="scrollable_area" style="height: 460px; border:none")
                                                     table(id="image_set_table")
 
                                                 div(style="height: 10px")
@@ -131,19 +139,24 @@ html
                                                         tr
                                                             td(style="width: 140px")
                                                                 button(id="prev_image_button" class="std-button std-button-hover" style="font-size: 16px; width: 100%") 
-                                                                    i(class="fa-solid fa-circle-chevron-left")
+                                                                    i(class="fa-solid fa-circle-chevron-left" style="padding-right: 5px")
                                                                     | 
                                                                     | Previous
                                                             td(style="width: 140px")
-                                                                button(id="next_image_button" class="std-button std-button-hover" style="font-size: 16px; width: 100%") Next 
-                                                                    i(class="fa-solid fa-circle-chevron-right")                                                    
+                                                                button(id="next_image_button" class="std-button std-button-hover" style="font-size: 16px; width: 100%;") Next 
+                                                                    i(class="fa-solid fa-circle-chevron-right" style="padding-left: 5px")                                                    
 
                                                 hr
                                                 div(style="height: 5px")
 
-                                                a(class="table_button table_button_hover" style="padding: 5px 10px;" id="download_button" download)
-                                                    i(class="fa fa-download fa-sm")
-                                                    span(style="margin-left: 10px") Download Results 
+                                                button(id="request_csv_button" class="std-button std-button-hover")
+                                                    i(class="fa fa-download fa-sm" style="padding-right: 5px")
+                                                    |
+                                                    | Download Results
+                                                
+                                                //- a(class="table_button table_button_hover" style="padding: 5px 10px;" id="download_button" download)
+                                                //-     i(class="fa fa-download fa-sm")
+                                                //-     span(style="margin-left: 10px") Download Results 
                                                 
                                                 //div(style="height: 5px")                                     
 
@@ -155,6 +168,26 @@ html
                                         div(style="width: 280px;")
 
                                             div(id="right_panel")
+
+                                                div(class="header2" style="text-align: left") Annotation Version
+                                                select(id="annotation_version_combo" class="nonfixed_dropdown")
+                                                    option(value="preserved") From Time of Result Creation
+                                                    option(value="most_recent") Most Recent
+                                                //- table(class="transparent_table" style="border: 1px solid white; width: 260px")
+                                                //-     tr 
+                                                //-         td 
+                                                //-             label(class="radio_container") Preserved
+                                                //-                 input(type="radio" name="annotation_version" value="preserved" checked)
+                                                //-                 span(class="custom_radio")
+                                                //-         td 
+                                                //-             label(class="radio_container") Most Recent 
+                                                //-                 input(type="radio" name="annotation_version" value="most_recent")
+                                                //-                 span(class="custom_radio")
+
+                                                br
+                                                br
+                                                hr
+
                                                 div(style="height: 40px")
                                                     table(class="transparent_table")
                                                         td(style="text-align: left")
@@ -162,7 +195,7 @@ html
                                                         td(style="width: 100%")
                                                             select(id="chart_combo" class="nonfixed_dropdown")
                                                                 
-                                                div(id="count_chart" style="height: 130px; border:none")
+                                                div(id="count_chart" style="height: 95px; border:none")
                                                     div(id="count_chart_tooltip" class="tooltip" style="z-index: 10")
 
                                                 hr
@@ -170,16 +203,18 @@ html
 
                                                 h(class="header2" style="text-align:left") Overlays
 
-                                                div(class="scrollable_area" style="height: 120px; border:none")
+                                                div(class="scrollable_area" style="height: 90px; border:none")
                                                     table(id="overlays_table" class="transparent_table")
 
 
                                                 hr  
 
                                                 h(class="header2" style="text-align:left") Score Distribution
-                                                div(id="score_chart" style="height: 210px; border:none")
+                                                h(class="header2" style="text-align: left; font-size: 16px") Est. Quality: 
+                                                    span(id="quality_score" style="color: white; text-align: left")
+                                                div(id="score_chart" style="height: 175px; border:none")
                                                 
-                                                div(style="height: 20px")
+                                                div(style="height: 10px")
                                                 hr
                                                     
                                                 table(class="transparent_table")
@@ -218,7 +253,7 @@ html
                             table(class="transparent_table")
 
                                 tr
-                                    td(class="dark-bg" style="vertical-align:top")
+                                    td(class="dark-bg" style="vertical-align:top; height: 720px")
                                         div(style="width: 280px;")
 
                                             div(id="map_builder_controls_container" hidden)
@@ -230,11 +265,11 @@ html
                                                     tr 
                                                         td 
                                                             label(class="radio_container") Linear 
-                                                                input(type="radio" name="interpolation" value="linear" checked)
+                                                                input(type="radio" id="interpolation_linear" name="interpolation" value="linear" checked)
                                                                 span(class="custom_radio")
                                                         td 
                                                             label(class="radio_container") Nearest 
-                                                                input(type="radio" name="interpolation" value="nearest")
+                                                                input(type="radio" id="interpolation_nearest" name="interpolation" value="nearest")
                                                                 span(class="custom_radio")
 
                                                 //br
@@ -250,11 +285,11 @@ html
                                                         tr 
                                                             td 
                                                                 label(class="radio_container") All 
-                                                                    input(type="radio" name="pred_image_status" value="all" checked)
+                                                                    input(type="radio" id="pred_image_status_all" name="pred_image_status" value="all" checked)
                                                                     span(class="custom_radio")
                                                             td 
                                                                 label(class="radio_container") Annotated 
-                                                                    input(type="radio" name="pred_image_status" value="completed")
+                                                                    input(type="radio" id="pred_image_status_completed" name="pred_image_status" value="completed")
                                                                     span(class="custom_radio")
 
                                                 //-

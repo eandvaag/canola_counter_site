@@ -10,19 +10,53 @@ global_disabled = false;
 
 
 function delete_request() {
-    $("#modal_header_text").html("Are you sure?");
+
+    show_modal_message(`Are you sure?`, `<div>Are you sure you want to delete this image set?</div>` +
+        `<div id="modal_button_container" style="text-align: center">` +
+        `<button id="confirm_delete" class="x-button x-button-hover" `+
+        `style="width: 200px" onclick="confirmed_delete_request()">Delete</button>` +
+        `<button id="cancel_delete" class="std-button std-button-hover" ` +
+        `style="width: 200px" onclick="cancel_delete_request()">Cancel</button>` +
+        `<div style="height: 20px" id="loader_container"></div>` +
+        `</div>`
+    )
+/*
+    $("#modal_header").empty();
+    //$("#modal_header").append(`<p id="modal_header_text" style="white-space: pre-line;">Are you sure?</p>`);
+
+    $("#modal_header").append(
+        `<span class="close close-hover" id="modal_close"> &times;</span>` +
+        `<p id="modal_header_text" style="white-space: pre-line;">Are you sure?</p>`
+    );
+    
+    // $("#modal_header_text").html("Are you sure?");
     $("#modal_message").html("Are you sure you want to delete this image set?");
     $("#result_modal").css("display", "block");
 
     $("#modal_message").append(`<div id="modal_button_container">
         <button id="confirm_delete" class="x-button x-button-hover" `+
-        `style="width: 200px" onclick="confirmed_delete_request()"><span>Delete</span></button>` +
+        `style="width: 200px" onclick="confirmed_delete_request()">Delete</button>` +
         `<button id="cancel_delete" class="std-button std-button-hover" ` +
-        `style="width: 200px" onclick="cancel_delete_request()"><span>Cancel</span></button>` +
-        `</div>`);
+        `style="width: 200px" onclick="cancel_delete_request()">Cancel</button>` +
+        `<div style="height: 20px" id="loader_container"></div>` +
+        `</div>`);*/
 }
 
 function confirmed_delete_request() {
+
+
+    //disable_close_buttons(["modal_close"]);
+
+    $("#modal_close").off('click').on('click', function() {
+        // do nothing
+    });
+    disable_x_buttons(["confirm_delete"]);
+    disable_std_buttons(["cancel_delete"]);
+    $("#loader_container").append(
+        `<div class="loader"></div>`
+    );
+
+    
     $.post($(location).attr('href'),
     {
         action: "delete_image_set",
@@ -32,10 +66,15 @@ function confirmed_delete_request() {
     },
     function(response, status) {
 
-        if (response.error) { 
-            $("#modal_header_text").html("Error");
-            $("#modal_message").html(response.message);
-            $("#result_modal").css("display", "block");
+        if (response.error) {
+            show_modal_message(`Error`, response.message);
+            $("#modal_close").off('click').on('click', function() {
+                close_modal();
+            });
+            
+            //$("#modal_header_text").html("Error");
+            //$("#modal_message").html(response.message);
+            //$("#result_modal").css("display", "block");
         }
         else {
             window.location.href = response.redirect;
@@ -44,12 +83,34 @@ function confirmed_delete_request() {
 }
 
 function cancel_delete_request() {
-    $("#modal_button_container").remove();
     close_modal();
+    /*
+    $("#modal_button_container").remove();
+    $("#modal_header").empty();
+    $("#modal_header").append(
+        `<span class="close close-hover" id="modal_close"> &times;</span>` +
+        `<p id="modal_header_text" style="white-space: pre-line;"></p>`
+    );
+    $("#modal_close").click(function() {
+        $("#modal_button_container").remove();
+        close_modal();
+    });
+    // div(class="modal-header" id="modal_header")
+    //                     span(class="close close-hover" id="modal_close") &times;
+    //                     p(id="modal_header_text" style="white-space: pre-line;")
+    close_modal();*/
 }
 
 
 function annotate_request() {
+
+    // let farm_name = $("#farm_combo").val();
+    // let field_name = $("#field_combo").val();
+    // let mission_date = $("#mission_combo").val();
+
+
+    // window.location.href = "/plant_detection/annotate/" + username + "/" + 
+    //                         farm_name + "/" + field_name + "/" + mission_date;
 
     $.post($(location).attr('href'),
     {
@@ -61,9 +122,11 @@ function annotate_request() {
     function(response, status) {
 
         if (response.error) {
+            show_modal_message(`Error`, response.message);
+            /*
             $("#modal_header_text").html("Error");
             $("#modal_message").html(response.message);
-            $("#result_modal").css("display", "block");
+            $("#result_modal").css("display", "block");*/
         }
         else {
             window.location.href = response.redirect;
@@ -238,18 +301,32 @@ function update_sensor() {
     }
     return true;
 }
-
+function delay(time) {
+    return new Promise(resolve => setTimeout(resolve, time));
+}
 function edit_metadata(make, model) {
 
+    /*
     $("#modal_header_text").html("Edit Camera Metadata");
     $("#modal_message").empty();
 
     $("#modal_message").append(`<div style="color: yellow; text-decoration: underline">WARNING</div><div style="text-align: justify">` +
         ` Changing a camera's metadata will affect all of the image sets that have been assigned to that camera.</div>`);
-    $("#modal_message").append(`<div style="height: 20px"></div>`);
+    $("#modal_message").append(`<div style="height: 20px"></div>`);*/
 
-    add_make_model_fields("150px");
-    add_sensor_fields("150px")
+
+    let message = `<div style="color: yellow; text-decoration: underline; text-align: center">WARNING</div>` +
+                  `<div style="text-align: justify">` +
+                  `Changing a camera's metadata will affect all of the image sets that have been assigned to that camera.</div>` +
+                  `<div style="height: 20px"></div>`;
+
+    //messsage = message + `<div style="height: 20px"></div>`;
+
+    //let r = add_make_model_fields("150px");
+    //console.log("r", r);
+    //message = message + r;
+    message = message + add_make_model_fields("160px");
+    message = message + add_sensor_fields("160px");
     
 
     let sensor_width = camera_specs[make][model]["sensor_width"];
@@ -265,6 +342,26 @@ function edit_metadata(make, model) {
     $("#sensor_height_input").val(sensor_height);
     $("#focal_length_input").val(focal_length);
 
+ 
+    message = message + `<div style="height: 20px"></div>` +
+    `<div style="text-align: center">` +
+        `<button class="table_button table_button_hover" style="width: 220px; height: 30px;" id="camera_update_button" ` +
+        `onclick="update_camera()">`+
+            `Update Metadata</button>` +
+    `</div>`;
+    
+    /*
+    message = message + `<table class="transparent_table"><tr>` +
+    `<td>` +
+    `<button class="table_button table_button_hover" style="width: 220px; height: 30px;" id="camera_update_button" ` +
+    `onclick="update_camera()">`+
+        `Update Metadata</button>` +
+    `</td>` +
+    `</tr></table>`;*/
+
+
+    console.log(message);
+/*
     $("#modal_message").append(`<div style="height: 20px"></div>`);
  
     $("#modal_message").append(`<table class="transparent_table"><tr>` +
@@ -273,7 +370,7 @@ function edit_metadata(make, model) {
         `onclick="update_camera()">`+
             `Update Metadata</button>` +
         `</td>` +
-        `</tr></table>`);
+        `</tr></table>`);*/
 
 
         
@@ -289,18 +386,21 @@ function edit_metadata(make, model) {
         });
     }
 
-    $("#result_modal").css("display", "block");
+    //$("#result_modal").css("display", "block");
+
+    show_modal_message(`Edit Camera Metadata`, message);
 
 
 }
 
 function add_sensor_fields(left_col_width_px) {
 
-    $("#modal_message").append(
+    //$("#modal_message").append(
+    let message =
         `<table class="transparent_table">` +
         `<tr>` +
             `<td>` + 
-                `<div class="table_head" style="width: ${left_col_width_px}">Sensor Width (mm)</div>` +
+                `<div class="table_head" style="width: ${left_col_width_px}; padding-right: 10px">Sensor Width (mm)</div>` +
             `</td>` +
             `<td>` +
                 `<div style="width: 250px">` +
@@ -310,7 +410,7 @@ function add_sensor_fields(left_col_width_px) {
         `</tr>` + 
         `<tr>` +
             `<td>` + 
-                `<div class="table_head" style="width: ${left_col_width_px}">Sensor Height (mm)</div>` +
+                `<div class="table_head" style="width: ${left_col_width_px}; padding-right: 10px">Sensor Height (mm)</div>` +
             `</td>` +
             `<td>` +
                 `<div style="width: 250px">` +
@@ -320,29 +420,48 @@ function add_sensor_fields(left_col_width_px) {
         `</tr>` +
         `<tr>` +
             `<td>` + 
-                `<div class="table_head" style="width: ${left_col_width_px}">Focal Length (mm)</div>` +
+                `<div class="table_head" style="width: ${left_col_width_px}; padding-right: 10px">Focal Length (mm)</div>` +
             `</td>` +
             `<td>` +
                 `<div style="width: 250px">` +
                     `<input id="focal_length_input" class="nonfixed_input">` +
                 `</div>` +
             `</td>` +
-        `</tr>`
-    );
+        `</tr>` +
+        `</table>`;
+    //);
+    return message;
 }
 
 function add_sensor_metadata(make, model) {
 
+    
+    // $("#modal_header_text").html("Add Camera Metadata");
+    // $("#modal_message").empty();
+    // $("#modal_message").append(`<div>` +
+    //     `This camera is not known to the system.<br>` +
+    //     `Please provide the following information:</div>`);
+    // $("#modal_message").append(`<div style="height: 20px"></div>`);
 
-    $("#modal_header_text").html("Add Camera Metadata");
-    $("#modal_message").empty();
-    $("#modal_message").append(`<div>` +
-        `This camera is not known to the system.<br>` +
-        `Please provide the following information:</div>`);
-    $("#modal_message").append(`<div style="height: 20px"></div>`);
+    let message = `<div>` +
+    `This camera is not known to the system.<br>` +
+    `Please provide the following information:</div>`;
+    message = message + `<div style="height: 20px"></div>`;
 
-    add_sensor_fields("150px");
 
+    message = message + add_sensor_fields("160px");
+
+    message = message + `<div style="height: 20px"></div>`;
+
+    message = message + `<table class="transparent_table"><tr>` +
+    `<td>` +
+    `<button class="table_button table_button_hover" style="width: 220px; height: 30px;" id="camera_add_button" ` +
+    `onclick="add_camera('${make}', '${model}')">`+
+        `Add Camera</button>` +
+    `</td>` +
+    `</tr></table>`;
+
+    /*
     $("#modal_message").append(`<div style="height: 20px"></div>`);
     
     $("#modal_message").append(`<table class="transparent_table"><tr>` +
@@ -351,7 +470,7 @@ function add_sensor_metadata(make, model) {
         `onclick="add_camera('${make}', '${model}')">`+
             `Add Camera</button>` +
         `</td>` +
-        `</tr></table>`);
+        `</tr></table>`);*/
 
     
     for (input_id of ["sensor_width_input", "sensor_height_input", "focal_length_input"]) {
@@ -367,16 +486,18 @@ function add_sensor_metadata(make, model) {
     disable_buttons(["camera_add_button"]);
 
 
-    $("#result_modal").css("display", "block");
+    //$("#result_modal").css("display", "block");
+    show_modal_message(`Add Camera Metadata`, message);
 
 }
 
 function add_make_model_fields(left_col_width_px) {
-    $("#modal_message").append(
+    //$("#modal_message").append(
+    let message = 
         `<table class="transparent_table">` +
         `<tr>` +
             `<td>` + 
-                `<div class="table_head" style="width: ${left_col_width_px}">Make</div>` +
+                `<div class="table_head" style="width: ${left_col_width_px}; padding-right: 10px">Make</div>` +
             `</td>` +
             `<td>` +
                 `<div style="width: 250px">` +
@@ -386,16 +507,18 @@ function add_make_model_fields(left_col_width_px) {
         `</tr>` + 
         `<tr>` +
             `<td>` + 
-                `<div class="table_head" style="width: ${left_col_width_px}">Model</div>` +
+                `<div class="table_head" style="width: ${left_col_width_px}; padding-right: 10px">Model</div>` +
             `</td>` +
             `<td>` +
                 `<div style="width: 250px">` +
                     `<input id="model_input" class="nonfixed_input">` +
                 `</div>` +
             `</td>` +
-        `</tr>`  
+        `</tr>` +
+        `</table>`;
 
-    );
+    //);
+    return message;
 }
 
 function add_make_model_metadata() {
@@ -403,8 +526,17 @@ function add_make_model_metadata() {
     $("#modal_header_text").html("Add Camera Metadata");
     $("#modal_message").empty();
 
-    add_make_model_fields("60px");
+    let message = add_make_model_fields("60px");
 
+    message = message + `<div style="height: 20px"></div>`;
+    message = message + `<table class="transparent_table"><tr>` +
+    `<td>` +
+    `<button class="table_button table_button_hover" style="width: 220px; height: 30px;" id="camera_search_button" onclick="search_for_camera()">`+
+        `Search For Camera</button>` +
+    `</td>` +
+    `</tr></table>`;
+
+    /*
     $("#modal_message").append(`<div style="height: 20px"></div>`);
     
     $("#modal_message").append(`<table class="transparent_table"><tr>` +
@@ -412,7 +544,7 @@ function add_make_model_metadata() {
         `<button class="table_button table_button_hover" style="width: 220px; height: 30px;" id="camera_search_button" onclick="search_for_camera()">`+
             `Search For Camera</button>` +
         `</td>` +
-        `</tr></table>`);
+        `</tr></table>`);*/
 
 
     for (input of ["make_input", "model_input"]) {
@@ -429,7 +561,8 @@ function add_make_model_metadata() {
 
     disable_buttons(["camera_search_button"]);
 
-    $("#result_modal").css("display", "block");
+    //$("#result_modal").css("display", "block");
+    show_modal_message(`Add Camera Metadata`, message);
 
 }
 
@@ -468,14 +601,17 @@ function add_camera(make, model) {
     function(response, status) {
 
         if (response.error) {
-            $("#modal_header_text").html("Error");
-            $("#modal_message").html(response.message);
+            //$("#modal_header_text").html("Error");
+            //$("#modal_message").html(response.message);
+            show_modal_message(`Error`, response.message);
         }
         else {
             camera_specs = response.camera_specs;
             show_overview();
-            $("#modal_header_text").html("Success!");
-            $("#modal_message").html("Success! The provided metadata has been successfully processed.<br><br>You may now close this window.");
+            show_modal_message(`Success!`, 
+                `Success! The provided metadata has been successfully processed.<br><br>You may now close this window.`)
+            //$("#modal_header_text").html("Success!");
+            //$("#modal_message").html("Success! The provided metadata has been successfully processed.<br><br>You may now close this window.");
 
         }
     });
@@ -517,14 +653,17 @@ function search_for_camera() {
         function(response, status) {
 
             if (response.error) {
-                $("#modal_header_text").html("Error");
-                $("#modal_message").html(response.message);
+                //$("#modal_header_text").html("Error");
+                //$("#modal_message").html(response.message);
+                show_modal_message(`Error`, response.message);
             }
             else {
                 camera_specs = response.camera_specs;
                 show_overview();
-                $("#modal_header_text").html("Success!");
-                $("#modal_message").html("Success! The provided make and model are known to the system.<br><br>You may now close this window.");
+                show_modal_message(`Success!`, 
+                 `Success! The provided make and model are known to the system.<br><br>You may now close this window.`);
+                //$("#modal_header_text").html("Success!");
+                //$("#modal_message").html("Success! The provided make and model are known to the system.<br><br>You may now close this window.");
             }
         });
 
@@ -548,7 +687,7 @@ function submit_camera_height_change() {
     function(response, status) {
 
         if (response.error) {
-            show_error_message("Error Message", 
+            show_modal_message(`Error`, 
             `An error occurred while updating the camera height:<br>` + response.message);
             let prev_camera_height = metadata["camera_height"];
             //proposed_camera_height = $("#update_camera_height_input").val();
@@ -871,7 +1010,7 @@ function show_overview() {
             `<tr style="height: 80px">` +
             `<td>` +
             `<button class="x-button x-button-hover" style="width: 220px; height: 35px;" onclick="delete_request()">`+
-                `<span><i class="fa-regular fa-circle-xmark" style="margin-right:8px"></i>Delete Image Set</span></button>` +
+                `<i class="fa-regular fa-circle-xmark" style="margin-right:8px"></i>Delete Image Set</button>` +
             `</td>` +
             `</tr>`);
     
@@ -920,9 +1059,11 @@ function fetch_and_show_results() {
     },
     function(response, status) {
         if (response.error) {
+            show_modal_message(`Error`, `An error occurred while fetching the image set results.`);
+            /*
             $("#modal_header_text").html("Error");
             $("#modal_message").html("Error occurred while fetching image set results.");
-            $("#result_modal").css("display", "block");
+            $("#result_modal").css("display", "block");*/
         }
         else {
             // if (response.upload_status !== upload_status) {
@@ -939,12 +1080,12 @@ function fetch_and_show_results() {
     });
 
 }
-
+/*
 function show_error_message(head_text, body_text) {
     $("#modal_header_text").html(head_text);
     $("#modal_message").html(body_text);
     $("#result_modal").css("display", "block");
-}
+}*/
 
 function delete_result(result_type, result_id) {
 
@@ -964,7 +1105,7 @@ function delete_result(result_type, result_id) {
     function(response, status) {
 
         if (response.error) {
-            show_error_message("Error", "An error occurred while deleting the result.");
+            show_modal_message(`Error`, `An error occurred while deleting the result.`);
         }
         fetch_and_show_results();
         //show_results();
@@ -1301,12 +1442,12 @@ $(document).ready(function() {
         show_image_set_details();
     });
 
-
+/*
     $("#modal_close").click(function() {
         $("#modal_button_container").remove();
         close_modal();
     });
-
+*/
     initialize_browse();
     initialize_upload();
     //initialize_train_baseline();

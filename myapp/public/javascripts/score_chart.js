@@ -1,19 +1,20 @@
 
 //let score_thresholds = [0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1];
 let score_chart_data = {};
-let scores_max_y_bin;
+// let scores_max_y_bin;
 let score_xScale, score_yScale;
 let score_chart_x_axis, score_chart_y_axis;
+let score_thresholds;
 
 function set_score_chart_data() {
 
-    let score_thresholds = [];
+    score_thresholds = [];
     for (let i = 0; i <= 100; i++) {
         score_thresholds.push(i / 100);
     }
-    console.log(score_thresholds);
+    //console.log(score_thresholds);
 
-    scores_max_y_bin = 0;
+    // scores_max_y_bin = 0;
     score_chart_data = {};
 
     for (image_name of Object.keys(annotations)) {
@@ -41,14 +42,41 @@ function set_score_chart_data() {
         score_chart_data[image_name]["bins"] = bins;
         score_chart_data[image_name]["scores"] = scores;
 
-        let image_max_y_bin = d3.max(bins, function(d) { return d.length / scores.length; });
+        // image_max_y_bin = d3.max(bins, function(d) { return d.length / scores.length; });
 
-        if (image_max_y_bin > scores_max_y_bin) {
-            scores_max_y_bin = image_max_y_bin;
-        }
+        // if (image_max_y_bin > scores_max_y_bin) {
+        //     scores_max_y_bin = image_max_y_bin;
+        // }
 
     }
 
+}
+
+function evaluate_scores(bins, scores) {
+
+    let quality_score = 0;
+    let bin_i_prob, bin_i_score;
+    // console.log("bins.length", bins.length);
+    // console.log("score_thresholds.length", score_thresholds.length);
+    for (let i = 0; i < bins.length; i++) {
+        bin_i_prob = bins[i].length / scores.length
+        bin_i_score = score_thresholds[i];
+        quality_score = quality_score + (bin_i_prob * bin_i_score);
+    }
+    // console.log("quality_score", quality_score);
+
+    let certainty;
+    if (scores.length < 10) {
+        certainty = "low";
+    }
+    else if (scores.length < 50) {
+        certainty = "moderate";
+    }
+    else {
+        certainty = "high";
+    }
+
+    return [quality_score, certainty];
 }
 
 
@@ -114,6 +142,12 @@ function draw_score_chart() {
 
     let bins = score_chart_data[cur_img_name]["bins"];
     let scores = score_chart_data[cur_img_name]["scores"];
+
+    let ret = evaluate_scores(bins, scores);
+    let quality_score =  Math.round((ret[0] + Number.EPSILON) * 100);
+    let certainty = ret[1];
+
+    $("#quality_score").html(quality_score + "% (" + certainty + " certainty)");
 
     console.log("bins", bins);
     console.log("scores", scores);
@@ -197,6 +231,13 @@ function update_score_chart() {
 
     let bins = score_chart_data[cur_img_name]["bins"];
     let scores = score_chart_data[cur_img_name]["scores"];
+
+
+    let ret = evaluate_scores(bins, scores);
+    let quality_score =  Math.round((ret[0] + Number.EPSILON) * 100);
+    let certainty = ret[1];
+
+    $("#quality_score").html(quality_score + "% (" + certainty + " certainty)");
 
     //count_xScale.domain([0, max_count]);
     score_yScale.domain([0, d3.max(bins, function(d) { return d.length; })]);
