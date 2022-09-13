@@ -35,7 +35,10 @@ function set_score_chart_data() {
         .thresholds(score_thresholds);
 
         let bins = histogram(scores);
-        bins = bins.slice(0, bins.length-1);
+        console.log("BINS", bins);
+        bins[bins.length-1].x1 = 1.01;
+        //bins = bins.slice(0, bins.length-1);
+        //console.log("SLICED BINS", bins);
 
 
         score_chart_data[image_name] = {};
@@ -59,13 +62,16 @@ function evaluate_scores(bins, scores) {
     // console.log("bins.length", bins.length);
     // console.log("score_thresholds.length", score_thresholds.length);
     for (let i = 0; i < bins.length; i++) {
+        
         bin_i_prob = bins[i].length / scores.length
         bin_i_score = score_thresholds[i];
-        quality_score = quality_score + (bin_i_prob * bin_i_score);
+        console.log("i, bin_i_prob, bin_i_score", i, bin_i_prob, bin_i_score);
+        quality_score = quality_score + (bin_i_prob * (bin_i_score * bin_i_score));
     }
     // console.log("quality_score", quality_score);
 
-    quality_score = range_map(quality_score, 0.25, 1.0, 0.0, 1.0);
+    //quality_score = range_map(quality_score, 0.25, 1.0, 0.0, 1.0);
+    quality_score = range_map(quality_score, 0.0156, 1.0, 0.0, 1.0);
 
     let certainty;
     if (scores.length < 10) {
@@ -116,14 +122,14 @@ function draw_score_chart() {
     // let height = chart_height - 2 * margin;
 
     score_xScale = d3.scaleLinear()
-                        .domain([0.25, 1.0])
+                        .domain([0.25, 1.01])
                         .range([0, width]);
 
     score_chart_x_axis = score_svg.append("g")
         .attr("class", "x axis")
         .attr("transform", "translate(0," + height + ")");
     
-    score_chart_x_axis.call(d3.axisBottom(score_xScale).tickValues([0.25, 0.5, 0.75, 1.0]) //.tickFormat(d3.format("d"))); //x => `${x.toFixed(2)}`));
+    score_chart_x_axis.call(d3.axisBottom(score_xScale).tickSizeOuter(0).tickValues([0.25, 0.5, 0.75, 1.0]) //.tickFormat(d3.format("d"))); //x => `${x.toFixed(2)}`));
     .tickFormat((d, i) => ['0.25', '0.5', '0.75', '1'][i])); 
 
 
