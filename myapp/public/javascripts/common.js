@@ -51,7 +51,7 @@ function getCanvasFontSize(el = document.body) {
 
 function get_max_name_width(names, font) {
     let max_text_width = 0;
-    for (name of names) {
+    for (let name of names) {
         let text_width = Math.round(get_text_width(name, font));
         if (text_width > max_text_width) {
             max_text_width = text_width;
@@ -120,8 +120,8 @@ function timestamp_to_date(timestamp){
     //let box_areas = [];
     let box_area_sum = 0;
     let num_boxes = 0;
-    for (image_name of Object.keys(annotations)) {
-        for (annotation of annotations[image_name]["annotations"]) {
+    for (let image_name of Object.keys(annotations)) {
+        for (let annotation of annotations[image_name]["annotations"]) {
             let coords_str = annotation.target.selector.value;
             let coords = coords_str.substring(11).split(",").map(parseFloat);
             //box_areas.push(coords[2] * coords[3]);
@@ -139,7 +139,7 @@ function timestamp_to_date(timestamp){
 
 function disable_close_buttons(button_ids) {
 
-    for (button_id of button_ids) {
+    for (let button_id of button_ids) {
         $("#" + button_id).prop("disabled", true);
         $("#" + button_id).removeClass("close-hover");
         $("#" + button_id).css("opacity", 0.5);
@@ -148,7 +148,7 @@ function disable_close_buttons(button_ids) {
 }
 
 function disable_x_buttons(button_ids) {
-    for (button_id of button_ids) {
+    for (let button_id of button_ids) {
         $("#" + button_id).prop("disabled", true);
         $("#" + button_id).removeClass("x-button-hover");
         $("#" + button_id).css("opacity", 0.5);
@@ -158,7 +158,7 @@ function disable_x_buttons(button_ids) {
 
 function enable_x_buttons(button_ids) {
 
-    for (button_id of button_ids) {
+    for (let button_id of button_ids) {
         $("#" + button_id).prop("disabled", false);
         $("#" + button_id).addClass("x-button-hover");
         $("#" + button_id).css("opacity", 1);
@@ -168,7 +168,7 @@ function enable_x_buttons(button_ids) {
 
 function disable_std_buttons(button_ids) {
 
-    for (button_id of button_ids) {
+    for (let button_id of button_ids) {
         $("#" + button_id).prop("disabled", true);
         $("#" + button_id).removeClass("std-button-hover");
         $("#" + button_id).css("opacity", 0.5);
@@ -178,7 +178,7 @@ function disable_std_buttons(button_ids) {
 
 function enable_std_buttons(button_ids) {
 
-    for (button_id of button_ids) {
+    for (let button_id of button_ids) {
         $("#" + button_id).prop("disabled", false);
         $("#" + button_id).addClass("std-button-hover");
         $("#" + button_id).css("opacity", 1);
@@ -189,7 +189,7 @@ function enable_std_buttons(button_ids) {
 
 function disable_buttons(button_ids) {
 
-    for (button_id of button_ids) {
+    for (let button_id of button_ids) {
         $("#" + button_id).prop("disabled", true);
         $("#" + button_id).removeClass("table_button_hover");
         $("#" + button_id).css("opacity", 0.5);
@@ -200,7 +200,7 @@ function disable_buttons(button_ids) {
 
 function enable_buttons(button_ids) {
 
-    for (button_id of button_ids) {
+    for (let button_id of button_ids) {
         $("#" + button_id).prop("disabled", false);
         $("#" + button_id).addClass("table_button_hover");
         $("#" + button_id).css("opacity", 1);

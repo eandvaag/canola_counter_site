@@ -45,7 +45,7 @@ function set_timeline_data() {
     }
 
 
-    for (image_name of Object.keys(annotations)) {
+    for (let image_name of Object.keys(annotations)) {
 
         let completed = ((annotations[image_name]["status"] === "completed_for_training") || (annotations[image_name]["status"] === "completed_for_testing"));
         let predicted_counts = [];
@@ -54,7 +54,7 @@ function set_timeline_data() {
         let predicted_densities = [];
         let density_differences = []
         let i = 0;
-        for (timestamp of sorted_timestamps) {
+        for (let timestamp of sorted_timestamps) {
 
             let predicted_count = predictions[timestamp][image_name]["annotations"].length;
             predicted_counts.push([i, predicted_count]);
@@ -77,7 +77,7 @@ function set_timeline_data() {
             }
 
             let scores = [];
-            for (prediction of predictions[timestamp][image_name]["annotations"]) {
+            for (let prediction of predictions[timestamp][image_name]["annotations"]) {
                 let bodies = Array.isArray(prediction.body) ?
                                 prediction.body : [ prediction.body ];
                 let scoreTag = bodies.find(b => b.purpose == 'score');
@@ -138,11 +138,11 @@ function set_timeline_data() {
 }
 
 
-function get_range() {
+function get_range(line_data) {
 
     let cur_metric = $("#metric_combo").val();
 
-    if (cur_timeline_data[cur_metric].length == 0) {
+    if (line_data.length == 0) {
         return [0, 0];
     }
 
@@ -150,10 +150,14 @@ function get_range() {
         return [0, 100];
     }
 
-    let min_val = cur_timeline_data[cur_metric][0]["values"][0][1];
-    let max_val = cur_timeline_data[cur_metric][0]["values"][0][1];
-    for (d of cur_timeline_data[cur_metric]) {
-        for (v of d["values"]) {
+    if (cur_metric === "MS_COCO_mAP") {
+        return [0, 100];
+    }
+
+    let min_val = line_data[0]["values"][0][1];
+    let max_val = line_data[0]["values"][0][1];
+    for (let d of line_data) {
+        for (let v of d["values"]) {
             if (v[1] < min_val) {
                 min_val = v[1];
             }
@@ -175,25 +179,60 @@ function get_range() {
 }
 
 
-function draw_timeline_chart() {
-
-    let cur_metric = $("#metric_combo").val();
+function set_cur_timeline_data() {
 
     cur_timeline_data = {};
 
     let cur_status = $("#status_combo").val();
 
-    for (metric of Object.keys(timeline_data)) {
+    for (let metric of Object.keys(timeline_data)) {
         cur_timeline_data[metric] = [];
-        for (d of timeline_data[metric]) {
+        for (let d of timeline_data[metric]) {
             if ((cur_status === "all") || (annotations[d["image_name"]]["status"] === cur_status)) {
                 cur_timeline_data[metric].push(d);
             }
         }
     }
+}
+
+function draw_timeline_chart() {
+
+
+    set_cur_timeline_data();
+
 
     $("#loader").hide();
+    $("#error").hide();
+    $("#timeline_chart").hide();
+
     $("#timeline_chart").empty();
+    
+
+    let cur_metric = $("#metric_combo").val();
+
+    let line_data;
+    if ((cur_metric === "MS_COCO_mAP") && ((mAP_calculation_state === "started") || (mAP_calculation_state === "error"))) {
+        line_data = cur_timeline_data["pred_count"]; // draw the lines even though they are not the right values
+        if (mAP_calculation_state === "started") {
+            $("#error").hide();
+            $("#timeline_chart").hide();
+            $("#loader").show();
+        }
+        else if (mAP_calculation_state === "error") {
+            $("#loader").hide();
+            $("#timeline_chart").hide();
+            $("#error_message").html("An error occurred while calculating the MS COCO mAP values.");
+            $("#error").show();
+        }
+    }
+    else {
+        line_data = cur_timeline_data[cur_metric];
+        $("#loader").hide();
+        $("#error").hide();
+        $("#timeline_chart").show();    
+    }
+
+
 
     $("#timeline_chart").append(`<div id="timeline_chart_tooltip" class="tooltip" style="z-index: 10"></div>`);
 
@@ -218,7 +257,7 @@ function draw_timeline_chart() {
                     .attr("transform", "translate(" + (1.5 * margin) + ", 0)");
 
 
-    let range = get_range();
+    let range = get_range(line_data);
 
     xScale = d3.scaleLinear()
                 .domain([0, Object.keys(predictions).length - 1])
@@ -266,9 +305,8 @@ function draw_timeline_chart() {
     }
 
 
-
     chart.selectAll("path")
-        .data(cur_timeline_data[cur_metric])
+        .data(line_data)
         .enter()
         .append("path")
         .attr("id", function(d) {
@@ -330,6 +368,7 @@ function draw_timeline_chart() {
         .attr("stroke-width", 2)
         .style("opacity", 0.9)
     }
+
 }
 
 
@@ -337,10 +376,31 @@ function update_timeline_chart() {
 
     let cur_metric = $("#metric_combo").val();
 
+    set_cur_timeline_data();
+
+    if (cur_metric === "MS_COCO_mAP") {
+        if (mAP_calculation_state === "started") {
+            $("#error").hide();
+            $("#timeline_chart").hide();
+            $("#loader").show();
+            return;
+        }
+        else if (mAP_calculation_state === "error") {
+            $("#loader").hide();
+            $("#timeline_chart").hide();
+            $("#error_message").html("An error occurred while calculating the MS COCO mAP values.");
+            $("#error").show();
+            return;
+        }
+    }
+    $("#loader").hide();
+    $("#error").hide();
+    $("#timeline_chart").show();
+
     d3.select("#zero_line").remove();
     d3.select("#y_axis_text").html(metric_text_lookup[cur_metric]);
 
-    let range = get_range();
+    let range = get_range(cur_timeline_data[cur_metric]);
     yScale.domain(range);
     chart_y_axis.transition().duration(250).call(d3.axisLeft(yScale).ticks(5));
 

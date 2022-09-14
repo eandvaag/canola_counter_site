@@ -158,16 +158,16 @@ exports.get_home = function(req, res, next) {
             return res.redirect(APP_PREFIX);
         }
 
-        for (farm_name of farm_names) {
+        for (let farm_name of farm_names) {
             
             let farm_root = path.join(image_sets_root, farm_name);
             let field_names = get_subdirs(farm_root);
 
-            for (field_name of field_names) {
+            for (let field_name of field_names) {
                 let field_root = path.join(farm_root, field_name);
                 let mission_dates = get_subdirs(field_root);
                 
-                for (mission_date of mission_dates) {
+                for (let mission_date of mission_dates) {
                     let mission_root = path.join(field_root, mission_date);
 
                     let upload_status_path = path.join(mission_root, "upload_status.json");
@@ -321,7 +321,7 @@ exports.get_annotate = function(req, res, next) {
         
                 let dzi_images_dir = path.join(image_set_dir, "dzi_images");
                 let dzi_image_paths = [];
-                for (image_name of Object.keys(annotations)) {
+                for (let image_name of Object.keys(annotations)) {
                     let dzi_image_path = path.join(APP_PREFIX, dzi_images_dir, image_name + ".dzi");
                     dzi_image_paths.push(dzi_image_path);
                 }
@@ -335,7 +335,7 @@ exports.get_annotate = function(req, res, next) {
                         return res.redirect(APP_PREFIX);
                     }
 
-                    for (image_prediction_dir of image_prediction_dirs) {
+                    for (let image_prediction_dir of image_prediction_dirs) {
                         let image_name = path.basename(image_prediction_dir);
 
                         let predictions_path = path.join(image_prediction_dir, "predictions_w3c.json");
@@ -505,7 +505,7 @@ exports.post_annotate = function(req, res, next) {
         let image_names = req.body.image_names.split(",");
         response.predictions = {};
 
-        for (image_name of image_names) {
+        for (let image_name of image_names) {
             let prediction_path = path.join(image_set_dir, "model", "prediction",
                 "images", image_name, "predictions_w3c.json");
             let metrics_path = path.join(image_set_dir, "model", "prediction",
@@ -769,7 +769,7 @@ exports.post_upload = function(req, res, next) {
             });
         }
 
-        for (filename of queued_filenames) {
+        for (let filename of queued_filenames) {
             if (format.test(filename)) {
                 delete active_uploads[upload_uuid];
                 return res.status(422).json({
@@ -817,7 +817,7 @@ exports.post_upload = function(req, res, next) {
         }
         console.log("checking components");
         let id_components = [farm_name, field_name, mission_date];
-        for (id_component of id_components) {
+        for (let id_component of id_components) {
             if (format.test(id_component)) {
                 // if (!sent_response) {
                 //     sent_response = true;
@@ -853,7 +853,7 @@ exports.post_upload = function(req, res, next) {
     }
 
     console.log("Writing the image files");
-    for (file of req.files) {
+    for (let file of req.files) {
 
         if (!(file.mimetype.startsWith('image/'))) {
             try {
@@ -993,7 +993,7 @@ exports.post_home = function(req, res, next) {
         let annotations_path = path.join(mission_dir, "annotations", "annotations_w3c.json");
         let annotations = JSON.parse(fs.readFileSync(annotations_path, 'utf8'));
         let empty = true;
-        for (image_name of Object.keys(annotations)) {
+        for (let image_name of Object.keys(annotations)) {
             if (annotations[image_name]["annotations"].length > 0) {
                 empty = false;
                 break;
@@ -1113,7 +1113,7 @@ exports.post_home = function(req, res, next) {
                 return res.json(response);
             }
 
-            for (pending_path of pending_paths) {
+            for (let pending_path of pending_paths) {
                 try {
                     response.pending_results.push(JSON.parse(fs.readFileSync(pending_path, 'utf8')));
                 }
@@ -1130,7 +1130,7 @@ exports.post_home = function(req, res, next) {
                     return res.json(response);
                 }
 
-                for (aborted_path of aborted_paths) {
+                for (let aborted_path of aborted_paths) {
                     try {
                         response.aborted_results.push(JSON.parse(fs.readFileSync(aborted_path, 'utf8')));
                     }
@@ -1146,7 +1146,7 @@ exports.post_home = function(req, res, next) {
                         return res.json(response);
                     }
 
-                    for (completed_dir of completed_dirs) {
+                    for (let completed_dir of completed_dirs) {
                         try {
                             response.completed_results.push(JSON.parse(fs.readFileSync(path.join(completed_dir, "request.json"), 'utf8')));
                         }
@@ -1224,14 +1224,14 @@ exports.post_home = function(req, res, next) {
 
 
         let format = /[`!@#$%^&*()+\=\[\]{};':"\\|,<>\/?~]/;
-        for (input of [make, model, sensor_width, sensor_height, focal_length]) {
+        for (let input of [make, model, sensor_width, sensor_height, focal_length]) {
             if (format.test(input)) {
                 response.message = "Provided metadata contains invalid characters."
                 response.error = true;
                 return res.json(response);
             }
         }
-        for (input of [make, model]) {
+        for (let input of [make, model]) {
             if ((input.length < 3 || input.length > 20)) {
                 response.message = "Provided metadata is invalid."
                 response.error = true;
@@ -1239,7 +1239,7 @@ exports.post_home = function(req, res, next) {
             }
         }
 
-        for (input of [sensor_width, sensor_height, focal_length]) {
+        for (let input of [sensor_width, sensor_height, focal_length]) {
             if (input.length < 1 || input.length > 10) {
                 response.message = "Provided metadata is invalid."
                 response.error = true;
@@ -1561,7 +1561,7 @@ exports.get_timeline = function(req, res, next) {
             if (error) {
                 return res.redirect(APP_PREFIX);
             }
-            for (result_path of result_paths) {
+            for (let result_path of result_paths) {
                 let result_predictions_path = path.join(result_path,  "predictions_w3c.json");
                 let result_predictions;
                 try {
@@ -1591,6 +1591,102 @@ exports.get_timeline = function(req, res, next) {
     }
 
 }
+
+
+
+exports.post_timeline = function(req, res, next) {
+
+    let action = req.body.action;
+    let response = {};
+    if (action === "calculate_mAP") {
+        
+        let farm_name = req.params.farm_name;
+        let field_name = req.params.field_name;
+        let mission_date = req.params.mission_date;
+
+        let mission_dir = path.join(USR_DATA_ROOT, req.session.user.username, "image_sets", 
+                                    farm_name, field_name, mission_date);
+
+        let results_dir = path.join(mission_dir, "model", "results");
+        //let download_uuids = [];
+        let metrics = {};
+
+        glob(path.join(results_dir, "*"), function(error, result_paths) {
+            if (error) {
+                return res.redirect(APP_PREFIX);
+            }
+            //for (let i = 0; i < result_paths.length; i++) { 
+            for (let result_path of result_paths) {
+
+                //let result_path = result_paths[i];
+
+                let timestamp = path.basename(result_path);
+
+        //let results_path = path.join(results_dir, timestamp, "retrieval", download_uuid, "results.csv");
+
+                let download_uuid = uuidv4().toString();
+
+                //console.log("download uuid is", download_uuid);
+                
+
+                let create_csv_command = "python ../../plant_detection/src/create_csv.py " +
+                    req.session.user.username + " " +
+                    farm_name + " " +
+                    field_name + " " + 
+                    mission_date + " " + 
+                    timestamp + " " +
+                    download_uuid + " " +
+                    "most_recent";
+
+                console.log("executing:", create_csv_command);
+        
+
+                exec(create_csv_command, {shell: "/bin/bash"}, function (error, stdout, stderr) {
+                    if (error) {
+                        console.log(error.stack);
+                        console.log('Error code: '+error.code);
+                        console.log('Signal received: '+error.signal);
+                        response.error = true;
+                        return res.json(response);
+                    }
+
+                    console.log("finished", create_csv_command);
+                    console.log("result_path", result_path);
+                    console.log("timestamp", timestamp);
+                    console.log("download_uuid", download_uuid);
+                    //response.error = false;
+                    //response.download_uuid = download_uuid;
+                    //console.log("returning new download_uuid", download_uuid);
+                    //return res.json(response);
+
+                    let result_metrics_path = path.join(result_path, "retrieval", download_uuid, "metrics.json");
+                    let result_metrics;
+                    try {
+                        result_metrics = JSON.parse(fs.readFileSync(result_metrics_path, 'utf8'));
+                    }
+                    catch (error) {
+                        console.log(error);
+                        response.error = true;
+                        return res.json(response);
+                    }
+
+                    metrics[timestamp] = result_metrics;
+
+
+                    //download_uuids.push(download_uuid);
+                    if (Object.keys(metrics).length == result_paths.length) {
+                        //response.download_uuids = download_uuids.join(",");
+                        response.metrics = metrics;
+                        return res.json(response);
+                    }
+                });
+            }
+        });
+    }
+}
+
+
+
 
 exports.get_viewer = function(req, res, next) {
     
@@ -1670,7 +1766,7 @@ exports.get_viewer = function(req, res, next) {
         let dzi_images_dir = path.join(image_set_dir, "dzi_images");
 
         let dzi_image_paths = [];
-        for (image_name of Object.keys(annotations)) {
+        for (let image_name of Object.keys(annotations)) {
             let dzi_image_path = path.join(APP_PREFIX, dzi_images_dir, image_name + ".dzi");
             dzi_image_paths.push(dzi_image_path);
 

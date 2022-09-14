@@ -189,7 +189,7 @@ function results_notification(username, farm_name, field_name, mission_date) {
     if (key in home_key_to_ids) {
 
         let socket_ids = home_key_to_ids[key];
-        for (socket_id of socket_ids) {
+        for (let socket_id of socket_ids) {
             io.to(socket_id).emit("results_change", {farm_name, field_name, mission_date});
         }
     }
@@ -214,7 +214,7 @@ exports.post_upload_notification = function(req, res, next) {
     if (key in home_key_to_ids) {
 
         let socket_ids = home_key_to_ids[key];
-        for (socket_id of socket_ids) {
+        for (let socket_id of socket_ids) {
             io.to(socket_id).emit("upload_change", {farm_name, field_name, mission_date});
         }
     }

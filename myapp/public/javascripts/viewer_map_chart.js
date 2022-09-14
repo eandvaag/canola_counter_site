@@ -26,7 +26,7 @@ function draw_map_chart() {
 
 
     let num_completed = 0;
-    for (image_name of Object.keys(annotations)) {
+    for (let image_name of Object.keys(annotations)) {
         let status = annotations[image_name]["status"];
         if ((status === "completed_for_training") || (status === "completed_for_testing")) {
             num_completed++;
@@ -119,7 +119,7 @@ function draw_map_chart() {
 
 
         
-        for (dzi_image_path of dzi_image_paths) {
+        for (let dzi_image_path of dzi_image_paths) {
             let image_name = basename(dzi_image_path)
             image_name = image_name.substring(0, image_name.length - 4);
 

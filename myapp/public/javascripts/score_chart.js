@@ -15,11 +15,11 @@ function set_score_chart_data() {
 
     score_chart_data = {};
 
-    for (image_name of Object.keys(annotations)) {
+    for (let image_name of Object.keys(annotations)) {
         
         let scores = [];
         if (image_name in predictions) {
-            for (prediction of predictions[image_name]["annotations"]) {
+            for (let prediction of predictions[image_name]["annotations"]) {
                 let bodies = Array.isArray(prediction.body) ?
                                 prediction.body : [ prediction.body ];
                 let scoreTag = bodies.find(b => b.purpose == 'score');

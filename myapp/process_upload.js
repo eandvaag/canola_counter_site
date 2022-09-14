@@ -189,7 +189,7 @@ async function process_upload(username, farm_name, field_name, mission_date, cam
     console.log("Making the annotations file");
     let annotations_path = path.join(annotations_dir, "annotations_w3c.json");
     let annotations = {};
-    for (image_name of image_names) {
+    for (let image_name of image_names) {
         //let sanitized_fname = sanitize(filename);
         //let extensionless_fname = sanitized_fname.substring(0, sanitized_fname.length-4);
         let extensionless_fname = image_name.substring(0, image_name.length-4);

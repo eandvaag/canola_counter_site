@@ -69,8 +69,8 @@ function change_image(image_name) {
 
 function set_prediction_overlay_color() {
 
-    for (image_name of Object.keys(predictions)) {
-        for (annotation of predictions[image_name]["annotations"]) {
+    for (let image_name of Object.keys(predictions)) {
+        for (let annotation of predictions[image_name]["annotations"]) {
             annotation["body"].push({"value": "COLOR_1", "purpose": "highlighting"})
         }
     }
@@ -91,7 +91,7 @@ function create_overlays_table() {
     let models_col_width = "215px";
 
     //for (let i = 0; i < Object.keys(overlay_data); i++) {
-    for (overlay_name of Object.keys(overlay_colors)) {
+    for (let overlay_name of Object.keys(overlay_colors)) {
         let overlay_color = overlay_colors[overlay_name];
         let overlay_id = overlay_name.toLowerCase();
 
@@ -164,7 +164,7 @@ function create_image_set_table() {
     };
 
     cur_img_list = [];
-    for (image_name of natsort(Object.keys(annotations))) {
+    for (let image_name of natsort(Object.keys(annotations))) {
         if ((filter_val === "all") || (annotations[image_name]["status"] === filter_val)) {
 
             let image_status = annotations[image_name]["status"];
@@ -226,13 +226,13 @@ function update_overlays() {
 
     anno.clearAnnotations();
     if ($("#annotations").is(":checked")) {
-        for (annotation of annotations[cur_img_name]["annotations"]) {
+        for (let annotation of annotations[cur_img_name]["annotations"]) {
             anno.addAnnotation(annotation);
         }
     }
     let slider_val = Number.parseFloat($("#confidence_slider").val()).toFixed(2);
     if ((cur_img_name in predictions) && ($("#predictions").is(":checked"))) {
-        for (annotation of predictions[cur_img_name]["annotations"]) {
+        for (let annotation of predictions[cur_img_name]["annotations"]) {
 
             let bodies = Array.isArray(annotation.body) ?
             annotation.body : [ annotation.body ];
@@ -329,7 +329,7 @@ function show_map() {
 
 
     let num_completed = 0;
-    for (image_name of Object.keys(annotations)) {
+    for (let image_name of Object.keys(annotations)) {
         let status = annotations[image_name]["status"];
         if (status === "completed_for_training" || status === "completed_for_testing") {
             num_completed++;
@@ -450,7 +450,7 @@ $(document).ready(function() {
     //$("#filter_combo").append(`<option value="all">all</option>`);
 
 
-    for (image_status of Object.keys(status_color)) {
+    for (let image_status of Object.keys(status_color)) {
         let color = status_color[image_status];
         let text = status_to_text[image_status];
         $("#filter_combo").append(`<option style="background-color: ${color}" value="${image_status}">${text}</option>`);
@@ -531,7 +531,7 @@ $(document).ready(function() {
     let mission_date = image_set_info["mission_date"];
 
     image_to_dzi = {};
-    for (dzi_image_path of dzi_image_paths) {
+    for (let dzi_image_path of dzi_image_paths) {
         let image_name = basename(dzi_image_path);
         let extensionless_name = image_name.substring(0, image_name.length - 4);
         image_to_dzi[extensionless_name] = dzi_image_path;

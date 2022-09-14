@@ -48,8 +48,8 @@ let min_max_rec = null;
 
 function set_prediction_overlay_color() {
 
-    for (image_name of Object.keys(predictions)) {
-        for (annotation of predictions[image_name]["annotations"]) {
+    for (let image_name of Object.keys(predictions)) {
+        for (let annotation of predictions[image_name]["annotations"]) {
             annotation["body"].push({"value": "COLOR_1", "purpose": "highlighting"})
         }
     }
@@ -180,7 +180,7 @@ function create_image_set_table() {
 
 
 
-    for (image_name of natsort(Object.keys(annotations))) {
+    for (let image_name of natsort(Object.keys(annotations))) {
         // let image_name = basename(dzi_image_path);
         // let extensionless_name = image_name.substring(0, image_name.length - 4);
 
@@ -322,7 +322,7 @@ function set_image_status_combo() {
 
     $("#status_combo").empty();
     $("#status_combo").css("background-color", status_color[cur_image_status]);
-    for (image_status of image_status_options) {
+    for (let image_status of image_status_options) {
         let color = status_color[image_status];
         let text = status_to_text[image_status];
         //$("#status_combo").append(`<option style="background-color: ${color}" value="${image_status}">${image_status}</option>`);
@@ -559,7 +559,7 @@ function show_map() {
 
 
     let num_completed = 0;
-    for (image_name of Object.keys(annotations)) {
+    for (let image_name of Object.keys(annotations)) {
         
         if (annotations[image_name]["status"] == "completed_for_training" ||
             annotations[image_name]["status"] == "completed_for_testing") {
@@ -695,7 +695,7 @@ function create_overlays_table() {
 
     let models_col_width = "215px";
 
-    for (overlay_name of Object.keys(overlay_colors)) {
+    for (let overlay_name of Object.keys(overlay_colors)) {
         let overlay_color = overlay_colors[overlay_name];
         let overlay_id = overlay_name.toLowerCase();
 
@@ -726,7 +726,7 @@ function confirmed_use_predictions() {
     annotations[cur_img_name]["annotations"] = [];
 
     let slider_val = Number.parseFloat($("#confidence_slider").val()).toFixed(2);
-    for (annotation of predictions[cur_img_name]["annotations"]) {
+    for (let annotation of predictions[cur_img_name]["annotations"]) {
         let new_annotation = structuredClone(annotation);
         let bodies = Array.isArray(new_annotation.body) ? new_annotation.body : [ new_annotation.body ];
         let highlightBodyIndex = bodies.findIndex(b => b.purpose == 'highlighting');
@@ -1112,14 +1112,14 @@ function show_segmentation_inner() {
 function add_annotations() {
     anno.clearAnnotations();
     if ((cur_panel === "annotation") || (cur_panel === "prediction" && ($("#annotations").is(":checked")))) {
-        for (annotation of annotations[cur_img_name]["annotations"]) {
+        for (let annotation of annotations[cur_img_name]["annotations"]) {
             anno.addAnnotation(annotation);
         }
     }
     let slider_val = Number.parseFloat($("#confidence_slider").val()).toFixed(2);
     if ((cur_panel == "prediction") && (cur_img_name in predictions)) {
         if ($("#predictions").is(":checked")) {
-            for (annotation of predictions[cur_img_name]["annotations"]) {
+            for (let annotation of predictions[cur_img_name]["annotations"]) {
 
                 let bodies = Array.isArray(annotation.body) ?
                 annotation.body : [ annotation.body ];
@@ -1356,7 +1356,7 @@ $(document).ready(function() {
                               image_set_info["mission_date"]);
 
     image_to_dzi = {};
-    for (dzi_image_path of dzi_image_paths) {
+    for (let dzi_image_path of dzi_image_paths) {
         let image_name = basename(dzi_image_path);
         let extensionless_name = image_name.substring(0, image_name.length - 4);
         image_to_dzi[extensionless_name] = dzi_image_path;
@@ -1372,7 +1372,7 @@ $(document).ready(function() {
 
     
     num_annotations = 0;
-    for (image_name of Object.keys(annotations)) {
+    for (let image_name of Object.keys(annotations)) {
         num_annotations += annotations[image_name]["annotations"].length;
     }
     /*
@@ -1536,13 +1536,13 @@ $(document).ready(function() {
                     }
                     else {
 
-                        for (prediction_image_name of prediction_image_names) {
+                        for (let prediction_image_name of prediction_image_names) {
                             predictions[prediction_image_name] = response.predictions[prediction_image_name];
                             // if (response.metrics[prediction_image_name] !== "") {
                             //     metrics[prediction_image_name] = response.metrics[prediction_image_name];
                             // }
                             
-                            for (annotation of predictions[prediction_image_name]["annotations"]) {
+                            for (let annotation of predictions[prediction_image_name]["annotations"]) {
                                 annotation["body"].push({"value": "COLOR_1", "purpose": "highlighting"});
                             }
                         }
@@ -1808,7 +1808,7 @@ $(document).ready(function() {
     $("#apply_threshold_to_all_button").click(function() {
         let exg_val = parseFloat(parseFloat($("#threshold_slider").val()).toFixed(2));
 
-        for (image_name of Object.keys(excess_green_record)) {
+        for (let image_name of Object.keys(excess_green_record)) {
             let min_val = excess_green_record[cur_img_name]["min_val"];
             let max_val = excess_green_record[cur_img_name]["max_val"];
             let cur_val = excess_green_record[image_name]["sel_val"]; 
@@ -1846,7 +1846,7 @@ $(document).ready(function() {
     $("#suggest_image_button").click(function() {
 
         let num_candidates = 0;
-        for (image_name of Object.keys(annotations)) {
+        for (let image_name of Object.keys(annotations)) {
             let status = annotations[image_name]["status"];
             if ((status === "unannotated" || status === "started") && (image_name in predictions)) {
                 num_candidates++;
@@ -1862,7 +1862,7 @@ $(document).ready(function() {
             set_score_chart_data();
 
             let qualities = [];
-            for (image_name of Object.keys(score_chart_data)) {
+            for (let image_name of Object.keys(score_chart_data)) {
                 let r = evaluate_scores(score_chart_data[image_name]["bins"], score_chart_data[image_name]["scores"]);
                 let quality = r[0];
                 qualities.push({

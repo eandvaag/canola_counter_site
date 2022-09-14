@@ -2,6 +2,7 @@ let annotations;
 let predictions;
 let metadata;
 let camera_specs;
+let mAP_calculation_state = "started";
 
 let sorted_timestamps;
 
@@ -10,10 +11,58 @@ let metric_text_lookup = {
     "pred_density": "Predicted Count / m&sup2;",
     "score_quality": "Estimated Quality of Scores",
     "pred_count_minus_annotated_count": "Predicted Count - Annotated Count",
-    "pred_density_minus_annotated_density": "(Predicted Count / m&sup2;) - (Annotated Count / m&sup2;)"
+    "pred_density_minus_annotated_density": "(Predicted Count / m&sup2;) - (Annotated Count / m&sup2;)",
+    "MS_COCO_mAP": "MS COCO mAP"
+}
+
+function calculate_mAP() {
+
+    $.post($(location).attr('href'),
+    {
+        action: "calculate_mAP"
+    },
+    
+    function(response, status) {
+
+        if (response.error) {
+            mAP_calculation_state = "error";
+        }
+        else {
+
+            let metrics = response.metrics;
+
+            timeline_data["MS_COCO_mAP"] = [];
+            for (let image_name of Object.keys(annotations)) {
+                let completed = ((annotations[image_name]["status"] === "completed_for_training") || (annotations[image_name]["status"] === "completed_for_testing"));
+                if (completed) {
+                    let mAP_vals = [];
+                    let i = 0;
+                    for (let timestamp of sorted_timestamps) {
+                        let mAP_val = metrics[timestamp][image_name]["MS COCO mAP"];
+                        mAP_vals.push([i, mAP_val]);
+                        i++;
+                    }
+
+                    timeline_data["MS_COCO_mAP"].push({
+                        "image_name": image_name,
+                        "values": mAP_vals
+                    });
+                }
+            }
+
+            mAP_calculation_state = "finished";
+        }
+
+        let cur_metric = $("#metric_combo").val();
+        if (cur_metric === "MS_COCO_mAP") {
+            update_timeline_chart();
+        }
+        
+    });
 }
 
 function add_metric_combo_options() {
+
     let status_val = $("#status_combo").val();
 
     let prev_metric = $("#metric_combo").val();
@@ -32,14 +81,14 @@ function add_metric_combo_options() {
     else {
         if (can_calculate_density) {
             options = ["pred_count", "pred_density", "pred_count_minus_annotated_count", 
-                        "pred_density_minus_annotated_density", "score_quality"];
+                        "pred_density_minus_annotated_density", "MS_COCO_mAP", "score_quality"];
         }
         else {
-            options = ["pred_count", "pred_count_minus_annotated_count", "score_quality"];
+            options = ["pred_count", "pred_count_minus_annotated_count", "MS_COCO_mAP", "score_quality"];
         }
     }
 
-    for (option of options) {
+    for (let option of options) {
         let text = metric_text_lookup[option];
         $("#metric_combo").append(`<option value=${option}>${text}</option>`);
     }
@@ -64,7 +113,9 @@ $(document).ready(function() {
 
     sorted_timestamps = Object.keys(predictions).sort();
 
-    for (image_status of Object.keys(status_color)) {
+    calculate_mAP();
+
+    for (let image_status of Object.keys(status_color)) {
         let color = status_color[image_status];
         let text = status_to_text[image_status];
         $("#status_combo").append(`<option style="background-color: ${color}" value="${image_status}">${text}</option>`);
@@ -79,9 +130,6 @@ $(document).ready(function() {
         $("#status_combo").css("background-color", status_color[$("#status_combo").val()]);
 
         add_metric_combo_options();
-
-        //$("#metric_combo").change();
-
         draw_timeline_chart();
     });
 

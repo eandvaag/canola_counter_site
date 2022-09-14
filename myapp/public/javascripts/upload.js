@@ -27,7 +27,7 @@ function disable_input() {
 
     let buttons = ["upload_button"];
 
-    for (button of buttons) {
+    for (let button of buttons) {
         $("#" + button).prop('disabled', true);
         $("#" + button).removeClass("std-button-hover");
         $("#" + button).css("opacity", 0.5);
@@ -37,7 +37,7 @@ function disable_input() {
 
     let inputs = ["farm_input", "field_input", "mission_input", "camera_height_input"];
 
-    for (input of inputs) {
+    for (let input of inputs) {
         $("#" + input).prop("disabled", true);
         $("#" + input).css("opacity", 0.5);
     }
@@ -55,7 +55,7 @@ function disable_submit() {
 
     let buttons = ["upload_button"];
 
-    for (button of buttons) {
+    for (let button of buttons) {
         $("#" + button).prop('disabled', true);
         $("#" + button).removeClass("std-button-hover");
         $("#" + button).css("opacity", 0.5);
@@ -69,7 +69,7 @@ function enable_input() {
 
     let buttons = ["upload_button"];
 
-    for (button of buttons) {
+    for (let button of buttons) {
         $("#" + button).prop('disabled', false);
         $("#" + button).addClass("std-button-hover");
         $("#" + button).css("opacity", 1);
@@ -78,7 +78,7 @@ function enable_input() {
 
     let inputs = ["farm_input", "field_input", "mission_input", "camera_height_input"];
 
-    for (input of inputs) {
+    for (let input of inputs) {
         $("#" + input).prop("disabled", false);
         $("#" + input).css("opacity", 1.0);
     }
@@ -97,7 +97,7 @@ function enable_submit() {
 
     let buttons = ["upload_button"];
 
-    for (button of buttons) {
+    for (let button of buttons) {
         $("#" + button).prop('disabled', false);
         $("#" + button).addClass("std-button-hover");
         $("#" + button).css("opacity", 1);
@@ -107,7 +107,7 @@ function enable_submit() {
 
 function form_is_complete() {
     let inputs_to_check = ["farm_input", "field_input", "mission_input"];
-    for (input of inputs_to_check) {
+    for (let input of inputs_to_check) {
         let input_length = ($("#" + input).val()).length;
         if ((input_length < 3) || (input_length > 20)) {
             return false;
@@ -248,7 +248,7 @@ function initialize_upload() {
         queued_filenames = [];
 
         let illegal = false;
-        for (f of dropzone_handler.getQueuedFiles()) {
+        for (let f of dropzone_handler.getQueuedFiles()) {
             if (format.test(f.name)) {
                 illegal = true;
             }

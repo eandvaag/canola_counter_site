@@ -67,7 +67,7 @@ function draw_map_chart() {
     let max_longitude = -10000;
     let min_longitude = 10000;
     // let max_density = 0;
-    for (dzi_image_path of dzi_image_paths) {
+    for (let dzi_image_path of dzi_image_paths) {
         let image_name = basename(dzi_image_path)
         image_name = image_name.substring(0, image_name.length - 4);
 

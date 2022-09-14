@@ -36,11 +36,9 @@ function set_count_chart_data() {
     let pred_count;*/
     let slider_val = Number.parseFloat($("#confidence_slider").val()).toFixed(2);
 
-    //for (image_name of Object.keys(overlays["annotations"])) {
-
-    for (image_name of Object.keys(annotations)) {
+    for (let image_name of Object.keys(annotations)) {
         count_chart_data[image_name] = {};
-        for (overlay_name of Object.keys(overlay_colors)) {
+        for (let overlay_name of Object.keys(overlay_colors)) {
             count_chart_data[image_name][overlay_name] = 0;
         }
     }
@@ -51,10 +49,10 @@ function set_count_chart_data() {
     }
 
     if (metric === "Count" || metric === "Count per square metre") {
-        for (image_name of Object.keys(annotations)) {
-            for (overlay_name of Object.keys(overlay_colors)) {
+        for (let image_name of Object.keys(annotations)) {
+            for (let overlay_name of Object.keys(overlay_colors)) {
                 if (image_name in overlay_map[overlay_name]) {
-                    for (annotation of overlay_map[overlay_name][image_name]["annotations"]) {
+                    for (let annotation of overlay_map[overlay_name][image_name]["annotations"]) {
                         let score_el = annotation["body"].find(b => b.purpose == 'score');
                         if (!score_el || score_el.value >= slider_val) {
                             count_chart_data[image_name][overlay_name]++;
@@ -65,8 +63,8 @@ function set_count_chart_data() {
         }
 
         max_count = 0;
-        for (image_name of Object.keys(annotations)) {
-            for (overlay_name of Object.keys(count_chart_data[image_name])) {
+        for (let image_name of Object.keys(annotations)) {
+            for (let overlay_name of Object.keys(count_chart_data[image_name])) {
                 let v = count_chart_data[image_name][overlay_name];
                 if (metric == "Count per square metre") {
 
@@ -105,7 +103,7 @@ function set_count_chart_data() {
             // "MS COCO mAP": "Image MS COCO mAP",
             //"PASCAL VOC mAP": "Image PASCAL VOC mAP"
         // }
-        for (image_name of Object.keys(annotations)) {
+        for (let image_name of Object.keys(annotations)) {
             count_chart_data[image_name]["annotations"] = 0;
             if ((image_name in metrics) && (metric in metrics[image_name])) {
                 count_chart_data[image_name]["predictions"] = metrics[image_name][metric].toFixed(2);

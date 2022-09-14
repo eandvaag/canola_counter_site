@@ -180,7 +180,7 @@ function show_results_tab() {
         "aborted_results_tab_btn"
     ];
 
-    for (tab_btn_id of tab_ids) {
+    for (let tab_btn_id of tab_ids) {
         let tab_id = tab_btn_id.substring(0, tab_btn_id.length - 4);
         $("#" + tab_id).hide();
         $("#" + tab_btn_id).removeClass("tab-btn-active");
@@ -213,7 +213,7 @@ function show_tab(sel_tab_btn_id) {
         "train_baseline_tab_btn"
     ];
 
-    for (tab_btn_id of tab_ids) {
+    for (let tab_btn_id of tab_ids) {
         let tab_id = tab_btn_id.substring(0, tab_btn_id.length - 4);
         $("#" + tab_id).hide();
         $("#" + tab_btn_id).removeClass("tab-btn-active");
@@ -251,7 +251,7 @@ function show_image_set_tab(sel_tab_btn_id) {
         "results_tab_btn"
     ];
 
-    for (tab_btn_id of image_set_tab_ids) {
+    for (let tab_btn_id of image_set_tab_ids) {
         let tab_id = tab_btn_id.substring(0, tab_btn_id.length - 4);
         $("#" + tab_id).hide();
         $("#" + tab_btn_id).removeClass("tab-btn-active");
@@ -272,7 +272,7 @@ function show_image_set_tab(sel_tab_btn_id) {
 function update_make_model() {
 
     let inputs_to_check = ["make_input", "model_input"];
-    for (input of inputs_to_check) {
+    for (let input of inputs_to_check) {
         let input_val = $("#" + input).val();
         let input_length = input_val.length;
         if ((input_length < 3) || (input_length > 20)) {
@@ -285,7 +285,7 @@ function update_make_model() {
 function update_sensor() {
 
     let inputs_to_check = ["sensor_width_input", "sensor_height_input", "focal_length_input"];
-    for (input of inputs_to_check) {
+    for (let input of inputs_to_check) {
         let input_length = ($("#" + input).val()).length;
         if ((input_length < 1) || (input_length > 10)) {
             return false;
@@ -368,7 +368,7 @@ function edit_metadata(make, model) {
 
         
     
-    for (input_id of ["make_input", "model_input", "sensor_width_input", "sensor_height_input", "focal_length_input"]) {
+    for (let input_id of ["make_input", "model_input", "sensor_width_input", "sensor_height_input", "focal_length_input"]) {
         $("#" + input_id).on("input", function(e) {
             if (update_make_model() && update_sensor()) {
                 enable_buttons(["camera_update_button"]);
@@ -466,7 +466,7 @@ function add_sensor_metadata(make, model) {
         `</tr></table>`);*/
 
     
-    for (input_id of ["sensor_width_input", "sensor_height_input", "focal_length_input"]) {
+    for (let input_id of ["sensor_width_input", "sensor_height_input", "focal_length_input"]) {
         $("#" + input_id).on("input", function(e) {
             if (update_sensor()) {
                 enable_buttons(["camera_add_button"]);
@@ -540,7 +540,7 @@ function add_make_model_metadata() {
         `</tr></table>`);*/
 
 
-    for (input of ["make_input", "model_input"]) {
+    for (let input of ["make_input", "model_input"]) {
         $("#" + input).on("input", function(e) {
             if (update_make_model()) {
                 enable_buttons(["camera_search_button"]);
@@ -1123,7 +1123,7 @@ function show_results(results) {
 
 
     if (completed_results.length > 0) {
-        for (result of completed_results) {
+        for (let result of completed_results) {
             let start_date = timestamp_to_date(result["start_time"]);
             let end_date = timestamp_to_date(result["end_time"]);
             $("#completed_table").append(
@@ -1147,7 +1147,7 @@ function show_results(results) {
         return b["start_time"] - a["start_time"];
     });
     if (pending_results.length > 0) {
-        for (result of pending_results) {
+        for (let result of pending_results) {
             let start_date = timestamp_to_date(result["start_time"]);
             $("#pending_table").append(
                 `<tr>` +
@@ -1166,8 +1166,7 @@ function show_results(results) {
         return b["start_time"] - a["start_time"];
     });
     if (aborted_results.length > 0) {
-        let i = 0;
-        for (result of aborted_results) {
+        for (let result of aborted_results) {
             let start_date = timestamp_to_date(result["start_time"]);
             let aborted_date = timestamp_to_date(result["aborted_time"]);
             $("#aborted_table").append(
@@ -1301,7 +1300,7 @@ function initialize_browse() {
     $("#mission_combo").empty();
     $("#image_set_container").empty();
 
-    for (farm_name of natsort(Object.keys(image_sets_data))) {
+    for (let farm_name of natsort(Object.keys(image_sets_data))) {
         $("#farm_combo").append($('<option>', {
             value: farm_name,
             text: farm_name
@@ -1319,7 +1318,7 @@ function initialize_browse() {
         $("#mission_combo").empty();
         $("#right_panel").empty();
 
-        for (field_name of natsort(Object.keys(image_sets_data[farm_name]))) {
+        for (let field_name of natsort(Object.keys(image_sets_data[farm_name]))) {
             $("#field_combo").append($('<option>', {
                 value: field_name,
                 text: field_name
@@ -1336,7 +1335,7 @@ function initialize_browse() {
         $("#mission_combo").empty();
         $("#right_panel").empty();
 
-        for (mission_date of natsort(Object.keys(image_sets_data[farm_name][field_name]))) {
+        for (let mission_date of natsort(Object.keys(image_sets_data[farm_name][field_name]))) {
             $("#mission_combo").append($('<option>', {
                 value: mission_date,
                 text: mission_date
