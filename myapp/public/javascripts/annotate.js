@@ -141,12 +141,6 @@ function change_image(img_name) {
     else {
         enable_std_buttons(["next_image_button"]);
     }
-        
-    // let img_files_name = basename(event.source);
-    // let img_name = img_files_name.substring(0, img_files_name.length - 4);
-
-    // cur_img_name = img_name;
-    // console.log("cur_img_name", cur_img_name);
 
     $("#image_name").text(cur_img_name);
     set_image_status_combo();
@@ -165,7 +159,7 @@ function change_image(img_name) {
 
 function create_image_set_table() {
 
-    let image_name_col_width = "170px";
+    let image_name_col_width = "180px";
     let image_status_col_width = "60px";
 
     cur_img_list = [];
@@ -203,10 +197,10 @@ function create_image_set_table() {
             //`<td><div class="table_entry std_tooltip" style="background-color: ${image_color}; cursor: default; position: relative; width: ${image_status_col_width}; border: 1px solid white">${abbreviated_status}` +
             //`<span class="std_tooltiptext">${image_status}</span></div></td>` +
 
-            `<td><div class="table_entry std_tooltip" style="background-color: ${image_color}; cursor: default; position: relative; width: ${image_status_col_width}; border: 1px solid white">${abbreviated_status}</div></td>` +
+            `<td><div class="table_entry std_tooltip" style="margin: 0px 1px; background-color: ${image_color}; cursor: default; position: relative; width: ${image_status_col_width}; border: 1px solid white">${abbreviated_status}</div></td>` +
 
 
-            `<td><div class="table_button table_button_hover" style="width: ${image_name_col_width};" ` +
+            `<td><div class="table_button table_button_hover" style="width: ${image_name_col_width}; margin: 0px 1px;" ` +
             // `onclick="change_image('${dzi_image_path}')">${extensionless_name}</div></td>` +
              `onclick="change_image('${image_name}')">${image_name}</div></td>` +
             //`</div></td>` + 
@@ -222,15 +216,11 @@ function create_image_set_table() {
 
 
 function resize_px_str(px_str) {
-    // console.log(px_str);
     px_str = px_str.substring(11);
     let px_lst = px_str.split(",").map(x => parseFloat(x));
     let img_dims = viewer.world.getItemAt(0).getContentSize();
     let img_w = img_dims.x;
     let img_h = img_dims.y;
-    // console.log(px_str);
-    // console.log(px_lst);
-    // console.log("img_dims", img_dims);
 
     let box_min_x = Math.max(px_lst[0], 0);
     let box_min_y = Math.max(px_lst[1], 0);
@@ -287,13 +277,11 @@ function resize_px_str(px_str) {
     let updated_px_str = "xywh=pixel:" + box_min_x + "," + box_min_y +
                          "," + box_w + "," + box_h;
 
-    // console.log("updated_px_str", updated_px_str);
     return updated_px_str;
 
 }
 
 function update_image_status() {
-    console.log("update_image_status");
     let prev_status = annotations[cur_img_name]["status"];
     let num_image_annotations = annotations[cur_img_name]["annotations"].length;
     let new_status = prev_status;
@@ -303,7 +291,6 @@ function update_image_status() {
     else if (prev_status === "started" && num_image_annotations == 0) {
         new_status = "unannotated";
     }
-    console.log("new_status", new_status);
     annotations[cur_img_name]["status"] = new_status;
 }
 
@@ -363,9 +350,6 @@ function create_anno() {
 
     anno.on('createAnnotation', function(annotation) {
 
-
-        console.log("createAnnotation");
-
         annotations[cur_img_name]["annotations"] = anno.getAnnotations();
         num_annotations++;
 
@@ -378,8 +362,6 @@ function create_anno() {
     });
 
     anno.on('createSelection', async function(selection) {
-
-        console.log("createSelection");
 
         selection.target.source = window.location.href;
 
@@ -403,8 +385,6 @@ function create_anno() {
 
     anno.on('updateAnnotation', async function(annotation, previous) {
 
-
-        console.log("updateAnnotation");
         let px_str = annotation.target.selector.value;
         let updated_px_str = resize_px_str(px_str);
 
@@ -466,8 +446,6 @@ function create_viewer_and_anno(viewer_id) {
 
         if (e.keyCode == 46) {
 
-            console.log("deleteAnnotation");
-
             let selected = anno.getSelected();
             anno.removeAnnotation(selected);
 
@@ -487,49 +465,6 @@ function create_viewer_and_anno(viewer_id) {
 
     viewer.addHandler("open", function(event) {
 
-        //console.log("cur_bounds", cur_bounds);
-        //viewer.viewport.applyConstraints();
-        //console.log("viewer open handler called");
-        //anno.clearAnnotations();
-
-        /*
-        let img_files_name = basename(event.source);
-        let img_name = img_files_name.substring(0, img_files_name.length - 4);
-
-        cur_img_name = img_name;
-        console.log("cur_img_name", cur_img_name);
-
-        $("#image_name").text(cur_img_name);
-        set_image_status_combo();
-
-        */
-
-        /*
-        if (pending_predictions[cur_img_name]) {
-            disable_buttons(["request_prediction_button"]);
-        }
-        else {
-            enable_buttons(["request_prediction_button"]);
-        }*/
-
-
-
-        //console.log(cur_bounds);
-
-        //$("#use_for_radio").prop('disabled', ((annotations[cur_img_name]["available_for_training"]) || 
-        //                                      (annotations[cur_img_name]["status"] !== "completed"))); 
-        //((annotations[cur_img_name]["available_for_training"]) || 
-        //                                    (annotations[cur_img_name]["status"] !== "completed")));
-
-/*
-        for (annotation of annotations[cur_img_name]["annotations"]) {
-            anno.addAnnotation(annotation);
-        }*/
-
-        //viewer.viewport.zoomTo(5, null, true);
-        //viewer.viewport.zoomTo(1, null, true);
-        //viewer.viewport.applyConstraints();
-
         if (cur_bounds) {
             withFastOSDAnimation(viewer.viewport, function() {
                 viewer.viewport.fitBounds(cur_bounds);
@@ -537,11 +472,6 @@ function create_viewer_and_anno(viewer_id) {
         }
         
     });
-
-
-    //anno = create_anno();
-
-
 
 }
 
@@ -576,10 +506,6 @@ function build_map() {
     $("#build_loader").show();
     //let sel_metric = $("input[type='radio'][name='metric']:checked").val();
     let sel_interpolation = $("input[type='radio'][name='interpolation']:checked").val();
-
-    //console.log("sel_metric", sel_metric);
-    console.log("sel_interpolation", sel_interpolation);
-    
     
 
     $.post($(location).attr('href'),
@@ -699,7 +625,6 @@ function save_annotations() {
             show_modal_message("Error", "Failed to save.");
         }
         else {
-            console.log("Annotations Saved!");
             create_image_set_table();
             $("#save_icon").css("color", "white");
         }
@@ -708,42 +633,11 @@ function save_annotations() {
 }
 
 
-/*
-function refresh() {
-    console.log("refreshing the lock file");
-    
-    $.post($(location).attr('href'),
-    {
-        action: "refresh_lock_file"
-    },
-    
-    function(response, status) {
-
-        if (response.error) {
-            show_modal_message("Error", "Your annotation session has failed to refresh. " +
-                                        "The system will now attempt to save your annotations to prevent the loss of any work.");
-            save_annotations();
-        }
-
-    });
-}*/
-
 function expired_session() {
 
     save_annotations();
-
     window.location.href = "/plant_detection/home/" + username;
 
-    /*
-    $.post($(location).attr('href'),
-    {
-        action: "expired_lock_file"
-    },
-    
-    function(response, status) {  
-        window.location.href = response.redirect;
-    });*/
-    
 }
 
 function confirmed_continue() {
@@ -770,7 +664,6 @@ function ask_to_continue() {
 
         if (countdown_val == 0) {
             clearInterval(countdown_handle);
-            console.log("timer finished");
             expired_session();
         }
     }, 1000);
@@ -892,62 +785,14 @@ function show_annotation(force_reset=false) {
 
 
     create_viewer_and_anno("seadragon_viewer");
-    //console.log("setting read only status");
     anno.readOnly = false; //annotations[cur_img_name]["status"] === "completed_for_training";
     add_annotations();
 
-
     let dzi_image_path = image_to_dzi[cur_img_name];
-    
-    
     viewer.open(dzi_image_path);
-    //console.log(cur_bounds);
-    
-
 
 }
 
-
-
-// function retrieve_predictions() {
-
-//     $("#predictions_available").hide();
-//     $.post($(location).attr('href'),
-//     {
-//         action: "retrieve_prediction",
-//         image_name: cur_img_name
-//     },
-
-//     function(response, status) {
-//         console.log("got response");
-
-//         if (response.error) {
-//             // show_modal_message("Error", response.message);
-  
-//         }
-//         else {
-            
-//             $("#predictions_available").show();
-//             predictions[cur_img_name] = response.predictions[cur_img_name];
-//             if (response.metrics !== "") {
-//                 metrics[cur_img_name] = response.metrics[cur_img_name];
-//             }
-            
-//             for (annotation of predictions[cur_img_name]["annotations"]) {
-//                 annotation["body"].push({"value": "COLOR_1", "purpose": "highlighting"});
-//             }
-
-            
-//             //$("#prediction_switch").prop("checked", true);
-//             //$("#prediction_switch").change();
-//             set_count_chart_data();
-//             update_count_chart();
-//         }
-//         add_annotations();
-
-
-//     });
-// }
 
 function show_prediction(force_reset=false) {
 
@@ -1016,8 +861,6 @@ function show_segmentation_inner() {
     disable_std_buttons(["request_segment_button"]);
     $("#image_loader").show();
 
-    console.log("test button clicked");
-
     //let timestamp = new Date().getTime();
 
     let exg_src = "/plant_detection/usr/data/" + username + "/image_sets/" + image_set_info["farm_name"] + "/"
@@ -1057,7 +900,6 @@ function show_segmentation_inner() {
 
 
     function raise_threshold_slider() {
-        console.log("raise_threshold_slider");
         let slider_val = parseFloat($("#threshold_slider").val());
         if (slider_val < max_val) {
             slider_val = slider_val + 0.01;
@@ -1065,7 +907,6 @@ function show_segmentation_inner() {
         }
     }
     function lower_threshold_slider() {
-        console.log("lower_threshold_slider");
         let slider_val = parseFloat($("#threshold_slider").val());
         if (slider_val > min_val) {
             slider_val = slider_val - 0.01;
@@ -1109,7 +950,6 @@ function show_segmentation_inner() {
 
     let thresh_val = $("#threshold_slider").val();
     let threshold = range_map(thresh_val, -2, 2, 0, 255);
-    console.log("threshold", threshold);
 
     let canvas = document.createElement("canvas");
     let image_canvas = document.createElement("canvas");
@@ -1132,9 +972,6 @@ function show_segmentation_inner() {
 
 
     let all_images_loaded = function() {
-
-        console.log("all images are loaded");
-
 
         let org_height = rgb_image.height;
         let org_width = rgb_image.width;
@@ -1168,8 +1005,6 @@ function show_segmentation_inner() {
 
         exg_ctx.drawImage(exg_image, 0, 0, w, h);      // Set image to Canvas context
         var d_exg = exg_ctx.getImageData(0, 0, w, h);  // Get image Data from Canvas context
-        
-        //console.log(d.data);
 
     /*
         for (var i=0; i<d.data.length; i+=4) { // 4 is for RGBA channels
@@ -1180,7 +1015,6 @@ function show_segmentation_inner() {
         
         //let j = 0;
 
-        console.log("calculating foreground percentage");
         let num_foreground = 0;
         for (let i = 0; i < d_rgb.data.length; i += 4) {    
             // R=G=B=R>T?255:0
@@ -1206,7 +1040,6 @@ function show_segmentation_inner() {
             // }
             //j++;
         }
-        console.log("finished calculating foreground percentage");
         let percent_vegetation = ((num_foreground / (d_rgb.data.length / 4)) * 100).toFixed(2);
         excess_green_record[cur_img_name]["ground_cover_percentage"] = parseFloat(percent_vegetation);
 
@@ -1277,7 +1110,6 @@ function show_segmentation_inner() {
 
 
 function add_annotations() {
-    console.log("add_annotations");
     anno.clearAnnotations();
     if ((cur_panel === "annotation") || (cur_panel === "prediction" && ($("#annotations").is(":checked")))) {
         for (annotation of annotations[cur_img_name]["annotations"]) {
@@ -1356,62 +1188,90 @@ function show_segmentation() {
 }
 
 
-// function confirmed_restart_model() {
-//     // $("#modal_button_container").empty();
-//     // $("#restart_loader").show();
+function confirmed_restart_model() {
+    // $("#modal_button_container").empty();
+    // $("#restart_loader").show();
     
-//     //waiting_for_restart = true;
-//     $.post($(location).attr('href'),
-//     {
-//         action: "restart_model"
-//     },
+    //waiting_for_restart = true;
+    $.post($(location).attr('href'),
+    {
+        action: "restart_model"
+    },
     
-//     function(response, status) {
-//         console.log(response);
-//         //annotations = response.annotations;
-//     });
-// }
+    function(response, status) {
+        if (response.error) {
+            show_modal_message("Error", response.message);
+        }
+        else {
+            window.location.href = "/plant_detection/home/" + username;
+        }
+        //annotations = response.annotations;
+    });
+}
 
-// function restart_model() {
-// /*
-//     $("#modal_head").empty();
-//     $("#modal_body").empty();
-// */
-//     $("#restart_requested_switch").prop("checked", false);
+function restart_model() {
+/*
+    $("#modal_head").empty();
+    $("#modal_body").empty();
+*/
+    //$("#restart_requested_switch").prop("checked", false);
 
-//     show_modal_message(`Restart model?`, 
-//     `<p>When this restart request is processed, the model will be reset to its initial state. Additionally, the status of all fully annotated images will be ` + 
-//     `set to <em>completed_for_testing</em>.</p>` + 
-//     `<div style="text-align: center">
-//     <button class="std-button std-button-hover" `+
-//     `id="modal_restart_button" style="width: 200px" onclick="confirmed_restart_model()">Restart</button>` +
-//     `<button class="std-button std-button-hover" ` +
-//     `id="modal_cancel_button" style="width: 200px" onclick="close_modal()">Cancel</button>` +
-//     `</div>`);
+    show_modal_message(`Restart model?`, 
+    `<div>Restarting will have the following effects:</div>` +
+        `<ul>` +
+            `<li style="margin: 7px 0px">All existing results and predictions will be destroyed.</li>` +
+            `<li style="margin: 7px 0px">Model weights will be returned to their initial state.</li>` +
+            `<li style="margin: 7px 0px">All annotations will be preserved. All images currently marked as <em>Completed for Training</em> will have their status changed to <em>Completed for Testing.</em></li>` +
+            `<li style="margin: 7px 0px">You will be unable access this workspace until the restart request is processed.</li>` +
+        `</ul>` +
 
-//     // $("#modal_head").append(
-//     //     `<p>Restart model?</p>`);
-// /*
-//     $("#modal_body").append(`<p id="modal_message" align="left"></p>`);
-//     $("#modal_message").html(`When this restart request is processed, the model will be reset to its initial state. Additionally, the status of all fully annotated images will be ` + 
-//     `set to <em>completed_for_testing</em>.`);
+    `<div style="text-align: center">
+    <button class="x-button x-button-hover" `+
+    `id="modal_restart_button" style="width: 200px" onclick="confirmed_restart_model()">Restart</button>` +
+    `<button class="std-button std-button-hover" ` +
+    `id="modal_cancel_button" style="width: 200px" onclick="close_modal()">Cancel</button>` +
+    `</div>`);
 
-//     $("#modal_body").append(`<div id="modal_button_container">
-//     <button class="std-button std-button-hover" `+
-//     `id="modal_restart_button" style="width: 200px" onclick="confirmed_restart_model()"><span>Restart</span></button>` +
-//     `<button class="std-button std-button-hover" ` +
-//     `id="modal_cancel_button" style="width: 200px" onclick="close_modal()"><span>Cancel</span></button>` +
-//     `</div>`);
-// */
+    
 
-//     // $("#modal_body").append(`<div id="restart_loader" class="loader" hidden></div>`);
 
-//     // $("#modal_close").click(function() {
-//     //     close_modal();
-//     // });
+/*
+    <div>If you wish to proceed, you will be returned to the home page and prevented from accessing this workspace until the request is processed.</div>
+        
+        
+        
+    <p>When this restart request is processed, the model will be reset to its initial state. Additionally, the status of all fully annotated images will be ` + 
+    `set to <em>completed_for_testing</em>.</p>` + 
+    `<div style="text-align: center">
+    <button class="std-button std-button-hover" `+
+    `id="modal_restart_button" style="width: 200px" onclick="confirmed_restart_model()">Restart</button>` +
+    `<button class="std-button std-button-hover" ` +
+    `id="modal_cancel_button" style="width: 200px" onclick="close_modal()">Cancel</button>` +
+    `</div>`);*/
 
-//     $("#modal").css("display", "block");
-// }
+    // $("#modal_head").append(
+    //     `<p>Restart model?</p>`);
+/*
+    $("#modal_body").append(`<p id="modal_message" align="left"></p>`);
+    $("#modal_message").html(`When this restart request is processed, the model will be reset to its initial state. Additionally, the status of all fully annotated images will be ` + 
+    `set to <em>completed_for_testing</em>.`);
+
+    $("#modal_body").append(`<div id="modal_button_container">
+    <button class="std-button std-button-hover" `+
+    `id="modal_restart_button" style="width: 200px" onclick="confirmed_restart_model()"><span>Restart</span></button>` +
+    `<button class="std-button std-button-hover" ` +
+    `id="modal_cancel_button" style="width: 200px" onclick="close_modal()"><span>Cancel</span></button>` +
+    `</div>`);
+*/
+
+    // $("#modal_body").append(`<div id="restart_loader" class="loader" hidden></div>`);
+
+    // $("#modal_close").click(function() {
+    //     close_modal();
+    // });
+
+    //$("#modal").css("display", "block");
+}
 
 
 function lower_slider() {
@@ -1505,7 +1365,6 @@ $(document).ready(function() {
     let init_image_name = basename(dzi_image_paths[0]);
     cur_img_name = init_image_name.substring(0, init_image_name.length - 4);
 
-    console.log(cur_img_name);
     cur_view = "image";
     cur_panel = "annotation";
 
@@ -1516,7 +1375,6 @@ $(document).ready(function() {
     for (image_name of Object.keys(annotations)) {
         num_annotations += annotations[image_name]["annotations"].length;
     }
-    console.log("num_annotations", num_annotations);
     /*
     if (data["baseline_initialized"]) {
         $("#init_panel").hide();
@@ -1539,7 +1397,6 @@ $(document).ready(function() {
     socket.emit("join_annotate", username + "/" + image_set_info["farm_name"] + "/" + image_set_info["field_name"] + "/" + image_set_info["mission_date"]);
 
     socket.on("status_change", function(status) {
-        console.log("status", status);
 
         if (status["error"] === 'True') {
             let error_message = `An error occurred during ` + status["error_setting"] + 
@@ -1672,8 +1529,6 @@ $(document).ready(function() {
                 },
             
                 function(response, status) {
-                    console.log("got response");
-                    console.log(response);
             
                     if (response.error) {
                         show_modal_message("Error", response.message);
@@ -1693,9 +1548,7 @@ $(document).ready(function() {
                         }
 
                         if ((cur_panel === "prediction") && (prediction_image_names.includes(cur_img_name))) {
-                            //show_prediction();
-
-                            //if (cur_img_name in predictions) {
+                            
                             $("#predictions_unavailable").hide();
                             $("#predictions_available").show();
                             set_count_chart_data();
@@ -1703,87 +1556,14 @@ $(document).ready(function() {
                             
                             update_count_chart();
                             update_score_chart();
-                            //}
+
                             add_annotations();
                         }
                     }
                 });
-                //}
-
-
-            }
-
-
-            // if (("prediction_image_names" in status) && (cur_panel === "prediction")) {
-                
-            // }
-
-
-            /*
-            if (cur_status === "training") {
-                $("#train_block_switch").prop('disabled', true);
-                $("#train_block_label").css("opacity", 0.5);
-                $("#train_block_slider").css("cursor", "default");
-            }
-            else {
-                $("#train_block_switch").prop('disabled', false);
-                $("#train_block_label").css("opacity", 1);
-                $("#train_block_slider").css("cursor", "pointer");
-            }*/
-        }
-
-
-/*
-        let train_block_switch_active = $("#train_block_switch").is(":checked");
-        let flip_switch = false;
-        if (status["training_blocked"] === "True") {
-            $("#train_block_text").html("yes");
-            if (!train_block_switch_active) {
-                flip_switch = true;
-            }
-
-        }
-        else {
-            $("#train_block_text").html("no");
-            if (train_block_switch_active) {
-                flip_switch = false;
             }
         }
-        console.log("flip_switch", flip_switch);*/
 
-        /*
-        if ("prediction_image_names" in status) {
-
-            let prediction_image_names = status["prediction_image_names"].split(",");
-
-            console.log("pending_predictions", pending_predictions);
-            console.log("prediction_image_names", prediction_image_names);
-            
-            //let index = pending_predictions.indexOf(status["prediction_image_name"]);
-            //if (index !== -1) {
-            //    pending_predictions.splice(index, 1);
-            //}
-            if (prediction_image_names.length == 1) {
-                let prediction_image_name = prediction_image_names[0];
-
-                pending_predictions[prediction_image_name] = false;
-                console.log("pending_predictions", pending_predictions);
-                console.log(cur_img_name, prediction_image_name);
-                if (cur_img_name === prediction_image_name) {
-                    //enable_buttons(["request_prediction_button"])
-                    console.log("cur_panel", cur_panel);
-                    if (cur_panel === "prediction") {
-                        show_prediction();
-                    }
-                }
-            }
-            else {
-                //enable_buttons(["request_result_button"]);
-                if (cur_panel === "prediction") {
-                    show_prediction();
-                }
-            }
-        }*/
     });
 
 
@@ -1892,69 +1672,12 @@ $(document).ready(function() {
         show_modal_message(head, message);
     })
 
-    /*
-    $("#home_button").click(function() {
-        //save_annotations();
-        $.post($(location).attr('href'),
-        {
-            action: "expired_lock_file"
-        },
-        
-        function(response, status) {
-            window.location.href = "/plant_detection/home/" + username;
-        });
-    })
-
-    $("#log_out").click(function() {
-        //save_annotations();
-        $.post($(location).attr('href'),
-        {
-            action: "expired_lock_file"
-        },
-        
-        function(response, status) {
-            window.location.href = "/plant_detection/logout";
-        });
-    });*/
-
     $("#request_result_button").click(function() {
-
         submit_prediction_request(Object.keys(annotations), true);
-        // disable_buttons(["request_prediction_button", "request_result_button"]);
-        // $.post($(location).attr("href"),
-        // {
-        //     action: "get_result"
-        // },
-        // function(response, status) {
-        //     if (response.error) {
-        //         show_modal_message("Error", response.message);
-        //     }
-        //     else {
-        //         show_modal_message("Success", 
-        //         `<div>Your request was successfully submitted. Upon completion, the ` +
-        //         `results will be preserved under this image set's <em>Results</em> tab (accessible from the home page).</div>`);
-        //     }
-        // });
-
     });
-
 
     $("#predict_single_button").click(function() {
         submit_prediction_request([cur_img_name], false);
-
-        // disable_buttons(["request_prediction_button", "request_result_button"]);
-        // //console.log("pushing", cur_img_name);
-        // //pending_predictions[cur_img_name] = true;
-        // $.post($(location).attr('href'),
-        // {
-        //     action: "predict",
-        //     image_name: cur_img_name
-        // },
-
-        // function(response, status) {
-        //     console.log("got response");
-            
-        // });
     });
 
     $("#predict_all_button").click(function() {
@@ -1986,17 +1709,6 @@ $(document).ready(function() {
         $("#modal").css("display", "block");
     });
 
-    /*
-    $("#use_for_radio").change(function() {
-        //let use_for = $("input[type='radio'][name='use_for_training']:checked").val();
-        annotations[cur_img_name]["available_for_training"] = true;
-    })*/
-
-    /*
-    $("#prediction_switch").change(function() {
-        add_annotations();
-    });*/
-
     $("#overlays_table").change(function() {
         add_annotations();
     });
@@ -2006,14 +1718,8 @@ $(document).ready(function() {
         add_annotations();
     });
 
-    // $("#restart_requested_switch").click(function() {
-    //     console.log("restart switch clicked");
-    //     restart_model();
-    // });
-
     $("#train_block_switch").click(function() {
         
-        console.log("train block switch clicked");
         let block_training = $("#train_block_switch").is(":checked");
         let block_op;
         if (block_training) {
@@ -2024,10 +1730,6 @@ $(document).ready(function() {
             $("#train_block_text").html("No");
             block_op = "unblock";
         }
-        //$("#train_block_switch").prop('disabled', false);
-        //$("#train_block_switch").change();
-        //$("#train_block_switch").prop('disabled', true);
-
         
         $.post($(location).attr('href'),
         {
@@ -2055,28 +1757,7 @@ $(document).ready(function() {
 
 
     $("#request_segment_button").click(function() {
-        console.log("requesting segmentation");
         show_segmentation_inner();
-        /*
-
-        let threshold_val = Number.parseFloat($("#threshold_slider").val()).toFixed(2).toString();
-        $.post($(location).attr('href'),
-        {
-            action: "segment",
-            image_name: cur_img_name,
-            threshold: threshold_val
-        },
-
-        function(response, status) {
-            if (response.error) {
-                console.log("error");
-            }
-            else {
-                show_segmentation();
-            }
-
-        });*/
-
     });
 
 
@@ -2126,7 +1807,7 @@ $(document).ready(function() {
 
     $("#apply_threshold_to_all_button").click(function() {
         let exg_val = parseFloat(parseFloat($("#threshold_slider").val()).toFixed(2));
-        //console.log("setting all to ", exg_val);
+
         for (image_name of Object.keys(excess_green_record)) {
             let min_val = excess_green_record[cur_img_name]["min_val"];
             let max_val = excess_green_record[cur_img_name]["max_val"];
@@ -2150,41 +1831,13 @@ $(document).ready(function() {
 
 
     $("#next_image_button").click(function() {
-
-        // $("#image_set_table tr").each(function(i, row) {
-        //     console.log(i, row);
-        //     $(this).find('td').each(function(j, col) {
-        //         console.log(j, col);
-        //         if (j == 1) {
-
-        //         }
-        //     });
-        // })
         let index = cur_img_list.findIndex(x => x == cur_img_name) + 1;
-
-        //let index = dzi_image_paths.findIndex(x => x == image_to_dzi[cur_img_name]) + 1;
-
-        // let dzi_image_path = dzi_image_paths[index];
-        // let image_name = basename(dzi_image_path);
-        // let extensionless_name = image_name.substring(0, image_name.length - 4);
         change_image(cur_img_list[index]);
     
     });
 
     $("#prev_image_button").click(function() {
-
         let index = cur_img_list.findIndex(x => x == cur_img_name) - 1;
-        //let index = dzi_image_paths.findIndex(x => x == image_to_dzi[cur_img_name]) - 1;
-        // if (index < dzi_image_paths.length - 1) {
-        //     enable_std_buttons(["next_image_button"]);
-        // }
-        // if (index == 0) {
-        //     disable_std_buttons(["prev_image_button"]);
-        // }
- 
-        // let dzi_image_path = dzi_image_paths[index];
-        // let image_name = basename(dzi_image_path);
-        // let extensionless_name = image_name.substring(0, image_name.length - 4);
         change_image(cur_img_list[index]);
     
     });
@@ -2224,7 +1877,6 @@ $(document).ready(function() {
             });
 
             let sel_image_name = qualities[0]["image_name"];
-            console.log("Suggested image:", sel_image_name);
 
             change_image(sel_image_name);
         }

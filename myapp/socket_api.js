@@ -152,29 +152,11 @@ function emit_status_change(username, farm_name, field_name, mission_date, statu
                 status["sys_training_blocked"] = "False";
             }
 
-            // status["restart_requested"] = "True";
-            // let restart_file_path = path.join(training_dir, "restart.json");
-            // try {
-            //     fs.accessSync(restart_file_path, fs.constants.F_OK);
-            // }
-            // catch (e) {
-            //     status["restart_requested"] = "False";
-            // }
             
             if ((key in workspace_key_to_id) && (workspace_key_to_id[key] !== "tmp_hold")) {
                 let socket_id = workspace_key_to_id[key];
                 io.to(socket_id).emit("status_change", status);
             }
-            // if (key in socket_key_to_ids) {
-            //     console.log("emitting");
-            //     let socket_ids = socket_key_to_ids[key];
-            //     for (socket_id of socket_ids) {
-            //         console.log("sending to socket_id", socket_id);
-            //         io.to(socket_id).emit("status_change", status);
-            //     }
-                
-            //     //io.emit("status_change");
-            // }
 
         });
     });
@@ -184,8 +166,18 @@ exports.post_results_notification = function(req, res, next) {
     let username = req.body.username;
     let farm_name = req.body.farm_name;
     let field_name = req.body.field_name;
-    let mission_date = req.body.mission_date; 
+    let mission_date = req.body.mission_date;
     
+    results_notification(username, farm_name, field_name, mission_date);
+
+    let response = {};
+    response.message = "received";
+    return res.json(response);
+    
+}
+
+function results_notification(username, farm_name, field_name, mission_date) {
+
     console.log("results update occurred, sending to sockets");
     console.log(username, farm_name, field_name, mission_date);
 
@@ -198,22 +190,18 @@ exports.post_results_notification = function(req, res, next) {
 
         let socket_ids = home_key_to_ids[key];
         for (socket_id of socket_ids) {
-            console.log("sending to socket_id", socket_id);
             io.to(socket_id).emit("results_change", {farm_name, field_name, mission_date});
         }
     }
-
-    let response = {};
-    response.message = "received";
-    return res.json(response);
 }
+
 
 
 exports.post_upload_notification = function(req, res, next) {
     let username = req.body.username;
     let farm_name = req.body.farm_name;
     let field_name = req.body.field_name;
-    let mission_date = req.body.mission_date;   
+    let mission_date = req.body.mission_date;
 
     console.log("upload update occurred, sending to sockets");
     console.log(username, farm_name, field_name, mission_date);
@@ -227,7 +215,6 @@ exports.post_upload_notification = function(req, res, next) {
 
         let socket_ids = home_key_to_ids[key];
         for (socket_id of socket_ids) {
-            console.log("sending to socket_id", socket_id);
             io.to(socket_id).emit("upload_change", {farm_name, field_name, mission_date});
         }
     }
@@ -240,23 +227,11 @@ exports.post_upload_notification = function(req, res, next) {
 
 exports.post_status_notification = function(req, res, next) {
 
-    console.log("got notification");
-    console.log(req.body);
-
     let username = req.body.username;
     let farm_name = req.body.farm_name;
     let field_name = req.body.field_name;
     let mission_date = req.body.mission_date;
 
-    /*
-    let status_path = path.join(USR_DATA_ROOT, "image_sets", farm_name, field_name, mission_date, "model", "status.json");
-    let status;
-    try {
-        status = JSON.parse(fs.readFileSync(status_path, 'utf8'));
-    }
-    catch (error) {
-        console.log(error);
-    }*/
     emit_status_change(username, farm_name, field_name, mission_date, req.body);
 
 
@@ -267,3 +242,4 @@ exports.post_status_notification = function(req, res, next) {
 
 module.exports.io = io;
 module.exports.workspace_key_to_id = workspace_key_to_id;
+module.exports.results_notification = results_notification;

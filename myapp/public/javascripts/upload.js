@@ -142,20 +142,10 @@ function update_submit() {
 
 function display_upload_error() {
 
-    console.log("display_upload_error");
-
-    console.log(upload_error);
-
     num_sent = 0;
     dropzone_handler.options.autoProcessQueue = false;
 
-    console.log("An error occurred");
     show_modal_message(`Error`, `An error occurred during the upload process:<br>` + upload_error);
-    //$("#modal_header_text").html("Error");
-    //$("#modal_message").html("An error occurred during the upload process:<br>" + upload_error);
-    //$("#result_modal").css("display", "block");
-    // errors = [];
-    //upload_error = null;
     clear_form();
     enable_input();
     disable_submit();
@@ -180,35 +170,8 @@ function initialize_upload() {
         maxUploads: 10000
     });
 
-    // dropzone_handler.on("processing", function() {
-    //     console.log("started processing");
-    //     dropzone_handler.options.autoProcessQueue = true;
-    // });
-
-    // dropzone_handler.on("queuecomplete", function(files, response) {
-    //     num_sent = 0;
-    //     dropzone_handler.options.autoProcessQueue = false;
-
-    //     if (dropzone_handler.getAcceptedFiles().length > 0) {
-    //         console.log("An error occurred");
-    //         $("#modal_header_text").html("Error");
-    //         $("#modal_message").html("An error occurred during the upload process:<br>" + errors[0]);
-    //         $("#result_modal").css("display", "block");
-    //         errors = [];
-
-    //         clear_form();
-    //         enable_input();
-    //         disable_submit();
-    //         $("#upload_loader").hide();
-    //     }
-
-    // });
     dropzone_handler.on("success", function(file, response) {   
-        
-        console.log("complete!");
-        console.log("response", response);
-        console.log("response.message", response.message);
-        console.log("file", file);
+
         dropzone_handler.removeFile(file);
         if (dropzone_handler.getAcceptedFiles().length == 0) {
 
@@ -216,15 +179,9 @@ function initialize_upload() {
             num_sent = 0;
             dropzone_handler.options.autoProcessQueue = false;
 
-            console.log("All done!");
             show_modal_message(`Success!`, `<div align="center">Your images have been successfully uploaded.<br>Additional processing is now being performed.` +
             `<br><br>The image set can now be viewed in the <i>Browse</i> tab.</div>`);
-            /*
-            $("#modal_header_text").html("Success!");
-            $("#modal_message").html("Your images have been successfully uploaded.<br>Additional processing is now being performed." +
-                                     "<br><br>The image set can now be viewed in the <i>Browse</i> tab.");
-            $("#result_modal").css("display", "block");*/
-            console.log($("#farm_input").val());
+
             let uploaded_farm = $("#farm_input").val();
             let uploaded_field = $("#field_input").val();
             let uploaded_mission = $("#mission_input").val();
@@ -247,19 +204,6 @@ function initialize_upload() {
     });
 
     dropzone_handler.on("error", function(file, response) {
-        //dropzone_handler.options.autoProcessQueue = false;
-        // console.log("error!");
-        // console.log("response", response);
-        //console.log("files", files);
-        // console.log("response.error", response.error);
-        // errors.push(response.error);
-
-        // console.log("error occurred", error_num, response.error);
-        // error_num++;
-        // let k = 0;
-        // for (let i = 0; i < 1000000000; i++) { k = k + i; }
-        //await new Promise(r => setTimeout(r, 60000));
-        //console.log("waking up");
 
         if (!upload_error) {
 
@@ -275,7 +219,6 @@ function initialize_upload() {
 
 
     dropzone_handler.on("addedfile", function() {
-        console.log("added file!");
         $("form").change();
     });
 
@@ -345,13 +288,6 @@ function initialize_upload() {
     });
 
     $("#upload_form").change(function() {
-        console.log("updating submit");
         update_submit();
     });
-
-    /*
-    $("#modal_close").click(function() {
-        console.log("closing modal");
-        close_modal();
-    });*/
 }

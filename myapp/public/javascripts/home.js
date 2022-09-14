@@ -122,7 +122,7 @@ function annotate_request() {
     function(response, status) {
 
         if (response.error) {
-            show_modal_message(`Error`, response.message);
+            show_modal_message(`Denied`, response.message);
             /*
             $("#modal_header_text").html("Error");
             $("#modal_message").html(response.message);
@@ -320,11 +320,6 @@ function edit_metadata(make, model) {
                   `Changing a camera's metadata will affect all of the image sets that have been assigned to that camera.</div>` +
                   `<div style="height: 20px"></div>`;
 
-    //messsage = message + `<div style="height: 20px"></div>`;
-
-    //let r = add_make_model_fields("150px");
-    //console.log("r", r);
-    //message = message + r;
     message = message + add_make_model_fields("160px");
     message = message + add_sensor_fields("160px");
     
@@ -359,8 +354,6 @@ function edit_metadata(make, model) {
     `</td>` +
     `</tr></table>`;*/
 
-
-    console.log(message);
 /*
     $("#modal_message").append(`<div style="height: 20px"></div>`);
  
@@ -548,7 +541,6 @@ function add_make_model_metadata() {
 
 
     for (input of ["make_input", "model_input"]) {
-        console.log("input", input);
         $("#" + input).on("input", function(e) {
             if (update_make_model()) {
                 enable_buttons(["camera_search_button"]);
@@ -576,7 +568,6 @@ function update_camera() {
 
 }
 function add_camera(make, model) {
-    console.log("adding camera...");
 
     let sensor_width = $("#sensor_width_input").val();
     let sensor_height = $("#sensor_height_input").val();
@@ -674,7 +665,6 @@ function search_for_camera() {
 }
 
 function submit_camera_height_change() {
-    console.log("submitting_camera_change", proposed_camera_height);
     $.post($(location).attr('href'),
     {
         action: "update_camera_height",
@@ -827,36 +817,12 @@ function show_overview() {
 
         if ($('#update_camera_height_button:hover').length != 0) {
             submit_camera_height_change();
-            //console.log("you are over the button");// do something ;)
         }
         else {
             //proposed_camera_height = $("#update_camera_height_input").val();
             $("#update_camera_height_input").val(metadata["camera_height"]).trigger("input");
         }
     });
-
-    /*
-    $("#update_camera_height_button").click(function() {
-
-        
-        // $("#update_camera_height_input").val("");
-        //$("#update_camera_height_input").val(metadata["camera_height"]);
-        console.log("clicked");
-        console.log(proposed_camera_height);
-        // $.post($(location).attr('href'),
-        // {
-        //     action: "fetch_upload_status",
-        //     farm_name: farm_name,
-        //     field_name: field_name,
-        //     mission_date: mission_date,
-        //     //upload_status: upload_status,
-        // },
-        // function(response, status) {
-
-        //     proposed_camera_height);
-        // });
-    });*/
-
             
     $("#bottom_right").append(`<div style="text-decoration: underline; font-weight: bold;">Camera Metadata</div><br>`);
 
@@ -1047,8 +1013,6 @@ function fetch_upload_status(farm_name, field_name, mission_date) {
 
 function fetch_and_show_results() {
 
-    console.log("fetch_and_show_results");
-
     $.post($(location).attr('href'),
     {
         action: "fetch_results",
@@ -1060,32 +1024,14 @@ function fetch_and_show_results() {
     function(response, status) {
         if (response.error) {
             show_modal_message(`Error`, `An error occurred while fetching the image set results.`);
-            /*
-            $("#modal_header_text").html("Error");
-            $("#modal_message").html("Error occurred while fetching image set results.");
-            $("#result_modal").css("display", "block");*/
         }
         else {
-            // if (response.upload_status !== upload_status) {
-
-            // }
-            console.log("response", response);
-            //cur_results = response;
-            // if (viewing_results) {
-            //     show_results();
-            // }
             show_results(response);
         }
 
     });
-
 }
-/*
-function show_error_message(head_text, body_text) {
-    $("#modal_header_text").html(head_text);
-    $("#modal_message").html(body_text);
-    $("#result_modal").css("display", "block");
-}*/
+
 
 function delete_result(result_type, result_id) {
 
@@ -1107,7 +1053,7 @@ function delete_result(result_type, result_id) {
         if (response.error) {
             show_modal_message(`Error`, `An error occurred while deleting the result.`);
         }
-        fetch_and_show_results();
+        //fetch_and_show_results();
         //show_results();
     });
 }
@@ -1117,7 +1063,13 @@ function show_results(results) {
     viewing_results = true;
 
 
-    //console.log("cur_results", cur_results);
+    let completed_results = results.completed_results.sort(function(a, b) {
+        return b["start_time"] - a["start_time"];
+    });
+    let completed_results_container_height = "375px";
+    if (completed_results.length > 1) {
+        completed_results_container_height = "325px";
+    }
 
     $("#tab_details").empty();
 
@@ -1143,7 +1095,7 @@ function show_results(results) {
                 `<td class="table_entry" style="font-weight: bold; width: 180px">View Result</td>` +
                 `<td class="table_entry" style="font-weight: bold; width: 180px">Delete Result</td>` +
             `</tr></table>` +
-        `<div style="height: 375px; overflow-y: scroll">` +
+        `<div style="height: ${completed_results_container_height}; overflow-y: scroll">` +
         `<table class="transparent_table" id="completed_table"></table></div></div>` +
 
         `<div id="pending_results" hidden><div style="height: 90px"></div>` +
@@ -1163,9 +1115,13 @@ function show_results(results) {
         `<div style="height: 375px; overflow-y: scroll">` +
         `<table class="transparent_table" id="aborted_table"></table></div></div>`
     );
-    let completed_results = results.completed_results.sort(function(a, b) {
-        return b["start_time"] - a["start_time"];
-    });
+    if (completed_results.length > 1) {
+        $("#completed_results").append(
+        `<button class="std-button std-button-hover" style="width: 300px; height: 50px" ` +
+        `onclick="view_timeline()"><span><i class="fa-solid fa-chart-line" style="margin-right:8px"></i>View Timeline</span></button>`);
+    }
+
+
     if (completed_results.length > 0) {
         for (result of completed_results) {
             let start_date = timestamp_to_date(result["start_time"]);
@@ -1214,9 +1170,6 @@ function show_results(results) {
         for (result of aborted_results) {
             let start_date = timestamp_to_date(result["start_time"]);
             let aborted_date = timestamp_to_date(result["aborted_time"]);
-            //let error_message = escapeHtml(result["error_message"]);
-            //let error_message = escapeHtml("list object 'numpy'");
-            //console.log(error_message);
             $("#aborted_table").append(
                 `<tr>` +
                     `<td class="table_entry" style="width: 220px">` + start_date + `</td>` +
@@ -1255,6 +1208,15 @@ function show_results(results) {
 
     show_results_tab();
 
+}
+
+function view_timeline() {
+    let farm_name = $("#farm_combo").val();
+    let field_name = $("#field_combo").val();
+    let mission_date = $("#mission_combo").val();
+
+    window.location.href = "/plant_detection/timeline/" + username + "/" +
+                            farm_name + "/" + field_name + "/" + mission_date
 }
 
 function view_result(timestamp) {
@@ -1297,7 +1259,7 @@ function show_image_set_details() {
     
         $("#image_set_tabs").append(
             `<li id="results_tab_btn" class="nav" onclick="show_image_set_tab(this.id)">` +
-            `<a class="nav"><span><i class="fa-solid fa-chart-line" style="margin-right:3px"></i> Results</span></a></li>`);
+            `<a class="nav"><span><i class="fa-solid fa-chart-bar" style="margin-right:3px"></i> Results</span></a></li>`);
         $("#image_set_container").append(`<div id="tab_details"></div>`);
 
         show_image_set_tab("overview_tab_btn");
@@ -1387,22 +1349,16 @@ function initialize_browse() {
 
 $(document).ready(function() {
 
-    console.log("welcome", username);
-
     // let socket = io();
     let socket = io(
     "", {
        path: "/plant_detection/socket.io"
     });
-    // socket.disconnect();
-    // socket = io();
 
     socket.emit("join_home", username);
 
     socket.on("upload_change", function(message) {
-        console.log("upload change message", message);
         fetch_upload_status(message["farm_name"], message["field_name"], message["mission_date"]);
-
     });
 
 

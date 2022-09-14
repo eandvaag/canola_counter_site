@@ -80,7 +80,7 @@ html
                 br
                 br
 
-                div(id="annotate_container" class="grid-container-1")
+                div(class="grid-container-1")
 
 
                     div(class="half-round-item-1")
@@ -241,7 +241,7 @@ html
                                                     hr
 
                                                     //div(style="height: 35px")
-                                                    div(style="height: 5px")
+                                                    div(style="height: 10px")
                                                     h(class="header2" style="text-align: left") Request Predictions
                                                     div(style="height: 10px")
                                                     button(id="predict_single_button" class="std-button std-button-hover" style="font-size: 16px; width: 220px") This Image
@@ -254,41 +254,23 @@ html
 
                                                     button(id="request_result_button" class="std-button std-button-hover" style="font-size: 16px; width: 220px") All Images + Save Result
 
-                                                    div(style="height: 10px")
+                                                    div(style="height: 50px")
                                                     hr
 
-                                                    div(style="height: 10px")
+                                                    div(style="height: 30px")
                                                     button(id="suggest_image_button" class="std-button std-button-hover" style="font-size: 16px; width: 260px") Suggest An Image For Annotation
                                                     
                                                     div(style="height: 10px;")
                                                     div(style="font-size: 13px; text-align: justify") Image suggestions are based on score distributions of predictions. For best results, generate predictions for all images before requesting a suggestion.
-                                                    
+                                                    div(style="height: 30px")
                                                     hr
-                                                    //-
-
-                                                        table(class="transparent_table")
-                                                            tr
-                                                                td
-                                                                    label(class="table_label" style="width: 215px; background-color: black")
-                                                                        table(class="transparent_table")
-                                                                            tr
-                                                                                td(style="width: 40px")
-                                                                                    label(class="switch")
-                                                                                        input(id="train_lock" type="checkbox")
-                                                                                        span(class="switch_slider round")
-                                                                                td(style="width: 100%")
-                                                                                    div(style="margin-left: 8px") Block Training 
-
-
-
 
                                                     
-                                                    //- div(style="height: 455px")
-                                                    //- button(id="restart_button" class="std-button std-button-hover" style="width: 190px" onclick="restart_model()")
-                                                    //-     span
-                                                    //-         i(class="fa-solid fa-rotate-right" style="margin-right:8px") 
-                                                    //-         |
-                                                    //-         | Restart Model
+                                                    div(style="height: 80px")
+                                                    button(id="restart_button" class="x-button x-button-hover" style="font-size: 16px; width: 170px" onclick="restart_model()")
+                                                        i(class="fa-solid fa-rotate-right" style="margin-right:8px") 
+                                                        |
+                                                        | Restart Model
 
 
                                                 div(id="prediction_panel" hidden)

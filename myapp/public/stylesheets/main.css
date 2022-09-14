@@ -41,11 +41,11 @@ body {
 a {
   text-decoration: none;
 }
-
+/*
 ul {
    list-style-type: none;
    padding: 0px;
-}
+}*/
 
 select {
   max-width: 90%;
@@ -143,7 +143,7 @@ hr {
 
 .dep_panel {
   /*margin: auto;*/
-  background-color: #283624; /*#172027;*/
+  background-color: #2a3829; /*#172027;*/
   /*max-width: 450px;
   min-width: 250px;*/
   border: 1px solid white;
@@ -180,7 +180,7 @@ hr {
 
 .sign_in_panel {
   margin: 0 auto;
-  background-color: #283624; /*#222621;*/ /*#2b3628;*/
+  background-color: #2a3829; /*#222621;*/ /*#2b3628;*/
   border: 1px solid white;
   border-style: solid;
   border-radius: 30px;
@@ -340,7 +340,7 @@ tr:first-child{ ;}*/
 .std-button {
   display: inline-block;
   border-radius: 30px;
-  background-color: #283624; /*#998866;*/
+  background-color: #2a3829; /*#998866;*/
   border: 1px solid white; /*none;*/
   color: white;
   text-align: center;
@@ -389,16 +389,18 @@ tr:first-child{ ;}*/
 .x-button {
   display: inline-block;
   border-radius: 30px;
-  background-color: #46120e; /*#998866;*/
+  background-color: #570c06; /*#998866;*/
   border: 1px solid white; /*none;*/
   color: white;
   text-align: center;
   font-size: 18px;
-  padding: 5px 5px;
+  /*padding: 5px 5px;*/
+  padding: 5px;
+  margin: 0px 5px;
   width: 95%;
   transition: all 0.5s;
   cursor: pointer;
-  margin: 5px 5px; 
+  /*margin: 5px 5px; */
 }
 
 
@@ -430,14 +432,14 @@ tr:first-child{ ;}*/
 }
 
 .x-button-hover:hover {
-  background-color:rgb(143, 24, 15); /*#cc9923;*/
+  background-color: #802626; /*rgb(143, 24, 15);*/ /*#cc9923;*/
 }
 
 
 .stop-button {
   display: inline-block;
   border-radius: 30px;
-  background-color:  #283624; /*#998866;*/
+  background-color:  #2a3829; /*#998866;*/
   border: 1px solid white; /*none;*/
   color: white;
   text-align: center;
@@ -536,7 +538,7 @@ tr:first-child{ ;}*/
 /* Designing all grid-items */ 
 .grid-container-1 > div { 
     border: 1px solid white;
-    background-color: #283624; /*#2b3628;*/
+    background-color: #2a3829; /*#2b3628;*/
     text-align: center; 
     padding: 10px 25px;
 } 
@@ -545,7 +547,7 @@ tr:first-child{ ;}*/
 /* Designing all grid-items */ 
 .grid-container-2 > div { 
     border: 1px solid white;
-    background-color: #283624;
+    background-color: #2a3829;
     text-align: center; 
     padding: 10px 25px;
 } 
@@ -572,7 +574,7 @@ ul.nav {
   list-style-type: none;
   margin: 0;
   padding: 0;
-  background: #283624;
+  background: #2a3829;
   /*background: #998866;*/
   overflow: hidden;
   border-bottom: 1px solid white;
@@ -743,7 +745,7 @@ input:-webkit-autofill:active {
   margin: auto;
   padding: 0;
   width: 80%;
-  max-width:  550px;
+  max-width:  650px; /*550px;*/
   box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2),0 6px 20px 0 rgba(0,0,0,0.19);
   -webkit-animation-name: animatetop;
   -webkit-animation-duration: 0.4s;
@@ -784,7 +786,7 @@ input:-webkit-autofill:active {
   padding: 0px 8px;
   margin-top: -20px;
   margin-bottom: -20px;
-  background-color: #283624;
+  background-color: #2a3829;
   color: white;
   font-size: 22px;
   border-top: 1px solid white;
@@ -801,7 +803,7 @@ input:-webkit-autofill:active {
 .modal-footer {
   padding: 0px 8px;
   margin-bottom: 80px;
-  background-color: #283624;
+  background-color: #2a3829;
   color: white;
   height: 25px;
   border-bottom: 1px solid white;

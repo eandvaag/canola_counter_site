@@ -12,9 +12,7 @@ function set_score_chart_data() {
     for (let i = 0; i <= 100; i++) {
         score_thresholds.push(i / 100);
     }
-    //console.log(score_thresholds);
 
-    // scores_max_y_bin = 0;
     score_chart_data = {};
 
     for (image_name of Object.keys(annotations)) {
@@ -35,21 +33,12 @@ function set_score_chart_data() {
         .thresholds(score_thresholds);
 
         let bins = histogram(scores);
-        console.log("BINS", bins);
         bins[bins.length-1].x1 = 1.01;
         //bins = bins.slice(0, bins.length-1);
-        //console.log("SLICED BINS", bins);
-
 
         score_chart_data[image_name] = {};
         score_chart_data[image_name]["bins"] = bins;
         score_chart_data[image_name]["scores"] = scores;
-
-        // image_max_y_bin = d3.max(bins, function(d) { return d.length / scores.length; });
-
-        // if (image_max_y_bin > scores_max_y_bin) {
-        //     scores_max_y_bin = image_max_y_bin;
-        // }
 
     }
 
@@ -59,16 +48,13 @@ function evaluate_scores(bins, scores) {
 
     let quality_score = 0;
     let bin_i_prob, bin_i_score;
-    // console.log("bins.length", bins.length);
-    // console.log("score_thresholds.length", score_thresholds.length);
+
     for (let i = 0; i < bins.length; i++) {
         
         bin_i_prob = bins[i].length / scores.length
         bin_i_score = score_thresholds[i];
-        console.log("i, bin_i_prob, bin_i_score", i, bin_i_prob, bin_i_score);
         quality_score = quality_score + (bin_i_prob * (bin_i_score * bin_i_score));
     }
-    // console.log("quality_score", quality_score);
 
     //quality_score = range_map(quality_score, 0.25, 1.0, 0.0, 1.0);
     quality_score = range_map(quality_score, 0.0156, 1.0, 0.0, 1.0);
@@ -133,21 +119,6 @@ function draw_score_chart() {
     .tickFormat((d, i) => ['0.25', '0.5', '0.75', '1'][i])); 
 
 
-    console.log(score_xScale.ticks(20));
-
-    /*
-    score_svg.append("g")
-        .attr("transform", "translate(0," + height + ")")
-        .call(d3.axisBottom(x));
-    */
-
-    // let histogram = d3.histogram()
-    //                   .value(function(d) { return d; })
-    //                   .domain(score_xScale.domain())
-    //                   .thresholds(score_xScale.ticks(20));
-
-    //let bins = histogram(scores);
-
     let bins = score_chart_data[cur_img_name]["bins"];
     let scores = score_chart_data[cur_img_name]["scores"];
 
@@ -156,9 +127,6 @@ function draw_score_chart() {
     let certainty = ret[1];
 
     $("#quality_score").html(quality_score + "% (" + certainty + " certainty)");
-
-    console.log("bins", bins);
-    console.log("scores", scores);
 
     score_yScale = d3.scaleLinear()
                 .range([height, 0]);
@@ -252,8 +220,6 @@ function update_score_chart() {
 
     score_chart_y_axis.transition().duration(250).call(d3.axisLeft(score_yScale).ticks(4)); //.ticks(chart_width / 100)); //.tickFormat(d3.format("d")));
 
-
-    console.log("update_bins", bins);
     d3.selectAll(".score_rect")
         .data(bins)
         .transition()

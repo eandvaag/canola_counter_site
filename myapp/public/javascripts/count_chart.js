@@ -50,7 +50,6 @@ function set_count_chart_data() {
         "Predictions": predictions
     }
 
-    //console.log("cur_metric", metric);
     if (metric === "Count" || metric === "Count per square metre") {
         for (image_name of Object.keys(annotations)) {
             for (overlay_name of Object.keys(overlay_colors)) {
@@ -63,22 +62,10 @@ function set_count_chart_data() {
                     }
                 }
             }
-            // for (const [overlay_name, overlay] of Object.entries(overlays)) {
-            //     console.log(overlay);
-            //     if (image_name in overlay["overlays"]) {
-            //         for (annotation of overlay["overlays"][image_name]["annotations"]) {
-            //             let score_el = annotation["body"].find(b => b.purpose == 'score');
-            //             if (!score_el || score_el.value >= slider_val) {
-            //                 count_chart_data[image_name][overlay_name]++;
-            //             }
-            //         }
-            //     }
-            // }
         }
 
         max_count = 0;
         for (image_name of Object.keys(annotations)) {
-            //for (class_name of Object.keys(job_config["arch"]["class_map"])) {
             for (overlay_name of Object.keys(count_chart_data[image_name])) {
                 let v = count_chart_data[image_name][overlay_name];
                 if (metric == "Count per square metre") {
@@ -93,10 +80,6 @@ function set_count_chart_data() {
                     let image_width_m = metadata["images"][image_name]["width_px"] * gsd;
 
                     let area_m2 = image_width_m * image_height_m;
-
-                    console.log("area_m2", area_m2);
-                    console.log("gsd", gsd);
-
 
                     v = v / area_m2;
                     v = Math.round((v + Number.EPSILON) * 100) / 100;
@@ -148,7 +131,6 @@ function set_count_chart_data() {
         }*/
         max_count = 100;
     }
-    console.log("max_count", max_count);
 }
 
 
@@ -162,10 +144,6 @@ function draw_count_chart() {
     let chart_height = $('#count_chart').height(); // - 10;
 
     //let chart_width = 270;
-
-
-    //console.log("chart_width", chart_width);
-
 
     count_margin = 30;
 
@@ -220,8 +198,6 @@ function draw_count_chart() {
 
     //let sel_class = "plant"; //$("#class_combo").val();
 
-    //console.log("count_chart_data", count_chart_data);
-    //console.log("cur_img_name", cur_img_name);
     chart.selectAll("text")
          .data(Object.keys(count_chart_data[cur_img_name])) //[sel_class])
          .enter()

@@ -6,8 +6,6 @@ function show_image_set_details() {
     let field_name = $("#field_combo").val();
     let mission_date = $("#mission_combo").val();
 
-    console.log("found groups", results_data[farm_name][field_name][mission_date]);
-
     let group_col_width = "300px";
     let started_col_width = "100px";
     let finished_col_width = "100px";
@@ -28,7 +26,6 @@ function show_image_set_details() {
     group_configs.sort(function(a, b) {
         return a["end_time"] - b["end_time"];
     });
-    console.log("showing group_configs");
     for (group_config of group_configs) {
         //let group_config_str = JSON.stringify(group_config, null, 4);
 
@@ -49,7 +46,6 @@ function show_image_set_details() {
 }
 
 function view_group(group_uuid) {
-    console.log("request to view group", group_uuid);
 
 
     $.post($(location).attr('href'),
@@ -61,7 +57,7 @@ function view_group(group_uuid) {
     },
     function(response, status) {
         if (response.error) { 
-            console.log("error occurred", response.error);
+
         }
         else {
             window.location.href = response.redirect;
@@ -72,8 +68,6 @@ function view_group(group_uuid) {
 $(document).ready(function() {
 
     //update_containers();
-
-    console.log("results_data", results_data);
 
     for (const farm_name in results_data) {
         $("#farm_combo").append($('<option>', {

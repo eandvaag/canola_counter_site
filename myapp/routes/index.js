@@ -26,6 +26,8 @@ router.post('/upload', upload_files.array('source_file[]'), landing.post_upload)
 router.get('/viewer/:username/:farm_name/:field_name/:mission_date/:timestamp', landing.get_viewer);
 router.post('/viewer/:username/:farm_name/:field_name/:mission_date/:timestamp', landing.post_viewer);
 
+router.get('/timeline/:username/:farm_name/:field_name/:mission_date', landing.get_timeline);
+
 router.get('/download/:username/:farm_name/:field_name/:mission_date/:timestamp/:download_uuid', landing.get_download);
 // router.post('/download/:username/:farm_name/:field_name/:mission_date/:timestamp/:download_uuid', landing.post_download);
 

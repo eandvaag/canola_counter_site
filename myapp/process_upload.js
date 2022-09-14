@@ -120,8 +120,6 @@ async function process_upload(username, farm_name, field_name, mission_date, cam
     let aborted_dir = path.join(image_set_requests_dir, "aborted");
     let weights_dir = path.join(model_dir, "weights");
     let results_dir = path.join(model_dir, "results");
-    // let retrieval_dir = path.join(model_dir, "retrieval");
-
 
     let image_names = [];
     try {
@@ -134,9 +132,7 @@ async function process_upload(username, farm_name, field_name, mission_date, cam
         return;
     }
 
-    console.log("image_names", image_names);
-
-    console.log("creating image set directories");
+    console.log("Creating image set directories");
     try {
         fs.mkdirSync(dzi_images_dir, { recursive: true });
         fs.mkdirSync(conversion_tmp_dir, { recursive: true });
@@ -355,67 +351,6 @@ async function process_upload(username, farm_name, field_name, mission_date, cam
 
 
 
-
-    // for (image_name of image_names) {
-
-    //     console.log("processing", image_name);
-
-    //     let extension = image_name.substring(image_name.length-4);
-    //     let extensionless_fname = image_name.substring(0, image_name.length-4);
-    //     let fpath = path.join(images_dir, image_name);
-    //     let img_dzi_path = path.join(dzi_images_dir, extensionless_fname);
-
-
-    //     let no_convert_extensions = [".jpg", ".JPG", ".png", ".PNG"];
-    //     if (!(no_convert_extensions.includes(extension))) {
-    //         console.log("conversion is required");
-    //         let tmp_path = path.join(conversion_tmp_dir, extensionless_fname + ".jpg");
-    //         let conv_cmd = "convert " + fpath + " " + tmp_path;
-    //         let slice_cmd = "./MagickSlicer/magick-slicer.sh '" + tmp_path + "' '" + img_dzi_path + "'";
-    //         try {
-    //             execSync(conv_cmd, {shell: "/bin/bash"});
-    //         }
-    //         catch (error) {
-    //             console.log(error.stack);
-    //             console.log('Error code: '+error.code);
-    //             console.log('Signal received: '+error.signal);
-    //             write_upload_status(upload_status_path, {"status": "failed", "error": error.toString()});
-    //             return;
-    //         }
-    //         try {
-    //             execSync(slice_cmd, {shell: "/bin/bash"});
-    //         }
-    //         catch (error) {
-    //             console.log(error.stack);
-    //             console.log('Error code: '+error.code);
-    //             console.log('Signal received: '+error.signal);
-    //             write_upload_status(upload_status_path, {"status": "failed", "error": error.toString()});
-    //             return;
-    //         }
-    //         try {
-    //             fs.unlinkSync(tmp_path);
-    //         }
-    //         catch (error) {
-    //             write_upload_status(upload_status_path, {"status": "failed", "error": error.toString()});
-    //             return;
-    //         }
-    //     }
-    //     else {
-    //         console.log("conversion is not required");
-    //         let slice_cmd = "./MagickSlicer/magick-slicer.sh '" + fpath + "' '" + img_dzi_path + "'";
-    //         try {
-    //             execSync(slice_cmd, {shell: "/bin/bash"});
-    //         }
-    //         catch (error) {
-    //             console.log(error.stack);
-    //             console.log('Error code: '+error.code);
-    //             console.log('Signal received: '+error.signal);
-    //             write_upload_status(upload_status_path, {"status": "failed", "error": error.toString()});
-    //             return;
-    //         }
-    //     }
-    // }
-
     console.log("Creating excess green images...")
     let exg_command = "python ../../plant_detection/src/excess_green.py " + mission_dir;
     try {
@@ -462,17 +397,9 @@ async function process_upload(username, farm_name, field_name, mission_date, cam
 
     console.log("finished processing");
 
-    //socket_api.upload_update(username, farm_name, field_name, mission_date);
-    
     return;
 }
 
-
-// function process_and_notify(username, farm_name, field_name, mission_date, camera_height) {
-//     process_upload(username, farm_name, field_name, mission_date, camera_height);
-//     //console.log("now notifying");
-//     //upload_notify(username, farm_name, field_name, mission_date);
-// }
 
 
 let username = process.argv[2]
@@ -482,4 +409,3 @@ let mission_date = process.argv[5];
 let camera_height = process.argv[6];
 
 process_upload(username, farm_name, field_name, mission_date, camera_height);
-//process_and_notify(username, farm_name, field_name, mission_date, camera_height);

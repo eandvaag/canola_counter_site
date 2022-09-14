@@ -83,8 +83,6 @@ function update_ground_cover_chart() {
 
     let ground_cover_percentage = excess_green_record[cur_img_name]["ground_cover_percentage"]
     let data = [ground_cover_percentage, 100 - ground_cover_percentage];
-    
-    console.log("ground_cover data", data);
 
     let pie = d3.pie()
                 .value(function(d) { return d.value; }).sort(null);

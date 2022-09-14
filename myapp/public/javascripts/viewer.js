@@ -39,25 +39,12 @@ let cur_map_model_uuid;
 
 let map_url = null;
 let pred_map_url = null;
-// let diff_map = false;
 let min_max_rec = null;
-
-
-// let overlay_colors = [
-//     "#0080C0",        
-//     "#FF4040"
-// ];
-
-// let overlay_names = [
-//     "annotations",
-//     "predictions"
-// ];
 
 
 
 
 function change_image(image_name) {
-    console.log("change_image", image_name);
     cur_img_name = image_name;
     
     let index = cur_img_list.findIndex(x => x == cur_img_name);
@@ -162,38 +149,12 @@ function create_overlays_table() {
 function create_image_set_table() {
 
 
-    let image_name_col_width = "170px";
+    let image_name_col_width = "180px";
     let image_status_col_width = "60px";
 
     $("#image_set_table").empty();
-    /*
-    $("#image_set_table").append(`<tr>` +
-            `<th><div class="table_header" style="width: ${image_name_col_width};">Name</div></th>` +
-            //`<th><div class="table_header" style="width: ${image_status_col_width}">Annotation Status</div></th>` +
-            //`<th><div class="table_header" style="width: ${image_dataset_col_width}">Assigned Dataset</div></th>` +
-            `</tr>`);*/
-    //for (dzi_image_path of dzi_image_paths) {
 
     let filter_val = $("#filter_combo").val();
-    console.log("filter_val", filter_val);
-    /*
-    let selected_image_names;
-    if (filter_val === "all") {
-        selected_image_names = image_names["all"];
-    }
-    else if (filter_val === "completed") {
-        selected_image_names = image_names["completed"];
-    }
-    else if (filter_val === "unannotated") {
-        selected_image_names = image_names["unannotated"];
-    }
-    else if (filter_val === "training/validation") {
-        selected_image_names = image_names["training/validation"];
-    }
-    else {
-        selected_image_names = image_names["testing"]
-    }*/
-
 
     let abbreviation = {
         "unannotated": "Un.",
@@ -206,29 +167,15 @@ function create_image_set_table() {
     for (image_name of natsort(Object.keys(annotations))) {
         if ((filter_val === "all") || (annotations[image_name]["status"] === filter_val)) {
 
-            //for (image_name of selected_image_names) {
-            //let image_name = basename(dzi_image_path)
-            //let extensionless_name = image_name.substring(0, image_name.length - 4);
-            //let dzi_image_path = dzi_dir + "/" + image_name + ".dzi";
-
-            //let img_status = image_set_data["images"][extensionless_name]["status"];
             let image_status = annotations[image_name]["status"];
             let abbreviated_status = abbreviation[image_status];
             let image_color = status_color[image_status];
 
             $("#image_set_table").append(`<tr>` +
-           
-            //`<td><div>${extensionless_name}</div></td>` +
-            //`<td><div class="table_entry std_tooltip" style="background-color: ${image_color}; cursor: default; position: relative; width: ${image_status_col_width}; border: 1px solid white">${abbreviated_status}` +
-            //`<span class="std_tooltiptext">${image_status}</span></div></td>` +
 
-            `<td><div class="table_entry std_tooltip" style="background-color: ${image_color}; cursor: default; position: relative; width: ${image_status_col_width}; border: 1px solid white">${abbreviated_status}</div></td>` +
-
-            `<td><div class="table_button table_button_hover" style="width: ${image_name_col_width}" ` +
-            // `onclick="change_image('${dzi_image_path}')">${extensionless_name}</div></td>` +
+            `<td><div class="table_entry std_tooltip" style="margin: 0px 1px; background-color: ${image_color}; cursor: default; position: relative; width: ${image_status_col_width}; border: 1px solid white">${abbreviated_status}</div></td>` +
+            `<td><div class="table_button table_button_hover" style="width: ${image_name_col_width}; margin: 0px 1px;" ` +
              `onclick="change_image('${image_name}')">${image_name}</div></td>` +
-            //`</div></td>` + 
-            //`<td><div class="table_entry">${img_dataset}</div></td>` +
             `</tr>`);
 
             cur_img_list.push(image_name);
@@ -298,47 +245,6 @@ function update_overlays() {
 }
 
 
-// function update_overlays() {
-//     anno.clearAnnotations();
-//     console.log("update_overlays");
-//     let slider_val = Number.parseFloat($("#confidence_slider").val()).toFixed(2);
-//     //for (overlay_id of sorted_overlay_ids) {
-//     console.log("overlays", overlays);
-//     for (const [overlay_name, overlay] of Object.entries(overlays)) {
-//         if (cur_img_name in overlay["overlays"] && $("#" + overlay_name).is(":checked")) {
-//             for (annotation of overlay["overlays"][cur_img_name]["annotations"]) {
-//                 //annotation["body"].push({"value": "COLOR_1", "purpose": "highlighting"})
-//                 /*
-//                 let tag = {
-//                     purpose: "score",
-//                     type: "TextualBody",
-//                     value: "0.94" //"MyTag"
-//                 }
-//                 annotation.body.push(tag);*/
-//                 //annotation["TAG"] = "MY TEXT"
-//                 //console.log(annotation)'
-
-//                 let bodies = Array.isArray(annotation.body) ?
-//                 annotation.body : [ annotation.body ];
-//                 let scoreTag = bodies.find(b => b.purpose == 'score');
-//                 if (!scoreTag || scoreTag.value >= slider_val) {
-//                     anno.addAnnotation(annotation);
-//                 }
-//             }
-//         }
-// 
-//     }
-// /*
-//     if $("#annotations")
-//     for (annotation of annotations[cur_img_name]["annotations"]) {
-//         anno.addAnnotation(annotation);
-//     }*/
-// }
-
-
-
-
-
 function build_map() {
     disable_buttons(["build_map_button"]);
     $("#build_loader").show();
@@ -349,9 +255,6 @@ function build_map() {
     //let comparison_type = $("input[type='radio'][name='comparison_type']:checked").val();
 
     //let include_annotated_map = $("input[type='radio'][name='include_annotated_map']:checked").val() === "yes";
-    //console.log("include_annotated_map", include_annotated_map);
-    //console.log("sel_metric", sel_metric);
-    console.log("sel_interpolation", sel_interpolation);
     
     
 
@@ -373,16 +276,10 @@ function build_map() {
         $("#build_loader").hide();
         enable_buttons(["build_map_button"]);
 
-        if (response.error) {    
-            console.log("error occurred");
+        if (response.error) {
             show_modal_message("Error", "An error occurred while creating the density map.");
-            // diff_map = false;
-            // pred_map_url = null;
-            // map_url = null;
-            // draw_map_chart();
         }
         else {
-            console.log("showing map");
 
             let map_download_uuid = response.map_download_uuid;
             //cur_map_model_uuid = sel_model;
@@ -409,7 +306,6 @@ function build_map() {
             let min_max_rec_url = base + "_min_max_rec.json?t=" + timestamp;
             min_max_rec = get_json(min_max_rec_url);
 
-            console.log("showing map");
             draw_map_chart();
         }
     });
@@ -439,7 +335,6 @@ function show_map() {
             num_completed++;
         }
     }
-    console.log("num_completed", num_completed);
     if (num_completed >= 3) {
         $("#sufficient_annotation_options").show();
     }
@@ -511,23 +406,11 @@ function create_viewer_and_anno() {
     });
 
     viewer.addHandler("open", function(event) {
-        
 
-        //let img_files_name = basename(event.source);
-        //let img_name = img_files_name.substring(0, img_files_name.length - 4);
-
-        //let img_status = image_set_data["images"][img_name]["status"];
-        //console.log("img_status", img_status);
-        //cur_img_name = img_name;
         let cur_status = annotations[cur_img_name]["status"];
-        //let use = used_for[cur_img_name];
 
         $("#image_name").text(cur_img_name);
-        $("#image_status").text(cur_status);
-        //$("#used_for").text(use);
-
-
-
+        $("#image_status").text(status_to_text[cur_status]);
 
         update_overlays();
         update_count_chart();
@@ -586,11 +469,7 @@ $(document).ready(function() {
         let field_name = image_set_info["field_name"];
         let mission_date = image_set_info["mission_date"];
         let timestamp = image_set_info["timestamp"];
-        
-        //let download_path = "/plant_detection/usr/data/" + username + "/image_sets/" + farm_name + "/" +
-        //                    field_name + "/" + mission_date + "/model/results/" + timestamp + "/results.csv";
 
-        console.log("preparing download")
         show_modal_message("Preparing Download", 
         `<div id="prep_csv_message">Preparing CSV file...</div><div id="prep_csv_loader" class="loader"></div>` +
         `<div style="text-align: center; margin-top: 20px"><a class="table_button table_button_hover" id="download_button" hidden>` +
@@ -598,19 +477,9 @@ $(document).ready(function() {
 
         $("#modal_close").hide();
 
-        // a(class="table_button table_button_hover" style="padding: 5px 10px;" id="download_button" download)
-        //     i(class="fa fa-download fa-sm")
-        //     span(style="margin-left: 10px") Download Results 
-
         $.post($(location).attr('href'),
         {
             action: "create_csv",
-            //username: username,
-            //farm_name: farm_name,
-            ///field_name: field_name,
-            //mission_date: mission_date,
-            // results_timestamp: timestamp,
-            //download_uuid: download_uuid
             download_uuid: download_uuid,
             annotation_version: $("#annotation_version_combo").val()
         },
@@ -629,11 +498,7 @@ $(document).ready(function() {
                 $("#prep_csv_message").html("Your results file has been created. Click the button to download the results.");
                 $("#download_button").show();
     
-
-
-                console.log("the new download_uuid is", response.download_uuid);
                 download_uuid = response.download_uuid;
-                console.log("got download_uuid", download_uuid);
 
                 let download_path = "/plant_detection/download/" + 
                                     username + "/" +
@@ -653,41 +518,12 @@ $(document).ready(function() {
 
                 $("#modal_close").click(function() {
                     clearTimeout(close_timeout_handler);
-                    // $.post(download_path),
-                    // {
-
-                    // },
-                    // function (response, status) {
-                    //     if (response.error) {
-                    //         console.log("Error occurred while attempting to delete results file");
-                    //     }
-                    // }
                     close_modal();
                 });
 
-
-
-
-                // $("#download_button").click(function() {
-                //     $.post("/plant_detection/download/" + username,
-                //     {
-                //         farm_name: farm_name,
-                //         field_name: field_name,
-                //         mission_date: mission_date,
-                //         timestamp: timestamp,
-                //         download_uuid: download_uuid
-                //     },
-                //     function (response, status) {
-
-                //     });
-                // });
             }
 
         });
-
-        // console.log("download_path", download_path);
-        // $("#download_button").attr("href", download_path);
-
     })
 
     let farm_name = image_set_info["farm_name"];
@@ -739,43 +575,6 @@ $(document).ready(function() {
     // }));
 
 
-    /*
-    let test_reserved_images = [];
-    for (image_set_conf of job_config["training"]["image_sets"]) {
-        if (((image_set_conf["farm_name"] === image_set_info["farm_name"]) &&
-            (image_set_conf["field_name"] === image_set_info["field_name"])) &&
-            (image_set_conf["mission_date"] === image_set_info["mission_date"])) {
-                test_reserved_images = image_set_conf["test_reserved_images"];
-                break;
-            }
-    }*/
-
-/*
-
-    image_names["all"] = natsort(Object.keys(data["overlays"]["annotations"]));
-    for (image_name of image_names["all"]) {
-
-        let status = data["overlays"]["annotations"][image_name]["status"];
-        if (status === "completed") {
-            image_names["completed"].push(image_name);
-
-            if (test_reserved_images.includes(image_name)) {
-                image_names["testing"].push(image_name)
-                used_for[image_name] = "testing";
-            }
-            else {
-                image_names["training/validation"].push(image_name);
-                used_for[image_name] = "training/validation";
-            }
-
-        }
-        else if (status === "unannotated") {
-            image_names["unannotated"].push(image_name);
-            used_for[image_name] = "NA";
-        }
-    }*/
-
-
     cur_view = "image";
 
     if (can_calculate_density(metadata, camera_specs)) {
@@ -783,8 +582,6 @@ $(document).ready(function() {
         $("#view_button_container").show();
 
         $("#view_button").click(function() {
-
-            console.log("Clicked view button");
 
             if (cur_view == "image") {
                 show_map();
@@ -824,7 +621,6 @@ $(document).ready(function() {
 
     $("#confidence_slider").change(function() {
         let slider_val = Number.parseFloat($("#confidence_slider").val()).toFixed(2);
-        console.log("slider_val is", slider_val);
         $("#slider_val").html(slider_val);
         update_overlays();
         set_count_chart_data();
@@ -867,11 +663,6 @@ $(document).ready(function() {
             $("#image_navigation_buttons").hide();
         }
     });
-
-    $("#download_button").click(function() {
-        console.log("downloading results");
-    });
-
 
     let score_handler;
     $("#score_down").mousedown(function() {

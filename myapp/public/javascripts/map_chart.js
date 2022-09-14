@@ -222,8 +222,6 @@ function draw_map_chart() {
                 .attr("class", "map_legend axis")
                 .attr("transform", "translate(" + 60 + ", 0)");
 
-            //console.log("max_density", max_density);
-
             //legend_y_axis.call(d3.axisLeft(legend_yScale).tickValues([0, max_density]).tickFormat(d3.format("d")).tickSize(25));
             legend_y_axis.call(d3.axisLeft(legend_yScale).tickValues([vmin, vmax]).tickFormat(d3.format("d")).tickSize(25));
 
