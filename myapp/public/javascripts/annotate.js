@@ -27,7 +27,7 @@ let map_download_uuid = "";
 
 let cur_panel;
 let cur_bounds = null;
-let cur_status;
+//let cur_status;
 
 
 let map_url = null;
@@ -353,7 +353,7 @@ function create_anno() {
         annotations[cur_img_name]["annotations"] = anno.getAnnotations();
         num_annotations++;
 
-        annotations[cur_img_name]["update_time"] = parseInt(new Date().getTime() / 1000);
+        // annotations[cur_img_name]["update_time"] = parseInt(new Date().getTime() / 1000);
 
         update_image_status();
         set_image_status_combo();
@@ -396,7 +396,7 @@ function create_anno() {
         annotations[cur_img_name]["annotations"] = anno.getAnnotations();
         $("#save_icon").css("color", "#ed452b");
 
-        annotations[cur_img_name]["update_time"] = parseInt(new Date().getTime() / 1000);
+        // annotations[cur_img_name]["update_time"] = parseInt(new Date().getTime() / 1000);
 
         add_annotations();
     });
@@ -452,7 +452,7 @@ function create_viewer_and_anno(viewer_id) {
             annotations[cur_img_name]["annotations"] = anno.getAnnotations();
             num_annotations--;
 
-            annotations[cur_img_name]["update_time"] = parseInt(new Date().getTime() / 1000);
+            // annotations[cur_img_name]["update_time"] = parseInt(new Date().getTime() / 1000);
 
             update_image_status();
             set_image_status_combo();
@@ -785,7 +785,7 @@ function show_annotation(force_reset=false) {
 
 
     create_viewer_and_anno("seadragon_viewer");
-    anno.readOnly = false; //annotations[cur_img_name]["status"] === "completed_for_training";
+    anno.readOnly = annotations[cur_img_name]["status"] === "completed_for_training";
     add_annotations();
 
     let dzi_image_path = image_to_dzi[cur_img_name];
@@ -1397,7 +1397,7 @@ $(document).ready(function() {
     socket.emit("join_annotate", username + "/" + image_set_info["farm_name"] + "/" + image_set_info["field_name"] + "/" + image_set_info["mission_date"]);
 
     socket.on("status_change", function(status) {
-
+        
         if (status["error"] === 'True') {
             let error_message = `An error occurred during ` + status["error_setting"] + 
             `:<br><br>` + status["error_message"];
@@ -1416,10 +1416,10 @@ $(document).ready(function() {
         let update_num = parseInt(status["update_num"]);
         if (update_num > cur_update_num) {
             cur_update_num = update_num;
-            cur_status = status["status"];
+            //cur_status = status["status"];
             // let cur_num_trained_on = parseInt(status["num_images_fully_trained_on"]);
             
-            $("#model_status").html(capitalizeFirstLetter(cur_status));
+            $("#model_status").html(capitalizeFirstLetter(status["status"]));
 
             // let num_available = 0;
             // for (image_name of Object.keys(annotations)) {
