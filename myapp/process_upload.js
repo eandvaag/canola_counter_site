@@ -45,14 +45,14 @@ function upload_notify(username, farm_name, field_name, mission_date) {
 
     console.log("attempting to notify the server");
 
-    const data = JSON.stringify({
+    let data = JSON.stringify({
         username: username,
         farm_name: farm_name,
         field_name: field_name,
         mission_date: mission_date
     });
 
-    const options = {
+    let options = {
         hostname: process.env.CC_IP, //'172.16.1.75', //71',
         port: parseInt(process.env.CC_PORT), //8110,
         path: '/plant_detection/upload_notification',
@@ -171,10 +171,15 @@ async function process_upload(username, farm_name, field_name, mission_date, cam
     }
 
     let status = {
-        "status": "idle",
+        // "username": username,
+        // "farm_name": farm_name,
+        // "field_name": field_name,
+        // "mission_date": mission_date,
+        "num_images_fully_trained_on": 0
+        // "status": "idle",
         // "num_images_fully_trained_on": 0,
-        "fully_trained": "True",
-        "update_num": 0
+        // "fully_trained": "True",
+        // "update_num": 0
     };
     let status_path = path.join(model_dir, "status.json");
     try {
@@ -196,7 +201,7 @@ async function process_upload(username, farm_name, field_name, mission_date, cam
         annotations[extensionless_fname] = {
             "status": "unannotated",
             "annotations": [],
-            "update_time": 0
+            // "update_time": 0
             // "write_time": 0
         };
     }

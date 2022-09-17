@@ -11,7 +11,7 @@ global_disabled = false;
 
 function delete_request() {
 
-    show_modal_message(`Are you sure?`, `<div>Are you sure you want to delete this image set?</div>` +
+    show_modal_message(`Are you sure?`, `<div style="height: 30px">Are you sure you want to delete this image set?</div>` +
         `<div id="modal_button_container" style="text-align: center">` +
         `<button id="confirm_delete" class="x-button x-button-hover" `+
         `style="width: 200px" onclick="confirmed_delete_request()">Delete</button>` +
@@ -1033,11 +1033,32 @@ function fetch_and_show_results() {
 }
 
 
-function delete_result(result_type, result_id) {
+function delete_result_request(result_type, result_id) {
+
+
+    show_modal_message(`Are you sure?`, `<div style="height: 30px">Are you sure you want to delete this result?</div>` +
+        `<div id="modal_button_container" style="text-align: center">` +
+        `<button class="x-button x-button-hover" `+
+        `style="width: 200px" onclick="confirmed_delete_result_request('${result_type}', '${result_id}')">Delete</button>` +
+        `<button class="std-button std-button-hover" ` +
+        `style="width: 200px" onclick="cancel_delete_request()">Cancel</button>` +
+        `<div style="height: 20px" id="loader_container"></div>` +
+        `</div>`
+        //`onclick="view_result('${result["end_time"]}')">
+    );
+}
+
+function confirmed_delete_result_request(result_type, result_id) {
 
     let farm_name = $("#farm_combo").val();
     let field_name = $("#field_combo").val();
     let mission_date = $("#mission_combo").val();
+
+
+    $("#loader_container").append(
+        `<div class="loader"></div>`
+    );
+
 
     $.post($(location).attr('href'),
     {
@@ -1049,6 +1070,7 @@ function delete_result(result_type, result_id) {
         result_id: result_id
     },
     function(response, status) {
+        close_modal();
 
         if (response.error) {
             show_modal_message(`Error`, `An error occurred while deleting the result.`);
@@ -1133,7 +1155,7 @@ function show_results(results) {
                     `<td style="width: 180px"><div class="std-button std-button-hover" style="width: 100px" ` +
                         `onclick="view_result('${result["end_time"]}')"><i class="fa-solid fa-magnifying-glass-arrow-right"></i></div></td>` +
                     `<td style="width: 180px"><div class="x-button x-button-hover" style="width: 100px" ` +
-                        `onclick="delete_result('completed', '${result["end_time"]}')"><i class="fa-regular fa-circle-xmark"></i></div></td>` +                        
+                        `onclick="delete_result_request('completed', '${result["end_time"]}')"><i class="fa-regular fa-circle-xmark"></i></div></td>` +                        
                 `</tr>`
             );
         }
@@ -1174,10 +1196,10 @@ function show_results(results) {
                     `<td class="table_entry" style="width: 220px">` + start_date + `</td>` +
                     `<td class="table_entry" style="width: 220px">` + aborted_date + `</td>` +
                     `<td style="width: 180px"><div class="std-button std-button-hover" style="width: 100px" ` +
-                        `onclick="show_error_message('Error Message', \`${result["error_message"]}\`)"><i class="fa-solid fa-circle-info"></i></div></td>` +
+                        `onclick="show_modal_message('Error Message', \`${result["error_message"]}\`)"><i class="fa-solid fa-circle-info"></i></div></td>` +
                         //`><i class="fa-solid fa-circle-info"></i></div></td>` +
                     `<td style="width: 180px"><div class="x-button x-button-hover" style="width: 100px" ` +
-                        `onclick="delete_result('aborted', '${result["request_uuid"]}')"><i class="fa-regular fa-circle-xmark"></i></div></td>` +       
+                        `onclick="delete_result_request('aborted', '${result["request_uuid"]}')"><i class="fa-regular fa-circle-xmark"></i></div></td>` +       
                 `</tr>`
             );
         }

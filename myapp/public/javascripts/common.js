@@ -1,3 +1,5 @@
+
+
 let status_color = {
     "all": "#222621",
     "unannotated": "#222621",
@@ -18,7 +20,14 @@ let overlay_colors = {
     "Annotations": "#0080C0",
     "Predictions": "#FF4040"
 };
-
+/*
+let backend_color = {
+    "Idle": "#222621",
+    "Training": "#809c79",
+    "Predicting": "#9c9179",
+    "Restarting": "#802626"
+}
+*/
 
 /**
   * Uses canvas.measureText to compute and return the width of the given text of given font in pixels.

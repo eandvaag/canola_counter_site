@@ -7,6 +7,8 @@ const fs = require('fs');
 const xml_js_convert = require('xml-js');
 const nat_orderBy = require('natural-orderby');
 const { spawn, exec, execSync, fork } = require('child_process');
+const http = require('http');
+
 //const sanitize = require('sanitize-filename');
 
 const models = require('../models');
@@ -50,10 +52,10 @@ exports.sessionChecker = function(req, res, next) {
 
 // }
 
-/*
-console.log("Starting the scheduler...");
 
-let scheduler = spawn("python3", ["../../plant_detection/src/scheduler.py"]);
+console.log("Starting the python server...");
+
+let scheduler = spawn("python3", ["../../plant_detection/src/server.py"]);
 
 
 scheduler.on('close', (code) => {
@@ -77,7 +79,7 @@ scheduler.on('SIGINT', function() {
 scheduler.on('error', (error) => {
     console.log("Failed to start subprocess.");
     console.log(error);
-});*/
+});
 
 
 exports.get_sign_in = function(req, res, next) {
@@ -259,132 +261,182 @@ exports.get_annotate = function(req, res, next) {
 
         let key = req.session.user.username + "/" + farm_name + "/" + field_name + "/" + mission_date;
 
-        annotation_mutex.acquire()
-        .then(function(release) {
+        //annotation_mutex.acquire()
+        //.then(function(release) {
+        for (let socket_id of Object.keys(socket_api.workspace_id_to_key)) {
+            if (socket_api.workspace_id_to_key[socket_id] === key) {
+                console.log("The workspace is in use", key);
+                //release();
+                return res.redirect(APP_PREFIX + "/home/" + req.session.user.username); 
+            }
+        }
+
+            /*
             if (key in socket_api.workspace_key_to_id) {
                 console.log("The workspace is in use", key);
                 release();
                 return res.redirect(APP_PREFIX + "/home/" + req.session.user.username);
+            }*/
+
+            //socket_api.workspace_key_to_id[key] = "tmp_hold";
+            //release();
+
+
+        glob(path.join(image_set_dir, "images", "*"), function(error, image_paths) {
+            if (error) {
+                return res.redirect(APP_PREFIX);
+            }
+            let image_ext = image_paths[0].substring(image_paths[0].length - 4);
+
+            let annotations_dir = path.join(image_set_dir, "annotations");
+            let annotations_path = path.join(annotations_dir, "annotations_w3c.json");
+            let annotations;
+            try {
+                annotations = JSON.parse(fs.readFileSync(annotations_path, 'utf8'));
+            }
+            catch (error) {
+                console.log(error);
+                return res.redirect(APP_PREFIX);
+            }
+    
+            let metadata_path = path.join(image_set_dir, "metadata", "metadata.json");
+            let metadata;
+            try {
+                metadata = JSON.parse(fs.readFileSync(metadata_path, 'utf8'));
+            }
+            catch (error) {
+                console.log(error);
+                return res.redirect(APP_PREFIX);
             }
 
-            socket_api.workspace_key_to_id[key] = "tmp_hold";
-            release();
+            let camera_specs_path = path.join(USR_DATA_ROOT, req.session.user.username, "cameras", "cameras.json");
+            let camera_specs;
+            try {
+                camera_specs = JSON.parse(fs.readFileSync(camera_specs_path, 'utf8'));
+            }
+            catch (error) {
+                console.log(error);
+                return res.redirect(APP_PREFIX);
+            }
 
 
-            glob(path.join(image_set_dir, "images", "*"), function(error, image_paths) {
+            let excess_green_record_path = path.join(image_set_dir, "excess_green", "record.json");
+            let excess_green_record;
+            try {
+                excess_green_record = JSON.parse(fs.readFileSync(excess_green_record_path, 'utf8'));
+            }
+            catch (error) {
+                console.log(error);
+                return res.redirect(APP_PREFIX);
+            }
+    
+            let dzi_images_dir = path.join(image_set_dir, "dzi_images");
+            let dzi_image_paths = [];
+            for (let image_name of Object.keys(annotations)) {
+                let dzi_image_path = path.join(APP_PREFIX, dzi_images_dir, image_name + ".dzi");
+                dzi_image_paths.push(dzi_image_path);
+            }
+
+            let prediction_dir = path.join(image_set_dir, "model", "prediction");
+            let predictions = {};
+            glob(path.join(prediction_dir, "images", "*"), function(error, image_prediction_dirs) {
+
                 if (error) {
-                    return res.redirect(APP_PREFIX);
-                }
-                let image_ext = image_paths[0].substring(image_paths[0].length - 4);
-
-                let annotations_dir = path.join(image_set_dir, "annotations");
-                let annotations_path = path.join(annotations_dir, "annotations_w3c.json");
-                let annotations;
-                try {
-                    annotations = JSON.parse(fs.readFileSync(annotations_path, 'utf8'));
-                }
-                catch (error) {
-                    console.log(error);
-                    return res.redirect(APP_PREFIX);
-                }
-        
-                let metadata_path = path.join(image_set_dir, "metadata", "metadata.json");
-                let metadata;
-                try {
-                    metadata = JSON.parse(fs.readFileSync(metadata_path, 'utf8'));
-                }
-                catch (error) {
                     console.log(error);
                     return res.redirect(APP_PREFIX);
                 }
 
-                let camera_specs_path = path.join(USR_DATA_ROOT, req.session.user.username, "cameras", "cameras.json");
-                let camera_specs;
-                try {
-                    camera_specs = JSON.parse(fs.readFileSync(camera_specs_path, 'utf8'));
-                }
-                catch (error) {
-                    console.log(error);
-                    return res.redirect(APP_PREFIX);
-                }
+                for (let image_prediction_dir of image_prediction_dirs) {
+                    let image_name = path.basename(image_prediction_dir);
 
-
-                let excess_green_record_path = path.join(image_set_dir, "excess_green", "record.json");
-                let excess_green_record;
-                try {
-                    excess_green_record = JSON.parse(fs.readFileSync(excess_green_record_path, 'utf8'));
-                }
-                catch (error) {
-                    console.log(error);
-                    return res.redirect(APP_PREFIX);
-                }
-        
-                let dzi_images_dir = path.join(image_set_dir, "dzi_images");
-                let dzi_image_paths = [];
-                for (let image_name of Object.keys(annotations)) {
-                    let dzi_image_path = path.join(APP_PREFIX, dzi_images_dir, image_name + ".dzi");
-                    dzi_image_paths.push(dzi_image_path);
-                }
-
-                let prediction_dir = path.join(image_set_dir, "model", "prediction");
-                let predictions = {};
-                glob(path.join(prediction_dir, "images", "*"), function(error, image_prediction_dirs) {
-
-                    if (error) {
-                        console.log(error);
-                        return res.redirect(APP_PREFIX);
-                    }
-
-                    for (let image_prediction_dir of image_prediction_dirs) {
-                        let image_name = path.basename(image_prediction_dir);
-
-                        let predictions_path = path.join(image_prediction_dir, "predictions_w3c.json");
-                        if (fs.existsSync(predictions_path)) {
-                            let image_predictions;
-                            try {
-                                image_predictions = JSON.parse(fs.readFileSync(predictions_path, 'utf8'));
-                            }
-                            catch {
-                                console.log(error);
-                                return res.redirect(APP_PREFIX);
-                            }
-                            predictions[image_name] = image_predictions[image_name];
+                    let predictions_path = path.join(image_prediction_dir, "predictions_w3c.json");
+                    if (fs.existsSync(predictions_path)) {
+                        let image_predictions;
+                        try {
+                            image_predictions = JSON.parse(fs.readFileSync(predictions_path, 'utf8'));
                         }
-                        
+                        catch {
+                            console.log(error);
+                            return res.redirect(APP_PREFIX);
+                        }
+                        predictions[image_name] = image_predictions[image_name];
                     }
-            
-                    let image_set_info = {
-                        "farm_name": farm_name,
-                        "field_name": field_name,
-                        "mission_date": mission_date,
-                        "image_ext": image_ext
-                    }
-            
-                    let data = {};
+                    
+                }
+        
+                let image_set_info = {
+                    "farm_name": farm_name,
+                    "field_name": field_name,
+                    "mission_date": mission_date,
+                    "image_ext": image_ext
+                }
+        
+                let data = {};
 
-                    data["image_set_info"] = image_set_info;
-                    data["metadata"] = metadata;
-                    data["dzi_image_paths"] = nat_orderBy.orderBy(dzi_image_paths);
-                    data["annotations"] = annotations;
-                    data["excess_green_record"] = excess_green_record;
-                    data["camera_specs"] = camera_specs;
-                    data["predictions"] = predictions;
-                    res.render("annotate", {username: req.session.user.username, data: data});
+                data["image_set_info"] = image_set_info;
+                data["metadata"] = metadata;
+                data["dzi_image_paths"] = nat_orderBy.orderBy(dzi_image_paths);
+                data["annotations"] = annotations;
+                data["excess_green_record"] = excess_green_record;
+                data["camera_specs"] = camera_specs;
+                data["predictions"] = predictions;
+                res.render("annotate", {username: req.session.user.username, data: data});
 
-
-                });
 
             });
 
+        });
+
+            /*
         }).catch(function(error) {
             console.log(error);
             return res.redirect(APP_PREFIX);
-        });
+        });*/
     }
     else {
         return res.redirect(APP_PREFIX);
     }
 
+}
+
+
+function notify_scheduler(username, farm_name, field_name, mission_date, request_type) {
+
+    console.log("notifying scheduler of new request", request_type);
+
+    let data = JSON.stringify({
+        username: username,
+        farm_name: farm_name,
+        field_name: field_name,
+        mission_date: mission_date,
+        request_type: request_type
+    });
+
+    let options = {
+        hostname: process.env.CC_IP, //'172.16.1.75', //71',
+        port: parseInt(process.env.CC_PY_PORT), //8110,
+        path: '/plant_detection/add_request',
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Content-Length': data.length
+        }
+    };
+
+    let req = http.request(options, res => {
+        console.log(`statusCode: ${res.statusCode}`);
+
+        res.on("data", d => {
+            process.stdout.write(d);
+        });
+    });
+
+    req.on("error", error => {
+        console.log(error);
+    });
+
+    req.write(data);
+    req.end();
 }
 
 
@@ -424,6 +476,10 @@ exports.post_annotate = function(req, res, next) {
             return res.json(response);
         }
 
+        if (req.body.train_num_increased) {
+            notify_scheduler(req.session.user.username, farm_name, field_name, mission_date, "training");
+        }
+
         response.error = false;
         return res.json(response);
     }
@@ -459,6 +515,8 @@ exports.post_annotate = function(req, res, next) {
         });
     }
     else if (action === "predict") {
+
+        console.log("got to predict");
 
         let image_names = req.body.image_names.split(",");
         let save_result = req.body.save_result === "True";
@@ -496,6 +554,8 @@ exports.post_annotate = function(req, res, next) {
         if (save_result) {
             socket_api.results_notification(req.session.user.username, farm_name, field_name, mission_date);
         }
+
+        notify_scheduler(req.session.user.username, farm_name, field_name, mission_date, "prediction");
 
         response.error = false;
         return res.json(response);
@@ -608,6 +668,8 @@ exports.post_annotate = function(req, res, next) {
                 response.error = true;
                 return res.json(response);                
             }
+
+            notify_scheduler(req.session.user.username, farm_name, field_name, mission_date, "training")
         }
 
         response.error = false;
@@ -636,6 +698,8 @@ exports.post_annotate = function(req, res, next) {
             response.error = true;
             return res.json(response);
         }
+
+        notify_scheduler(req.session.user.username, farm_name, field_name, mission_date, "restart")
 
         response.error = false;
         return res.json(response);
@@ -984,11 +1048,21 @@ exports.post_home = function(req, res, next) {
 
 
         let key = req.session.user.username + "/" + farm_name + "/" + field_name + "/" + mission_date;
+        for (let socket_id of Object.keys(socket_api.workspace_id_to_key)) {
+            if (socket_api.workspace_id_to_key[socket_id] === key) {
+                response.message = "The image set cannot be deleted since the corresponding annotation file is currently in use. Please try again later.";
+                response.error = true;
+                return res.json(response);
+            }
+        }
+
+
+        /*
         if (key in socket_api.workspace_key_to_id) {
             response.message = "The image set cannot be deleted since the corresponding annotation file is currently in use. Please try again later.";
             response.error = true;
             return res.json(response);
-        }
+        }*/
             
         let annotations_path = path.join(mission_dir, "annotations", "annotations_w3c.json");
         let annotations = JSON.parse(fs.readFileSync(annotations_path, 'utf8'));
@@ -1056,18 +1130,26 @@ exports.post_home = function(req, res, next) {
 
 
         let key = req.session.user.username + "/" + farm_name + "/" + field_name + "/" + mission_date;
+        for (let socket_id of Object.keys(socket_api.workspace_id_to_key)) {
+            if (socket_api.workspace_id_to_key[socket_id] === key) {
+                console.log("The workspace is in use", key);
+                response.error = true;
+                response.message = "The requested annotation file is currently in use. Please try again later.";
+                return res.json(response);
+            }
+        }
+
+        /*
         if (key in socket_api.workspace_key_to_id) {
             console.log("The workspace is in use", key);
             response.error = true;
             response.message = "The requested annotation file is currently in use. Please try again later.";
             return res.json(response);
-        }
-        else {
-            response.error = false;
-            response.redirect = APP_PREFIX + "/annotate/" + req.session.user.username + "/" + farm_name + "/" +
-                                field_name + "/" + mission_date;
-            return res.json(response);
-        }
+        }*/
+        response.error = false;
+        response.redirect = APP_PREFIX + "/annotate/" + req.session.user.username + "/" + farm_name + "/" +
+                            field_name + "/" + mission_date;
+        return res.json(response);
     }
     else if (action === "fetch_upload_status") {
        

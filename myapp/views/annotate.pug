@@ -140,10 +140,16 @@ html
                                             
                                             hr
                                             br
+
                                             button(id="save_button" class="table_button table_button_hover")
                                                 i(id="save_icon" class="fa-solid fa-floppy-disk" style="padding-right: 8px; color: white")
                                                 |
                                                 | Save All Changes 
+                                        
+                                            button(id="fake_save_button" class="table_button" hidden)
+                                                div(class="loader" style="width: 14px; height: 14px; margin: 0px 8px 0px 0px; display: inline-block")
+                                                |
+                                                | Save All Changes
 
                                             br
                                             br
@@ -206,18 +212,21 @@ html
                                                 div(id="annotation_panel")
                         
                                                     div(style="height: 40px")
-                                                
+
+                                            
+
                                                     table(class="transparent_table")
+                                                        //- tr
+                                                        //-     td(style="text-align: left")
+                                                        //-         h(class="header2" style="width: 170px") Model Status
+
+                                                        //-     td(style="width: 100%; text-align: left; padding-left: 12px")
+                                                        //-         h(id="model_status")
+
+
                                                         tr
                                                             td(style="text-align: left")
-                                                                h(class="header2" style="width: 170px") Model Status
-
-                                                            td(style="width: 100%; text-align: left; padding-left: 12px")
-                                                                h(id="model_status")
-
-                                                        tr
-                                                            td(style="text-align: left")
-                                                                h(class="header2" style="width: 170px") Fully Trained?
+                                                                h(class="header2" style="width: 170px") Model Fully Trained?
 
                                                             td(style="width: 100%; text-align: left; padding-left: 12px")
                                                                 h(id="model_training_status")
@@ -228,7 +237,7 @@ html
                                                                 h(class="header2" style="width: 170px") Training Blocked?
 
                                                             td(style="text-align: left; padding-left: 12px;")
-                                                                div(style="width: 50px")
+                                                                div(style="width: 55px")
                                                                     h(id="train_block_text")
 
                                                             
@@ -241,10 +250,68 @@ html
                                                     div(id="train_block_message" style="height: 20px; font-size: 14px; color: #ed452b") 
                                                     hr
 
+
+
+
+
+                                                    table(class="transparent_table")
+                                                        tr
+                                                            td(style="text-align: left")
+                                                                h(class="header2" style="width: 130px") Backend Status
+                                                            td(style="width: 100%")
+                                                            td
+                                                                div(style="width: 30px")
+                                                                    div(class="blob")
+
+
+                                                    div(style="height: 115px; border: 1px solid white; border-radius: 10px")
+                                                        div(id="backend_details")
+                                                            div(style="height: 10px")
+                                                            div(id="backend_status")
+                                                            div(style="height: 5px")
+                                                            table(class="transparent_table" style="font-size: 14px")
+
+                                                                tr
+                                                                    td(style="text-align: right")
+                                                                        div(style="color: #ddccbb; font-weight: 400; width: 90px") Username 
+                                                                    td(style="width: 100%;")
+                                                                        div(id="backend_username" )
+                                                                tr
+                                                                    td(style="text-align: right")
+                                                                        div(style="color: #ddccbb; font-weight: 400; width: 90px") Farm name 
+                                                                    td(style="width: 100%;")
+                                                                        div(id="backend_farm_name")                                                                
+                                                                tr
+                                                                    td(style="text-align: right")
+                                                                        div(style="color: #ddccbb; font-weight: 400; width: 90px") Field name 
+                                                                    td(style="width: 100%;")
+                                                                        div(id="backend_field_name")
+                                                                tr
+                                                                    td(style="text-align: right")
+                                                                        div(style="color: #ddccbb; font-weight: 400; width: 90px") Mission date 
+                                                                    td(style="width: 100%;")
+                                                                        div(id="backend_mission_date")
+                                                    div(style="height: 5px")
+                                                    table(class="transparent_table")
+                                                        tr
+                                                            td(style="text-align: right")
+                                                                h(class="header2" style="width: 90px; font-size: 14px") Last update
+
+                                                            td(style="width: 100%; font-size: 14px")
+                                                                h(id="backend_update_time")
+
+
+                                                    hr
+
+
                                                     //div(style="height: 35px")
-                                                    div(style="height: 10px")
-                                                    h(class="header2" style="text-align: left") Request Predictions
-                                                    div(style="height: 10px")
+
+                                                    table(class="transparent_table")
+                                                        tr
+                                                            td(style="text-align: left")
+                                                                h(class="header2" style="width: 170px") Request Predictions
+                                                            td(style="width: 100%")
+
                                                     button(id="predict_single_button" class="std-button std-button-hover" style="font-size: 16px; width: 220px") This Image
                                                 
                                                     div(style="height: 10px")
@@ -254,20 +321,21 @@ html
                                                     div(style="height: 10px")
 
                                                     button(id="request_result_button" class="std-button std-button-hover" style="font-size: 16px; width: 220px") All Images + Save Result
-
-                                                    div(style="height: 50px")
+                                                    
+                                                    div(style="height: 10px")
+                                                    
                                                     hr
 
-                                                    div(style="height: 30px")
+                                                    div(style="height: 10px")
+
                                                     button(id="suggest_image_button" class="std-button std-button-hover" style="font-size: 16px; width: 260px") Suggest An Image For Annotation
                                                     
                                                     div(style="height: 10px;")
                                                     div(style="font-size: 13px; text-align: justify") Image suggestions are based on score distributions of predictions. For best results, generate predictions for all images before requesting a suggestion.
-                                                    div(style="height: 30px")
+                                                    div(style="height: 10px")
                                                     hr
 
-                                                    
-                                                    div(style="height: 80px")
+                                                    div(style="height: 10px")
                                                     button(id="restart_button" class="x-button x-button-hover" style="font-size: 16px; width: 170px" onclick="restart_model()")
                                                         i(class="fa-solid fa-rotate-right" style="margin-right:8px") 
                                                         |

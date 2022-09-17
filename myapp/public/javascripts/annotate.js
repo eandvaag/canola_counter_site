@@ -8,7 +8,6 @@ let metadata;
 let camera_specs;
 let dzi_image_paths;
 let annotations;
-let num_annotations;
 let image_to_dzi;
 
 let viewer;
@@ -32,6 +31,10 @@ let cur_bounds = null;
 
 let map_url = null;
 let min_max_rec = null;
+
+let num_training_images;
+let num_images_fully_trained_on;
+let train_num_increased = false;
 
 
 // let overlay_colors = [
@@ -351,7 +354,6 @@ function create_anno() {
     anno.on('createAnnotation', function(annotation) {
 
         annotations[cur_img_name]["annotations"] = anno.getAnnotations();
-        num_annotations++;
 
         // annotations[cur_img_name]["update_time"] = parseInt(new Date().getTime() / 1000);
 
@@ -450,7 +452,6 @@ function create_viewer_and_anno(viewer_id) {
             anno.removeAnnotation(selected);
 
             annotations[cur_img_name]["annotations"] = anno.getAnnotations();
-            num_annotations--;
 
             // annotations[cur_img_name]["update_time"] = parseInt(new Date().getTime() / 1000);
 
@@ -610,23 +611,44 @@ function show_image(image_name) {
 
 function save_annotations() {
 
+    $("#save_button").hide();
+    $("#fake_save_button").show();
+
 
     $.post($(location).attr('href'),
     {
         action: "save_annotations",
         annotations: JSON.stringify(annotations),
-        excess_green_record: JSON.stringify(excess_green_record)
+        excess_green_record: JSON.stringify(excess_green_record),
+        train_num_increased: train_num_increased
     },
     
     function(response, status) {
-
+        
         if (response.error) {
             //create_image_set_table();
             show_modal_message("Error", "Failed to save.");
         }
         else {
+            train_num_increased = false;
+            num_training_images = 0;
+            for (image_name of Object.keys(annotations)) {
+                if (annotations[image_name]["status"] === "completed_for_training") {
+                    num_training_images++;
+                }
+
+                if (num_training_images == num_images_fully_trained_on) {
+                    $("#model_training_status").html("Yes");
+                }
+                else {
+                    $("#model_training_status").html("No");
+                }
+            }
+            
             create_image_set_table();
             $("#save_icon").css("color", "white");
+            $("#fake_save_button").hide();
+            $("#save_button").show();
         }
     });
 
@@ -1371,10 +1393,15 @@ $(document).ready(function() {
     create_image_set_table();
 
     
-    num_annotations = 0;
-    for (let image_name of Object.keys(annotations)) {
-        num_annotations += annotations[image_name]["annotations"].length;
+
+
+    num_training_images = 0;
+    for (image_name of Object.keys(annotations)) {
+        if (annotations[image_name]["status"] === "completed_for_training") {
+            num_training_images++;
+        }
     }
+
     /*
     if (data["baseline_initialized"]) {
         $("#init_panel").hide();
@@ -1396,8 +1423,174 @@ $(document).ready(function() {
 
     socket.emit("join_annotate", username + "/" + image_set_info["farm_name"] + "/" + image_set_info["field_name"] + "/" + image_set_info["mission_date"]);
 
+    socket.on("workspace_occupied", function(update) {
+        window.location.href = "/plant_detection/home/" + username;
+    });
+
+    socket.on("image_set_status_change", function(update) {
+
+        num_images_fully_trained_on = update["num_images_fully_trained_on"];
+
+        if (num_training_images == num_images_fully_trained_on) {
+            $("#model_training_status").html("Yes");
+        }
+        else {
+            $("#model_training_status").html("No");
+        }
+
+        if (update["outstanding_prediction_requests"] === "True") {
+            disable_std_buttons(["request_result_button", "predict_single_button", "predict_all_button"]);
+        }
+        else {
+            enable_std_buttons(["request_result_button", "predict_single_button", "predict_all_button"]);
+        }
+
+
+        if (update["sys_training_blocked"] === "True") {
+            $("#train_block_text").html("Yes");
+            $("#train_block_switch").prop("checked", true);
+
+            $("#train_block_switch").prop('disabled', true);
+            $("#train_block_label").css("opacity", 0.5);
+            $("#train_block_slider").css("cursor", "default");
+
+            $("#train_block_message").html("Training blocked due to system error.");
+
+        }
+
+        else {
+
+            $("#train_block_switch").prop('disabled', false);
+            $("#train_block_label").css("opacity", 1);
+            $("#train_block_slider").css("cursor", "pointer");
+
+            $("#train_block_message").html("");
+
+            if (update["usr_training_blocked"] === "True") {
+                $("#train_block_text").html("Yes");
+                $("#train_block_switch").prop("checked", true);
+            }
+            else {
+                $("#train_block_text").html("No");
+                $("#train_block_switch").prop("checked", false);
+            }
+        }
+
+
+
+    });
+
+    socket.on("scheduler_status_change", function(update) {
+
+        let update_timestamp = parseInt(update["timestamp"]);
+        let update_num = parseInt(update["update_num"]);
+        if (update_num > cur_update_num) {
+
+
+
+            cur_update_num = update_num;
+            let status = capitalizeFirstLetter(update["status"]);
+            let update_username = update["username"];
+            let update_farm_name = update["farm_name"];
+            let update_field_name = update["field_name"];
+            let update_mission_date = update["mission_date"];
+            let date = timestamp_to_date(update_timestamp);
+            let display_statuses = ["Training", "Predicting", "Restarting", "Idle"];
+            let update_is_for_this_set = ((update_username === username && update_farm_name === image_set_info["farm_name"]) &&
+            (update_field_name === image_set_info["field_name"] && update_mission_date === image_set_info["mission_date"]));
+
+            if (display_statuses.includes(status)) {
+                $("#backend_status").empty();
+                $("#backend_status").append(`<div>${status}</div>`);
+                $("#backend_update_time").html(date);
+
+                if (update_is_for_this_set) {
+                    $("#backend_details").css("opacity", 1.0);
+                }
+                else {
+                    $("#backend_details").css("opacity", 0.5);
+                }
+
+                $("#backend_username").html(update_username);
+                $("#backend_farm_name").html(update_farm_name);
+                $("#backend_field_name").html(update_field_name);
+                $("#backend_mission_date").html(update_mission_date);
+
+            }
+
+
+            if (update_is_for_this_set) {
+
+                if ("error_message" in update) {
+                    let error_message = `An error occurred during ` + update["error_setting"] + 
+                                            `:<br><br>` + update["error_message"];
+                
+
+                    if (update["error_setting"] === "prediction") {
+                        error_message = error_message + `<br><br>Please report this error to the site administrator.`;
+                    }
+                    else if (update["error_setting"] === "training") {
+                        error_message = error_message + `<br><br>The model will be prevented from training until the error is resolved. Please contact the site administrator.`;
+                    }
+
+                    show_modal_message("Error", error_message);
+
+                }
+                if ("prediction_image_names" in update) {
+                    let prediction_image_names = update["prediction_image_names"].split(",");
+                    //for (prediction_image_name of prediction_image_names) {
+                    $.post($(location).attr('href'),
+                    {
+                        action: "retrieve_predictions",
+                        image_names: update["prediction_image_names"]
+                    },
+                
+                    function(response, status) {
+                
+                        if (response.error) {
+                            show_modal_message("Error", response.message);
+                
+                        }
+                        else {
+
+                            for (let prediction_image_name of prediction_image_names) {
+                                predictions[prediction_image_name] = response.predictions[prediction_image_name];
+                                // if (response.metrics[prediction_image_name] !== "") {
+                                //     metrics[prediction_image_name] = response.metrics[prediction_image_name];
+                                // }
+                                
+                                for (let annotation of predictions[prediction_image_name]["annotations"]) {
+                                    annotation["body"].push({"value": "COLOR_1", "purpose": "highlighting"});
+                                }
+                            }
+
+                            if ((cur_panel === "prediction") && (prediction_image_names.includes(cur_img_name))) {
+                                
+                                $("#predictions_unavailable").hide();
+                                $("#predictions_available").show();
+                                set_count_chart_data();
+                                set_score_chart_data();
+                                
+                                update_count_chart();
+                                update_score_chart();
+
+                                add_annotations();
+                            }
+                        }
+                    });
+                }
+            }
+
+
+
+        }
+
+    });
+
+
+    /*
     socket.on("status_change", function(status) {
-        
+
         if (status["error"] === 'True') {
             let error_message = `An error occurred during ` + status["error_setting"] + 
             `:<br><br>` + status["error_message"];
@@ -1416,22 +1609,10 @@ $(document).ready(function() {
         let update_num = parseInt(status["update_num"]);
         if (update_num > cur_update_num) {
             cur_update_num = update_num;
-            //cur_status = status["status"];
             // let cur_num_trained_on = parseInt(status["num_images_fully_trained_on"]);
             
-            $("#model_status").html(capitalizeFirstLetter(status["status"]));
+            // $("#model_status").html(capitalizeFirstLetter(status["status"]));
 
-            // let num_available = 0;
-            // for (image_name of Object.keys(annotations)) {
-            //     if (annotations[image_name]["status"] == "completed_for_training") {
-            //         num_available++;
-            //     }
-            // }
-            /*
-            if (cur_status === "uninitialized" || cur_status === "initializing") {
-                $("#model_training_status").html("N/A");
-            }*/
-            //if (cur_num_trained_on == num_available) {
             if (status["fully_trained"] === "True") {
                 $("#model_training_status").html("Yes");
             }
@@ -1439,26 +1620,6 @@ $(document).ready(function() {
                 $("#model_training_status").html("No");
             }
         
-
-            /*
-            if ("restarted" in status) {
-                for (image_name of Object.keys(annotations)) {
-                    if (annotations[image_name]["status"] === "completed_for_training") {
-                        annotations[image_name]["status"] = "completed_for_testing";
-                    }
-                }
-                close_modal();
-                create_image_set_table();
-                set_image_status_combo();
-            }*/
-            /*
-            if (cur_status === "predicting") {
-                disable_buttons(["request_prediction_button", "request_result_button"]);
-            }
-            else {
-                enable_buttons(["request_prediction_button", "request_result_button"]);
-            }*/
-
 
 
             if (status["outstanding_prediction_requests"] === "True") {
@@ -1565,6 +1726,7 @@ $(document).ready(function() {
         }
 
     });
+    */
 
 
 
@@ -1653,7 +1815,11 @@ $(document).ready(function() {
 
     $("#status_combo").change(function() {
 
-        annotations[cur_img_name]["status"] = $("#status_combo").val();
+        let new_status = $("#status_combo").val();
+        if (new_status === "completed_for_training") {
+            train_num_increased = true;
+        }
+        annotations[cur_img_name]["status"] = new_status;
         set_image_status_combo();
         $("#save_icon").css("color", "#ed452b");
         create_image_set_table();
