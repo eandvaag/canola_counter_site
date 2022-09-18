@@ -620,7 +620,7 @@ function save_annotations() {
         action: "save_annotations",
         annotations: JSON.stringify(annotations),
         excess_green_record: JSON.stringify(excess_green_record),
-        train_num_increased: train_num_increased
+        train_num_increased: train_num_increased ? "True" : "False"
     },
     
     function(response, status) {

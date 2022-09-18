@@ -52,7 +52,7 @@ exports.sessionChecker = function(req, res, next) {
 
 // }
 
-
+/*
 console.log("Starting the python server...");
 
 let scheduler = spawn("python3", ["../../plant_detection/src/server.py"]);
@@ -80,7 +80,7 @@ scheduler.on('error', (error) => {
     console.log("Failed to start subprocess.");
     console.log(error);
 });
-
+*/
 
 exports.get_sign_in = function(req, res, next) {
     res.render('sign_in');
@@ -476,7 +476,7 @@ exports.post_annotate = function(req, res, next) {
             return res.json(response);
         }
 
-        if (req.body.train_num_increased) {
+        if (req.body.train_num_increased === "True") {
             notify_scheduler(req.session.user.username, farm_name, field_name, mission_date, "training");
         }
 
