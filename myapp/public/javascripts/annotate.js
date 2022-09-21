@@ -1394,10 +1394,10 @@ function submit_prediction_request(image_names) {
     for (let input_id of ["results_name_input"]) {
         $("#" + input_id).on("input", function(e) {
             if (update_results_name_input() && update_results_comment_input()) {
-                enable_buttons(["confirm_results_request_button"]);
+                enable_std_buttons(["confirm_results_request_button"]);
             }
             else {
-                disable_buttons(["confirm_results_request_button"]);
+                disable_std_buttons(["confirm_results_request_button"]);
             }
         });
     }
@@ -1405,10 +1405,10 @@ function submit_prediction_request(image_names) {
     for (let input_id of ["results_comment_input"]) {
         $("#" + input_id).on("input", function(e) {
             if (update_results_name_input() && update_results_comment_input()) {
-                enable_buttons(["confirm_results_request_button"]);
+                enable_std_buttons(["confirm_results_request_button"]);
             }
             else {
-                disable_buttons(["confirm_results_request_button"]);
+                disable_std_buttons(["confirm_results_request_button"]);
             }
         });
     }
