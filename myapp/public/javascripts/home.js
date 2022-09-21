@@ -12,11 +12,12 @@ global_disabled = false;
 function delete_request() {
 
     show_modal_message(`Are you sure?`, `<div style="height: 30px">Are you sure you want to delete this image set?</div>` +
+        `<div style="height: 20px"></div>` +
         `<div id="modal_button_container" style="text-align: center">` +
         `<button id="confirm_delete" class="x-button x-button-hover" `+
-        `style="width: 200px" onclick="confirmed_delete_request()">Delete</button>` +
+        `style="width: 150px" onclick="confirmed_delete_request()">Delete</button>` +
         `<button id="cancel_delete" class="std-button std-button-hover" ` +
-        `style="width: 200px" onclick="cancel_delete_request()">Cancel</button>` +
+        `style="width: 150px" onclick="cancel_delete_request()">Cancel</button>` +
         `<div style="height: 20px" id="loader_container"></div>` +
         `</div>`
     )
@@ -104,13 +105,6 @@ function cancel_delete_request() {
 
 function annotate_request() {
 
-    // let farm_name = $("#farm_combo").val();
-    // let field_name = $("#field_combo").val();
-    // let mission_date = $("#mission_combo").val();
-
-
-    // window.location.href = "/plant_detection/annotate/" + username + "/" + 
-    //                         farm_name + "/" + field_name + "/" + mission_date;
 
     $.post($(location).attr('href'),
     {
@@ -123,10 +117,6 @@ function annotate_request() {
 
         if (response.error) {
             show_modal_message(`Denied`, response.message);
-            /*
-            $("#modal_header_text").html("Error");
-            $("#modal_message").html(response.message);
-            $("#result_modal").css("display", "block");*/
         }
         else {
             window.location.href = response.redirect;
@@ -134,43 +124,6 @@ function annotate_request() {
     });
 }
 
-/*
-function initialize_train_baseline() {
-
-
-    //let container_height = "300px";
-    //let container_width = "1000px";
-    let col_width = "400px";
-
-    for (farm_name of natsort(Object.keys(image_sets_data))) {
-        for (field_name of natsort(Object.keys(image_sets_data[farm_name]))) {
-            for (mission_date of natsort(Object.keys(image_sets_data[farm_name]))) {
-                let image_set_name = farm_name + "::" + field_name + "::" + mission_date;
-                let image_set_row_id = image_set_name + "_row";
-                let overlay_color = "black";
-                $("#image_sets_table").append(`<tr id=${image_set_row_id}>` +
-                `<td><label class="table_label" ` +
-                `style="width: ${col_width}; background-color: #2b3628;">` +
-                `<table class="transparent_table">` +
-                `<tr>` + 
-                `<td style="width: 40px">` +
-                    `<label class="switch">` +
-                    `<input id=${image_set_name} type="checkbox"></input>` +
-                    `<span class="switch_slider round"></span></label>` +
-                `</td>` +
-                `<td style="width: 100%">` +
-                    `<div style="margin-left: 8px">${image_set_name}</div>` +
-                `</td>` +
-                `</tr>` +
-                `</table>` +
-                `</label>` +
-                `</td>`+
-                `</tr>`);
-            }
-        }
-    }
-}
-*/
 
 function show_results_tab() {
 
@@ -698,9 +651,9 @@ function show_overview() {
     let farm_name = $("#farm_combo").val();
     let field_name = $("#field_combo").val();
     let mission_date = $("#mission_combo").val();
-    let job_url = "/plant_detection/usr/data/" + username + "/image_sets/" + farm_name + "/" + field_name + 
+    let job_url = "/canola_counter/usr/data/" + username + "/image_sets/" + farm_name + "/" + field_name + 
                     "/" + mission_date + "/annotations/annotations_w3c.json";
-    let metadata_url = "/plant_detection/usr/data/" + username + "/image_sets/" + farm_name + "/" + field_name + 
+    let metadata_url = "/canola_counter/usr/data/" + username + "/image_sets/" + farm_name + "/" + field_name + 
                     "/" + mission_date + "/metadata/metadata.json";
 
     let annotations = get_json(job_url);
@@ -1037,11 +990,12 @@ function delete_result_request(result_type, result_id) {
 
 
     show_modal_message(`Are you sure?`, `<div style="height: 30px">Are you sure you want to delete this result?</div>` +
+        `<div style="height: 20px"></div>` +
         `<div id="modal_button_container" style="text-align: center">` +
         `<button class="x-button x-button-hover" `+
-        `style="width: 200px" onclick="confirmed_delete_result_request('${result_type}', '${result_id}')">Delete</button>` +
+        `style="width: 150px" onclick="confirmed_delete_result_request('${result_type}', '${result_id}')">Delete</button>` +
         `<button class="std-button std-button-hover" ` +
-        `style="width: 200px" onclick="cancel_delete_request()">Cancel</button>` +
+        `style="width: 150px" onclick="cancel_delete_request()">Cancel</button>` +
         `<div style="height: 20px" id="loader_container"></div>` +
         `</div>`
         //`onclick="view_result('${result["end_time"]}')">
@@ -1080,6 +1034,10 @@ function confirmed_delete_result_request(result_type, result_id) {
     });
 }
 
+function view_comment(comment) {
+    show_modal_message("Comment", comment);
+}
+
 function show_results(results) {
 
     viewing_results = true;
@@ -1112,7 +1070,11 @@ function show_results(results) {
         
         `<div id="completed_results" hidden><div style="height: 90px"></div>` +
         `<table class="transparent_table" style="padding-right: 20px">` +
-            `<tr><td class="table_entry" style="font-weight: bold; width: 220px">Start Time</td>` +
+
+            `<tr>` +
+                `<td class="table_entry" style="font-weight: bold; width: 315px">Name</td>` +
+                `<td class="table_entry" style="font-weight: bold; width: 180px">Comment</td>` +
+                `<td class="table_entry" style="font-weight: bold; width: 220px">Start Time</td>` +
                 `<td class="table_entry" style="font-weight: bold; width: 220px">End Time</td>` +
                 `<td class="table_entry" style="font-weight: bold; width: 180px">View Result</td>` +
                 `<td class="table_entry" style="font-weight: bold; width: 180px">Delete Result</td>` +
@@ -1122,14 +1084,20 @@ function show_results(results) {
 
         `<div id="pending_results" hidden><div style="height: 90px"></div>` +
         `<table class="transparent_table" style="padding-right: 20px">` +
-        `<tr><td class="table_entry" style="font-weight: bold; width: 220px">Start Time</td>` +
+        `<tr>` +
+        `<td class="table_entry" style="font-weight: bold; width: 315px">Name</td>` +
+        `<td class="table_entry" style="font-weight: bold; width: 180px">Comment</td>` +
+        `<td class="table_entry" style="font-weight: bold; width: 220px">Start Time</td>` +
         `<td class="table_entry" style="font-weight: bold; width: 220px"></td></tr></table>` +
         `<div style="height: 375px; overflow-y: scroll">` +
         `<table class="transparent_table" id="pending_table"></table></div></div>` +
 
         `<div id="aborted_results" hidden><div style="height: 90px"></div>` +
-        `<table class="transparent_table" style="padding-right: 20px">`+
-        `<tr><td class="table_entry" style="font-weight: bold; width: 220px">Start Time</td>` +
+        `<table class="transparent_table" style="padding-right: 20px">` +
+        `<tr>` +
+        `<td class="table_entry" style="font-weight: bold; width: 315px">Name</td>` +
+        `<td class="table_entry" style="font-weight: bold; width: 180px">Comment</td>` +
+        `<td class="table_entry" style="font-weight: bold; width: 220px">Start Time</td>` +
         `<td class="table_entry" style="font-weight: bold; width: 220px">Aborted Time</td>` +
         `<td class="table_entry" style="font-weight: bold; width: 180px">View Error</td>` +
         `<td class="table_entry" style="font-weight: bold; width: 180px">Delete</td>` +
@@ -1146,10 +1114,15 @@ function show_results(results) {
 
     if (completed_results.length > 0) {
         for (let result of completed_results) {
+            let result_name = result["results_name"];
             let start_date = timestamp_to_date(result["start_time"]);
             let end_date = timestamp_to_date(result["end_time"]);
+
             $("#completed_table").append(
                 `<tr>` +
+                    `<td class="table_entry" style="width: 315px">` + result_name + `</td>` +
+                    `<td style="width: 180px"><div class="std-button std-button-hover" style="width: 100px" ` +
+                        `onclick="view_comment('${result["results_comment"]}')"><i class="fa-solid fa-comment-dots"></i></div></td>` +
                     `<td class="table_entry" style="width: 220px">` + start_date + `</td>` +
                     `<td class="table_entry" style="width: 220px">` + end_date + `</td>` +
                     `<td style="width: 180px"><div class="std-button std-button-hover" style="width: 100px" ` +
@@ -1170,9 +1143,13 @@ function show_results(results) {
     });
     if (pending_results.length > 0) {
         for (let result of pending_results) {
+            let result_name = result["results_name"];
             let start_date = timestamp_to_date(result["start_time"]);
             $("#pending_table").append(
                 `<tr>` +
+                    `<td class="table_entry" style="width: 315px">` + result_name + `</td>` +
+                    `<td style="width: 180px"><div class="std-button std-button-hover" style="width: 100px" ` +
+                    `onclick="view_comment('${result["results_comment"]}')"><i class="fa-solid fa-comment-dots"></i></div></td>` +
                     `<td class="table_entry" style="width: 220px">` + start_date + `</td>` +
                     `<td style="width: 220px"><div class="loader" style="width: 20px; height: 20px"></div></td>` +
                 `</tr>`
@@ -1189,10 +1166,14 @@ function show_results(results) {
     });
     if (aborted_results.length > 0) {
         for (let result of aborted_results) {
+            let result_name = result["results_name"];
             let start_date = timestamp_to_date(result["start_time"]);
             let aborted_date = timestamp_to_date(result["aborted_time"]);
             $("#aborted_table").append(
                 `<tr>` +
+                    `<td class="table_entry" style="width: 315px">` + result_name + `</td>` +
+                    `<td style="width: 180px"><div class="std-button std-button-hover" style="width: 100px" ` +
+                    `onclick="view_comment('${result["results_comment"]}')"><i class="fa-solid fa-comment-dots"></i></div></td>` +
                     `<td class="table_entry" style="width: 220px">` + start_date + `</td>` +
                     `<td class="table_entry" style="width: 220px">` + aborted_date + `</td>` +
                     `<td style="width: 180px"><div class="std-button std-button-hover" style="width: 100px" ` +
@@ -1236,7 +1217,7 @@ function view_timeline() {
     let field_name = $("#field_combo").val();
     let mission_date = $("#mission_combo").val();
 
-    window.location.href = "/plant_detection/timeline/" + username + "/" +
+    window.location.href = "/canola_counter/timeline/" + username + "/" +
                             farm_name + "/" + field_name + "/" + mission_date
 }
 
@@ -1245,7 +1226,7 @@ function view_result(timestamp) {
     let field_name = $("#field_combo").val();
     let mission_date = $("#mission_combo").val();
 
-    window.location.href = "/plant_detection/viewer/" + username + "/" +
+    window.location.href = "/canola_counter/viewer/" + username + "/" +
                            farm_name + "/" + field_name + "/" + mission_date + "/" + timestamp;
 
 }
@@ -1373,7 +1354,7 @@ $(document).ready(function() {
     // let socket = io();
     let socket = io(
     "", {
-       path: "/plant_detection/socket.io"
+       path: "/canola_counter/socket.io"
     });
 
     socket.emit("join_home", username);

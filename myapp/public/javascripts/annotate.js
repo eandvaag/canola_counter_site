@@ -414,7 +414,7 @@ function create_viewer_and_anno(viewer_id) {
     viewer = OpenSeadragon({
         id: viewer_id, //"seadragon_viewer",
         sequenceMode: true,
-        prefixUrl: "/plant_detection/osd/images/",
+        prefixUrl: "/canola_counter/osd/images/",
         tileSources: dzi_image_paths,
         showNavigator: false,
         maxZoomLevel: 100,
@@ -530,7 +530,7 @@ function build_map() {
 
             let timestamp = new Date().getTime();   
             
-            let base = "/plant_detection/usr/data/" + username + "/image_sets/" + image_set_info["farm_name"] + "/" + 
+            let base = "/canola_counter/usr/data/" + username + "/image_sets/" + image_set_info["farm_name"] + "/" + 
                     image_set_info["field_name"] + "/" + image_set_info["mission_date"] + "/maps/" + map_download_uuid;
 
             map_url = base + "_annotated_map.svg?t=" + timestamp;
@@ -658,7 +658,7 @@ function save_annotations() {
 function expired_session() {
 
     save_annotations();
-    window.location.href = "/plant_detection/home/" + username;
+    window.location.href = "/canola_counter/home/" + username;
 
 }
 
@@ -693,14 +693,14 @@ function ask_to_continue() {
     
     $("#modal_body").append(`<div id="modal_button_container">
         <button id="continue_annotate" class="std-button std-button-hover" `+
-        `style="width: 200px" onclick="confirmed_continue()"><span>Continue Annotating</span></button>` +
+        `style="width: 200px" onclick="confirmed_continue()">Continue Annotating</button>` +
         `</div>`);
 
     
     $("#modal").css("display", "block");
 }
 
-
+/*
 $(window).bind('beforeunload', function(event){
 
     $.post($(location).attr('href'),
@@ -711,7 +711,7 @@ $(window).bind('beforeunload', function(event){
     function(response, status) {
 
     });
-});
+});*/
 
 function create_overlays_table() {
 
@@ -885,10 +885,10 @@ function show_segmentation_inner() {
 
     //let timestamp = new Date().getTime();
 
-    let exg_src = "/plant_detection/usr/data/" + username + "/image_sets/" + image_set_info["farm_name"] + "/"
+    let exg_src = "/canola_counter/usr/data/" + username + "/image_sets/" + image_set_info["farm_name"] + "/"
                     + image_set_info["field_name"] + "/" + image_set_info["mission_date"] + 
                     "/excess_green/" + cur_img_name + ".png"; //?t=" + timestamp;
-    let rgb_src = "/plant_detection/usr/data/" + username + "/image_sets/" + image_set_info["farm_name"] + "/"
+    let rgb_src = "/canola_counter/usr/data/" + username + "/image_sets/" + image_set_info["farm_name"] + "/"
                     + image_set_info["field_name"] + "/" + image_set_info["mission_date"] + 
                     "/images/" + cur_img_name + image_set_info["image_ext"]; // + "?t=" + timestamp; //".JPG"; //?t=" + timestamp;
 
@@ -1225,7 +1225,7 @@ function confirmed_restart_model() {
             show_modal_message("Error", response.message);
         }
         else {
-            window.location.href = "/plant_detection/home/" + username;
+            window.location.href = "/canola_counter/home/" + username;
         }
         //annotations = response.annotations;
     });
@@ -1313,28 +1313,125 @@ function raise_slider() {
 }
 
 
+function update_results_name_input() {
 
-function submit_prediction_request(image_names, save_result) {
+    let format = /[`!@#$%^&*()+\=\[\]{};':"\\|,<>\/?~]/;
+    let inputs_to_check = ["results_name_input"];
+    for (let input of inputs_to_check) {
+        let input_length = ($("#" + input).val()).length;
+        if ((input_length < 1) || (input_length > 20)) {
+            return false;
+        }
+
+        if (format.test($("#" + input).val())) {
+            return false;
+        }
+    }
+    return true;
+}
+
+function update_results_comment_input() {
+
+    let format = /[`!@#$%^&*\=\[\]{}|<>?~]/;
+    let inputs_to_check = ["results_comment_input"];
+    for (let input of inputs_to_check) {
+        let input_length = ($("#" + input).val()).length;
+        if ((input_length > 255)) {
+            return false;
+        }
+
+        if (format.test($("#" + input).val())) {
+            return false;
+        }
+    }
+    return true;
+}
+
+function submit_prediction_request(image_names) {
+
+
+    let left_col_width_px = "160px";
+    show_modal_message("Confirm Request", 
+        `<div>Please confirm your request.` +
+        ` Upon completion, your results will be preserved under this image set's` +
+        ` <em>Results</em> tab (accessible from the home page).</div>` +
+        `<div style="height: 30px"></div>` +
+        `<table class="transparent_table">` +
+        `<tr>` +
+            `<td>` + 
+                `<div class="table_head" style="width: ${left_col_width_px}; padding-right: 10px">Name</div>` +
+            `</td>` +
+            `<td>` +
+                `<div style="width: 350px">` +
+                    `<input id="results_name_input" class="nonfixed_input" value="My Result">` +
+                `</div>` +
+            `</td>` +
+        `</tr>` +
+        `<tr style="height: 5px">` +
+        `</tr>` +
+        `<tr>` +
+            `<td>` + 
+                `<div class="table_head" style="width: ${left_col_width_px}; height: 100px; padding-right: 10px">Comment</div>` +
+            `</td>` +
+            `<td>` +
+                `<div style="width: 350px; height: 100px">` +
+                    `<textarea id="results_comment_input" class="nonfixed_textarea" rows="4"></textarea>` +
+                `</div>` +
+            `</td>` +
+        `</tr>` + 
+        `</table>` + 
+        `<div style="height: 30px"></div>` +
+        `<div id="modal_button_container" style="text-align: center">` +
+        `<button id="confirm_results_request_button" class="std-button std-button-hover" `+
+        `style="width: 200px" onclick="submit_prediction_request_confirmed('${image_names}', true)">Submit Request</button></div>`
+        /*
+        `<button id="cancel_delete" class="std-button std-button-hover" ` +
+        `style="width: 200px" onclick="cancel_delete_request()">Cancel</button>` +*/
+        
+        );
+
+    
+    for (let input_id of ["results_name_input"]) {
+        $("#" + input_id).on("input", function(e) {
+            if (update_results_name_input() && update_results_comment_input()) {
+                enable_buttons(["confirm_results_request_button"]);
+            }
+            else {
+                disable_buttons(["confirm_results_request_button"]);
+            }
+        });
+    }
+
+    for (let input_id of ["results_comment_input"]) {
+        $("#" + input_id).on("input", function(e) {
+            if (update_results_name_input() && update_results_comment_input()) {
+                enable_buttons(["confirm_results_request_button"]);
+            }
+            else {
+                disable_buttons(["confirm_results_request_button"]);
+            }
+        });
+    }
+
+
+}
+
+function submit_prediction_request_confirmed(image_names_str, save_result) {
 
     disable_std_buttons(["request_result_button", "predict_single_button", "predict_all_button"]);
-    //disable_buttons(["predict_single_button", "predict_all_button"]);
+
     $.post($(location).attr("href"),
     {
-        //action: "get_result"
         action: "predict",
-        image_names: image_names.join(","),
-        save_result: save_result ? "True" : "False"
+        image_names: image_names_str,
+        save_result: save_result ? "True" : "False",
+        results_name: $("#results_name_input").val(),
+        results_comment: $("#results_comment_input").val()
     },
     function(response, status) {
+        close_modal();
         if (response.error) {
             show_modal_message("Error", response.message);
-        }
-        else {
-            if (save_result) {
-                show_modal_message("Success", 
-                `<div>Your request was successfully submitted. Upon completion, the ` +
-                `results will be preserved under this image set's <em>Results</em> tab (accessible from the home page).</div>`);
-            }
         }
     });
 
@@ -1414,17 +1511,13 @@ $(document).ready(function() {
     // let socket = io();
     let socket = io(
     "", {
-        path: "/plant_detection/socket.io"
+        path: "/canola_counter/socket.io"
     });
-    // let socket = io("172.16.1.71:8220/plant_detection");
-    //"https://plotreel.usask.ca", {
-    //    path: "/plant_detection/annotate/sally/MORSE/Dugout/2022-05-27"
-    //});
 
     socket.emit("join_annotate", username + "/" + image_set_info["farm_name"] + "/" + image_set_info["field_name"] + "/" + image_set_info["mission_date"]);
 
     socket.on("workspace_occupied", function(update) {
-        window.location.href = "/plant_detection/home/" + username;
+        window.location.href = "/canola_counter/home/" + username;
     });
 
     socket.on("image_set_status_change", function(update) {
@@ -1785,28 +1878,6 @@ $(document).ready(function() {
     }
     show_image(cur_img_name);
 
-
-
-    //show_annotation();
-
-
-
-
-    
-    //let test_annotation = {'type': 'Annotation', 'body': [{'type': 'TextualBody', 'purpose': 'class', 'value': 'plant'}], 'target': {'source': 'https://plotreel.usask.ca/plant_detection/annotate/BlaineLake/HornerWest/undefined', 'selector': {'type': 'FragmentSelector', 'conformsTo': 'http://www.w3.org/TR/media-frags/', 
-    //'value': 'xywh=pixel:124.53097534179688,133.33065795898438,26.285736083984375,20.399093627929688'}}, '@context': 'http://www.w3.org/ns/anno.jsonld', 'id': '#53750c2c-0af8-4429-881d-9b9abfbe1de7'};
-    //anno.addAnnotation(test_annotation, false);
-    /*
-    var overlayElement = document.createElement('div');
-    
-    var location = new OpenSeadragon.Rect(
-        //124.53097534179688 
-        0, 0, 1, 0.1 //10000, 10000 //1000, 1000
-        //124.53097534179688,133.33065795898438,26.285736083984375,20.399093627929688
-      );
-    viewer.addOverlay(overlayElement, location);*/
-
-
     $("#save_button").click(function() {
         window.clearTimeout(ask_to_continue_handle);
         ask_to_continue_handle = window.setTimeout(ask_to_continue, 7200000);
@@ -1839,15 +1910,15 @@ $(document).ready(function() {
     })
 
     $("#request_result_button").click(function() {
-        submit_prediction_request(Object.keys(annotations), true);
+        submit_prediction_request(Object.keys(annotations).join(","));
     });
 
     $("#predict_single_button").click(function() {
-        submit_prediction_request([cur_img_name], false);
+        submit_prediction_request_confirmed([cur_img_name].join(","), false);
     });
 
     $("#predict_all_button").click(function() {
-        submit_prediction_request(Object.keys(annotations), false);
+        submit_prediction_request_confirmed(Object.keys(annotations).join(","), false);
     })
 
     $("#use_predictions_button").click(function() {

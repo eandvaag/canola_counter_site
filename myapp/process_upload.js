@@ -55,7 +55,7 @@ function upload_notify(username, farm_name, field_name, mission_date) {
     let options = {
         hostname: process.env.CC_IP, //'172.16.1.75', //71',
         port: parseInt(process.env.CC_PORT), //8110,
-        path: '/plant_detection/upload_notification',
+        path: '/canola_counter/upload_notification',
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',

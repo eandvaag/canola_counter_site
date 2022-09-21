@@ -286,7 +286,7 @@ function build_map() {
 
             let timestamp = new Date().getTime();
             
-            let base = "/plant_detection/usr/data/" + username + "/image_sets/" + image_set_info["farm_name"] + "/" + 
+            let base = "/canola_counter/usr/data/" + username + "/image_sets/" + image_set_info["farm_name"] + "/" + 
                         image_set_info["field_name"] + "/" + image_set_info["mission_date"] + "/model/results/" +
                         image_set_info["timestamp"] + "/maps/" + map_download_uuid;
 
@@ -388,7 +388,7 @@ function create_viewer_and_anno() {
     viewer = OpenSeadragon({
         id: "seadragon_viewer",
         sequenceMode: true,
-        prefixUrl: "/plant_detection/osd/images/",
+        prefixUrl: "/canola_counter/osd/images/",
         tileSources: dzi_image_paths,
         showNavigator: false,
         maxZoomLevel: 100,
@@ -433,33 +433,13 @@ $(document).ready(function() {
     metrics = data["metrics"];
     dzi_dir = data["dzi_dir"];
     dzi_image_paths = data["dzi_image_paths"];
-
-    // overlays = {
-    //     "annotations": {   
-    //         "overlays": annotations,
-    //         "color_id": "COLOR_0",
-    //         "color": "#0080C0",
-    //     },
-    //     "predictions": {
-    //         "overlays": predictions,
-    //         "color_id": "COLOR_1",
-    //         "color": "#FF4040",
-    //     }
-    // };
-
-    //$("#filter_combo").append(`<option value="all">all</option>`);
-
+    
 
     for (let image_status of Object.keys(status_color)) {
         let color = status_color[image_status];
         let text = status_to_text[image_status];
         $("#filter_combo").append(`<option style="background-color: ${color}" value="${image_status}">${text}</option>`);
     }
-
-    /*
-    let download_path = "/plant_detection/usr/data/results/" + image_set_info["farm_name"] + "/" +
-    image_set_info["field_name"] + "/" + image_set_info["mission_date"] + "/" +
-                        job_config["job_uuid"] + "/results.xlsx";*/
 
 
 
@@ -500,7 +480,7 @@ $(document).ready(function() {
     
                 download_uuid = response.download_uuid;
 
-                let download_path = "/plant_detection/download/" + 
+                let download_path = "/canola_counter/download/" + 
                                     username + "/" +
                                     farm_name + "/" + 
                                     field_name + "/" + 

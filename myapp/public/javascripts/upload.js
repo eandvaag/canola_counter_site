@@ -159,7 +159,7 @@ function initialize_upload() {
 
 
     dropzone_handler = new Dropzone("#file-drop", { 
-        url: "/plant_detection/upload",
+        url: "/canola_counter/upload",
         autoProcessQueue: false,
         paramName: function(n) { return 'source_file[]'; },
         uploadMultiple: true,

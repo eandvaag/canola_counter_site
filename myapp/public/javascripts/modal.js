@@ -7,7 +7,7 @@ function show_modal_message(head, message) {
     `<span class="close close-hover" id="modal_close">&times;</span>` +
     `<p id="modal_head_text">` + head + `</p>`);
 
-    $("#modal_body").append(`<p id="modal_message" align="left"></p>`);
+    $("#modal_body").append(`<p id="modal_message" style="overflow-wrap: break-word" align="left"></p>`);
     $("#modal_message").html(message);
     
     $("#modal_close").click(function() {

@@ -4,7 +4,7 @@ const glob = require('glob');
 
 const socket_io = require('socket.io');
 const io = socket_io({
-    "path": "/plant_detection/socket.io"
+    "path": "/canola_counter/socket.io"
 });
 
 // import { Server } from "socket.io";

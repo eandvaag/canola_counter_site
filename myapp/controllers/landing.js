@@ -21,7 +21,7 @@ const { parse, join } = require('path');
 var socket_api = require('../socket_api');
 
 
-const APP_PREFIX = '/plant_detection';
+const APP_PREFIX = '/canola_counter';
 const USR_DATA_ROOT = path.join("usr", "data");
 const USR_SHARED_ROOT = path.join("usr", "shared");
 
@@ -415,7 +415,7 @@ function notify_scheduler(username, farm_name, field_name, mission_date, request
     let options = {
         hostname: process.env.CC_IP, //'172.16.1.75', //71',
         port: parseInt(process.env.CC_PY_PORT), //8110,
-        path: '/plant_detection/add_request',
+        path: APP_PREFIX + '/add_request',
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -437,6 +437,31 @@ function notify_scheduler(username, farm_name, field_name, mission_date, request
 
     req.write(data);
     req.end();
+}
+
+function results_name_is_valid(results_name) {
+
+    let format = /[`!@#$%^&*()+\=\[\]{};':"\\|,<>\/?~]/;
+    if (format.test(results_name)) {
+        return false;
+    }
+    if ((results_name.length < 1) || (results_name.length > 20)) {
+        return false;
+    }
+    return true;
+}
+
+
+function results_comment_is_valid(results_comment) {
+
+    let format = /[`!@#$%^&*\=\[\]{}|<>?~]/;
+    if (format.test(results_comment)) {
+        return false;
+    }
+    if (results_comment.length > 255) {
+        return false;
+    }
+    return true;
 }
 
 
@@ -530,6 +555,23 @@ exports.post_annotate = function(req, res, next) {
 
         let request_path;
         if (save_result) {
+            let results_name = req.body.results_name;
+            if (!(results_name_is_valid(results_name))) {
+                response.message = "Results name is invalid";
+                response.error = true;
+                return res.json(response);
+            }
+
+            let results_comment = req.body.results_comment;
+            if (!(results_comment_is_valid(results_comment))) {
+                response.message = "Results comment is invalid";
+                response.error = true;
+                return res.json(response);
+            }
+
+            request["results_name"] = results_name;
+            request["results_comment"] = results_comment;
+
             request_path = path.join(USR_DATA_ROOT, req.session.user.username,
                 "image_sets", farm_name, field_name, mission_date,
                 "model", "prediction", "image_set_requests", "pending", request_uuid + ".json");            

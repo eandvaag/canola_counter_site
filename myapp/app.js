@@ -16,8 +16,8 @@ app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'pug');
 
 //app.use('/plant_detection/osd', express.static(__dirname + '/node_modules/openseadragon/build/openseadragon'));
-app.use('/plant_detection/osd', express.static(__dirname + '/external_node_modules/openseadragon3'));
-app.use('/plant_detection/annotorious', express.static(__dirname + '/external_node_modules/annotorious'));
+app.use('/canola_counter/osd', express.static(__dirname + '/external_node_modules/openseadragon3'));
+app.use('/canola_counter/annotorious', express.static(__dirname + '/external_node_modules/annotorious'));
 
 //app.use('/plant_detection/public/images/favicon.ico', 
 //        favicon(__dirname + '/public/images/favicon.ico'));
@@ -35,8 +35,8 @@ app.use(express.json());
 
 //app.use(express.json({ limit: "50000kb" }));
 app.use(cookieParser());
-app.use('/plant_detection', express.static(path.join(__dirname, 'public')));
-app.use('/plant_detection/usr', express.static(path.join(__dirname, 'usr')));
+app.use('/canola_counter', express.static(path.join(__dirname, 'public')));
+app.use('/canola_counter/usr', express.static(path.join(__dirname, 'usr')));
 app.use(session({
   key: 'user_sid',
   secret: 'secretcodeword',
@@ -47,7 +47,7 @@ app.use(session({
   }
 }));
 
-app.use('/plant_detection', indexRouter);
+app.use('/canola_counter', indexRouter);
 app.use((req, res, next) => {
   if (req.cookies.user_sid && !req.session.user) {
     res.clearCookie('user_sid');
@@ -72,7 +72,7 @@ app.use(function(err, req, res, next) {
   res.status(err.status || 500);
   //res.render('error');
   //res.render('sign_in');
-  res.redirect("/plant_detection")
+  res.redirect("/canola_counter")
 });
 
 module.exports = app;
