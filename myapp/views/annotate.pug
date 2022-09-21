@@ -5,42 +5,28 @@ html
         title="Canola Counter"
         meta(name="viewport" content="width=device-width, initial-scale=1")
 
-        link(rel="icon" href="/canola_counter/images/favicon.ico")
+        link(rel="icon" href=process.env.CC_PATH + "/images/favicon.ico")
 
-        link(href='/canola_counter/stylesheets/main.css' rel='stylesheet')
-        link(href='/canola_counter/stylesheets/d3.css' rel='stylesheet')
+        link(href=process.env.CC_PATH + "/annotorious/annotorious.min.css" rel="stylesheet")
+        link(href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.2/css/all.min.css" rel="stylesheet")
+        link(href=process.env.CC_PATH + '/stylesheets/main.css' rel='stylesheet')
+        link(href=process.env.CC_PATH + '/stylesheets/d3.css' rel='stylesheet')
+        
         
 
-        link(rel="stylesheet" href="/canola_counter/annotorious/annotorious.min.css")
-        link(rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.2/css/all.min.css")
+        script(src=process.env.CC_PATH + "/osd/openseadragon.min.js")
+        script(src=process.env.CC_PATH + "/annotorious/openseadragon-annotorious.min.js")
 
         script(src="https://code.jquery.com/jquery-3.6.0.js")
-
-
-        //link(rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@recogito/annotorious-openseadragon@2.7.0/dist/annotorious.min.css")
-
-        
-        //script(src="https://cdn.jsdelivr.net/npm/@recogito/annotorious-openseadragon@2.7.0/dist/openseadragon-annotorious.min.js")
-        script(src="/canola_counter/osd/openseadragon.min.js")
-        script(src="/canola_counter/annotorious/openseadragon-annotorious.min.js")
-
-        //link(rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@recogito/annotorious-openseadragon@2.7.1/dist/annotorious.min.css")
-        //script(type="text/javascript" src="https://cdn.jsdelivr.net/npm/@recogito/annotorious-openseadragon@2.7.1/dist/openseadragon-annotorious.min.js")
         script(src="https://d3js.org/d3.v4.js")
-
-        //script(src="/socket.io/socket.io.js")
-        //script(type='text/javascript' src="http://" + location.hostname + ":8110/socket.io/socket.io.js")
-        //script(type='text/javascript' src="/socket.io/socket.io.js")
         script(src="https://cdn.socket.io/4.5.0/socket.io.min.js" integrity="sha384-7EyYLQZgWBi67fBtVxw60/OWl1kjsfrPFcaU0pp0nAh+i8FD068QogUvg85Ewy1k" crossorigin="anonymous")
-        
-        //script(src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js" integrity="sha512-eVL5Lb9al9FzgR63gDs1MxcDS2wFu3loYAgjIH0+Hg38tCS8Ag62dwKyH+wzDb+QauDpEZjXbMn11blw8cbTJQ==" crossorigin="anonymous")
 
-        script(type='text/javascript' src='/canola_counter/javascripts/annotate.js')
-        script(type='text/javascript' src='/canola_counter/javascripts/count_chart.js')
-        script(type='text/javascript' src='/canola_counter/javascripts/score_chart.js')
-        script(type='text/javascript' src='/canola_counter/javascripts/ground_cover_chart.js')
-        script(type='text/javascript' src='/canola_counter/javascripts/map_chart.js')
-        script(type='text/javascript' src='/canola_counter/javascripts/common.js')
+        script(type='text/javascript' src=process.env.CC_PATH + '/javascripts/annotate.js')
+        script(type='text/javascript' src=process.env.CC_PATH + '/javascripts/count_chart.js')
+        script(type='text/javascript' src=process.env.CC_PATH + '/javascripts/score_chart.js')
+        script(type='text/javascript' src=process.env.CC_PATH + '/javascripts/ground_cover_chart.js')
+        script(type='text/javascript' src=process.env.CC_PATH + '/javascripts/map_chart.js')
+        script(type='text/javascript' src=process.env.CC_PATH + '/javascripts/common.js')
 
     body
         div(id="container")

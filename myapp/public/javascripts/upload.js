@@ -159,7 +159,7 @@ function initialize_upload() {
 
 
     dropzone_handler = new Dropzone("#file-drop", { 
-        url: "/canola_counter/upload",
+        url: get_CC_PATH() + "/upload",
         autoProcessQueue: false,
         paramName: function(n) { return 'source_file[]'; },
         uploadMultiple: true,

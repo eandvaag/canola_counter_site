@@ -651,9 +651,9 @@ function show_overview() {
     let farm_name = $("#farm_combo").val();
     let field_name = $("#field_combo").val();
     let mission_date = $("#mission_combo").val();
-    let job_url = "/canola_counter/usr/data/" + username + "/image_sets/" + farm_name + "/" + field_name + 
+    let job_url = get_CC_PATH() + "/usr/data/" + username + "/image_sets/" + farm_name + "/" + field_name + 
                     "/" + mission_date + "/annotations/annotations_w3c.json";
-    let metadata_url = "/canola_counter/usr/data/" + username + "/image_sets/" + farm_name + "/" + field_name + 
+    let metadata_url = get_CC_PATH() + "/usr/data/" + username + "/image_sets/" + farm_name + "/" + field_name + 
                     "/" + mission_date + "/metadata/metadata.json";
 
     let annotations = get_json(job_url);
@@ -1217,7 +1217,7 @@ function view_timeline() {
     let field_name = $("#field_combo").val();
     let mission_date = $("#mission_combo").val();
 
-    window.location.href = "/canola_counter/timeline/" + username + "/" +
+    window.location.href = get_CC_PATH() + "/timeline/" + username + "/" +
                             farm_name + "/" + field_name + "/" + mission_date
 }
 
@@ -1226,7 +1226,7 @@ function view_result(timestamp) {
     let field_name = $("#field_combo").val();
     let mission_date = $("#mission_combo").val();
 
-    window.location.href = "/canola_counter/viewer/" + username + "/" +
+    window.location.href = get_CC_PATH() + "/viewer/" + username + "/" +
                            farm_name + "/" + field_name + "/" + mission_date + "/" + timestamp;
 
 }
@@ -1354,7 +1354,7 @@ $(document).ready(function() {
     // let socket = io();
     let socket = io(
     "", {
-       path: "/canola_counter/socket.io"
+       path: get_CC_PATH() + "/socket.io"
     });
 
     socket.emit("join_home", username);

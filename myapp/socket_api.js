@@ -4,7 +4,7 @@ const glob = require('glob');
 
 const socket_io = require('socket.io');
 const io = socket_io({
-    "path": "/canola_counter/socket.io"
+    "path": process.env.CC_PATH + "/socket.io"
 });
 
 // import { Server } from "socket.io";

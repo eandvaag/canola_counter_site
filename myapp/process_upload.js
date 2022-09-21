@@ -2,7 +2,7 @@ const path = require('path');
 const fs = require('fs');
 const { spawn, exec, execSync, fork } = require('child_process');
 const { exit } = require('process');
-const http = require('http');
+const https = require('https');
 
 const USR_DATA_ROOT = path.join("usr", "data");
 const USR_SHARED_ROOT = path.join("usr", "shared");
@@ -55,15 +55,16 @@ function upload_notify(username, farm_name, field_name, mission_date) {
     let options = {
         hostname: process.env.CC_IP, //'172.16.1.75', //71',
         port: parseInt(process.env.CC_PORT), //8110,
-        path: '/canola_counter/upload_notification',
+        path: process.env.CC_PATH + '/upload_notification',
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             'Content-Length': data.length,
         },
+        rejectUnauthorized: false
     };
 
-    const req = http.request(options, res => {
+    const req = https.request(options, res => {
         console.log(`statusCode: ${res.statusCode}`);
 
         res.on("data", d => {

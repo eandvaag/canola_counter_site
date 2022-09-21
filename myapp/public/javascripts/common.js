@@ -145,6 +145,10 @@ function timestamp_to_date(timestamp){
     return patch_size;
   }
 
+function get_CC_PATH() {
+    return "/" + window.location.pathname.split("/")[1];
+}
+
 
 function disable_close_buttons(button_ids) {
 

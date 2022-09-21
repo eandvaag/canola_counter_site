@@ -21,7 +21,6 @@ const { parse, join } = require('path');
 var socket_api = require('../socket_api');
 
 
-const APP_PREFIX = '/canola_counter';
 const USR_DATA_ROOT = path.join("usr", "data");
 const USR_SHARED_ROOT = path.join("usr", "shared");
 
@@ -107,7 +106,7 @@ exports.post_sign_in = function(req, res, next) {
             }
             else {
                 req.session.user = user.dataValues;
-                response.redirect = APP_PREFIX + "/home/" + req.body.username;
+                response.redirect = process.env.CC_PATH + "/home/" + req.body.username;
                 res.json(response);
             }
         }
@@ -157,7 +156,7 @@ exports.get_home = function(req, res, next) {
         }
         catch (error) {
             console.log("error while fetching subdirectories", error);
-            return res.redirect(APP_PREFIX);
+            return res.redirect(process.env.CC_PATH);
         }
 
         for (let farm_name of farm_names) {
@@ -179,7 +178,7 @@ exports.get_home = function(req, res, next) {
                             upload_status = JSON.parse(fs.readFileSync(upload_status_path, 'utf8'));
                         }
                         catch (error) {
-                            return res.redirect(APP_PREFIX);
+                            return res.redirect(process.env.CC_PATH);
                         }
 
                         if (!(farm_name in image_sets_data)) {
@@ -221,7 +220,7 @@ exports.get_home = function(req, res, next) {
             catch (error) {
                 release();
                 console.log(error);
-                res.redirect(APP_PREFIX);
+                res.redirect(process.env.CC_PATH);
             }
 
 
@@ -236,13 +235,13 @@ exports.get_home = function(req, res, next) {
 
         }).catch(function(error) {
             console.log(error);
-            res.redirect(APP_PREFIX);
+            res.redirect(process.env.CC_PATH);
         });
 
         
     }
     else {
-        res.redirect(APP_PREFIX);
+        res.redirect(process.env.CC_PATH);
     }
 }
 
@@ -256,7 +255,7 @@ exports.get_annotate = function(req, res, next) {
         let image_set_dir = path.join(USR_DATA_ROOT, req.session.user.username, "image_sets", farm_name, field_name, mission_date);
 
         if (!(fpath_exists(image_set_dir))) {
-            return res.redirect(APP_PREFIX);
+            return res.redirect(process.env.CC_PATH);
         }
 
         let key = req.session.user.username + "/" + farm_name + "/" + field_name + "/" + mission_date;
@@ -267,7 +266,7 @@ exports.get_annotate = function(req, res, next) {
             if (socket_api.workspace_id_to_key[socket_id] === key) {
                 console.log("The workspace is in use", key);
                 //release();
-                return res.redirect(APP_PREFIX + "/home/" + req.session.user.username); 
+                return res.redirect(process.env.CC_PATH + "/home/" + req.session.user.username); 
             }
         }
 
@@ -275,7 +274,7 @@ exports.get_annotate = function(req, res, next) {
             if (key in socket_api.workspace_key_to_id) {
                 console.log("The workspace is in use", key);
                 release();
-                return res.redirect(APP_PREFIX + "/home/" + req.session.user.username);
+                return res.redirect(process.env.CC_PATH + "/home/" + req.session.user.username);
             }*/
 
             //socket_api.workspace_key_to_id[key] = "tmp_hold";
@@ -284,7 +283,7 @@ exports.get_annotate = function(req, res, next) {
 
         glob(path.join(image_set_dir, "images", "*"), function(error, image_paths) {
             if (error) {
-                return res.redirect(APP_PREFIX);
+                return res.redirect(process.env.CC_PATH);
             }
             let image_ext = image_paths[0].substring(image_paths[0].length - 4);
 
@@ -296,7 +295,7 @@ exports.get_annotate = function(req, res, next) {
             }
             catch (error) {
                 console.log(error);
-                return res.redirect(APP_PREFIX);
+                return res.redirect(process.env.CC_PATH);
             }
     
             let metadata_path = path.join(image_set_dir, "metadata", "metadata.json");
@@ -306,7 +305,7 @@ exports.get_annotate = function(req, res, next) {
             }
             catch (error) {
                 console.log(error);
-                return res.redirect(APP_PREFIX);
+                return res.redirect(process.env.CC_PATH);
             }
 
             let camera_specs_path = path.join(USR_DATA_ROOT, req.session.user.username, "cameras", "cameras.json");
@@ -316,7 +315,7 @@ exports.get_annotate = function(req, res, next) {
             }
             catch (error) {
                 console.log(error);
-                return res.redirect(APP_PREFIX);
+                return res.redirect(process.env.CC_PATH);
             }
 
 
@@ -327,13 +326,13 @@ exports.get_annotate = function(req, res, next) {
             }
             catch (error) {
                 console.log(error);
-                return res.redirect(APP_PREFIX);
+                return res.redirect(process.env.CC_PATH);
             }
     
             let dzi_images_dir = path.join(image_set_dir, "dzi_images");
             let dzi_image_paths = [];
             for (let image_name of Object.keys(annotations)) {
-                let dzi_image_path = path.join(APP_PREFIX, dzi_images_dir, image_name + ".dzi");
+                let dzi_image_path = path.join(process.env.CC_PATH, dzi_images_dir, image_name + ".dzi");
                 dzi_image_paths.push(dzi_image_path);
             }
 
@@ -343,7 +342,7 @@ exports.get_annotate = function(req, res, next) {
 
                 if (error) {
                     console.log(error);
-                    return res.redirect(APP_PREFIX);
+                    return res.redirect(process.env.CC_PATH);
                 }
 
                 for (let image_prediction_dir of image_prediction_dirs) {
@@ -357,7 +356,7 @@ exports.get_annotate = function(req, res, next) {
                         }
                         catch {
                             console.log(error);
-                            return res.redirect(APP_PREFIX);
+                            return res.redirect(process.env.CC_PATH);
                         }
                         predictions[image_name] = image_predictions[image_name];
                     }
@@ -390,11 +389,11 @@ exports.get_annotate = function(req, res, next) {
             /*
         }).catch(function(error) {
             console.log(error);
-            return res.redirect(APP_PREFIX);
+            return res.redirect(process.env.CC_PATH);
         });*/
     }
     else {
-        return res.redirect(APP_PREFIX);
+        return res.redirect(process.env.CC_PATH);
     }
 
 }
@@ -415,7 +414,7 @@ function notify_scheduler(username, farm_name, field_name, mission_date, request
     let options = {
         hostname: process.env.CC_IP, //'172.16.1.75', //71',
         port: parseInt(process.env.CC_PY_PORT), //8110,
-        path: APP_PREFIX + '/add_request',
+        path: process.env.CC_PATH + '/add_request',
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -1148,7 +1147,7 @@ exports.post_home = function(req, res, next) {
             
 
             response.error = false;
-            response.redirect = APP_PREFIX + "/home/" + req.session.user.username;
+            response.redirect = process.env.CC_PATH + "/home/" + req.session.user.username;
             return res.json(response);
         }
 
@@ -1189,7 +1188,7 @@ exports.post_home = function(req, res, next) {
             return res.json(response);
         }*/
         response.error = false;
-        response.redirect = APP_PREFIX + "/annotate/" + req.session.user.username + "/" + farm_name + "/" +
+        response.redirect = process.env.CC_PATH + "/annotate/" + req.session.user.username + "/" + farm_name + "/" +
                             field_name + "/" + mission_date;
         return res.json(response);
     }
@@ -1630,7 +1629,7 @@ exports.post_home = function(req, res, next) {
     }
     else {
         res.cookie_expired = true;
-        response.redirect = APP_PREFIX;
+        response.redirect = process.env.CC_PATH;
         return res.json(response);
     }*/
 
@@ -1656,7 +1655,7 @@ exports.get_timeline = function(req, res, next) {
         }
         catch (error) {
             console.log(error);
-            return res.redirect(APP_PREFIX);
+            return res.redirect(process.env.CC_PATH);
         }
 
         let metadata_path = path.join(image_set_dir, "metadata", "metadata.json");
@@ -1666,7 +1665,7 @@ exports.get_timeline = function(req, res, next) {
         }
         catch (error) {
             console.log(error);
-            return res.redirect(APP_PREFIX);
+            return res.redirect(process.env.CC_PATH);
         }
 
         let camera_specs_path = path.join(USR_DATA_ROOT, req.session.user.username, "cameras", "cameras.json");
@@ -1676,14 +1675,14 @@ exports.get_timeline = function(req, res, next) {
         }
         catch (error) {
             console.log(error);
-            return res.redirect(APP_PREFIX);
+            return res.redirect(process.env.CC_PATH);
         }
 
 
         let predictions = {};
         glob(path.join(results_dir, "*"), function(error, result_paths) {
             if (error) {
-                return res.redirect(APP_PREFIX);
+                return res.redirect(process.env.CC_PATH);
             }
             for (let result_path of result_paths) {
                 let result_predictions_path = path.join(result_path,  "predictions_w3c.json");
@@ -1693,7 +1692,7 @@ exports.get_timeline = function(req, res, next) {
                 }
                 catch (error) {
                     console.log(error);
-                    return res.redirect(APP_PREFIX);
+                    return res.redirect(process.env.CC_PATH);
                 }
                 predictions[path.basename(result_path)] = result_predictions;
             }
@@ -1711,7 +1710,7 @@ exports.get_timeline = function(req, res, next) {
 
     }
     else {
-        res.redirect(APP_PREFIX);
+        res.redirect(process.env.CC_PATH);
     }
 
 }
@@ -1737,7 +1736,7 @@ exports.post_timeline = function(req, res, next) {
 
         glob(path.join(results_dir, "*"), function(error, result_paths) {
             if (error) {
-                return res.redirect(APP_PREFIX);
+                return res.redirect(process.env.CC_PATH);
             }
             //for (let i = 0; i < result_paths.length; i++) { 
             for (let result_path of result_paths) {
@@ -1829,7 +1828,7 @@ exports.get_viewer = function(req, res, next) {
 
 
         if (!(fpath_exists(sel_results_dir))) {
-            return res.redirect(APP_PREFIX);
+            return res.redirect(process.env.CC_PATH);
         }
 
         let annotations_path = path.join(sel_results_dir, "annotations_w3c.json")
@@ -1839,7 +1838,7 @@ exports.get_viewer = function(req, res, next) {
         }
         catch (error) {
             console.log(error);
-            return res.redirect(APP_PREFIX);
+            return res.redirect(process.env.CC_PATH);
         }
         let metadata_path = path.join(image_set_dir, "metadata", "metadata.json");
         let metadata;
@@ -1848,7 +1847,7 @@ exports.get_viewer = function(req, res, next) {
         }
         catch (error) {
             console.log(error);
-            return res.redirect(APP_PREFIX);
+            return res.redirect(process.env.CC_PATH);
         }
         let camera_specs_path = path.join(USR_DATA_ROOT, req.session.user.username, "cameras", "cameras.json");
         let camera_specs;
@@ -1857,7 +1856,7 @@ exports.get_viewer = function(req, res, next) {
         }
         catch (error) {
             console.log(error);
-            return res.redirect(APP_PREFIX);
+            return res.redirect(process.env.CC_PATH);
         }
         let predictions_path = path.join(sel_results_dir, "predictions_w3c.json")
         let predictions;
@@ -1866,7 +1865,7 @@ exports.get_viewer = function(req, res, next) {
         }
         catch (error) {
             console.log(error);
-            return res.redirect(APP_PREFIX);
+            return res.redirect(process.env.CC_PATH);
         }
         let metrics_path = path.join(sel_results_dir, "metrics.json");
         let metrics;
@@ -1875,7 +1874,7 @@ exports.get_viewer = function(req, res, next) {
         }
         catch (error) {
             console.log(error);
-            return res.redirect(APP_PREFIX);
+            return res.redirect(process.env.CC_PATH);
         }
         let excess_green_record_path = path.join(sel_results_dir, "excess_green_record.json");
         let excess_green_record;
@@ -1884,14 +1883,14 @@ exports.get_viewer = function(req, res, next) {
         }
         catch (error) {
             console.log(error);
-            return res.redirect(APP_PREFIX);
+            return res.redirect(process.env.CC_PATH);
         }
         
         let dzi_images_dir = path.join(image_set_dir, "dzi_images");
 
         let dzi_image_paths = [];
         for (let image_name of Object.keys(annotations)) {
-            let dzi_image_path = path.join(APP_PREFIX, dzi_images_dir, image_name + ".dzi");
+            let dzi_image_path = path.join(process.env.CC_PATH, dzi_images_dir, image_name + ".dzi");
             dzi_image_paths.push(dzi_image_path);
 
         }
@@ -1913,14 +1912,14 @@ exports.get_viewer = function(req, res, next) {
         data["camera_specs"] = camera_specs;
         data["excess_green_record"] = excess_green_record;
         data["metrics"] = metrics;
-        data["dzi_dir"] = path.join(APP_PREFIX, dzi_images_dir);
+        data["dzi_dir"] = path.join(process.env.CC_PATH, dzi_images_dir);
         data["dzi_image_paths"] = nat_orderBy.orderBy(dzi_image_paths);
 
         res.render("viewer", {username: req.session.user.username, "data": data});
     }
     
     else {
-        res.redirect(APP_PREFIX);
+        res.redirect(process.env.CC_PATH);
     }
 }
 
@@ -2151,5 +2150,5 @@ exports.logout = function(req, res, next) {
         console.log("cookies cleared");
     }
     console.log("redirecting");
-    res.redirect(APP_PREFIX);
+    res.redirect(process.env.CC_PATH);
 }

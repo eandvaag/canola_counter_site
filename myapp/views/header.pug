@@ -10,13 +10,13 @@ html
                 tr
                     td
                         div(style="width: 320px")
-                            a(href="/canola_counter/home/" + username style="font-size: 22px; margin: 0px 5px" class="table_button table_button_hover") Canola Counter
+                            a(href=process.env.CC_PATH + "/home/" + username style="font-size: 22px; margin: 0px 5px" class="table_button table_button_hover") Canola Counter
                     td(style="width:100%")
 
                     td
                         div(style="font-weight: bold; margin-right:15px") #{username} 
                     td
                         div(style="width: 100px")
-                            a(href="/canola_counter/logout" class="table_button table_button_hover") Log Out
+                            a(href=process.env.CC_PATH + "/logout" class="table_button table_button_hover") Log Out
 
             hr

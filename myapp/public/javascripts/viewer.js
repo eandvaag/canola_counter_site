@@ -286,7 +286,7 @@ function build_map() {
 
             let timestamp = new Date().getTime();
             
-            let base = "/canola_counter/usr/data/" + username + "/image_sets/" + image_set_info["farm_name"] + "/" + 
+            let base = get_CC_PATH() + "/usr/data/" + username + "/image_sets/" + image_set_info["farm_name"] + "/" + 
                         image_set_info["field_name"] + "/" + image_set_info["mission_date"] + "/model/results/" +
                         image_set_info["timestamp"] + "/maps/" + map_download_uuid;
 
@@ -388,7 +388,7 @@ function create_viewer_and_anno() {
     viewer = OpenSeadragon({
         id: "seadragon_viewer",
         sequenceMode: true,
-        prefixUrl: "/canola_counter/osd/images/",
+        prefixUrl: get_CC_PATH() + "/osd/images/",
         tileSources: dzi_image_paths,
         showNavigator: false,
         maxZoomLevel: 100,
@@ -433,7 +433,7 @@ $(document).ready(function() {
     metrics = data["metrics"];
     dzi_dir = data["dzi_dir"];
     dzi_image_paths = data["dzi_image_paths"];
-    
+
 
     for (let image_status of Object.keys(status_color)) {
         let color = status_color[image_status];
@@ -480,7 +480,7 @@ $(document).ready(function() {
     
                 download_uuid = response.download_uuid;
 
-                let download_path = "/canola_counter/download/" + 
+                let download_path = get_CC_PATH() + "/download/" + 
                                     username + "/" +
                                     farm_name + "/" + 
                                     field_name + "/" + 

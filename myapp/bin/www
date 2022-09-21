@@ -7,6 +7,7 @@
 var app = require('../app');
 var debug = require('debug')('myapp:server');
 var https = require('https');
+var http = require('http');
 var fs = require('fs');
 let models = require('../models');
 
@@ -14,8 +15,11 @@ let models = require('../models');
  * Get port from environment and store in Express.
  */
 
-var port = normalizePort(process.env.PORT || '8110');
+var port = normalizePort(process.env.CC_PORT);
 app.set('port', port);
+
+//var api_port = normalizePort(process.env.CC_PORT_API);
+
 
 
 const options = {
@@ -23,7 +27,8 @@ const options = {
   cert: fs.readFileSync('cert.pem')
 };
 
-let server = https.createServer(options, app);
+let server = https.createServer(options, app); //.listen(port);
+//let api_server = http.createServer(app).listen(api_port);
 
 /**
  * Create HTTP server.

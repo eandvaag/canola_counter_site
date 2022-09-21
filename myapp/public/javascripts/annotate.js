@@ -414,7 +414,7 @@ function create_viewer_and_anno(viewer_id) {
     viewer = OpenSeadragon({
         id: viewer_id, //"seadragon_viewer",
         sequenceMode: true,
-        prefixUrl: "/canola_counter/osd/images/",
+        prefixUrl: get_CC_PATH() + "/osd/images/",
         tileSources: dzi_image_paths,
         showNavigator: false,
         maxZoomLevel: 100,
@@ -530,7 +530,7 @@ function build_map() {
 
             let timestamp = new Date().getTime();   
             
-            let base = "/canola_counter/usr/data/" + username + "/image_sets/" + image_set_info["farm_name"] + "/" + 
+            let base = get_CC_PATH() + "/usr/data/" + username + "/image_sets/" + image_set_info["farm_name"] + "/" + 
                     image_set_info["field_name"] + "/" + image_set_info["mission_date"] + "/maps/" + map_download_uuid;
 
             map_url = base + "_annotated_map.svg?t=" + timestamp;
@@ -658,7 +658,7 @@ function save_annotations() {
 function expired_session() {
 
     save_annotations();
-    window.location.href = "/canola_counter/home/" + username;
+    window.location.href = get_CC_PATH() + "/home/" + username;
 
 }
 
@@ -885,10 +885,10 @@ function show_segmentation_inner() {
 
     //let timestamp = new Date().getTime();
 
-    let exg_src = "/canola_counter/usr/data/" + username + "/image_sets/" + image_set_info["farm_name"] + "/"
+    let exg_src = get_CC_PATH() + "/usr/data/" + username + "/image_sets/" + image_set_info["farm_name"] + "/"
                     + image_set_info["field_name"] + "/" + image_set_info["mission_date"] + 
                     "/excess_green/" + cur_img_name + ".png"; //?t=" + timestamp;
-    let rgb_src = "/canola_counter/usr/data/" + username + "/image_sets/" + image_set_info["farm_name"] + "/"
+    let rgb_src = get_CC_PATH() + "/usr/data/" + username + "/image_sets/" + image_set_info["farm_name"] + "/"
                     + image_set_info["field_name"] + "/" + image_set_info["mission_date"] + 
                     "/images/" + cur_img_name + image_set_info["image_ext"]; // + "?t=" + timestamp; //".JPG"; //?t=" + timestamp;
 
@@ -1225,7 +1225,7 @@ function confirmed_restart_model() {
             show_modal_message("Error", response.message);
         }
         else {
-            window.location.href = "/canola_counter/home/" + username;
+            window.location.href = get_CC_PATH() + "/home/" + username;
         }
         //annotations = response.annotations;
     });
@@ -1511,13 +1511,13 @@ $(document).ready(function() {
     // let socket = io();
     let socket = io(
     "", {
-        path: "/canola_counter/socket.io"
+        path: get_CC_PATH() + "/socket.io"
     });
 
     socket.emit("join_annotate", username + "/" + image_set_info["farm_name"] + "/" + image_set_info["field_name"] + "/" + image_set_info["mission_date"]);
 
     socket.on("workspace_occupied", function(update) {
-        window.location.href = "/canola_counter/home/" + username;
+        window.location.href = get_CC_PATH() + "/home/" + username;
     });
 
     socket.on("image_set_status_change", function(update) {
