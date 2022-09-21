@@ -651,14 +651,299 @@ function show_overview() {
     let farm_name = $("#farm_combo").val();
     let field_name = $("#field_combo").val();
     let mission_date = $("#mission_combo").val();
+
+    $("#tab_details").empty();
+    $("#tab_details").append(`<div style="height: 100px"></div><div class="loader"></div>`);
+
+    $.post($(location).attr('href'),
+    {
+        action: "get_overview_info",
+        farm_name: farm_name,
+        field_name: field_name,
+        mission_date: mission_date
+    },
+    function(response, status) {
+        if (response.error) {
+            show_modal_message(`Error`, response.message);
+        }
+        else {
+            let annotation_info = response.annotation_info;
+            let metadata = response.metadata;
+
+            let label_width = "200px";
+            let value_width = "200px";
+        
+            $("#tab_details").empty();
+        
+            $("#tab_details").append(`<table class="transparent_table" style="height: 500px; width: 90%" id="image_set_table"></table>`);
+        
+            $("#image_set_table").append(`<tr>`+
+            `<td style="width: 50%;" id="left_section">` +
+            `</td>` +
+            `<td style="width: 50%;" id="right_section">` +
+                `<div style="height: 70px"></div>` +
+                `<table id="right_table">` +
+                    `<tr id="top_row" style="height: 160px">` +
+                        `<td id="top_left" style="vertical-align: top;"></td>` +
+                        `<td id="top_right" style="vertical-align: top"></td>` +
+                    `</tr>` +
+                    `<tr id="bottom_row" style="height: 270px">` +
+                        `<td id="bottom_left" style="vertical-align: top;"></td>` +
+                        `<td id="bottom_right" style="vertical-align: top"></td>` +
+                    `</tr>` +
+                `</table>` +
+            `</td>` +
+            `</tr>`);
+        
+            let make = metadata["camera_info"]["make"];
+            let model = metadata["camera_info"]["model"];
+        
+            let camera_height = metadata["camera_height"];
+        
+            let is_georeferenced;
+            if (metadata["missing"]["latitude"] || metadata["missing"]["longitude"]) {
+                is_georeferenced = "No";
+            }
+            else {
+                is_georeferenced = "Yes";
+            }
+            $("#top_right").append(`<div style="text-decoration: underline; font-weight: bold;">Image Set Metadata</div><br>`);
+            $("#top_right").append(`<table class="transparent_table" id="image_set_metadata_table"></table>`);
+        
+            // $("#image_set_metadata_table").append(`<tr>` +
+            //         `<td><div class="table_head" style="width: ${label_width};">Camera Height</div></td>` +
+            //         `<td><div class="table_text" style="width: ${value_width};">${camera_height}</div></td>` +
+            //         `</tr>`);
+            $("#image_set_metadata_table").append(`<tr>` +
+                    `<td><div class="table_head" style="width: ${label_width};">Camera Height (m)</div></td>` +
+                    `<td><input id="update_camera_height_input" class="nonfixed_input" style="width: 80px" value="${camera_height}">` 
+                    +`<button id="update_camera_height_button" class="std-button std-button-hover" style="width: 80px; font-size: 16px">Update</button></td>` +
+                    `</tr>`);
+        
+        
+            //         div(style="width: 250px")
+            //             input(id="mission_input" type="date" class="nonfixed_input")
+        
+            $("#image_set_metadata_table").append(`<tr>` +
+                    `<td><div class="table_head" style="width: ${label_width};">Georeferenced</div></td>` +
+                    `<td><div class="table_text" style="width: ${value_width};">${is_georeferenced}</div></td>` +
+                    `</tr>`);
+        
+            disable_std_buttons(["update_camera_height_button"]);
+        
+        
+            $("#update_camera_height_input").on("input", function(e) {
+        
+                let new_camera_height = $("#update_camera_height_input").val();
+                if (new_camera_height.length == 0) {
+                    enable_std_buttons(["update_camera_height_button"]);
+                    proposed_camera_height = new_camera_height;
+                }
+                else if (!(isNumeric(new_camera_height))) {
+                    disable_std_buttons(["update_camera_height_button"]);
+                }
+                else {
+                    let new_camera_height_val = parseFloat(new_camera_height);
+                    if (new_camera_height_val < 0.01 || new_camera_height_val > 1000) {
+                        disable_std_buttons(["update_camera_height_button"]);
+                    }
+                    else if (new_camera_height_val == metadata["camera_height"]) {
+                        disable_std_buttons(["update_camera_height_button"]);
+                    }
+                    else {
+                        enable_std_buttons(["update_camera_height_button"]);
+                        proposed_camera_height = new_camera_height_val;
+                    }
+                }
+            });
+        
+            $("#update_camera_height_input").on("change", function(e) {
+                // proposed_camera_height = $("#update_camera_height_input").val();
+                // $("#update_camera_height_input").val(metadata["camera_height"]); //.trigger("input");
+        
+                if ($('#update_camera_height_button:hover').length != 0) {
+                    submit_camera_height_change();
+                }
+                else {
+                    //proposed_camera_height = $("#update_camera_height_input").val();
+                    $("#update_camera_height_input").val(metadata["camera_height"]).trigger("input");
+                }
+            });
+                    
+            $("#bottom_right").append(`<div style="text-decoration: underline; font-weight: bold;">Camera Metadata</div><br>`);
+        
+        
+            $("#bottom_right").append(`<table class="transparent_table" id="camera_specs_table"></table>`);
+        
+        
+            if ((make === "") || (model === "")) {
+        
+                $("#bottom_right").append(`<table class="transparent_table" id="missing_specs_table"></table>`);
+        
+                $("#missing_specs_table").append(`<tr>` +
+                `<td style="height: 20px"></td>` +
+                `</tr>`);
+        
+        
+                $("#missing_specs_table").append(`<tr>` +
+                    `<td><div class="table_head">Metadata could not be extracted.</div></td>` +
+                    `</tr>`);
+                $("#missing_specs_table").append(`<tr>` +
+                    `<td style="height: 10px"></td>` +
+                    `</tr>`);
+        
+                $("#missing_specs_table").append(`<tr>` +
+                    `<td>` +
+                    `<button class="std-button std-button-hover" style="width: 220px; height: 30px;" onclick="add_make_model_metadata()">`+
+                        `Add Metadata</button>` +
+                    `</td>` +
+                    `</tr>`);
+            }
+            else {
+        
+                $("#camera_specs_table").append(`<tr>` +
+                        `<td><div class="table_head" style="width: ${label_width};">Make</div></td>` +
+                        `<td><div class="table_text" style="width: ${value_width};">${make}</div></td>` +
+                        `</tr>`);
+                $("#camera_specs_table").append(`<tr>` +
+                        `<td><div class="table_head" style="width: ${label_width};">Model</div></td>` +
+                        `<td><div class="table_text" style="width: ${value_width};">${model}</div></td>` +
+                        `</tr>`);
+        
+        
+                if (make in camera_specs && model in camera_specs[make]) {
+        
+                    let sensor_height = camera_specs[make][model]["sensor_height"].toString();
+                    let sensor_width = camera_specs[make][model]["sensor_width"].toString();
+                    let focal_length = camera_specs[make][model]["focal_length"].toString() ;
+        
+                    $("#camera_specs_table").append(`<tr>` +
+                            `<td><div class="table_head" style="width: ${label_width};">Sensor Width (mm)</div></td>` +
+                            `<td><div class="table_text" style="width: ${value_width};">${sensor_width}</div></td>` +
+                            `</tr>`);
+                    $("#camera_specs_table").append(`<tr>` +
+                            `<td><div class="table_head" style="width: ${label_width};">Sensor Height (mm)</div></td>` +
+                            `<td><div class="table_text" style="width: ${value_width};">${sensor_height}</div></td>` +
+                            `</tr>`);
+                    $("#camera_specs_table").append(`<tr>` +
+                            `<td><div class="table_head" style="width: ${label_width};">Focal Length (mm)</div></td>` +
+                            `<td><div class="table_text" style="width: ${value_width};">${focal_length}</div></td>` +
+                            `</tr>`);
+        
+                    $("#bottom_right").append(`<table class="transparent_table" id="missing_specs_table"></table>`);
+        
+                    $("#missing_specs_table").append(`<tr>` +
+                    `<td style="height: 20px"></td>` +
+                    `</tr>`);
+        
+                    $("#missing_specs_table").append(`<tr>` +
+                        `<td>` +
+                        `<button class="std-button std-button-hover" style="width: 220px; height: 30px;" ` +
+                        `onclick="edit_metadata('${make}', '${model}')">`+
+                            `Edit Metadata</button>` +
+                        `</td>` +
+                        `</tr>`);
+        
+        
+                }
+        
+                else {
+        
+                    $("#bottom_right").append(`<table class="transparent_table" id="missing_specs_table"></table>`);
+        
+                    $("#missing_specs_table").append(`<tr>` +
+                    `<td style="height: 20px"></td>` +
+                    `</tr>`);
+        
+                    $("#missing_specs_table").append(`<tr>` +
+                    `<td><div class="table_head">This camera is not known to the system.</div></td>` +
+                    `</tr>`);
+        
+                    $("#missing_specs_table").append(`<tr>` +
+                    `<td style="height: 10px"></td>` +
+                    `</tr>`);
+        
+                    $("#missing_specs_table").append(`<tr>` +
+                        `<td>` +
+                        `<button class="std-button std-button-hover" style="width: 220px; height: 30px;" ` +
+                        `onclick="add_sensor_metadata('${make}', '${model}')">`+
+                            `Add Metadata</button>` +
+                        `</td>` +
+                        `</tr>`);
+        
+                }
+        
+            }
+        
+        
+            $("#left_section").append(
+                        `<table class="transparent_table" id="left_table">` +
+                        `<tr>` +
+                        `<td>` +
+                        `<button class="std-button std-button-hover" style="width: 220px; height: 80px; border-radius: 100px" onclick="annotate_request()">`+
+                            `<span><i class="fa-solid fa-pen-to-square" style="margin-right:8px"></i>Workspace</span></button>` +
+                        `</td>` +
+                        `</tr>` +
+                        `</table>`);
+        
+            $("#top_left").append(`<div style="text-decoration: underline; font-weight: bold;">Annotations</div><br>`);
+            $("#top_left").append(`<table class="transparent_table" id="annotation_stats_table"></table>`);
+        
+            $("#annotation_stats_table").append(`<tr>` +
+                    `<td><div class="table_head" style="width: ${label_width};">Total</div></td>` +
+                    `<td><div class="table_text" style="width: ${value_width};">${annotation_info["num_annotations"]}</div></td>` +
+                    `</tr>`);
+        
+            $("#bottom_left").append(`<div style="text-decoration: underline; font-weight: bold;">Images</div><br>`);
+            $("#bottom_left").append(`<table class="transparent_table" id="image_stats_table"></table>`);
+        
+            $("#image_stats_table").append(`<tr>` +
+                    `<td><div class="table_head" style="width: ${label_width};">Total</div></td>` +
+                    `<td><div class="table_text" style="width: ${value_width};">${annotation_info["num_images"]}</div></td>` +
+                    `</tr>`);  
+        
+            $("#image_stats_table").append(`<tr>` +
+                    `<td><div class="table_head" style="width: ${label_width};">Fully Annotated</div></td>` +
+                    `<td><div class="table_text" style="width: ${value_width};">${annotation_info["num_completed"]}</div></td>` +
+                    `</tr>`);       
+            $("#image_stats_table").append(`<tr>` +
+                    `<td><div class="table_head" style="width: ${label_width};">Partially Annotated</div></td>` +
+                    `<td><div class="table_text" style="width: ${value_width};">${annotation_info["num_started"]}</div></td>` +
+                    `</tr>`);
+            $("#image_stats_table").append(`<tr>` +
+                    `<td><div class="table_head" style="width: ${label_width};">Unannotated</div></td>` +
+                    `<td><div class="table_text" style="width: ${value_width};">${annotation_info["num_unannotated"]}</div></td>` +
+                    `</tr>`);
+        
+                    
+        
+            if (annotation_info["num_annotations"] == 0) {
+                $("#left_table").append(
+                    `<tr style="height: 80px">` +
+                    `<td>` +
+                    `<button class="x-button x-button-hover" style="width: 220px; height: 35px;" onclick="delete_request()">`+
+                        `<i class="fa-regular fa-circle-xmark" style="margin-right:8px"></i>Delete Image Set</button>` +
+                    `</td>` +
+                    `</tr>`);
+            
+            }
+        }
+    });
+
+
+
+    /*
+
     let job_url = get_CC_PATH() + "/usr/data/" + username + "/image_sets/" + farm_name + "/" + field_name + 
                     "/" + mission_date + "/annotations/annotations_w3c.json";
     let metadata_url = get_CC_PATH() + "/usr/data/" + username + "/image_sets/" + farm_name + "/" + field_name + 
                     "/" + mission_date + "/metadata/metadata.json";
 
-    let annotations = get_json(job_url);
-    metadata = get_json(metadata_url);
+    
 
+    let annotations = get_json(job_url);
+    metadata = get_json(metadata_url);*/
+    /*
     let total_annotations = 0;
     let total_images = 0;
     let completed = 0;
@@ -676,264 +961,8 @@ function show_overview() {
         else {
             unannotated += 1;
         }     
-    }
-    let label_width = "200px";
-    let value_width = "200px";
+    }*/
 
-    $("#tab_details").empty();
-
-    $("#tab_details").append(`<table class="transparent_table" style="height: 500px; width: 90%" id="image_set_table"></table>`);
-
-    $("#image_set_table").append(`<tr>`+
-    `<td style="width: 50%;" id="left_section">` +
-    `</td>` +
-    `<td style="width: 50%;" id="right_section">` +
-        `<div style="height: 70px"></div>` +
-        `<table id="right_table">` +
-            `<tr id="top_row" style="height: 160px">` +
-                `<td id="top_left" style="vertical-align: top;"></td>` +
-                `<td id="top_right" style="vertical-align: top"></td>` +
-            `</tr>` +
-            `<tr id="bottom_row" style="height: 270px">` +
-                `<td id="bottom_left" style="vertical-align: top;"></td>` +
-                `<td id="bottom_right" style="vertical-align: top"></td>` +
-            `</tr>` +
-        `</table>` +
-    `</td>` +
-    `</tr>`);
-
-    let make = metadata["camera_info"]["make"];
-    let model = metadata["camera_info"]["model"];
-
-    let camera_height = metadata["camera_height"];
-
-    let is_georeferenced;
-    if (metadata["missing"]["latitude"] || metadata["missing"]["longitude"]) {
-        is_georeferenced = "No";
-    }
-    else {
-        is_georeferenced = "Yes";
-    }
-    $("#top_right").append(`<div style="text-decoration: underline; font-weight: bold;">Image Set Metadata</div><br>`);
-    $("#top_right").append(`<table class="transparent_table" id="image_set_metadata_table"></table>`);
-
-    // $("#image_set_metadata_table").append(`<tr>` +
-    //         `<td><div class="table_head" style="width: ${label_width};">Camera Height</div></td>` +
-    //         `<td><div class="table_text" style="width: ${value_width};">${camera_height}</div></td>` +
-    //         `</tr>`);
-    $("#image_set_metadata_table").append(`<tr>` +
-            `<td><div class="table_head" style="width: ${label_width};">Camera Height (m)</div></td>` +
-            `<td><input id="update_camera_height_input" class="nonfixed_input" style="width: 80px" value="${camera_height}">` 
-            +`<button id="update_camera_height_button" class="std-button std-button-hover" style="width: 80px; font-size: 16px">Update</button></td>` +
-            `</tr>`);
-
-
-    //         div(style="width: 250px")
-    //             input(id="mission_input" type="date" class="nonfixed_input")
-
-    $("#image_set_metadata_table").append(`<tr>` +
-            `<td><div class="table_head" style="width: ${label_width};">Georeferenced</div></td>` +
-            `<td><div class="table_text" style="width: ${value_width};">${is_georeferenced}</div></td>` +
-            `</tr>`);
-
-    disable_std_buttons(["update_camera_height_button"]);
-
-
-    $("#update_camera_height_input").on("input", function(e) {
-
-        let new_camera_height = $("#update_camera_height_input").val();
-        if (new_camera_height.length == 0) {
-            enable_std_buttons(["update_camera_height_button"]);
-            proposed_camera_height = new_camera_height;
-        }
-        else if (!(isNumeric(new_camera_height))) {
-            disable_std_buttons(["update_camera_height_button"]);
-        }
-        else {
-            let new_camera_height_val = parseFloat(new_camera_height);
-            if (new_camera_height_val < 0.01 || new_camera_height_val > 1000) {
-                disable_std_buttons(["update_camera_height_button"]);
-            }
-            else if (new_camera_height_val == metadata["camera_height"]) {
-                disable_std_buttons(["update_camera_height_button"]);
-            }
-            else {
-                enable_std_buttons(["update_camera_height_button"]);
-                proposed_camera_height = new_camera_height_val;
-            }
-        }
-    });
-
-    $("#update_camera_height_input").on("change", function(e) {
-        // proposed_camera_height = $("#update_camera_height_input").val();
-        // $("#update_camera_height_input").val(metadata["camera_height"]); //.trigger("input");
-
-        if ($('#update_camera_height_button:hover').length != 0) {
-            submit_camera_height_change();
-        }
-        else {
-            //proposed_camera_height = $("#update_camera_height_input").val();
-            $("#update_camera_height_input").val(metadata["camera_height"]).trigger("input");
-        }
-    });
-            
-    $("#bottom_right").append(`<div style="text-decoration: underline; font-weight: bold;">Camera Metadata</div><br>`);
-
-
-    $("#bottom_right").append(`<table class="transparent_table" id="camera_specs_table"></table>`);
-
-
-    if ((make === "") || (model === "")) {
-
-        $("#bottom_right").append(`<table class="transparent_table" id="missing_specs_table"></table>`);
-
-        $("#missing_specs_table").append(`<tr>` +
-        `<td style="height: 20px"></td>` +
-        `</tr>`);
-
-
-        $("#missing_specs_table").append(`<tr>` +
-            `<td><div class="table_head">Metadata could not be extracted.</div></td>` +
-            `</tr>`);
-        $("#missing_specs_table").append(`<tr>` +
-            `<td style="height: 10px"></td>` +
-            `</tr>`);
-
-        $("#missing_specs_table").append(`<tr>` +
-            `<td>` +
-            `<button class="std-button std-button-hover" style="width: 220px; height: 30px;" onclick="add_make_model_metadata()">`+
-                `Add Metadata</button>` +
-            `</td>` +
-            `</tr>`);
-    }
-    else {
-
-        $("#camera_specs_table").append(`<tr>` +
-                `<td><div class="table_head" style="width: ${label_width};">Make</div></td>` +
-                `<td><div class="table_text" style="width: ${value_width};">${make}</div></td>` +
-                `</tr>`);
-        $("#camera_specs_table").append(`<tr>` +
-                `<td><div class="table_head" style="width: ${label_width};">Model</div></td>` +
-                `<td><div class="table_text" style="width: ${value_width};">${model}</div></td>` +
-                `</tr>`);
-
-
-        if (make in camera_specs && model in camera_specs[make]) {
-
-            let sensor_height = camera_specs[make][model]["sensor_height"].toString();
-            let sensor_width = camera_specs[make][model]["sensor_width"].toString();
-            let focal_length = camera_specs[make][model]["focal_length"].toString() ;
-
-            $("#camera_specs_table").append(`<tr>` +
-                    `<td><div class="table_head" style="width: ${label_width};">Sensor Width (mm)</div></td>` +
-                    `<td><div class="table_text" style="width: ${value_width};">${sensor_width}</div></td>` +
-                    `</tr>`);
-            $("#camera_specs_table").append(`<tr>` +
-                    `<td><div class="table_head" style="width: ${label_width};">Sensor Height (mm)</div></td>` +
-                    `<td><div class="table_text" style="width: ${value_width};">${sensor_height}</div></td>` +
-                    `</tr>`);
-            $("#camera_specs_table").append(`<tr>` +
-                    `<td><div class="table_head" style="width: ${label_width};">Focal Length (mm)</div></td>` +
-                    `<td><div class="table_text" style="width: ${value_width};">${focal_length}</div></td>` +
-                    `</tr>`);
-
-            $("#bottom_right").append(`<table class="transparent_table" id="missing_specs_table"></table>`);
-
-            $("#missing_specs_table").append(`<tr>` +
-            `<td style="height: 20px"></td>` +
-            `</tr>`);
-
-            $("#missing_specs_table").append(`<tr>` +
-                `<td>` +
-                `<button class="std-button std-button-hover" style="width: 220px; height: 30px;" ` +
-                `onclick="edit_metadata('${make}', '${model}')">`+
-                    `Edit Metadata</button>` +
-                `</td>` +
-                `</tr>`);
-
-
-        }
-
-        else {
-
-            $("#bottom_right").append(`<table class="transparent_table" id="missing_specs_table"></table>`);
-
-            $("#missing_specs_table").append(`<tr>` +
-            `<td style="height: 20px"></td>` +
-            `</tr>`);
-
-            $("#missing_specs_table").append(`<tr>` +
-            `<td><div class="table_head">This camera is not known to the system.</div></td>` +
-            `</tr>`);
-
-            $("#missing_specs_table").append(`<tr>` +
-            `<td style="height: 10px"></td>` +
-            `</tr>`);
-
-            $("#missing_specs_table").append(`<tr>` +
-                `<td>` +
-                `<button class="std-button std-button-hover" style="width: 220px; height: 30px;" ` +
-                `onclick="add_sensor_metadata('${make}', '${model}')">`+
-                    `Add Metadata</button>` +
-                `</td>` +
-                `</tr>`);
-
-        }
-
-    }
-
-
-    $("#left_section").append(
-                `<table class="transparent_table" id="left_table">` +
-                `<tr>` +
-                `<td>` +
-                `<button class="std-button std-button-hover" style="width: 220px; height: 80px; border-radius: 100px" onclick="annotate_request()">`+
-                    `<span><i class="fa-solid fa-pen-to-square" style="margin-right:8px"></i>Workspace</span></button>` +
-                `</td>` +
-                `</tr>` +
-                `</table>`);
-
-    $("#top_left").append(`<div style="text-decoration: underline; font-weight: bold;">Annotations</div><br>`);
-    $("#top_left").append(`<table class="transparent_table" id="annotation_stats_table"></table>`);
-
-    $("#annotation_stats_table").append(`<tr>` +
-            `<td><div class="table_head" style="width: ${label_width};">Total</div></td>` +
-            `<td><div class="table_text" style="width: ${value_width};">${total_annotations}</div></td>` +
-            `</tr>`);
-
-    $("#bottom_left").append(`<div style="text-decoration: underline; font-weight: bold;">Images</div><br>`);
-    $("#bottom_left").append(`<table class="transparent_table" id="image_stats_table"></table>`);
-
-    $("#image_stats_table").append(`<tr>` +
-            `<td><div class="table_head" style="width: ${label_width};">Total</div></td>` +
-            `<td><div class="table_text" style="width: ${value_width};">${total_images}</div></td>` +
-            `</tr>`);  
-
-    $("#image_stats_table").append(`<tr>` +
-            `<td><div class="table_head" style="width: ${label_width};">Fully Annotated</div></td>` +
-            `<td><div class="table_text" style="width: ${value_width};">${completed}</div></td>` +
-            `</tr>`);       
-    $("#image_stats_table").append(`<tr>` +
-            `<td><div class="table_head" style="width: ${label_width};">Partially Annotated</div></td>` +
-            `<td><div class="table_text" style="width: ${value_width};">${started}</div></td>` +
-            `</tr>`);
-    $("#image_stats_table").append(`<tr>` +
-            `<td><div class="table_head" style="width: ${label_width};">Unannotated</div></td>` +
-            `<td><div class="table_text" style="width: ${value_width};">${unannotated}</div></td>` +
-            `</tr>`);
-
-            
-
-    if (total_annotations == 0) {
-        $("#left_table").append(
-            `<tr style="height: 80px">` +
-            `<td>` +
-            `<button class="x-button x-button-hover" style="width: 220px; height: 35px;" onclick="delete_request()">`+
-                `<i class="fa-regular fa-circle-xmark" style="margin-right:8px"></i>Delete Image Set</button>` +
-            `</td>` +
-            `</tr>`);
-    
-    }
 }
 
 

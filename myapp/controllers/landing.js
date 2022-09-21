@@ -1070,7 +1070,64 @@ exports.post_home = function(req, res, next) {
     //if (req.session.user && req.cookies.user_sid) {
     let action = req.body.action;
     let response = {};
-    if (action === "delete_image_set") {
+
+    if (action === "get_overview_info") {
+        let farm_name = req.body.farm_name;
+        let field_name = req.body.field_name;
+        let mission_date = req.body.mission_date;
+
+        let image_set_dir = path.join(USR_DATA_ROOT, req.session.user.username, "image_sets", 
+                                    farm_name, field_name, mission_date);
+
+        let annotations_path = path.join(image_set_dir, "annotations", "annotations_w3c.json");
+        let annotations;
+        try {
+            annotations = JSON.parse(fs.readFileSync(annotations_path, 'utf8'));
+        }
+        catch (error) {
+            response.message = "Failed to read annotations file";
+            response.error = true;
+            return res.json(response);
+        }
+
+        let annotation_info = {
+            "num_annotations": 0,
+            "num_images": 0,
+            "num_completed": 0,
+            "num_started": 0,
+            "num_unannotated": 0
+        };
+        for (let image_name of Object.keys(annotations)) {
+            annotation_info["num_annotations"] += annotations[image_name]["annotations"].length;
+            annotation_info["num_images"]++;
+            if (annotations[image_name]["status"] === "completed_for_training" || annotations[image_name]["status"] === "completed_for_testing") {
+                annotation_info["num_completed"]++;
+            }
+            else if (annotations[image_name]["status"] === "started") {
+                annotation_info["num_started"]++;
+            }
+            else {
+                annotation_info["num_unannotated"]++;
+            }
+        }
+
+        let metadata_path = path.join(image_set_dir, "metadata", "metadata.json");
+        let metadata;
+        try {
+            metadata = JSON.parse(fs.readFileSync(metadata_path, 'utf8'));
+        }
+        catch (error) {
+            response.message = "Failed to read metadata file";
+            response.error = true;
+            return res.json(response);
+        }
+
+        response.annotation_info = annotation_info;
+        response.metadata = metadata;
+        response.error = false;
+        return res.json(response);
+    }
+    else if (action === "delete_image_set") {
         
         let farm_name = req.body.farm_name;
         let field_name = req.body.field_name;
@@ -1106,7 +1163,17 @@ exports.post_home = function(req, res, next) {
         }*/
             
         let annotations_path = path.join(mission_dir, "annotations", "annotations_w3c.json");
-        let annotations = JSON.parse(fs.readFileSync(annotations_path, 'utf8'));
+        let annotations;
+        try {
+            annotations = JSON.parse(fs.readFileSync(annotations_path, 'utf8'));
+        }
+        catch (error) {
+            response.message = "Failed to read annotations file";
+            response.error = true;
+            return res.json(response);
+        }
+
+
         let empty = true;
         for (let image_name of Object.keys(annotations)) {
             if (annotations[image_name]["annotations"].length > 0) {
