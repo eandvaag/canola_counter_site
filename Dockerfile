@@ -36,10 +36,11 @@ RUN apt update && apt install -y imagemagick
 #COPY --chown=app ./node_modules/annotorious ./node_modules/annotorious
 #COPY --chown=app ./node_modules/openseadragon3 ./node_modules/openseadragon3
 RUN ln -s /usr/bin/python3 /usr/bin/python
+RUN sed -i 's/policy domain="resource" name="disk" value="1GiB"/policy domain="resource" name="disk" value="8GiB"/' /etc/ImageMagick-6/policy.xml
 
 USER app
 #RUN chown -R app:app /opt/app/plant_detection/src/usr
 RUN ln -s /opt/app/plant_detection/src/usr /opt/app/plant_detection_viewer/myapp/usr
 RUN chmod +x myapp-init.sh
 CMD /bin/sh /opt/app/plant_detection_viewer/myapp/myapp-init.sh
-EXPOSE 8110
+EXPOSE 8115

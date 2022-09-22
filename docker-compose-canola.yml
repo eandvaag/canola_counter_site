@@ -25,12 +25,15 @@ services:
       DB_HOST: db 
       DB_PORT: 5432 
       NODE_ENV: 'docker'
+      #NODE_OPTIONS: "--tls-cipher-list='TLS_AES_128_CCM_SHA256'"
       CC_IP: myapp
-      CC_PORT: '8110'
+      CC_PORT: "${CC_PORT}"
+      CC_PY_PORT: "${CC_PY_PORT}"
+      CC_PATH: "${CC_PATH}"
     depends_on:
       - db
     ports:
-      - '8110:8110'
+      - '8115:8115'
     volumes:
       - type: bind
         source: /home/eaa299/workspace/plant_detection/plant_detection_viewer/myapp/usr
