@@ -105,7 +105,6 @@ async function process_upload(username, farm_name, field_name, mission_date, cam
 
     let images_dir = path.join(mission_dir, "images");
     let dzi_images_dir = path.join(mission_dir, "dzi_images");
-    let conversion_tmp_dir = path.join(dzi_images_dir, "conversion_tmp");
     let annotations_dir = path.join(mission_dir, "annotations");
     let metadata_dir = path.join(mission_dir, "metadata");
     
@@ -136,7 +135,6 @@ async function process_upload(username, farm_name, field_name, mission_date, cam
     console.log("Creating image set directories");
     try {
         fs.mkdirSync(dzi_images_dir, { recursive: true });
-        fs.mkdirSync(conversion_tmp_dir, { recursive: true });
         fs.mkdirSync(annotations_dir, { recursive: true });
         fs.mkdirSync(metadata_dir, { recursive: true });
         fs.mkdirSync(patches_dir, { recursive: true });
@@ -278,12 +276,11 @@ async function process_upload(username, farm_name, field_name, mission_date, cam
 
             if (!(no_convert_extensions.includes(extension))) {
                 // console.log("conversion is required");
-                //let tmp_path = path.join(conversion_tmp_dir, extensionless_fname + ".jpg");
 
                 // convert to .png
                 let new_path = path.join(images_dir, extensionless_fname + ".png");
                 let conv_cmd = "convert " + fpath + " " + new_path;
-                let slice_cmd = "./MagickSlicer/magick-slicer.sh '" + new_path + "' '" + img_dzi_path + "'";
+                let slice_cmd = "./MagickSlicer/magick-slicer.sh -v1 '" + new_path + "' '" + img_dzi_path + "'";
 
                 exec(conv_cmd, {shell: "/bin/bash"}, function (error, stdout, stderr) {
 
@@ -320,12 +317,11 @@ async function process_upload(username, farm_name, field_name, mission_date, cam
                         num_converted++;
                     });
                 });
-
             }
             else {
 
                 // console.log("conversion is not required");
-                let slice_cmd = "./MagickSlicer/magick-slicer.sh '" + fpath + "' '" + img_dzi_path + "'";
+                let slice_cmd = "./MagickSlicer/magick-slicer.sh -v1 '" + fpath + "' '" + img_dzi_path + "'";
                 // try {
                 //     execSync(slice_cmd, {shell: "/bin/bash"});
                 // }
@@ -351,6 +347,7 @@ async function process_upload(username, farm_name, field_name, mission_date, cam
         //     return;
         // }
         //await sleep(100);
+
         await new Promise(resolve => setTimeout(resolve, 100));
 
     }
