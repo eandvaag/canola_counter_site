@@ -21,10 +21,12 @@ function set_timeline_data() {
     timeline_data = {}
     timeline_data["pred_count"] = [];
     timeline_data["pred_count_minus_annotated_count"] = [];
+    timeline_data["relative_count_error"] = []
     timeline_data["score_quality"] = [];
 
     let sensor_height, sensor_width, focal_length, camera_height;
     let include_density = can_calculate_density(metadata, camera_specs);
+    console.log("include_density?", include_density);
     if (include_density) {
         let make = metadata["camera_info"]["make"];
         let model = metadata["camera_info"]["model"];
@@ -50,16 +52,27 @@ function set_timeline_data() {
         let completed = ((annotations[image_name]["status"] === "completed_for_training") || (annotations[image_name]["status"] === "completed_for_testing"));
         let predicted_counts = [];
         let count_differences = [];
+        let relative_count_errors = [];
         let score_qualities = [];
         let predicted_densities = [];
-        let density_differences = []
+        let density_differences = [];
         let i = 0;
         for (let timestamp of sorted_timestamps) {
 
-            let predicted_count = predictions[timestamp][image_name]["annotations"].length;
+            let predicted_count = 0;
+            for (let annotation of predictions[timestamp][image_name]["annotations"]) {
+                let score_el = annotation["body"].find(b => b.purpose == 'score');
+                if (!score_el || score_el.value >= 0.50) {
+                    predicted_count++;
+                }
+            }
+
+
+
+            predictions[timestamp][image_name]["annotations"].length;
             predicted_counts.push([i, predicted_count]);
 
-            let gsd_h, gsd_w, gsd, image_height_m, image_width_m, area_m2;
+            let gsd_h, gsd_w, gsd, image_height_m, image_width_m, area_m2, predicted_density;
             if (include_density) {
                 gsd_h = (camera_height * sensor_height) / (focal_length * metadata["images"][image_name]["height_px"]);
                 gsd_w = (camera_height * sensor_width) / (focal_length * metadata["images"][image_name]["width_px"]);     
@@ -101,6 +114,12 @@ function set_timeline_data() {
                 let annotated_count = annotations[image_name]["annotations"].length;
                 count_differences.push([i, predicted_count - annotated_count]);
 
+                
+                if (annotated_count != 0) {
+                    let relative_count_error = Math.abs((predicted_count - annotated_count) / (annotated_count));
+                    relative_count_errors.push([i, relative_count_error]);
+                }
+
                 let annotated_density = annotated_count / area_m2;
                 annotated_density = Math.round((annotated_density + Number.EPSILON) * 100) / 100;
                 density_differences.push([i, predicted_density - annotated_density]);
@@ -126,6 +145,10 @@ function set_timeline_data() {
                 "image_name": image_name,
                 "values": count_differences
             });
+            timeline_data["relative_count_error"].push({
+                "image_name": image_name,
+                "values": relative_count_errors
+            });
             if (include_density) {
                 timeline_data["pred_density_minus_annotated_density"].push({
                     "image_name": image_name,
@@ -140,8 +163,12 @@ function set_timeline_data() {
 
 function get_range(line_data) {
 
-    let cur_metric = $("#metric_combo").val();
 
+
+    let cur_metric = $("#metric_combo").val();
+    console.log("cur_metric", cur_metric);
+    console.log("cur_timeline_data", cur_timeline_data);
+    console.log("line_data", line_data);
     if (line_data.length == 0) {
         return [0, 0];
     }
@@ -166,13 +193,13 @@ function get_range(line_data) {
             }
         }
     }
-    if ((cur_metric === "pred_count") || (cur_metric === "pred_density")) {
+    if (((cur_metric === "pred_count") || (cur_metric === "pred_density")) || (cur_metric === "relative_count_error")) {
         min_val = 0;
     }
     if ((cur_metric === "pred_count_minus_annotated_count") || (cur_metric === "pred_density_minus_annotated_density")) {
         let extreme = Math.max(Math.abs(min_val), Math.abs(max_val));
-        min_val = -1 * extreme;
-        max_val = extreme;
+        min_val = (-1 * extreme) - 1;
+        max_val = (extreme) + 1;
     }
 
     return [min_val, max_val];
@@ -357,7 +384,7 @@ function draw_timeline_chart() {
         chart.append("path")
         .attr("id", "zero_line")
         .attr("d", function(d) { 
-            return chart_line([0, 0], [sorted_timestamps.length-1, 0]);
+            return chart_line([[0, 0], [sorted_timestamps.length-1, 0]]);
         })
         .attr("stroke-linecap", "round")
         .attr("stroke", "white")

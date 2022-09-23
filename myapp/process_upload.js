@@ -64,7 +64,7 @@ function upload_notify(username, farm_name, field_name, mission_date) {
         rejectUnauthorized: false
     };
 
-    const req = https.request(options, res => {
+    let req = https.request(options, res => {
         console.log(`statusCode: ${res.statusCode}`);
 
         res.on("data", d => {

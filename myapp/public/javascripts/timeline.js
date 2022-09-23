@@ -12,6 +12,7 @@ let metric_text_lookup = {
     "score_quality": "Estimated Quality of Scores",
     "pred_count_minus_annotated_count": "Predicted Count - Annotated Count",
     "pred_density_minus_annotated_density": "(Predicted Count / m&sup2;) - (Annotated Count / m&sup2;)",
+    "relative_count_error": "Relative Count Error",
     "MS_COCO_mAP": "MS COCO mAP"
 }
 
@@ -70,8 +71,9 @@ function add_metric_combo_options() {
     $("#metric_combo").empty();
 
     let options;
+    let include_density = can_calculate_density(metadata, camera_specs);
     if ((status_val == "all" || status_val == "unannotated") || status_val == "started") {
-        if (can_calculate_density(metadata, camera_specs)) {
+        if (include_density) {
             options = ["pred_count", "pred_density", "score_quality"];
         }
         else {
@@ -79,12 +81,12 @@ function add_metric_combo_options() {
         }
     }
     else {
-        if (can_calculate_density) {
+        if (include_density) {
             options = ["pred_count", "pred_density", "pred_count_minus_annotated_count", 
-                        "pred_density_minus_annotated_density", "MS_COCO_mAP", "score_quality"];
+                        "pred_density_minus_annotated_density", "relative_count_error", "MS_COCO_mAP", "score_quality"];
         }
         else {
-            options = ["pred_count", "pred_count_minus_annotated_count", "MS_COCO_mAP", "score_quality"];
+            options = ["pred_count", "pred_count_minus_annotated_count", "relative_count_error", "MS_COCO_mAP", "score_quality"];
         }
     }
 
