@@ -21,12 +21,12 @@ function set_timeline_data() {
     timeline_data = {}
     timeline_data["pred_count"] = [];
     timeline_data["pred_count_minus_annotated_count"] = [];
-    timeline_data["relative_count_error"] = []
+    timeline_data["percent_count_error"] = []
     timeline_data["score_quality"] = [];
 
     let sensor_height, sensor_width, focal_length, camera_height;
     let include_density = can_calculate_density(metadata, camera_specs);
-    console.log("include_density?", include_density);
+
     if (include_density) {
         let make = metadata["camera_info"]["make"];
         let model = metadata["camera_info"]["model"];
@@ -52,7 +52,7 @@ function set_timeline_data() {
         let completed = ((annotations[image_name]["status"] === "completed_for_training") || (annotations[image_name]["status"] === "completed_for_testing"));
         let predicted_counts = [];
         let count_differences = [];
-        let relative_count_errors = [];
+        let percent_count_errors = [];
         let score_qualities = [];
         let predicted_densities = [];
         let density_differences = [];
@@ -116,8 +116,8 @@ function set_timeline_data() {
 
                 
                 if (annotated_count != 0) {
-                    let relative_count_error = Math.abs((predicted_count - annotated_count) / (annotated_count));
-                    relative_count_errors.push([i, relative_count_error]);
+                    let percent_count_error = Math.abs((predicted_count - annotated_count) / (annotated_count)) * 100;
+                    percent_count_errors.push([i, percent_count_error]);
                 }
 
                 let annotated_density = annotated_count / area_m2;
@@ -145,9 +145,9 @@ function set_timeline_data() {
                 "image_name": image_name,
                 "values": count_differences
             });
-            timeline_data["relative_count_error"].push({
+            timeline_data["percent_count_error"].push({
                 "image_name": image_name,
-                "values": relative_count_errors
+                "values": percent_count_errors
             });
             if (include_density) {
                 timeline_data["pred_density_minus_annotated_density"].push({
@@ -163,12 +163,8 @@ function set_timeline_data() {
 
 function get_range(line_data) {
 
-
-
     let cur_metric = $("#metric_combo").val();
-    console.log("cur_metric", cur_metric);
-    console.log("cur_timeline_data", cur_timeline_data);
-    console.log("line_data", line_data);
+
     if (line_data.length == 0) {
         return [0, 0];
     }
@@ -193,7 +189,7 @@ function get_range(line_data) {
             }
         }
     }
-    if (((cur_metric === "pred_count") || (cur_metric === "pred_density")) || (cur_metric === "relative_count_error")) {
+    if (((cur_metric === "pred_count") || (cur_metric === "pred_density")) || (cur_metric === "percent_count_error")) {
         min_val = 0;
     }
     if ((cur_metric === "pred_count_minus_annotated_count") || (cur_metric === "pred_density_minus_annotated_density")) {
