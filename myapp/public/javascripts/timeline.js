@@ -113,6 +113,14 @@ $(document).ready(function() {
     metadata = data["metadata"];
     camera_specs = data["camera_specs"];
 
+    let pieces = window.location.pathname.split("/"); //
+    let farm_name = pieces[pieces.length - 3];
+    let field_name = pieces[pieces.length - 2];
+    let mission_date = pieces[pieces.length - 1];
+    $("#image_set_name").text(farm_name + "  |  " + 
+                              field_name + "  |  " + 
+                              mission_date);
+
     sorted_timestamps = Object.keys(predictions).sort();
 
     calculate_mAP();

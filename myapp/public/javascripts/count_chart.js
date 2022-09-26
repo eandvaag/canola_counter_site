@@ -104,12 +104,12 @@ function set_count_chart_data() {
             //"PASCAL VOC mAP": "Image PASCAL VOC mAP"
         // }
         for (let image_name of Object.keys(annotations)) {
-            count_chart_data[image_name]["annotations"] = 0;
+            count_chart_data[image_name]["Annotations"] = 0;
             if ((image_name in metrics) && (metric in metrics[image_name])) {
-                count_chart_data[image_name]["predictions"] = metrics[image_name][metric].toFixed(2);
+                count_chart_data[image_name]["Predictions"] = metrics[image_name][metric].toFixed(2);
             }
             else {
-                count_chart_data[image_name]["predictions"] = 0;
+                count_chart_data[image_name]["Predictions"] = 0;
             }
         }
         /*

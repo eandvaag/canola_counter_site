@@ -1582,13 +1582,13 @@ $(document).ready(function() {
 
 
             cur_update_num = update_num;
-            let status = capitalizeFirstLetter(update["status"]);
+            let status = update["status"];
             let update_username = update["username"];
             let update_farm_name = update["farm_name"];
             let update_field_name = update["field_name"];
             let update_mission_date = update["mission_date"];
             let date = timestamp_to_date(update_timestamp);
-            let display_statuses = ["Training", "Predicting", "Restarting", "Idle"];
+            let display_statuses = ["Training", "Predicting", "Restarting", "Idle", "Determining Patch Size"];
             let update_is_for_this_set = ((update_username === username && update_farm_name === image_set_info["farm_name"]) &&
             (update_field_name === image_set_info["field_name"] && update_mission_date === image_set_info["mission_date"]));
 
