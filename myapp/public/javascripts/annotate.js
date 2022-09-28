@@ -1579,8 +1579,6 @@ $(document).ready(function() {
         let update_num = parseInt(update["update_num"]);
         if (update_num > cur_update_num) {
 
-
-
             cur_update_num = update_num;
             let status = update["status"];
             let update_username = update["username"];
@@ -1594,6 +1592,11 @@ $(document).ready(function() {
 
             if (display_statuses.includes(status)) {
                 $("#backend_status").empty();
+                if (status === "Predicting") {
+                    let num_processed = parseInt(update["num_processed"]);
+                    let num_images = parseInt(update["num_images"]);
+                    status = status + ": " + num_processed + " / " + num_images;
+                }
                 $("#backend_status").append(`<div>${status}</div>`);
                 $("#backend_update_time").html(date);
 

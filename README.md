@@ -8,3 +8,76 @@ To stop app, move to plant_detection_viewer directory and run
     ./docker-ctl.sh stop
 ```
 
+
+
+Setup
+
+Install npm.
+```
+sudo npm install -g n
+sudo n 14.18.1
+```
+
+Install packages (execute from myapp directory).
+```
+npm install package.json
+```
+
+Install posgresql.
+```
+sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+
+wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
+
+sudo apt-get update
+
+sudo apt-get -y install postgresql
+```
+
+Acquire config.json and place in myapp/config.
+
+Create database and database user.
+```
+sudo -u postgres psql
+```
+In psql (replace 'XXX' with password found in config.json):
+```
+CREATE DATABASE plant_detection_db;
+CREATE ROLE plant_detection_dbuser WITH PASSWORD 'XXX';
+```
+
+Run migrations.
+```
+npx sequelize-cli db:migrate
+```
+
+Acquire user seeders file and place in myapp/seeders. Then run seeders.
+```
+npx sequelize-cli db:seed:all
+```
+
+
+Add environment variables to ~/.bashrc
+```
+export CC_IP="YOUR_IP_ADDRESS_HERE"
+export CC_PORT="8110"
+export CC_PY_PORT="8111"
+export CC_PATH="/canola_counter_https"
+```
+
+
+Acquire cert.pem and key.pem and add to myapp directory.
+
+Install image-magick.
+```
+sudo apt install imagemagick
+```
+
+Edit /etc/ImageMagick-6/policy.xml to allow larger files to be converted.
+<policy domain="resource" name="disk" value="10GiB"/>
+
+
+Install exiftool.
+```
+sudo apt install libimage-exiftool-perl
+```
