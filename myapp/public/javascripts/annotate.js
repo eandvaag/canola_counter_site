@@ -300,13 +300,18 @@ function update_image_status() {
 function set_image_status_combo() {
 
     let cur_image_status = annotations[cur_img_name]["status"];
-    //let num_annotations = annotations[cur_img_name]["annotations"].length;
+    let num_annotations = annotations[cur_img_name]["annotations"].length;
     let image_status_options;
     if (cur_image_status === "completed_for_training") {
         image_status_options = ["completed_for_training"];
     }
     else if (cur_image_status === "completed_for_testing") {
-        image_status_options = ["completed_for_training", "completed_for_testing"];
+        if (num_annotations == 0) {
+            image_status_options = ["unannotated", "completed_for_training", "completed_for_testing"];
+        }
+        else {
+            image_status_options = ["started", "completed_for_training", "completed_for_testing"];
+        }
     }
         /*
         if (num_annotations > 0) {
