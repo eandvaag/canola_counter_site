@@ -21,6 +21,7 @@ html
         script(type='text/javascript' src=process.env.CC_PATH + '/javascripts/common.js')
         script(type='text/javascript' src=process.env.CC_PATH + '/javascripts/modal.js')
         script(type='text/javascript' src=process.env.CC_PATH + '/javascripts/upload.js')
+        script(type='text/javascript' src=process.env.CC_PATH + '/javascripts/train.js')
 
     body
         div(id="container")
@@ -77,6 +78,12 @@ html
                                             |
                                             | Upload
 
+                                li(id="train_tab_btn" class="nav")
+                                    a(class="nav")
+                                        span
+                                            i(class="fa-solid fa-person-running" style="margin-right:3px")
+                                            |
+                                            | Train
 
                                 //-
                                     li(id="train_baseline_tab_btn" class="nav")
@@ -176,16 +183,52 @@ html
                                         div(style="height: 50px")
                                             button(id="upload_button" class="std-button std-button-hover" style="width: 200px; height: 40px;" type="submit") Upload 
                                 
+                                
+                                div(id="train" hidden)
+
+                                    br
+                                    br
+                                    br
+
+
+                                    table(class="transparent_table")
+                                        tr
+                                            td(style="width: 800px")
+                                                div(class="scrollable_area" style="height: 475px; overflow-y: scroll")
+                                                    table(id="image_sets_table" style="width: 800px")
+
+                                            td(style="width: 100%")
+
+
+
+                                    br
+
+                                    table(class="transparent_table")
+                                        tr 
+                                            th 
+                                                div(class="table_head" style="width: 140px") Model Name
+                                            th 
+                                                div(style="width: 250px")
+                                                    input(id="model_name_input" class="nonfixed_input")
+
+                        
+                                    br
+
+                                    div(style="height: 50px")
+                                        button(id="submit_button" class="std-button std-button-hover" style="width: 200px; height: 40px;") Submit Request
+
+
+
+
+
+
+
+
                                 //-
-                                    div(id="train_baseline" hidden)
-
-                                        br
-                                        br
-                                        br
-
-                                        div(class="scrollable_area" style="height: 280px; margin: 10px 10px; padding: 10px 10px")
-                                            table(id="image_sets_table" class="transparent_table")
+                                    div(class="scrollable_area" style="height: 280px; margin: 10px 10px; padding: 10px 10px")
+                                        table(id="image_sets_table" class="transparent_table")
     script.
         let username = !{JSON.stringify(username)};
         let image_sets_data = !{JSON.stringify(image_sets_data)};
         let camera_specs = !{JSON.stringify(camera_specs)};
+        let all_datasets = !{JSON.stringify(all_datasets)};

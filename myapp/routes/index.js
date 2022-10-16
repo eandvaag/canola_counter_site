@@ -10,8 +10,8 @@ router.get('/', landing.get_sign_in);
 router.post('/', landing.post_sign_in);
 router.get('/home/:username', landing.get_home);
 router.post('/home/:username', landing.post_home);
-router.get('/annotate/:username/:farm_name/:field_name/:mission_date', landing.get_annotate);
-router.post('/annotate/:username/:farm_name/:field_name/:mission_date', landing.post_annotate);
+router.get('/workspace/:username/:farm_name/:field_name/:mission_date', landing.get_workspace);
+router.post('/workspace/:username/:farm_name/:field_name/:mission_date', landing.post_workspace);
 //router.get('/upload', landing.get_upload);
 router.post('/upload', upload_files.array('source_file[]'), landing.post_upload);
 //router.get('/train', landing.get_train);
@@ -33,6 +33,9 @@ router.get('/download/:username/:farm_name/:field_name/:mission_date/:timestamp/
 // router.post('/download/:username/:farm_name/:field_name/:mission_date/:timestamp/:download_uuid', landing.post_download);
 
 //router.get('/transfer', landing.get_transfer);
+
+//router.get('/baseline/:username', landing.get_baseline);
+//router.post('/baseline/:username', landing.post_baseline);
 
 router.get('/logout', landing.logout);
 

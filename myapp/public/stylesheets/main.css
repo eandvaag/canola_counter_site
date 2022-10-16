@@ -359,7 +359,7 @@ tr:first-child{ ;}*/
   font-size: 18px;
   /*padding: 5px 5px;*/
   padding: 5px;
-  margin: 0px 5px;
+  /*margin: 0px 5px;*/
   width: 95%;
   transition: all 0.5s;
   cursor: pointer;
@@ -408,7 +408,7 @@ tr:first-child{ ;}*/
   font-size: 18px;
   /*padding: 5px 5px;*/
   padding: 5px;
-  margin: 0px 5px;
+  /*margin: 0px 5px;*/
   width: 95%;
   transition: all 0.5s;
   cursor: pointer;
@@ -445,54 +445,6 @@ tr:first-child{ ;}*/
 
 .x-button-hover:hover {
   background-color: #802626; /*rgb(143, 24, 15);*/ /*#cc9923;*/
-}
-
-
-.stop-button {
-  display: inline-block;
-  border-radius: 30px;
-  background-color:  #2a3829; /*#998866;*/
-  border: 1px solid white; /*none;*/
-  color: white;
-  text-align: center;
-  font-size: 18px;
-  padding: 5px 5px;
-  width: 95%;
-  transition: all 0.5s;
-  cursor: pointer;
-  margin: 5px 5px; 
-}
-
-
-.stop-button span {
-  cursor: pointer;
-  display: inline-block;
-  position: relative;
-  transition: 0.5s;
-}
-
-.stop-button span:after {
-  content: '\00bb';
-  position: absolute;
-  opacity: 0;
-  top: 0;
-  right: -20px;
-  transition: 0.5s;
-}
-
-/* button hover is a separate class so that hover animation 
-   can be disabled by removing the class in jQuery */
-.stop-button-hover:hover span {
-  padding-right: 25px;
-}
-
-.stop-button-hover:hover span:after {
-  opacity: 1;
-  right: 0;
-}
-
-.stop-button-hover:hover {
-  background-color:#4c6645; /*#cc9923;*/
 }
 
 
@@ -766,8 +718,9 @@ input:-webkit-autofill:active {
   background-color: #222621;
   margin: auto;
   padding: 0;
-  width: 80%;
-  max-width:  650px; /*550px;*/
+  /*width: 80%;
+  max-width:  650px;*/ /*550px;*/
+  width: 650px;
   box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2),0 6px 20px 0 rgba(0,0,0,0.19);
   -webkit-animation-name: animatetop;
   -webkit-animation-duration: 0.4s;
@@ -1589,6 +1542,72 @@ input:checked + .switch_slider:before {
 
 
 
+.small_switch {
+  position: relative;
+  display: inline-block;
+  width: 32px;
+  height: 16px;
+}
+
+.small_switch input { 
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.small_switch_slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #bbbb;
+  -webkit-transition: .4s;
+  transition: .4s;
+  /*
+  border-style: solid;
+  border-width: 1px;
+  border-color: white;*/
+}
+
+.small_switch_slider:before {
+  position: absolute;
+  content: "";
+  height: 8px;
+  width: 8px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+
+input:checked + .small_switch_slider {
+  background-color: #dddd; /*#ccc;*/
+}
+
+input:focus + .small_switch_slider {
+  box-shadow: 0 0 1px #dddd;
+}
+
+input:checked + .small_switch_slider:before {
+  -webkit-transform: translateX(16px);
+  -ms-transform: translateX(16px);
+  transform: translateX(16px);
+}
+
+/* Rounded sliders */
+.small_switch_slider.round {
+  border-radius: 34px;
+}
+
+.small_switch_slider.round:before {
+  border-radius: 50%;
+}
+
+
+
 
 
 
@@ -1797,4 +1816,109 @@ input:checked + .switch_slider:before {
     transform: scale(0.95);
     box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
   }
+}
+
+[type="radio"]:checked,
+[type="radio"]:not(:checked) {
+    position: absolute;
+    left: -9999px;
+}
+[type="radio"]:checked + label,
+[type="radio"]:not(:checked) + label
+{
+    position: relative;
+    padding-left: 28px;
+    cursor: pointer;
+    line-height: 20px;
+    display: inline-block;
+    color: white;
+}
+[type="radio"]:checked + label:before,
+[type="radio"]:not(:checked) + label:before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 18px;
+    height: 18px;
+    border: 1px solid #ddd;
+    border-radius: 100%;
+    background: #fff;
+}
+[type="radio"]:checked + label:after,
+[type="radio"]:not(:checked) + label:after {
+    content: '';
+    width: 12px;
+    height: 12px;
+    background: #4c6645;
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    border-radius: 100%;
+    -webkit-transition: all 0.2s ease;
+    transition: all 0.2s ease;
+}
+[type="radio"]:not(:checked) + label:after {
+    opacity: 0;
+    -webkit-transform: scale(0);
+    transform: scale(0);
+}
+[type="radio"]:checked + label:after {
+    opacity: 1;
+    -webkit-transform: scale(1);
+    transform: scale(1);
+}
+
+
+
+
+[type="checkbox"]:checked,
+[type="checkbox"]:not(:checked) {
+    position: absolute;
+    left: -9999px;
+}
+[type="checkbox"]:checked + label,
+[type="checkbox"]:not(:checked) + label
+{
+    position: relative;
+    padding-left: 28px;
+    cursor: pointer;
+    line-height: 20px;
+    display: inline-block;
+    color: white;
+}
+[type="checkbox"]:checked + label:before,
+[type="checkbox"]:not(:checked) + label:before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 18px;
+    height: 18px;
+    border: 1px solid #ddd;
+    border-radius: 2px;
+    background: #fff;
+}
+[type="checkbox"]:checked + label:after,
+[type="checkbox"]:not(:checked) + label:after {
+    content: '';
+    width: 12px;
+    height: 12px;
+    background: #4c6645;
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    border-radius: 2px;
+    -webkit-transition: all 0.2s ease;
+    transition: all 0.2s ease;
+}
+[type="checkbox"]:not(:checked) + label:after {
+    opacity: 0;
+    -webkit-transform: scale(0);
+    transform: scale(0);
+}
+[type="checkbox"]:checked + label:after {
+    opacity: 1;
+    -webkit-transform: scale(1);
+    transform: scale(1);
 }

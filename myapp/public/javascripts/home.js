@@ -103,12 +103,12 @@ function cancel_delete_request() {
 }
 
 
-function annotate_request() {
+function workspace_request() {
 
 
     $.post($(location).attr('href'),
     {
-        action: "annotate_image_set",
+        action: "access_workspace",
         farm_name: $("#farm_combo").val(),
         field_name: $("#field_combo").val(),
         mission_date: $("#mission_combo").val(),
@@ -163,7 +163,7 @@ function show_tab(sel_tab_btn_id) {
     let tab_ids = [
         "browse_tab_btn",
         "upload_tab_btn",
-        "train_baseline_tab_btn"
+        "train_tab_btn"
     ];
 
     for (let tab_btn_id of tab_ids) {
@@ -176,7 +176,7 @@ function show_tab(sel_tab_btn_id) {
 
     $("#browse").hide();
     $("#upload").hide();
-    $("#train_baseline").hide();
+    $("#train").hide();
 
     if (sel_tab_btn_id === "browse_tab_btn") {
         //show_browse();
@@ -192,7 +192,7 @@ function show_tab(sel_tab_btn_id) {
     }
     else {
         //show_train_baseline();
-        $("#train_baseline").show();
+        $("#train").show();
     }
 
 }
@@ -880,7 +880,7 @@ function show_overview() {
                         `<table class="transparent_table" id="left_table">` +
                         `<tr>` +
                         `<td>` +
-                        `<button class="std-button std-button-hover" style="width: 220px; height: 80px; border-radius: 100px" onclick="annotate_request()">`+
+                        `<button class="std-button std-button-hover" style="width: 220px; height: 80px; border-radius: 100px" onclick="workspace_request()">`+
                             `<span><i class="fa-solid fa-pen-to-square" style="margin-right:8px"></i>Workspace</span></button>` +
                         `</td>` +
                         `</tr>` +
@@ -1417,6 +1417,11 @@ $(document).ready(function() {
             show_tab("upload_tab_btn");
     });
 
+    $("#train_tab_btn").click(function() {
+        if (!global_disabled)
+            show_tab("train_tab_btn");
+    });
+
     /*
     $("#train_baseline_tab_btn").click(function() {
         if (!global_disabled)
@@ -1437,6 +1442,7 @@ $(document).ready(function() {
 */
     initialize_browse();
     initialize_upload();
+    initialize_train();
     //initialize_train_baseline();
 
 });

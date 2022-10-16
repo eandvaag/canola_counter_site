@@ -33,9 +33,12 @@ let map_url = null;
 let min_max_rec = null;
 
 let num_training_images;
+let model_unassigned = true;
 let num_images_fully_trained_on;
 let train_num_increased = false;
 
+let waiting_for_model_switch = true;
+let model_logs;
 
 // let overlay_colors = [
 //     "#0080C0",        
@@ -96,33 +99,6 @@ let formatter = function(annotation) {
   
 
 
-
-function show_modal_message(head, message) {
-
-    $("#modal_head").empty();
-    $("#modal_body").empty();
-
-    $("#modal_head").append(
-    `<span class="close close-hover" id="modal_close">&times;</span>` +
-    `<p>` + head + `</p>`);
-
-    $("#modal_body").append(`<p id="modal_message" align="left"></p>`);
-    $("#modal_message").html(message);
-    
-    $("#modal_close").click(function() {
-        close_modal();
-    });
-
-    $("#modal").css("display", "block");
-}
-
-function close_modal() {
-    /*
-    $("#modal_head").empty();
-    $("#modal_body").empty();*/
-
-    $("#modal").css("display", "none");
-}
 
 
 
@@ -424,10 +400,10 @@ function create_viewer_and_anno(viewer_id) {
         showNavigator: false,
         maxZoomLevel: 100,
         zoomPerClick: 1,
-        nextButton: "next-button",
-        previousButton: "prev-button",
+        nextButton: "next-btn",
+        previousButton: "prev-btn",
         showNavigationControl: false,
-        prserveViewport: true
+        preserveViewport: true
         //homeFillsViewer: true
         //defaultZoomLevel: 1.1,
         //viewportMargins: 20
@@ -447,7 +423,6 @@ function create_viewer_and_anno(viewer_id) {
         readOnly: true,
         formatter: formatter
     });*/
-
 
     viewer.innerTracker.keyDownHandler = function(e) {
 
@@ -641,12 +616,23 @@ function save_annotations() {
                 if (annotations[image_name]["status"] === "completed_for_training") {
                     num_training_images++;
                 }
-
+            }
+            if (model_unassigned) {
+                $("#model_fully_trained").html("---");
+                $("#model_fine_tuned").html("---");
+            }
+            else {
                 if (num_training_images == num_images_fully_trained_on) {
-                    $("#model_training_status").html("Yes");
+                    $("#model_fully_trained").html("Yes");
                 }
                 else {
-                    $("#model_training_status").html("No");
+                    $("#model_fully_trained").html("No");
+                }
+                if (num_training_images > 0) {
+                    $("#model_fine_tuned").html("Yes");
+                }
+                else {
+                    $("#model_fine_tuned").html("No");
                 }
             }
             
@@ -1444,6 +1430,430 @@ function submit_prediction_request_confirmed(image_names_str, save_result) {
 
 }
 
+function show_model_details(model_log_index) {
+    console.log("show_public_models", show_public_models);
+    console.log("model_log_index", typeof(model_log_index));
+    //model_log_index = parseInt(model_log_index);
+
+    let log = model_logs[parseInt(model_log_index)];
+    console.log("log", log);
+
+    $("#model_info").empty();
+/*
+    $("#models_table").append(`<tr><td style="width: 200px">` +
+        `<button style="width: 200px" class="std-button std-button-hover" onclick="show_models(${show_public_models})">` +
+            `<i class="fa-solid fa-angle-left" style="padding-right: 8px"></i>Back to Model List</button></td>` +
+            `<td style="width: 100%"></td></tr>`);
+*/
+    $("#model_info").append(`<table id="details_table"></table>`);
+
+    let image_sets_col_width = "240px";
+    let image_set_entry_width = "240px";
+    let model_viewer_width = "450px";
+    let target_viewer_width = "450px";
+    let viewer_height = "390px";
+    $("#details_table").append(
+        `<tr>` +
+            `<td style="width: ${image_sets_col_width}; padding-left: 8px"><h class="header2">Model Image Sets</h></td>` +
+            `<td style="width: ${model_viewer_width}">` +
+            `<table>` +
+                `<tr>` +
+                    `<td><h style="width: 180px" class="header2">Model Image Set</h></td>` +
+                    `<td style="width: 100%"></td>` +
+                    `<td>` +
+                        `<button id="prev_ims_button" class="std-button std-button-hover" style="padding: 2px; font-size: 14px; width: 80px">Previous</button>` +
+                    `</td>` +
+                    `<td>` +
+                        `<button id="next_ims_button" class="std-button std-button-hover" style="padding: 2px; font-size: 14px; width: 80px">Next</button>` +
+                    `</td>` +  
+                `<tr>` +
+            `</table>` +
+            `<td style="width: ${model_viewer_width}">` +
+            `<table>` +
+                `<tr>` +
+                    `<td><h style="width: 180px" class="header2">Current Image Set</h></td>` +
+                    `<td style="width: 100%"></td>` +
+                    `<td>` +
+                        `<button id="prev_cs_button" class="std-button std-button-hover" style="padding: 2px; font-size: 14px; width: 80px">Previous</button>` +
+                    `</td>` +
+                    `<td>` +
+                        `<button id="next_cs_button" class="std-button std-button-hover" style="padding: 2px; font-size: 14px; width: 80px">Next</button>` +
+                    `</td>` +  
+                `<tr>` +
+            `</table>` +
+            `</tr>` +
+                
+            //`<td><h style="width: ${target_viewer_width}" class="header2">Current Image Set</h></td>` +
+        `</tr>`);
+
+
+    $("#details_table").append(
+        `<tr>` +
+            `<td>` +
+                `<div class="scrollable_area" style="height: ${viewer_height}; border: none; overflow-y: scroll">` +
+                    `<table id="model_image_sets"></table>` +
+                `</div>` +
+            `</td>` +
+                
+            
+            //`<table id="model_image_sets" class="scrollable_area" style="width: ${image_sets_col_width}"></table></td>` +
+            `<td><div id="model_viewer" class="viewer" style="height: ${viewer_height}; width: ${model_viewer_width}"></div></td>` +
+            `<td><div id="target_viewer" class="viewer" style="height: ${viewer_height}; width: ${target_viewer_width}"></div></td>` +        `</tr>`
+    );
+
+/*
+    $("#details_table").append(
+        `<tr>` +
+            `<td></td>` +
+            `<td>` +
+                `<table><tr>` +
+                    `<td style="width:50%">` +
+                        `<button id="prev_ims_button" class="std-button std-button-hover" style="width: 100%">Previous</button>` +
+                    `</td>` +
+                    `<td style="width:50%">` +
+                        `<button id="next_ims_button" class="std-button std-button-hover" style="width: 100%">Next</button>` +
+                    `</td>` +                    
+                `</tr></table>` +
+            `</td>` +
+
+            `<td>` +
+                `<table><tr>` +
+                    `<td style="width:50%">` +
+                        `<button id="prev_cs_button" class="std-button std-button-hover" style="width: 100%">Previous</button>` +
+                    `</td>` +
+                    `<td style="width:50%">` +
+                        `<button id="next_cs_button" class="std-button std-button-hover" style="width: 100%">Next</button>` +
+                    `</td>` +                    
+                `</tr></table>` +
+            `</td>` +
+    
+    
+        //`<td><div id="target_viewer" class="viewer" style="height: 300px; width: 400px"></div></td>` +
+        `</tr>`
+        );*/
+
+
+    OpenSeadragon({
+        id: "target_viewer", //"seadragon_viewer",
+        sequenceMode: true,
+        prefixUrl: get_CC_PATH() + "/osd/images/",
+        tileSources: dzi_image_paths,
+        showNavigator: false,
+        maxZoomLevel: 100,
+        zoomPerClick: 1,
+        nextButton: "next_cs_button",
+        previousButton: "prev_cs_button",
+        showNavigationControl: false,
+        preserveViewport: true
+    });
+
+    for (let i = 0; i < log["image_sets"].length; i++) {
+
+        let image_set = log["image_sets"][i];
+        //let text = image_set["username"] + "/" +image_set["farm_name"] + "/" + image_set["field_name"] + "/" + image_set["mission_date"]
+
+
+
+        let entry = `<table class="transparent_table" style="font-size: 14px">` +
+        `<tr>` +
+            `<td style="text-align: right">` +
+                `<div style="color: #ddccbb; font-weight: 400; width: 90px">Username</div>` +
+            `</td>` + 
+            `<td style="text-align: left; padding-left: 15px; width: 100%;">` +
+                `<div>${image_set["username"]}</div>` +
+            `</td>` +
+        `<tr>` +
+            `<td style="text-align: right">` +
+                `<div style="color: #ddccbb; font-weight: 400; width: 90px">Farm Name</div>` +
+            `</td>` + 
+            `<td style="text-align: left; padding-left: 15px; width: 100%;">` +
+                `<div>${image_set["farm_name"]}</div>` +
+            `</td>` +
+        `<tr>` +
+            `<td style="text-align: right">` +
+                `<div style="color: #ddccbb; font-weight: 400; width: 90px">Field Name</div>` +
+            `</td>` + 
+            `<td style="text-align: left; padding-left: 15px; width: 100%;">` +
+                `<div>${image_set["field_name"]}</div>` +
+            `</td>` +
+        `<tr>` +
+            `<td style="text-align: right">` +
+                `<div style="color: #ddccbb; font-weight: 400; width: 90px">Mission Date</div>` +
+            `</td>` + 
+            `<td style="text-align: left; padding-left: 15px; width: 100%;">` +
+                `<div>${image_set["mission_date"]}</div>` +
+            `</td>`;
+
+
+
+
+        $("#model_image_sets").append(`<tr>` +
+           
+            //`<td><div>${extensionless_name}</div></td>` +
+            //`<td><div class="table_entry std_tooltip" style="background-color: ${image_color}; cursor: default; position: relative; width: ${image_status_col_width}; border: 1px solid white">${abbreviated_status}` +
+            //`<span class="std_tooltiptext">${image_status}</span></div></td>` +
+
+            //`<td><div class="table_entry std_tooltip" style="margin: 0px 1px; background-color: ${image_color}; cursor: default; position: relative; width: ${image_status_col_width}; border: 1px solid white">${abbreviated_status}</div></td>` +
+
+
+            `<td><div class="table_button table_button_hover" style="width: ${image_set_entry_width}; margin: 0px 1px;" ` +
+            // `onclick="change_image('${dzi_image_path}')">${extensionless_name}</div></td>` +
+             `onclick="change_image_set('${model_log_index}', '${i}')">` +
+             entry +
+             `</div></td>` +
+            //`</div></td>` + 
+            //`<td><div class="table_entry">${img_dataset}</div></td>` +
+            `</tr>`);
+    }
+    change_image_set(model_log_index, 0);
+
+
+
+}
+function change_image_set(model_log_index, image_set_index) {
+    //console.log("text", text);
+    let image_set = model_logs[parseInt(model_log_index)]["image_sets"][parseInt(image_set_index)];
+    let model_dzi_image_paths = [];
+    for (let image_name of image_set["images"]) {
+        let dzi_path = get_CC_PATH() + "/usr/data/" + image_set["username"] + "/image_sets/" +
+                                 image_set["farm_name"] + "/" +
+                                 image_set["field_name"] + "/" +
+                                 image_set["mission_date"] + "/" +
+                                 "dzi_images" + "/" +
+                                 image_name + ".dzi";
+        model_dzi_image_paths.push(dzi_path);
+    }
+
+    $("#model_viewer").empty();
+
+    OpenSeadragon({
+        id: "model_viewer", //"seadragon_viewer",
+        sequenceMode: true,
+        prefixUrl: get_CC_PATH() + "/osd/images/",
+        tileSources: model_dzi_image_paths,
+        showNavigator: false,
+        maxZoomLevel: 100,
+        zoomPerClick: 1,
+        nextButton: "next_ims_button",
+        previousButton: "prev_ims_button",
+        showNavigationControl: false,
+        preserveViewport: true
+    });
+
+}
+
+
+function show_models(show_public_models) {
+
+    if (show_public_models) {
+        $("#show_my_models").removeClass("tab-btn-active");
+        $("#show_public_models").addClass("tab-btn-active");
+    }
+    else {
+        $("#show_my_models").addClass("tab-btn-active");
+        $("#show_public_models").removeClass("tab-btn-active");
+    }
+    $("#model_info").empty();
+    $("#model_info").append(`<div class="loader"></div>`);
+
+    let model_name_col_width = "250px";
+    let model_creator_col_width = "150px";
+    let details_col_width = "100px";
+    let details_button_width = "80px";
+    let action;
+    if (show_public_models) {
+        action = "fetch_public_models";
+    }
+    else {
+        action = "fetch_my_models";
+    }
+
+    $.post($(location).attr("href"),
+    {
+        action: action,
+    },
+    function(response, status) {
+        if (response.error) {
+            show_modal_message("Error", "An error occurred while fetching the models.");  
+        }
+        else {
+            $("#model_info").empty();
+            $("#model_info").append(
+            `<div class="scrollable_area" style="height: 400px; border: none; overflow-y: scroll">` +
+                `<table id="models_table"></table>` +
+            `</div>` +
+            `<div style="text-align: center;">` +
+                `<div style="height: 10px"></div>` +
+                `<button id="submit_model_change" class="std-button std-button-hover" style="width: 140px">Switch Model</button>` +
+                `<div style="height: 10px"></div>` +
+                `</div>`);
+
+            $("#models_table").empty();
+            model_logs = response.model_logs;
+                        //[{"name": "foo", "creator": "erik"}, 
+                        //  {"name": "bar", "creator": "erik"}, 
+                        //  {"name": "baz0-0-0-0", "creator": "erik"}];
+            
+            if (model_logs.length == 0) {
+                $("#models_table").append(`<tr><td>No Models Found!</td></tr>`);
+            }
+            else {
+                /*if (public_models) {*/
+                    $("#models_table").append(`<tr>` +
+                    `<td><div class="table_entry" style="font-weight: bold; width: ${model_name_col_width}">Name</div></td>` +
+                    `<td><div class="table_entry" style="font-weight: bold; width: ${model_creator_col_width}">Creator</div></td></tr>`);
+                /*}
+                else {
+                    $("#models_table").append(`<tr>` +
+                    `<td><div class="table_entry" style="font-weight: bold; width: ${model_name_col_width};">Name</div></td></tr>`);
+                }*/
+                for (let i = 0; i < model_logs.length; i++) {
+                    let model_name = model_logs[i]["model_name"];
+                    let model_creator = model_logs[i]["model_creator"];
+                    let model_id = model_creator + ":" + model_name;
+                    let button_id = "btn_" + model_id;
+
+                    $("#models_table").append(`<tr>` +
+
+                    // `<td>` +
+                    // `<label class="radio_container">${model_name}` +
+                    //     `<input type="radio" name="${model_name}" value="${model_name}">` +
+                    //     `<span class="custom_radio"></span>` +
+                    // `</label>` +
+                        `<td><div class="table_entry" style="text-align: left; width: ${model_name_col_width}">` +
+                            `<input type="radio" id="${model_id}" value="${model_id}" class="models_radio" name="models_radio">` +
+                            `<label for="${model_id}">${model_name}</label>` +
+                        `</div></td>` +
+                        `<td><div class="table_entry" style="text-align: center; width: ${model_creator_col_width}">${model_creator}` +
+                        `</div></td>` +
+                        `<td><button id="${button_id}" onclick="show_model_details('${i}')" ` +
+                              `class="std-button std-button-hover" style="padding: 2px; font-size: 14px; width: ${details_button_width}">Inspect` +
+                        `</button></td>` +
+                    `</tr>`);
+
+                    disable_std_buttons(["submit_model_change"]);
+
+                    //$("#models_table").on("click", "#"+button_id, function() {
+
+                }/*
+                $.each(model_logs, function(i, model_log) {
+                    let model_name = model_log["model_name"];
+                    let model_creator = model_log["model_creator"];
+                    let model_id = model_creator + ":" + model_name;
+                    let button_id = "btn_" + model_id;
+
+                    console.log("adding listener for ", button_id);
+                    $("#" + button_id).on("click", function() {
+                        console.log("button_clicked");
+                        //show_model_details(show_public_models, model_log);
+                    });
+                });*/
+
+                $(".models_radio").change(function() {
+                    
+                    enable_std_buttons(["submit_model_change"]);
+                    //console.log("radio changed");
+                });
+            }
+
+            $("#submit_model_change").click(function() {
+                let new_model_name;
+                let new_model_creator;
+                //console.log("models", models);
+                // for (let model of models) {
+                let model_radio = $("input[name=models_radio]");
+                let sel_id = model_radio.filter(":checked").val();
+                new_model_creator = sel_id.split(":")[0];
+                new_model_name = sel_id.split(":")[1];
+
+                    //     new_model_name = model["name"];
+                    //     new_model_creator = model["creator"];
+                    //     break;
+                    // }
+                // }
+                console.log("switching to model", new_model_name);
+
+                $.post($(location).attr("href"),
+                {
+                    action: "switch_model",
+                    model_name: new_model_name,
+                    model_creator: new_model_creator
+                },
+                function(response, status) {
+
+                    if (response.error) {
+                        show_modal_message(`Error`, response.message);
+                    }
+                    else {
+                        waiting_for_model_switch = true;
+                        //num_training_images = 0;
+                        show_modal_message(`Please Wait`, 
+                        `<div id="switch_anno_message">Switching models...</div><div id="switch_anno_loader" class="loader"></div>`);
+                        $("#modal_close").hide();
+                        /*
+                        $("#modal_close").hide();
+                        $("#model_name").html(new_model_name);
+                        $("#model_fully_trained").html("Yes");
+                        $("#model_fine_tuned").html("No");
+                        $("#train_block_text").html("No");
+                        $("#train_block_switch").prop('disabled', false);
+                        $("#train_block_label").css("opacity", 1);
+                        $("#train_block_slider").css("cursor", "pointer");
+                        $("#train_block_switch").prop("checked", false);*/
+
+                        //close_modal();
+                    }
+                });
+            });
+        }
+    });
+}
+/*
+function submit_model_change() {
+    //for (let model_name of model_names) {
+    let new_model_name;
+    $("#models_radio").each(function() {
+        if ($("#" + this.id).is(":checked")) {
+            new_model_name = model_name; //console.log(model_name, "is checked");
+            break;
+        }
+    });
+
+    console.log("switching to model", new_model_name);
+}*/
+
+function change_model() {
+    show_modal_message(
+        `Select Model`,
+        `<div style="border: 1px solid white; height: 500px">` +
+            //`<div style="width: 100%">` +
+            `<div>` + 
+                `<ul class="nav">` +
+                    `<li id="show_my_models" class="nav tab-btn-active" style="width: 150px" onclick="show_models(false)">` +
+                        `<a class="nav">My Models` +
+                            //`<i class="fa-solid fa-pen-to-square"></i>` +
+                        `</a>` +
+                    `</li>` +
+
+                    `<li id="show_public_models" class="nav" style="width: 150px" onclick="show_models(true)">` +
+                        `<a class="nav">Public Models` +
+                            //`<i class="fa-solid fa-pen-to-square"></i>` +
+                        `</a>` +
+                    `</li>` +
+                `</ul>` +
+            `</div>` +
+            //`</div>` +
+            `<div style="height: 50px"></div>` +
+            `<div id="model_info">` +
+                
+            `</div>` +
+        `</div>`
+
+    , modal_width=1200);
+
+    show_models(false);
+}
+
 $(document).ready(function() {
     //window.setInterval(refresh, 90000); // 1.5 minutes
     ask_to_continue_handle = window.setTimeout(ask_to_continue, 7200000); // 2 hours
@@ -1526,14 +1936,54 @@ $(document).ready(function() {
     });
 
     socket.on("image_set_status_change", function(update) {
+        console.log("update", update);
+
+
+        if (update["switch_request"] === "True") {
+            waiting_for_model_switch = true;
+
+            show_modal_message(`Please Wait`, 
+            `<div id="switch_anno_message">Switching models...</div><div id="switch_anno_loader" class="loader"></div>`);
+            $("#modal_close").hide();
+        }
+        else if (waiting_for_model_switch) {
+            num_training_images = 0;
+            for (let image_name of Object.keys(annotations)) {
+                if (annotations[image_name]["status"] === "completed_for_training") {
+                    annotations[image_name]["status"] = "completed_for_testing"
+                }
+            }
+            waiting_for_model_switch = false;
+            create_image_set_table();
+            set_image_status_combo();
+            close_modal();
+        }
 
         num_images_fully_trained_on = update["num_images_fully_trained_on"];
+        model_unassigned = (update["model_name"] === "---");
 
-        if (num_training_images == num_images_fully_trained_on) {
-            $("#model_training_status").html("Yes");
+        console.log("model_unassigned", model_unassigned);
+
+
+        $("#model_name").html(update["model_name"]);
+
+        if (model_unassigned) {
+            $("#model_fully_trained").html("---");
+            $("#model_fine_tuned").html("---");
         }
         else {
-            $("#model_training_status").html("No");
+            if (num_training_images == num_images_fully_trained_on) {
+                $("#model_fully_trained").html("Yes");
+            }
+            else {
+                $("#model_fully_trained").html("No");
+            }
+            if (num_training_images > 0) {
+                $("#model_fine_tuned").html("Yes");
+            }
+            else {
+                $("#model_fine_tuned").html("No");
+            }
         }
 
         if (update["outstanding_prediction_requests"] === "True") {
@@ -1542,35 +1992,45 @@ $(document).ready(function() {
         else {
             enable_std_buttons(["request_result_button", "predict_single_button", "predict_all_button"]);
         }
-
-
-        if (update["sys_training_blocked"] === "True") {
-            $("#train_block_text").html("Yes");
-            $("#train_block_switch").prop("checked", true);
-
+        if (model_unassigned) {
+            $("#train_block_text").html("---");
+            $("#train_block_switch").prop("checked", false);
             $("#train_block_switch").prop('disabled', true);
             $("#train_block_label").css("opacity", 0.5);
             $("#train_block_slider").css("cursor", "default");
-
-            $("#train_block_message").html("Training blocked due to system error.");
-
         }
-
         else {
+            //$("#train_block_label").show();
 
-            $("#train_block_switch").prop('disabled', false);
-            $("#train_block_label").css("opacity", 1);
-            $("#train_block_slider").css("cursor", "pointer");
 
-            $("#train_block_message").html("");
-
-            if (update["usr_training_blocked"] === "True") {
+            if (update["sys_training_blocked"] === "True") {
                 $("#train_block_text").html("Yes");
                 $("#train_block_switch").prop("checked", true);
+
+                $("#train_block_switch").prop('disabled', true);
+                $("#train_block_label").css("opacity", 0.5);
+                $("#train_block_slider").css("cursor", "default");
+
+                $("#train_block_message").html("Training blocked due to system error.");
+
             }
+
             else {
-                $("#train_block_text").html("No");
-                $("#train_block_switch").prop("checked", false);
+
+                $("#train_block_switch").prop('disabled', false);
+                $("#train_block_label").css("opacity", 1);
+                $("#train_block_slider").css("cursor", "pointer");
+
+                $("#train_block_message").html("");
+
+                if (update["usr_training_blocked"] === "True") {
+                    $("#train_block_text").html("Yes");
+                    $("#train_block_switch").prop("checked", true);
+                }
+                else {
+                    $("#train_block_text").html("No");
+                    $("#train_block_switch").prop("checked", false);
+                }
             }
         }
 
@@ -1591,7 +2051,7 @@ $(document).ready(function() {
             let update_field_name = update["field_name"];
             let update_mission_date = update["mission_date"];
             let date = timestamp_to_date(update_timestamp);
-            let display_statuses = ["Training", "Predicting", "Restarting", "Idle", "Determining Patch Size"];
+            let display_statuses = ["Training", "Predicting", "Switching Model", "Idle", "Training Baseline"];
             let update_is_for_this_set = ((update_username === username && update_farm_name === image_set_info["farm_name"]) &&
             (update_field_name === image_set_info["field_name"] && update_mission_date === image_set_info["mission_date"]));
 
@@ -1621,6 +2081,8 @@ $(document).ready(function() {
 
 
             if (update_is_for_this_set) {
+
+                console.log("got update for this set", update);
 
                 if ("error_message" in update) {
                     let error_message = `An error occurred during ` + update["error_setting"] + 
@@ -2074,7 +2536,7 @@ $(document).ready(function() {
     });
 
 
-
+    
     $("#next_image_button").click(function() {
         let index = cur_img_list.findIndex(x => x == cur_img_name) + 1;
         change_image(cur_img_list[index]);

@@ -208,6 +208,8 @@ exports.get_home = function(req, res, next) {
             }
         }
 
+        let all_datasets = get_all_datasets();
+
 
         camera_mutex.acquire()
         .then(function(release) {
@@ -229,7 +231,8 @@ exports.get_home = function(req, res, next) {
             res.render("home", {
                 username: req.session.user.username, 
                 image_sets_data: image_sets_data,
-                camera_specs: camera_specs
+                camera_specs: camera_specs,
+                all_datasets: all_datasets
             });
 
 
@@ -245,7 +248,7 @@ exports.get_home = function(req, res, next) {
     }
 }
 
-exports.get_annotate = function(req, res, next) {
+exports.get_workspace = function(req, res, next) {
 
     if ((req.session.user && req.cookies.user_sid) && (req.params.username === req.session.user.username)) {
         
@@ -286,6 +289,16 @@ exports.get_annotate = function(req, res, next) {
                 return res.redirect(process.env.CC_PATH);
             }
             let image_ext = image_paths[0].substring(image_paths[0].length - 4);
+
+            let status_path = path.join(image_set_dir, "model", "status.json");
+            let status;
+            try {
+                status = JSON.parse(fs.readFileSync(status_path, 'utf8'));
+            }
+            catch (error) {
+                console.log(error);
+                return res.redirect(process.env.CC_PATH);
+            }
 
             let annotations_dir = path.join(image_set_dir, "annotations");
             let annotations_path = path.join(annotations_dir, "annotations_w3c.json");
@@ -379,7 +392,8 @@ exports.get_annotate = function(req, res, next) {
                 data["excess_green_record"] = excess_green_record;
                 data["camera_specs"] = camera_specs;
                 data["predictions"] = predictions;
-                res.render("annotate", {username: req.session.user.username, data: data});
+                data["model_status"] = status;
+                res.render("workspace", {username: req.session.user.username, data: data});
 
 
             });
@@ -398,18 +412,317 @@ exports.get_annotate = function(req, res, next) {
 
 }
 
+/*
+exports.post_baseline = function(req, res, next) {
 
-function notify_scheduler(username, farm_name, field_name, mission_date, request_type) {
+    let response = {};
 
-    console.log("notifying scheduler of new request", request_type);
 
-    let data = JSON.stringify({
-        username: username,
-        farm_name: farm_name,
-        field_name: field_name,
-        mission_date: mission_date,
-        request_type: request_type
-    });
+    // let farm_name = req.params.farm_name;
+    // let field_name = req.params.field_name;
+    // let mission_date = req.params.mission_date;
+    // let action = req.body.action;
+
+    // let image_set_dir = path.join(USR_DATA_ROOT, req.session.user.username, "image_sets", farm_name,
+    //                                     field_name, mission_date);
+
+    //let image_sets = req.body.image_sets;
+
+    let scheduler_request = {
+        "model_name": req.body.model_name, //"my_front_end_baseline",
+        "model_creator": req.session.user.username,
+        "request_type": "baseline_training",
+        "public": req.body.public,
+        "image_sets": req.body.image_sets
+    };
+
+    console.log("scheduler_request", scheduler_request);
+
+    notify_scheduler(scheduler_request);
+
+    return res.json(response);
+
+    // if (action === "save_annotations") {
+    //     let annotations_path = path.join(image_set_dir, "annotations", "annotations_w3c.json");
+
+
+}
+*/
+
+function get_all_datasets() {
+    let data = {};
+
+    let usernames;
+    try {
+        usernames = get_subdirs(USR_DATA_ROOT);
+    }
+    catch (error) {
+        return res.redirect(process.env.CC_PATH);
+    }
+
+    console.log("usernames", usernames);
+    for (let username of usernames) {
+        let user_image_sets_root = path.join(USR_DATA_ROOT, username, "image_sets");
+        let farm_names;
+        try {
+            farm_names = get_subdirs(user_image_sets_root);
+        }
+        catch (error) {
+            return res.redirect(process.env.CC_PATH);
+        }
+
+        for (let farm_name of farm_names) {
+        
+            let farm_root = path.join(user_image_sets_root, farm_name);
+            let field_names;
+            try {
+                field_names = get_subdirs(farm_root);
+            }
+            catch (error) {
+                return res.redirect(process.env.CC_PATH);
+            }
+
+            for (let field_name of field_names) {
+                let field_root = path.join(farm_root, field_name);
+                let mission_dates;
+                try {
+                   mission_dates = get_subdirs(field_root);
+                }
+                catch (error) {
+                    return res.redirect(process.env.CC_PATH);
+                }
+                
+                for (let mission_date of mission_dates) {
+                    let mission_root = path.join(field_root, mission_date);
+                    let annotations_path = path.join(mission_root, "annotations", "annotations_w3c.json");
+                    console.log("annotations_path", annotations_path);
+                    let annotations;
+                    try {
+                        annotations = JSON.parse(fs.readFileSync(annotations_path, 'utf8'));
+                    }
+                    catch (error) {
+                        continue; //return res.redirect(process.env.CC_PATH);
+                    }
+
+                    let num_annotations = 0;
+                    let image_names = [];
+                    for (let image_name of Object.keys(annotations)) {
+                        if (annotations[image_name]["status"] === "completed_for_training" || annotations[image_name]["status"] === "completed_for_testing") {
+                            image_names.push(image_name);
+                            num_annotations += annotations[image_name]["annotations"].length;
+                        }
+                    }
+
+                    if (num_annotations > 0) {
+                        // let username = path.basename(user_path);
+                        // let farm_name = path.basename(farm_path);
+                        // let field_name = path.basename(field_path);
+                        // let mission_date = path.basename(mission_path);
+                        if (!(username in data)) {
+                            data[username] = {};
+                        }
+                        if (!(farm_name in data[username])) {
+                            data[username][farm_name] = {};
+                        }
+                        if (!(field_name in data[username][farm_name])) {
+                            data[username][farm_name][field_name] = {};
+                        }
+                        data[username][farm_name][field_name][mission_date] = {
+                            "num_annotations": num_annotations,
+                            "annotated_images": image_names
+                        };
+
+                    }
+                }
+            }
+        }  
+    }
+    return data;
+
+}
+
+/*
+exports.get_baseline = function(req, res, next) {
+
+    if ((req.session.user && req.cookies.user_sid) && (req.params.username === req.session.user.username)) {
+        console.log("get_baseline");
+        let data = {};
+
+        let usernames;
+        try {
+            usernames = get_subdirs(USR_DATA_ROOT);
+        }
+        catch (error) {
+            return res.redirect(process.env.CC_PATH);
+        }
+
+        console.log("usernames", usernames);
+        for (let username of usernames) {
+            let user_image_sets_root = path.join(USR_DATA_ROOT, username, "image_sets");
+            let farm_names;
+            try {
+                farm_names = get_subdirs(user_image_sets_root);
+            }
+            catch (error) {
+                return res.redirect(process.env.CC_PATH);
+            }
+
+            for (let farm_name of farm_names) {
+            
+                let farm_root = path.join(user_image_sets_root, farm_name);
+                let field_names;
+                try {
+                    field_names = get_subdirs(farm_root);
+                }
+                catch (error) {
+                    return res.redirect(process.env.CC_PATH);
+                }
+    
+                for (let field_name of field_names) {
+                    let field_root = path.join(farm_root, field_name);
+                    let mission_dates;
+                    try {
+                       mission_dates = get_subdirs(field_root);
+                    }
+                    catch (error) {
+                        return res.redirect(process.env.CC_PATH);
+                    }
+                    
+                    for (let mission_date of mission_dates) {
+                        let mission_root = path.join(field_root, mission_date);
+                        let annotations_path = path.join(mission_root, "annotations", "annotations_w3c.json");
+                        console.log("annotations_path", annotations_path);
+                        let annotations;
+                        try {
+                            annotations = JSON.parse(fs.readFileSync(annotations_path, 'utf8'));
+                        }
+                        catch (error) {
+                            continue; //return res.redirect(process.env.CC_PATH);
+                        }
+    
+                        let num_annotations = 0;
+                        let image_names = [];
+                        for (let image_name of Object.keys(annotations)) {
+                            if (annotations[image_name]["status"] === "completed_for_training" || annotations[image_name]["status"] === "completed_for_testing") {
+                                image_names.push(image_name);
+                                num_annotations += annotations[image_name]["annotations"].length;
+                            }
+                        }
+    
+                        if (num_annotations > 0) {
+                            // let username = path.basename(user_path);
+                            // let farm_name = path.basename(farm_path);
+                            // let field_name = path.basename(field_path);
+                            // let mission_date = path.basename(mission_path);
+                            if (!(username in data)) {
+                                data[username] = {};
+                            }
+                            if (!(farm_name in data[username])) {
+                                data[username][farm_name] = {};
+                            }
+                            if (!(field_name in data[username][farm_name])) {
+                                data[username][farm_name][field_name] = {};
+                            }
+                            data[username][farm_name][field_name][mission_date] = {
+                                "num_annotations": num_annotations,
+                                "annotated_images": image_names
+                            };
+    
+                        }
+                    }
+                }
+            }  
+        }
+        res.render("baseline", {username: req.session.user.username, data: data});
+    
+*/
+
+        /*
+        glob(path.join(USR_DATA_ROOT, "*"), function(error, user_paths) {
+            if (error) {
+                return res.redirect(process.env.CC_PATH);
+            }
+
+            for (let user_path of user_paths) {
+                glob(path.join(user_path, "image_sets", "*"), function(error, farm_paths) {
+                    if (error) {
+                        return res.redirect(process.env.CC_PATH);
+                    }
+
+
+                    for (let farm_path of farm_paths) {
+                        glob(path.join(farm_path, "*"), function(error, field_paths) {
+                            if (error) {
+                                return res.redirect(process.env.CC_PATH);
+                            }
+
+
+                            for (let field_path of field_paths) {
+                                glob(path.join(field_path, "*"), function(error, mission_paths) {
+                                    if (error) {
+                                        return res.redirect(process.env.CC_PATH);
+                                    }
+
+                                    for (let mission_path of mission_paths) {
+
+                                        let annotations_path = path.join(mission_path, "annotations", "annotations_w3c.json");
+                                        console.log("annotations_path", annotations_path);
+                                        let annotations;
+                                        try {
+                                            annotations = JSON.parse(fs.readFileSync(annotations_path, 'utf8'));
+                                        }
+                                        catch (error) {
+                                            return res.redirect(process.env.CC_PATH);
+                                        }
+
+                                        let num_annotations = 0;
+                                        for (let image_name of Object.keys(annotations)) {
+                                            num_annotations += annotations[image_name]["annotations"].length;
+                                        }
+
+                                        if (num_annotations > 0) {
+                                            let username = path.basename(user_path);
+                                            let farm_name = path.basename(farm_path);
+                                            let field_name = path.basename(field_path);
+                                            let mission_date = path.basename(mission_path);
+                                            data[username] = {};
+                                            data[username][farm_name] = {};
+                                            data[username][farm_name][field_name] = {};
+                                            data[username][farm_name][field_name][mission_date] = {
+                                                "num_annotations": num_annotations
+                                            };
+
+                                        }
+                                        
+                                    }
+                                });
+                            }
+                        });
+                    }
+                });
+            }
+            res.render("baseline", {username: req.session.user.username, data: data});
+        });*/
+     /*   
+    }
+    else {
+        return res.redirect(process.env.CC_PATH);
+    }
+
+}*/
+
+function notify_scheduler(request) { //farm_name, field_name, mission_date, request_type) {
+
+    // console.log("notifying scheduler of new request", request_type);
+
+    let data = JSON.stringify(request);
+    // let data = JSON.stringify({
+    //     username: username,
+    //     farm_name: farm_name,
+    //     field_name: field_name,
+    //     mission_date: mission_date,
+    //     request_type: request_type
+    // });
 
     let options = {
         hostname: process.env.CC_IP, //'172.16.1.75', //71',
@@ -463,8 +776,31 @@ function results_comment_is_valid(results_comment) {
     return true;
 }
 
+function get_valid_model_logs(model_paths, username, farm_name, field_name, mission_date) {
 
-exports.post_annotate = function(req, res, next) {
+    let model_logs = [];
+    for (let model_path of model_paths) {
+        let log_path = path.join(model_path, "log.json");
+        let log = JSON.parse(fs.readFileSync(log_path, 'utf8'));
+
+
+
+        let keep = true;
+        for (let image_set of log["image_sets"]) {
+            if ((image_set["username"] == username && image_set["farm_name"] == farm_name) &&
+                (image_set["field_name"] == field_name && image_set["mission_date"] == mission_date)) {
+                    keep = false;
+            }
+        }
+        if (keep) {
+            model_logs.push(log);
+        }
+    }
+    return model_logs;
+}
+
+
+exports.post_workspace = function(req, res, next) {
 
     let response = {};
 
@@ -501,7 +837,14 @@ exports.post_annotate = function(req, res, next) {
         }
 
         if (req.body.train_num_increased === "True") {
-            notify_scheduler(req.session.user.username, farm_name, field_name, mission_date, "training");
+            let scheduler_request = {
+                "username": req.session.user.username,
+                "farm_name": farm_name,
+                "field_name": field_name,
+                "mission_date": mission_date,
+                "request_type": "training"
+            };
+            notify_scheduler(scheduler_request);
         }
 
         response.error = false;
@@ -537,6 +880,198 @@ exports.post_annotate = function(req, res, next) {
             }
             return res.json(response);
         });
+    }
+    /*
+    else if (action === "switch_model") {
+
+        let model_creator = req.body.model_creator;
+        let model_name = req.body.model_name;
+
+        // TODO: check these inputs
+        let model_public_path = path.join(USR_DATA_ROOT, model_creator, "models", "available", "public", model_name);
+        let model_private_path = path.join(USR_DATA_ROOT, model_creator, "models", "available", "private", model_name);
+        console.log("model_public_path", model_public_path);
+        console.log("model_private_path", model_private_path);
+        
+        if (!(fs.existsSync(model_public_path)) && !(fs.existsSync(model_private_path))) {
+            response.message = "Selected model could not be located.";
+            response.error = true;
+            return res.json(response);
+        }
+
+        
+
+        let status_path = path.join(image_set_dir, "model", "status.json");
+        let status;
+        try {
+            status = JSON.parse(fs.readFileSync(status_path, 'utf8'));
+        }
+        catch (error) {
+            console.log(error);
+            response.message = "Failed to read model status.";
+            response.error = true;
+            return res.json(response);
+        }
+
+        status["model_name"] = model_name;
+        status["model_creator"] = model_creator;
+
+        try {
+            fs.writeFileSync(status_path, JSON.stringify(status));
+        }
+        catch (error) {
+            console.log(error);
+            response.message = "Failed to write model status.";
+            response.error = true;
+            return res.json(response);
+        }
+
+        response.error = false;
+        return res.json(response);
+    } */
+    else if (action === "fetch_public_models") {
+        let model_logs = [];
+        glob(path.join(USR_DATA_ROOT, "*"), function(error, usr_dirs) {
+            if (error) {
+                response.error = true;
+                return res.json(response);
+            }
+            for (let i = 0; i < usr_dirs.length; i++) {
+                let public_models_dir = path.join(usr_dirs[i], "models", "available", "public");
+
+                glob(path.join(public_models_dir, "*"), function(error, public_paths) {
+                    if (error) {
+                        response.error = true;
+                        return res.json(response);
+                    }
+
+                    let logs;
+                    try {
+                        logs = get_valid_model_logs(public_paths, req.session.user.username, farm_name, field_name, mission_date);
+                    }
+                    catch (error) {
+                        response.message = "Failed to retrieve models.";
+                        response.error = true;
+                        return res.json(response);
+                    }
+
+                    model_logs = model_logs.concat(logs);
+
+                    /*
+                    for (let public_path of public_paths) {
+
+                        let log_path = path.join(public_path, "log.json");
+                        let log;
+                        try {
+                            log = JSON.parse(fs.readFileSync(log_path, 'utf8'));
+                        }
+                        catch (error) {
+                            response.message = "Failed to retrieve models.";
+                            response.error = true;
+                            return res.json(response);
+                        }
+
+
+                        let keep = true;
+                        for (let image_set of log["image_sets"]) {
+                            if ((image_set["username"] == req.session.user.username && image_set["farm_name"] == farm_name) &&
+                                (image_set["field_name"] == field_name && image_set["mission_date"] == mission_date)) {
+                                    keep = false;
+                            }
+                        }
+                        if (keep) {
+                            model_logs.push(log);
+                        }
+                    }*/
+                    
+
+                    if (i == usr_dirs.length-1) {
+                        response.error = false;
+                        response.model_logs = model_logs;
+                        return res.json(response);
+                    }
+
+                });
+            }
+        });
+    }
+    else if (action === "fetch_my_models") {
+        let available_dir = path.join(USR_DATA_ROOT, req.session.user.username, "models", 
+                                        "available");
+
+        glob(path.join(available_dir, "public", "*"), function(error, public_paths) {
+
+            if (error) {
+                response.error = true;
+                return res.json(response);
+            }
+/*
+            for (let pending_path of pending_paths) {
+                try {
+                    response.pending_results.push(JSON.parse(fs.readFileSync(pending_path, 'utf8')));
+                }
+                catch (error) {
+                    response.error = true;
+                    return res.json(response);
+                }
+            }*/
+
+            glob(path.join(available_dir, "private", "*"), function(error, private_paths) {
+                if (error) {
+                    response.error = true;
+                    return res.json(response);
+                }
+
+                let model_logs = [];
+
+                let logs;
+                try {
+                    logs = get_valid_model_logs(public_paths, req.session.user.username, farm_name, field_name, mission_date);
+                }
+                catch (error) {
+                    response.message = "Failed to retrieve models.";
+                    response.error = true;
+                    return res.json(response);
+                }
+
+                model_logs = model_logs.concat(logs);
+
+                try {
+                    logs = get_valid_model_logs(private_paths, req.session.user.username, farm_name, field_name, mission_date);
+                }
+                catch (error) {
+                    response.message = "Failed to retrieve models.";
+                    response.error = true;
+                    return res.json(response);
+                }
+
+                model_logs = model_logs.concat(logs);
+
+
+                /*
+                for (let public_path of public_paths) {
+                    models.push({
+                        "name": path.basename(public_path),
+                        "creator": req.session.user.username
+                    });
+                }
+                for (let private_path of private_paths) {
+                    models.push({
+                        "name": path.basename(private_path),
+                        "creator": req.session.user.username
+                    });
+                }*/
+
+                response.model_logs = model_logs;
+                response.error = false;
+                return res.json(response);
+
+
+            });
+        });
+
+
+
     }
     else if (action === "predict") {
 
@@ -596,7 +1131,14 @@ exports.post_annotate = function(req, res, next) {
             socket_api.results_notification(req.session.user.username, farm_name, field_name, mission_date);
         }
 
-        notify_scheduler(req.session.user.username, farm_name, field_name, mission_date, "prediction");
+        let scheduler_request = {
+            "username": req.session.user.username,
+            "farm_name": farm_name,
+            "field_name": field_name,
+            "mission_date": mission_date,
+            "request_type": "prediction"
+        };
+        notify_scheduler(scheduler_request); //req.session.user.username, farm_name, field_name, mission_date, "prediction");
 
         response.error = false;
         return res.json(response);
@@ -710,16 +1252,31 @@ exports.post_annotate = function(req, res, next) {
                 return res.json(response);                
             }
 
-            notify_scheduler(req.session.user.username, farm_name, field_name, mission_date, "training")
+            let scheduler_request = {
+                "username": req.session.user.username,
+                "farm_name": farm_name,
+                "field_name": field_name,
+                "mission_date": mission_date,
+                "request_type": "training"
+            };
+            notify_scheduler(scheduler_request); //req.session.user.username, farm_name, field_name, mission_date, "training")
         }
 
         response.error = false;
         return res.json(response);
     }
     
-    else if (action === "restart_model") {
+    else if (action === "switch_model") {
 
-        let restart_req_path = path.join(image_set_dir, "model", "training", "restart_request.json");
+        let model_creator = req.body.model_creator;
+        let model_name = req.body.model_name;
+
+        let switch_req_path = path.join(image_set_dir, "model", "switch_request.json");
+
+        let switch_request = {
+            "model_creator": model_creator,
+            "model_name": model_name
+        };
         
         // let request = {
         //     "farm_name": farm_name,
@@ -731,16 +1288,22 @@ exports.post_annotate = function(req, res, next) {
         // let request_path = path.join(USR_REQUESTS_ROOT, "restart",
                                     //  request_uuid + ".json");
         try {
-            fs.writeFileSync(restart_req_path, JSON.stringify({}));
+            fs.writeFileSync(switch_req_path, JSON.stringify(switch_request));
         }
         catch (error) {
             console.log(error);
-            response.message = "Failed to create restart request.";
+            response.message = "Failed to create switch request.";
             response.error = true;
             return res.json(response);
         }
-
-        notify_scheduler(req.session.user.username, farm_name, field_name, mission_date, "restart")
+        let scheduler_request = {
+            "username": req.session.user.username,
+            "farm_name": farm_name,
+            "field_name": field_name,
+            "mission_date": mission_date,
+            "request_type": "switch" //"restart"
+        };
+        notify_scheduler(scheduler_request); //req.session.user.username, farm_name, field_name, mission_date, "restart")
 
         response.error = false;
         return res.json(response);
@@ -1219,7 +1782,7 @@ exports.post_home = function(req, res, next) {
         }
 
     }
-    else if (action === "annotate_image_set") {
+    else if (action === "access_workspace") {
 
         let farm_name = req.body.farm_name;
         let field_name = req.body.field_name;
@@ -1255,7 +1818,7 @@ exports.post_home = function(req, res, next) {
             return res.json(response);
         }*/
         response.error = false;
-        response.redirect = process.env.CC_PATH + "/annotate/" + req.session.user.username + "/" + farm_name + "/" +
+        response.redirect = process.env.CC_PATH + "/workspace/" + req.session.user.username + "/" + farm_name + "/" +
                             field_name + "/" + mission_date;
         return res.json(response);
     }
@@ -1684,6 +2247,23 @@ exports.post_home = function(req, res, next) {
         
 
 
+
+    }
+    else if (action === "train") {
+
+        let scheduler_request = {
+            "model_name": req.body.model_name, //"my_front_end_baseline",
+            "model_creator": req.session.user.username,
+            "request_type": "baseline_training",
+            "public": req.body.public,
+            "image_sets": req.body.image_sets
+        };
+
+        console.log("scheduler_request", scheduler_request);
+
+        notify_scheduler(scheduler_request);
+
+        return res.json(response);
 
     }
     else {

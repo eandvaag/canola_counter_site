@@ -156,6 +156,7 @@ async function process_upload(username, farm_name, field_name, mission_date, cam
     }    
 
     
+    /*
     console.log("Copying initial model weights");
     let source_weights_path = path.join(USR_SHARED_ROOT, "weights", "default_weights.h5");
     let best_weights_path = path.join(weights_dir, "best_weights.h5");
@@ -167,13 +168,15 @@ async function process_upload(username, farm_name, field_name, mission_date, cam
     catch (error) {
         write_and_notify(upload_status_path, {"status": "failed", "error": error.toString()}, notify_data);
         return;
-    }
+    }*/
 
     let status = {
         // "username": username,
         // "farm_name": farm_name,
         // "field_name": field_name,
         // "mission_date": mission_date,
+        "model_name": "---",
+        "model_creator": "---",
         "num_images_fully_trained_on": 0
         // "status": "idle",
         // "num_images_fully_trained_on": 0,

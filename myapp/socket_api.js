@@ -205,6 +205,15 @@ function emit_image_set_status(username, farm_name, field_name, mission_date) {
                 catch (e) {
                     status["sys_training_blocked"] = "False";
                 }
+
+                status["switch_request"] = "True";
+                let switch_path = path.join(model_dir, "switch_request.json");
+                try {
+                    fs.accessSync(switch_path, fs.constants.F_OK);
+                }
+                catch (e) {
+                    status["switch_request"] = "False";
+                }
                     
                 io.to(sel_socket_id).emit("image_set_status_change", status);
 

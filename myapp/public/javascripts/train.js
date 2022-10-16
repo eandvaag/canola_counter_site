@@ -1,150 +1,113 @@
-function disable_training_submit() {
 
-    let buttons = ["#train_button"];
+function create_image_set_list() {
 
-    for (button of buttons) {
-        $(button).prop('disabled', true);
-        $(button).removeClass("std-button-hover");
-        $(button).css("opacity", 0.5);
-        $(button).css("cursor", "default");
-    }
-
-    $("#train_button_text").css("cursor", "default");
-}
-
-function enable_training_submit() {
-
-    let buttons = ["#train_button"];
-
-    for (button of buttons) {
-        $(button).prop('disabled', false);
-        $(button).addClass("std-button-hover");
-        $(button).css("opacity", 1);
-        $(button).css("cursor", "pointer");
-    }
-    $("#train_button_text").css("cursor", "pointer");
-}
-
-function training_form_is_complete() {
-    // currently disabled
-    return false;
-    /*
-    let inputs_to_check = ["job_name_input"];
-    for (input of inputs_to_check) {
-        let input_length = ($("#" + input).val()).length;
-        if ((input_length < 3) || (input_length > 20)) {
-            return false;
-        }
-    }
-    return true;
-    */
-}
-
-function update_training_submit() {
-    if (training_form_is_complete()) {
-        enable_training_submit();
-    }
-    else {
-        disable_training_submit();
-    }
-}
-
-
-function submit_training_request() {
-
-    let job_name = $("#job_name_input").val();
-    $("#job_name_input").val('');
-    disable_training_submit();
-
-    console.log("submitting training request");
-    $.post($(location).attr('href'),
-    {
-        action: "submit_training_request",
-        farm_name: $("#farm_combo").val(),
-        field_name: $("#field_combo").val(),
-        mission_date: $("#mission_combo").val(),
-        job_name: job_name,
-    },
-    function(response, status) {
-        if (response.error) { 
-            $("#modal_header_text").html("Error");
-            $("#modal_message").html("An error occurred:<br><br>" +
-                                     response.message);
-            $("#result_modal").css("display", "block");
-        }
-        else {
-            $("#modal_header_text").html("Success!");
-            $("#modal_message").html("The training job has been successfully started.");
-            $("#result_modal").css("display", "block");
-        }
-    });
-}
-
-function manage_jobs_request() {
-    $.post($(location).attr('href'),
-    {
-        action: "manage_jobs_request",
-    }, 
-    function(response, status) {
-        if (response.error) { 
-            console.log("error occurred");
-            console.log(response.message);
-        }
-        else {
-            window.location.href = response.redirect;
-        }
-    });    
-}
-
-function show_train() {
-
-    console.log("showing train");
-    $("#tab_details").empty();
-    /*
-    let left_col_width = "100px";
-    let right_col_width = "220px";
-
+    let username_width = "100px";
+    let farm_name_width = "200px";
+    let field_name_width = "200px";
+    let mission_date_width = "100px";
     
 
-    $("#tab_details").append(`<table class="transparent_table" style="height: 500px" id="train_table"></table>`);
 
-    $("#train_table").append(`<tr>`+
-    `<th style="width: 750px;"><div id="manage_section"></th>` +
-    `<th style="width: 750px;"><div id="train_section"></div></th>` +
-    `<tr>`);
-
-    $("#manage_section").append(
-        `<button class="std-button std-button-hover" style="width: 220px; height: 50px;" onclick="manage_jobs_request()">`+
-            `<span><i class="fa-solid fa-bars-progress" style="margin-right:8px"></i> Manage Jobs</span></button>`);
-
-    $("#train_section").append(`<form id="train_form" action=""></form>`)
-
-    $("#train_form").append(`<table class="transparent_table" id="settings_table"></table>`);
-    $("#settings_table").append(`<tr>` +
-        `<th><div class="table_head" style="width: ${left_col_width};">Job Name:</div></th>` +
-        `<th><div style="width: ${right_col_width};"><input id="job_name_input" class="nonfixed_input"></div></th>` +
-    `<tr>`);
-
-
-
-    $("#train_form").append(`<br><br>`);
-    $("#train_form").append(`<button id="train_button" class="std-button std-button-hover" `+
-                             `style="width: 200px; height: 50px;"><span id="train_button_text"><i class="fa-solid fa-play" style="margin-right:3px"></i> Train</span></button>`);
-
-    */
-    disable_training_submit();
-    $("#train_button").click(function(e) {
-        e.preventDefault();
-        // currently disabled
-        /* submit_training_request() */
-    });
-
-    $("#job_name_input").on("input", function(e) {
-        update_training_submit();
-    });
-
-    $("#train_form").change(function() {
-        console.log("updating submit");
-        update_training_submit();
-    });
+    for (let username of Object.keys(all_datasets)) {
+        for (let farm_name of Object.keys(all_datasets[username])) {
+            for (let field_name of Object.keys(all_datasets[username][farm_name])) {
+                for (let mission_date of Object.keys(all_datasets[username][farm_name][field_name])) {
+                    let id = username + ":" + farm_name + ":" + field_name + ":" + mission_date;
+                    $("#image_sets_table").append(
+                        `<tr>` + 
+                        /*
+                            `<td style="width: ${username_width}">` + username + `</td>` +
+                            `<td style="width: ${farm_name_width}">` + farm_name + `</td>` +
+                            `<td style="width: ${field_name_width}">` + field_name + `</td>` +
+                            `<td style="width: ${mission_date_width}">` + mission_date + `</td>` +*/
+                            `<td>` +
+                                `<div class="table_entry" style="text-align: left; width: 99%">` +
+                                    `<input type="checkbox" id="${id}" value="${id}" class="datasets_checkbox" name="datasets_checkbox">` +
+                                    `<label for="${id}">${id}</label>` +
+                                `</div>` +
+                            `</td>` +
+                        `</tr>`
+                    );
+                }
+            }
+        }
+    }
 }
+
+
+//$(document).ready(function() {
+
+function initialize_train() {
+
+    create_image_set_list();
+
+
+    $("#submit_button").click(function() {
+        let image_sets = [];
+
+        $("input[name=datasets_checkbox]").each(function() {
+            if (this.checked) {
+                //console.log($(this).val());
+                let id = $(this).val();
+                let pieces = id.split(":");
+                image_sets.push({
+                    "username": pieces[0],
+                    "farm_name": pieces[1],
+                    "field_name": pieces[2],
+                    "mission_date": pieces[3],
+                    "images": all_datasets[pieces[0]][pieces[1]][pieces[2]][pieces[3]]["annotated_images"]
+                })
+            }
+
+        });
+
+        console.log("image_sets", image_sets);
+        /*
+        let sel_id = model_radio.filter(":checked").val();
+        
+        let image_sets = [{
+            "username": "kaylie",
+            "farm_name": "Saskatoon", // "MORSE", //"UNI",
+            "field_name": "Norheim1", //"Dugout", //"LowN1",
+            "mission_date": "2021-05-26", //"2022-05-27", //"2021-06-07",
+            "images": data["kaylie"]["Saskatoon"]["Norheim1"]["2021-05-26"]["annotated_images"]
+                        //data["kaylie"]["UNI"]["LowN1"]["2021-06-07"]["annotated_images"]
+        },
+        {
+            "username": "kaylie",
+            "farm_name": "Saskatoon", // "MORSE", //"UNI",
+            "field_name": "Norheim2", //"Dugout", //"LowN1",
+            "mission_date": "2021-05-26", //"2022-05-27", //"2021-06-07",
+            "images": data["kaylie"]["Saskatoon"]["Norheim2"]["2021-05-26"]["annotated_images"]
+                        //data["kaylie"]["UNI"]["LowN1"]["2021-06-07"]["annotated_images"]
+        }
+        ];
+        */
+        let model_name = $("#model_name_input").val();
+
+        $.post($(location).attr('href'),
+        {
+            action: "train",
+            model_name: model_name,
+            image_sets: image_sets,
+            public: "yes"
+        },
+    
+        function(response, status) {
+    
+            if (response.error) {  
+                //show_modal_message("Error", "An error occurred during the generation of the density map.");  
+    
+            }
+            else {
+
+                show_modal_message("Success", "Your train request has been successfully submitted.");
+    
+            }
+        });
+    });
+    
+}
+//});
+
+
