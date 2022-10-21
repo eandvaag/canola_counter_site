@@ -29,8 +29,8 @@ app.use(logger('dev'));
 //app.use(express.json());
 //app.use(express.urlencoded({ extended: false }));
 
-app.use(bodyParser.json({limit: '30gb'}));
-app.use(bodyParser.urlencoded({limit: '30gb', extended: true}));
+app.use(bodyParser.json({limit: '100gb'}));
+app.use(bodyParser.urlencoded({limit: '100gb', extended: true}));
 app.use(express.json());
 
 //app.use(express.json({ limit: "50000kb" }));

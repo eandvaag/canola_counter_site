@@ -28,8 +28,8 @@ let home_id_to_key = {};
 io.on('connection', function(socket) {
 	console.log('A user connected');
 
-    socket.on("join_annotate", (key) => {
-        console.log("join_annotate from", key);
+    socket.on("join_workspace", (key) => {
+        console.log("join_workspace from", key);
         // let socket_id = (socket.id).toString();
 
         //workspace_key_to_id[key] = socket.id;

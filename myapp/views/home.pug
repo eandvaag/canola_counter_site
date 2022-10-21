@@ -7,10 +7,13 @@ html
 
         link(rel="icon" href=process.env.CC_PATH + "/images/favicon.ico")
 
+        link(href=process.env.CC_PATH + "/annotorious/annotorious.min.css" rel="stylesheet")
         link(rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.2/css/all.min.css")
         link(href="https://unpkg.com/dropzone@6.0.0-beta.1/dist/dropzone.css" rel="stylesheet" type="text/css")
         link(href=process.env.CC_PATH + '/stylesheets/main.css' rel='stylesheet')
 
+        script(src=process.env.CC_PATH + "/osd/openseadragon.min.js")
+        script(src=process.env.CC_PATH + "/annotorious/openseadragon-annotorious.min.js")
 
         script(src="https://code.jquery.com/jquery-3.6.0.js")
         script(src="https://unpkg.com/dropzone@6.0.0-beta.1/dist/dropzone-min.js")
@@ -61,7 +64,7 @@ html
 
                         //h(class="header2" style="font-size: 26px; text-align: center;") Image Sets
 
-                        div(class="content" style="display:block; height: 700px")
+                        div(class="content" style="display:block; height: 800px")
 
                             ul(class="nav" id="browse_upload")
                                 li(id="browse_tab_btn" class="nav tab-btn-active")
@@ -81,7 +84,7 @@ html
                                 li(id="train_tab_btn" class="nav")
                                     a(class="nav")
                                         span
-                                            i(class="fa-solid fa-person-running" style="margin-right:3px")
+                                            i(class="fa-solid fa-layer-group" style="margin-right:3px")
                                             |
                                             | Train
 
@@ -98,11 +101,10 @@ html
 
 
                                 div(id="browse")
-                                    br
-                                    br
-                                    br
 
-                                    table(class="transparent_table" id="combo_table")
+                                    div(style="height: 70px")
+
+                                    table(id="combo_table")
                                         tr
                                             th
                                                 div(class="table_head" style="width: 130px") Farm Name 
@@ -124,18 +126,18 @@ html
                                                 div(style="width: 250px")
                                                     select(id="mission_combo" class="nonfixed_dropdown")
 
-                                    br
+                                    div(style="height: 50px")
                                     hr(style="margin: 0px 0px")
                                     div(id="image_set_container")
 
 
                                 div(id="upload" hidden)
-                                    form(id="upload_form" action="")
-                                        br
-                                        br
-                                        br
 
-                                        table(class="transparent_table" id="input_table")
+
+                                    div(style="height: 70px")
+                                    form(id="upload_form" action="")
+
+                                        table(id="input_table")
                                             tr 
                                                 th 
                                                     div(class="table_head" style="width: 140px") Farm Name 
@@ -159,6 +161,14 @@ html
                                                 th 
                                                     div(style="width: 250px")
                                                         input(id="mission_input" type="date" class="nonfixed_input")
+
+                                            tr 
+                                                th 
+                                                    div(class="table_head" style="width: 140px") Object Name 
+                                                        span(style="color: yellow") *
+                                                th 
+                                                    div(style="width: 250px")
+                                                        select(id="object_input" class="nonfixed_dropdown")
 
 
                                             tr 
@@ -190,45 +200,244 @@ html
                                     br
                                     br
 
+                                    ul(class="nav" style="border-top: 1px solid white;")
+                                        li(id="submit_train_tab_btn" class="nav tab-btn-active" onclick="show_train_tab(this.id)")
+                                            a(class="nav")
+                                                span
+                                                    i(class="fa-solid fa-circle-plus" style="margin-right:3px")
+                                                    |
+                                                    | Submit
 
-                                    table(class="transparent_table")
-                                        tr
-                                            td(style="width: 800px")
-                                                div(class="scrollable_area" style="height: 475px; overflow-y: scroll")
-                                                    table(id="image_sets_table" style="width: 800px")
+                                        li(id="available_train_tab_btn" class="nav" onclick="show_train_tab(this.id)")
+                                            a(class="nav")
+                                                span
+                                                    i(class="fa-solid fa-circle-check" style="margin-right:3px")
+                                                    |
+                                                    | Available
 
-                                            td(style="width: 100%")
+                                        li(id="pending_train_tab_btn" class="nav" onclick="show_train_tab(this.id)")
+                                            a(class="nav")
+                                                span
+                                                    i(class="fa-solid fa-clock" style="margin-right:3px")
+                                                    |
+                                                    | Pending
 
-
-
-                                    br
-
-                                    table(class="transparent_table")
-                                        tr 
-                                            th 
-                                                div(class="table_head" style="width: 140px") Model Name
-                                            th 
-                                                div(style="width: 250px")
-                                                    input(id="model_name_input" class="nonfixed_input")
-
-                        
-                                    br
-
-                                    div(style="height: 50px")
-                                        button(id="submit_button" class="std-button std-button-hover" style="width: 200px; height: 40px;") Submit Request
-
-
-
-
+                                        li(id="aborted_train_tab_btn" class="nav" onclick="show_train_tab(this.id)")
+                                            a(class="nav")
+                                                span
+                                                    i(class="fa-solid fa-circle-xmark" style="margin-right:3px")
+                                                    |
+                                                    | Aborted
 
 
 
+                                    div(id="submit_train_tab")
+                                        table
+                                            tr
+                                                td(style="width: 700px")
 
-                                //-
-                                    div(class="scrollable_area" style="height: 280px; margin: 10px 10px; padding: 10px 10px")
-                                        table(id="image_sets_table" class="transparent_table")
+                                                    table
+                                                        tr
+                                                            td
+                                                                h(class="header2" style="text-align: left; width: 200px; padding-left: 5px") Available Sets
+                                                            td(style="width: 100%")
+                                                            
+
+
+                                                    table 
+                                                        tr 
+                                                            //td(style="width: 50%")
+                                                            td(style="width: 100%")
+                                                            td
+                                                                div(style="text-align: right; width: 90px; padding-right: 5px; text-decoration: underline") Sort Order 
+                                                            
+                                                            td
+                                                                div(style="width: 450px")
+                                                                    select(id="sort_combo_1" class="nonfixed_dropdown" style="display: inline-block; width: 150px")
+                                                                        option(value="object_name") Object Name 
+                                                                        option(value="set_owner") Set Owner
+                                                                        option(value="set_name") Set Name
+                                                                    select(id="sort_combo_2" class="nonfixed_dropdown" style="display: inline-block; width: 150px")
+                                                                        option(value="set_owner") Set Owner 
+                                                                        option(value="set_name") Set Name
+                                                                    select(id="sort_combo_3" class="nonfixed_dropdown" style="display: inline-block;; width: 150px")
+                                                                        option(value="set_name") Set Name
+                                                            //td
+                                                            //    div(style="width: 60px")
+                                                            td
+                                                                button(class="std-button std-button-hover" onclick="show_filter()" style="font-size: 16px; padding: 2px; width: 90px; margin: 0px 5px")
+                                                                    i(class="fa-solid fa-filter" style="margin-right: 4px; font-size: 14px") 
+                                                                    |
+                                                                    | Filter
+                                                            
+                                                    
+                                                    table
+                                                        tr 
+                                                            td
+
+                                                                div(class="scrollable_area" style="width: 690px; height: 280px; overflow-y: scroll")
+                                                                    //div(class="scrollable_area" style="height: 475px; overflow-y: scroll")
+                                                                    table(id="available_image_sets" style="border-collapse: collapse")
+                                                        tr
+                                                            td
+                                                                table 
+                                                                    tr 
+                                                                        td
+                                                                            h(class="header2" style="text-align: left; width: 100px; padding-left: 5px") Added Sets
+                                                                        td(style="width: 100%")
+                                                                        td 
+                                                                            h(class="header2" style="text-align: right; padding-right: 10px") Images 
+                                                                        td 
+                                                                            div(id="added_images" style="width: 80px; text-align: left") 0
+                                                                        td 
+                                                                            h(class="header2" style="text-align: right; padding-right: 10px") Annotations 
+                                                                        td 
+                                                                            div(id="added_annotations"  style="width: 80px; text-align: left") 0
+                                                                        
+                                                        tr
+                                                            td
+                                                                div(class="scrollable_area" style="height: 180px; overflow-y: scroll")
+                                                                    table(id="added_image_sets" style="border-collapse: collapse")
+
+                                                        tr 
+                                                            td
+                                                                table 
+                                                                    tr 
+                                                                        td
+                                                                            div(style="height: 4px")
+                                                                        td
+                                                                    tr
+                                                                        td 
+                                                                            h(class="header2" style="width: 200px; text-align: right") Model Name
+                                                                        td
+                                                                            div(style="width: 250px")
+                                                                                input(id="model_name_input" class="nonfixed_input")
+                                                                    tr 
+                                                                        td 
+                                                                            h(class="header2" style="width: 200px; text-align: right") Target Object
+                                                                        td
+                                                                            div(style="width: 250px")
+                                                                                select(id="model_object_input" class="nonfixed_dropdown")
+
+
+                                                                    //-
+                                                                        tr 
+                                                                            td 
+                                                                                label(for="public_checkbox" class="container header2" style="width: 300px;") Make Model Public
+                                                                            td
+                                                                                input(type="checkbox" id="public_checkbox" name="public_checkbox" checked)
+                                                                                span(class="checkmark")
+                                                                    tr
+                                                                        td 
+                                                                            h(class="header2" style="width: 200px; text-align: right") Make Model Public
+                                                                        td
+                                                                            div(style="width: 250px; text-align: left")
+                                                                                label(for="public_checkbox" class="container" style="display: inline; margin-botton: 20px; margin-left: 12px")
+                                                                                    input(type="checkbox" id="public_checkbox" name="public_checkbox" checked)
+                                                                                    span(class="checkmark")
+                                                        
+                                                        tr 
+                                                            td
+                                                                div(style="height: 4px")           
+
+                                                        tr 
+                                                            td
+                                                                div(style="height: 50px")
+                                                                    button(id="submit_training_request" class="std-button std-button-hover" style="width: 250px; height: 30px;") Submit Training Request
+
+                                                        tr 
+                                                            td
+                                                                div(style="height: 4px")   
+
+                                                
+                                                td(style="width: 800px")
+
+                                                    table
+                                                        tr
+                                                            td
+                                                                table
+                                                                    tr
+                                                                        td
+                                                                            h(class="header2" style="text-align: left; width: 120px; padding-left: 5px") Inspected Set
+
+                                                                        td(style="width: 100%")
+                                                                            div(id="inspected_set" style="text-align: center;")
+
+                                                                        td(style="width: 100px")
+                                                                            button(id="inspect_prev" class="std-button std-button-hover" style="padding: 2px; font-size: 14px; width: 50px") 
+                                                                                i(class="fa-solid fa-circle-chevron-left")
+                                                                        td(style="width: 100px")
+                                                                            button(id="inspect_next" class="std-button std-button-hover" style="padding: 2px; font-size: 14px; width: 50px") 
+                                                                                i(class="fa-solid fa-circle-chevron-right")
+
+                                                        tr
+                                                            td
+                                                                //div(id="inspect_container")
+                                                                div(id="inspect_viewer" class="viewer" style="height: 300px; width: 800px")
+
+
+                                                    //hr
+                                                    table
+                                                        tr
+                                                            td
+                                                                table 
+                                                                    tr 
+                                                                        td
+                                                                            h(class="header2" style="text-align: left; width: 120px; padding-left: 5px") Target Set
+
+                                                                        td(style="width: 100%")
+
+                                                                        td(style="width: 100px")
+                                                                            button(id="target_prev" class="std-button std-button-hover" style="padding: 2px; font-size: 14px; width: 50px") 
+                                                                                i(class="fa-solid fa-circle-chevron-left")
+                                                                        td(style="width: 100px")
+                                                                            button(id="target_next" class="std-button std-button-hover" style="padding: 2px; font-size: 14px; width: 50px") 
+                                                                                i(class="fa-solid fa-circle-chevron-right")
+                                                        tr 
+                                                            td
+                                                                table
+                                                                    tr
+                                                                        td
+                                                                            select(id="target_farm_combo" class="dropdown" style="width: 266px")
+                                                                            select(id="target_field_combo" class="dropdown" style="width: 266px")
+                                                                            select(id="target_mission_combo" class="dropdown" style="width: 166px")
+                                                        tr
+                                                            td
+                                                                div(id="target_viewer" class="viewer" style="height: 300px; width: 800px")
+
+                                                        tr
+                                                            td(style="height: 16px")
+                                    div(id="available_train_tab")
+                                        br
+                                        br
+                                        br
+                                        h(style="font-weight: bold") #{username}'s
+                                        div(class="header2") Trained Models
+
+                                        br
+                                        br
+
+                                        table(id="available_models_head" style="padding-right: 20px")
+                                        div(style="margin: 0 auto; height: 550px; overflow-y: scroll;")
+                                            table(id="available_models")
+
+                                        
+
+                                    div(id="pending_train_tab")
+                                        br
+                                        br
+                                        br
+                                        div PENDING                                        
+                                    
+                                    div(id="aborted_train_tab")
+                                        br
+                                        br
+                                        br
+                                        div ABORTED
+
     script.
         let username = !{JSON.stringify(username)};
         let image_sets_data = !{JSON.stringify(image_sets_data)};
         let camera_specs = !{JSON.stringify(camera_specs)};
+        let objects = !{JSON.stringify(objects)};
         let all_datasets = !{JSON.stringify(all_datasets)};

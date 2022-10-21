@@ -192,7 +192,14 @@ function show_tab(sel_tab_btn_id) {
     }
     else {
         //show_train_baseline();
-        $("#train").show();
+        $("#train").show("fast", function() {
+            for (let id_prefix of ["inspect", "target"]) {
+                if (id_prefix in viewers) {
+                    viewers[id_prefix].viewport.goHome();
+                }
+            }
+        });
+
     }
 
 }
@@ -1326,7 +1333,6 @@ function show_image_set_details() {
 function initialize_browse() {
 
 
-
     $("#farm_combo").empty();
     $("#field_combo").empty();
     $("#mission_combo").empty();
@@ -1375,6 +1381,7 @@ function initialize_browse() {
         }
         $("#mission_combo").val($("#mission_combo:first").val()).change();
     });
+
 }
 
 

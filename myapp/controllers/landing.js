@@ -210,6 +210,17 @@ exports.get_home = function(req, res, next) {
 
         let all_datasets = get_all_datasets();
 
+        let objects_path = path.join(USR_SHARED_ROOT, "objects.json");
+        let objects;
+        try {
+            objects = JSON.parse(fs.readFileSync(objects_path, 'utf8'));
+        }
+        catch (error) {
+            console.log(error);
+            res.redirect(process.env.CC_PATH);
+        }
+        
+
 
         camera_mutex.acquire()
         .then(function(release) {
@@ -232,6 +243,7 @@ exports.get_home = function(req, res, next) {
                 username: req.session.user.username, 
                 image_sets_data: image_sets_data,
                 camera_specs: camera_specs,
+                objects: objects,
                 all_datasets: all_datasets
             });
 
@@ -496,12 +508,23 @@ function get_all_datasets() {
                     let mission_root = path.join(field_root, mission_date);
                     let annotations_path = path.join(mission_root, "annotations", "annotations_w3c.json");
                     console.log("annotations_path", annotations_path);
+
+                    let object_info_path = path.join(mission_root, "annotations", "object_info.json");
+                    let object_info;
+                    try {
+                        object_info = JSON.parse(fs.readFileSync(object_info_path, 'utf8'));
+                    }
+                    catch (error) {
+                        continue;
+                    }
+
+
                     let annotations;
                     try {
                         annotations = JSON.parse(fs.readFileSync(annotations_path, 'utf8'));
                     }
                     catch (error) {
-                        continue; //return res.redirect(process.env.CC_PATH);
+                        continue;
                     }
 
                     let num_annotations = 0;
@@ -529,7 +552,8 @@ function get_all_datasets() {
                         }
                         data[username][farm_name][field_name][mission_date] = {
                             "num_annotations": num_annotations,
-                            "annotated_images": image_names
+                            "annotated_images": image_names,
+                            "object_name": object_info["object_name"]
                         };
 
                     }
@@ -776,27 +800,34 @@ function results_comment_is_valid(results_comment) {
     return true;
 }
 
-function get_valid_model_logs(model_paths, username, farm_name, field_name, mission_date) {
+function get_valid_models(model_paths, username, farm_name, field_name, mission_date) {
 
-    let model_logs = [];
+    let models = [];
     for (let model_path of model_paths) {
         let log_path = path.join(model_path, "log.json");
         let log = JSON.parse(fs.readFileSync(log_path, 'utf8'));
 
 
 
-        let keep = true;
+        let valid = true;
         for (let image_set of log["image_sets"]) {
             if ((image_set["username"] == username && image_set["farm_name"] == farm_name) &&
                 (image_set["field_name"] == field_name && image_set["mission_date"] == mission_date)) {
-                    keep = false;
+                    valid = false;
             }
         }
-        if (keep) {
-            model_logs.push(log);
+        if (valid) {
+            models.push({
+                "model_creator": log["model_creator"],
+                "model_name": log["model_name"],
+                "model_object": log["model_object"]
+            });
         }
+        // if (valid) {
+        //     model_logs.push(log);
+        // }
     }
-    return model_logs;
+    return models;
 }
 
 
@@ -930,7 +961,8 @@ exports.post_workspace = function(req, res, next) {
         return res.json(response);
     } */
     else if (action === "fetch_public_models") {
-        let model_logs = [];
+        //let model_logs = [];
+        let models = [];
         glob(path.join(USR_DATA_ROOT, "*"), function(error, usr_dirs) {
             if (error) {
                 response.error = true;
@@ -945,9 +977,9 @@ exports.post_workspace = function(req, res, next) {
                         return res.json(response);
                     }
 
-                    let logs;
+                    let cur_models;
                     try {
-                        logs = get_valid_model_logs(public_paths, req.session.user.username, farm_name, field_name, mission_date);
+                        cur_models = get_valid_models(public_paths, req.session.user.username, farm_name, field_name, mission_date);
                     }
                     catch (error) {
                         response.message = "Failed to retrieve models.";
@@ -955,7 +987,7 @@ exports.post_workspace = function(req, res, next) {
                         return res.json(response);
                     }
 
-                    model_logs = model_logs.concat(logs);
+                    models = models.concat(cur_models);
 
                     /*
                     for (let public_path of public_paths) {
@@ -987,7 +1019,10 @@ exports.post_workspace = function(req, res, next) {
 
                     if (i == usr_dirs.length-1) {
                         response.error = false;
-                        response.model_logs = model_logs;
+                        response.models = nat_orderBy.orderBy(models, 
+                            [v => v.model_creator, v => v.model_name], 
+                            ['asc', 'asc']);
+                        //models;
                         return res.json(response);
                     }
 
@@ -1022,11 +1057,11 @@ exports.post_workspace = function(req, res, next) {
                     return res.json(response);
                 }
 
-                let model_logs = [];
+                let models = [];
 
-                let logs;
+                let public_models;
                 try {
-                    logs = get_valid_model_logs(public_paths, req.session.user.username, farm_name, field_name, mission_date);
+                    public_models = get_valid_models(public_paths, req.session.user.username, farm_name, field_name, mission_date);
                 }
                 catch (error) {
                     response.message = "Failed to retrieve models.";
@@ -1034,10 +1069,11 @@ exports.post_workspace = function(req, res, next) {
                     return res.json(response);
                 }
 
-                model_logs = model_logs.concat(logs);
+                models = models.concat(public_models);
 
+                let private_models;
                 try {
-                    logs = get_valid_model_logs(private_paths, req.session.user.username, farm_name, field_name, mission_date);
+                    private_models = get_valid_models(private_paths, req.session.user.username, farm_name, field_name, mission_date);
                 }
                 catch (error) {
                     response.message = "Failed to retrieve models.";
@@ -1045,7 +1081,7 @@ exports.post_workspace = function(req, res, next) {
                     return res.json(response);
                 }
 
-                model_logs = model_logs.concat(logs);
+                models = models.concat(private_models);
 
 
                 /*
@@ -1062,7 +1098,9 @@ exports.post_workspace = function(req, res, next) {
                     });
                 }*/
 
-                response.model_logs = model_logs;
+                
+
+                response.models = nat_orderBy.orderBy(models, [v => v.model_name], ['asc']);
                 response.error = false;
                 return res.json(response);
 
@@ -1072,6 +1110,66 @@ exports.post_workspace = function(req, res, next) {
 
 
 
+    }
+    else if (action === "inspect_model") {
+        let model_creator = req.body.model_creator;
+        let model_name = req.body.model_name;
+
+        let public_log_path = path.join(USR_DATA_ROOT, model_creator, "models", "available", "public", model_name, "log.json");
+        let private_log_path = path.join(USR_DATA_ROOT, model_creator, "models", "available", "private", model_name, "log.json");
+        let log;
+        try {
+            log = JSON.parse(fs.readFileSync(public_log_path, 'utf8'));
+        }
+        catch(error) {
+            try {
+                log = JSON.parse(fs.readFileSync(private_log_path, 'utf8'));
+            }
+            catch(error) {
+                response.error = true;
+                return res.json(response);
+            }
+        }
+
+        let annotations_path = path.join(USR_DATA_ROOT, req.session.user.username, "image_sets",
+                                            farm_name, field_name, mission_date,
+                                            "annotations", "annotations_w3c.json");
+        let annotations;
+        try {
+            annotations = JSON.parse(fs.readFileSync(annotations_path, 'utf8'));
+        }
+        catch(error) {
+            response.error = true;
+            return res.json(response);
+        }
+
+        response.annotations = annotations;
+        response.model_log = log;
+        response.error = false;
+        return res.json(response);
+    }
+    else if (action === "fetch_annotations") {
+        let image_set_username = req.body.username;
+        let image_set_farm_name = req.body.farm_name;
+        let image_set_field_name = req.body.field_name;
+        let image_set_mission_date = req.body.mission_date;
+
+        let annotations_path = path.join(USR_DATA_ROOT, image_set_username, "image_sets",
+                                            image_set_farm_name, image_set_field_name, image_set_mission_date,
+                                            "annotations", "annotations_w3c.json");
+
+        let annotations;
+        try {
+            annotations = JSON.parse(fs.readFileSync(annotations_path, 'utf8'));
+        }
+        catch(error) {
+            response.error = true;
+            return res.json(response);
+        }
+
+        response.annotations = annotations;
+        response.error = false;
+        return res.json(response);
     }
     else if (action === "predict") {
 
@@ -1351,6 +1449,7 @@ exports.post_upload = function(req, res, next) {
     let farm_name;
     let field_name;
     let mission_date;
+    let object_name;
     let first;
     let last;
     let queued_filenames;
@@ -1361,6 +1460,7 @@ exports.post_upload = function(req, res, next) {
         farm_name = req.body.farm_name[0];
         field_name = req.body.field_name[0];
         mission_date = req.body.mission_date[0];
+        object_name = req.body.object_name[0];
         first = false;
         last = false;
         queued_filenames = req.body.queued_filenames[0].split(",");
@@ -1383,6 +1483,7 @@ exports.post_upload = function(req, res, next) {
         farm_name = req.body.farm_name;
         field_name = req.body.field_name;
         mission_date = req.body.mission_date;
+        object_name = req.body.object_name;
         queued_filenames = req.body.queued_filenames.split(",");
         first = parseInt(req.body.num_sent) == 1;
         last = parseInt(req.body.num_sent) == queued_filenames.length;
@@ -1418,7 +1519,7 @@ exports.post_upload = function(req, res, next) {
         }
     }
 
-    let format = /[ `!@#$%^&*()+\=\[\]{};':"\\|,<>\/?~]/;
+    let format = /[\s `!@#$%^&*()+\=\[\]{};':"\\|,<>\/?~]/;
 
     let image_sets_root = path.join(USR_DATA_ROOT, req.session.user.username, "image_sets");
     let farm_dir = path.join(image_sets_root, farm_name);
@@ -1619,7 +1720,7 @@ exports.post_upload = function(req, res, next) {
         //process_upload(req.session.user.username, farm_name, field_name, mission_date, camera_height);
 
         // TODO if multiple uploads are processed simultaneously, resources may become exhausted
-        fork("process_upload.js", [req.session.user.username, farm_name, field_name, mission_date, camera_height]);
+        fork("process_upload.js", [req.session.user.username, farm_name, field_name, mission_date, object_name, camera_height]);
         delete active_uploads[upload_uuid];
     }
 
@@ -1634,7 +1735,69 @@ exports.post_home = function(req, res, next) {
     let action = req.body.action;
     let response = {};
 
-    if (action === "get_overview_info") {
+    if (action === "get_annotations") {
+        let anno_username = req.body.username; 
+        let farm_name = req.body.farm_name;
+        let field_name = req.body.field_name;
+        let mission_date = req.body.mission_date;
+        let image_set_dir = path.join(USR_DATA_ROOT, anno_username, "image_sets", 
+                                        farm_name, field_name, mission_date);
+        let annotations_path = path.join(image_set_dir, "annotations", "annotations_w3c.json");
+        let annotations;
+        try {
+            annotations = JSON.parse(fs.readFileSync(annotations_path, 'utf8'));
+        }
+        catch (error) {
+            response.message = "Failed to read annotations file";
+            response.error = true;
+            return res.json(response);
+        }
+        response.annotations = annotations;
+        response.error = false;
+        return res.json(response);
+
+    }
+    else if (action === "fetch_my_models") {
+        let available_dir = path.join(USR_DATA_ROOT, req.session.user.username, "models", "available");
+
+        glob(path.join(available_dir, "public", "*"), function(error, public_paths) {
+
+            if (error) {
+                response.error = true;
+                return res.json(response);
+            }
+
+            glob(path.join(available_dir, "private", "*"), function(error, private_paths) {
+                if (error) {
+                    response.error = true;
+                    return res.json(response);
+                }
+
+                let models = [];
+
+                for (let public_path of public_paths) {
+                    models.push({
+                        "model_name": path.basename(public_path),
+                        "public": true
+                    });
+                }
+                for (let private_path of private_paths) {
+                    models.push({
+                        "model_name": path.basename(private_path),
+                        "public": false
+                    });
+                }
+                response.models = models;
+                response.error = false;
+                return res.json(response);
+
+
+            });
+
+        });
+        
+    }
+    else if (action === "get_overview_info") {
         let farm_name = req.body.farm_name;
         let field_name = req.body.field_name;
         let mission_date = req.body.mission_date;
@@ -1700,12 +1863,13 @@ exports.post_home = function(req, res, next) {
                                     farm_name, field_name, mission_date);
 
         //let annotations_lock_path = path.join(mission_dir, "annotations", "lock.json");
+        /*
         let restart_req_path = path.join(mission_dir, "model", "training", "restart_request.json");
         if (fs.existsSync(restart_req_path)) {
             response.message = "The image set cannot be deleted while a restart request has yet to be processed";
             response.error = true;
             return res.json(response);
-        }
+        }*/
 
 
         let key = req.session.user.username + "/" + farm_name + "/" + field_name + "/" + mission_date;
@@ -1792,12 +1956,13 @@ exports.post_home = function(req, res, next) {
         let mission_dir = path.join(USR_DATA_ROOT, req.session.user.username, "image_sets", 
                                     farm_name, field_name, mission_date);
 
+        /*
         let restart_req_path = path.join(mission_dir, "model", "training", "restart_request.json");
         if (fs.existsSync(restart_req_path)) {
             response.message = "A restart request was made for this image set. The workspace cannot be accessed until the request is processed.";
             response.error = true;
             return res.json(response);
-        }
+        }*/
 
 
         let key = req.session.user.username + "/" + farm_name + "/" + field_name + "/" + mission_date;
@@ -2253,6 +2418,7 @@ exports.post_home = function(req, res, next) {
 
         let scheduler_request = {
             "model_name": req.body.model_name, //"my_front_end_baseline",
+            "model_object": req.body.model_object,
             "model_creator": req.session.user.username,
             "request_type": "baseline_training",
             "public": req.body.public,

@@ -12,7 +12,7 @@ let status_to_text = {
     "all": "All",
     "unannotated": "Unannotated",
     "started": "Started",
-    "completed_for_training": "Completed for Training",
+    "completed_for_training": "Completed for Fine-Tuning",
     "completed_for_testing": "Completed for Testing",
 };
 
@@ -192,6 +192,7 @@ function disable_std_buttons(button_ids) {
 function enable_std_buttons(button_ids) {
 
     for (let button_id of button_ids) {
+        console.log("enable_std_button", button_id);
         $("#" + button_id).prop("disabled", false);
         $("#" + button_id).addClass("std-button-hover");
         $("#" + button_id).css("opacity", 1);
@@ -261,3 +262,41 @@ function can_calculate_density(metadata, camera_specs) {
     return true;
 
 }
+
+
+let formatter = function(annotation) {
+
+    const bodies = Array.isArray(annotation.body) ?
+    annotation.body : [ annotation.body ];
+  
+    const scoreTag = bodies.find(b => b.purpose == 'score');
+    const highlightBody = bodies.find(b => b.purpose == 'highlighting');
+
+    let is_checked = $("#scores_switch").is(":checked");
+    if (is_checked && (scoreTag && highlightBody)) {
+        const foreignObject = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject');
+
+        // Overflow is set to visible, but the foreignObject needs >0 zero size,
+        // otherwise FF doesn't render...
+        foreignObject.setAttribute('width', '1px');
+        foreignObject.setAttribute('height', '1px');
+
+        foreignObject.innerHTML = `
+        <div xmlns="http://www.w3.org/1999/xhtml" class="a9s-shape-label-wrapper">
+            <div class="a9s-shape-label">
+            ${scoreTag.value}
+            </div>
+        </div>`;
+
+        return {
+            element: foreignObject,
+            className: scoreTag.value + " " + highlightBody.value,
+        };
+    }
+    if (highlightBody) {
+        return {
+            className: highlightBody.value
+        }
+    }
+}
+  

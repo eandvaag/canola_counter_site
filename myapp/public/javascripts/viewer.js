@@ -182,44 +182,7 @@ function create_image_set_table() {
         }
     }
 }
-let formatter = function(annotation) {
 
-    const bodies = Array.isArray(annotation.body) ?
-    annotation.body : [ annotation.body ];
-  
-    const scoreTag = bodies.find(b => b.purpose == 'score');
-    const highlightBody = bodies.find(b => b.purpose == 'highlighting');
-
-    let is_checked = $("#scores_checkbox").is(":checked");
-    if (is_checked && (scoreTag && highlightBody)) {
-        const foreignObject = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject');
-
-        // Overflow is set to visible, but the foreignObject needs >0 zero size,
-        // otherwise FF doesn't render...
-        foreignObject.setAttribute('width', '1px');
-        foreignObject.setAttribute('height', '1px');
-
-        //rounded_score = scoreTag.value.toFixed(2);
-
-        foreignObject.innerHTML = `
-        <div xmlns="http://www.w3.org/1999/xhtml" class="a9s-shape-label-wrapper">
-            <div class="a9s-shape-label">
-            ${scoreTag.value}
-            </div>
-        </div>`;
-
-        return {
-            element: foreignObject,
-            className: scoreTag.value + " " + highlightBody.value,
-        };
-    }
-    if (highlightBody) {
-        return {
-            className: highlightBody.value
-        }
-    }
-  }
-  
 
 
 function update_overlays() {
@@ -613,7 +576,7 @@ $(document).ready(function() {
         $("#slider_val").html(slider_val);
     });
 
-    $("#scores_checkbox").change(function() {
+    $("#scores_switch").change(function() {
         update_overlays();
     });
 

@@ -37,8 +37,8 @@ let model_unassigned = true;
 let num_images_fully_trained_on;
 let train_num_increased = false;
 
-let waiting_for_model_switch = true;
-let model_logs;
+let waiting_for_model_switch = false;
+let inspected_model_log;
 
 // let overlay_colors = [
 //     "#0080C0",        
@@ -60,42 +60,6 @@ function set_prediction_overlay_color() {
         }
     }
 }
-
-let formatter = function(annotation) {
-
-    const bodies = Array.isArray(annotation.body) ?
-    annotation.body : [ annotation.body ];
-  
-    const scoreTag = bodies.find(b => b.purpose == 'score');
-    const highlightBody = bodies.find(b => b.purpose == 'highlighting');
-
-    let is_checked = $("#score_switch").is(":checked");
-    if (is_checked && (scoreTag && highlightBody)) {
-        const foreignObject = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject');
-
-        // Overflow is set to visible, but the foreignObject needs >0 zero size,
-        // otherwise FF doesn't render...
-        foreignObject.setAttribute('width', '1px');
-        foreignObject.setAttribute('height', '1px');
-
-        foreignObject.innerHTML = `
-        <div xmlns="http://www.w3.org/1999/xhtml" class="a9s-shape-label-wrapper">
-            <div class="a9s-shape-label">
-            ${scoreTag.value}
-            </div>
-        </div>`;
-
-        return {
-            element: foreignObject,
-            className: scoreTag.value + " " + highlightBody.value,
-        };
-    }
-    if (highlightBody) {
-        return {
-            className: highlightBody.value
-        }
-    }
-  }
   
 
 
@@ -153,7 +117,8 @@ function create_image_set_table() {
     let abbreviation = {
         "unannotated": "Un.",
         "started": "St.",
-        "completed_for_training": "C. Tr.",
+        //"completed_for_training": "C. Tr.",
+        "completed_for_training": "C. Fi.",
         "completed_for_testing": "C. Te."
     };
 
@@ -278,8 +243,8 @@ function set_image_status_combo() {
     let cur_image_status = annotations[cur_img_name]["status"];
     let num_annotations = annotations[cur_img_name]["annotations"].length;
     let image_status_options;
-    if (cur_image_status === "completed_for_training") {
-        image_status_options = ["completed_for_training"];
+    if (cur_image_status === "completed_for_training") { //training") {
+        image_status_options = ["completed_for_training"]; //training"];
     }
     else if (cur_image_status === "completed_for_testing") {
         if (num_annotations == 0) {
@@ -390,6 +355,16 @@ function create_anno() {
 function create_viewer_and_anno(viewer_id) {
 
     //$("#seadragon_viewer").empty();
+/*
+    let sources = [];
+    for (let dzi_image_path of dzi_image_paths) {
+        let src = new OpenSeadragon.DziTileSource({
+            tilesUrl: dzi_image_path,
+            maxLevel: 7
+        });
+        console.log(src);
+        sources.push(src);
+    }*/
 
 
     viewer = OpenSeadragon({
@@ -403,7 +378,12 @@ function create_viewer_and_anno(viewer_id) {
         nextButton: "next-btn",
         previousButton: "prev-btn",
         showNavigationControl: false,
-        preserveViewport: true
+        preserveViewport: true,
+        //imageSmoothingEnabled: false,
+        //minZoomLevel: 1,
+        //maxZoomLevel: 7
+        //minPixelRatio: 2
+        //maxZoomPixelRatio: 20
         //homeFillsViewer: true
         //defaultZoomLevel: 1.1,
         //viewportMargins: 20
@@ -1201,91 +1181,6 @@ function show_segmentation() {
 }
 
 
-function confirmed_restart_model() {
-    // $("#modal_button_container").empty();
-    // $("#restart_loader").show();
-    
-    //waiting_for_restart = true;
-    $.post($(location).attr('href'),
-    {
-        action: "restart_model"
-    },
-    
-    function(response, status) {
-        if (response.error) {
-            show_modal_message("Error", response.message);
-        }
-        else {
-            window.location.href = get_CC_PATH() + "/home/" + username;
-        }
-        //annotations = response.annotations;
-    });
-}
-
-function restart_model() {
-/*
-    $("#modal_head").empty();
-    $("#modal_body").empty();
-*/
-    //$("#restart_requested_switch").prop("checked", false);
-
-    show_modal_message(`Restart model?`, 
-    `<div>Restarting will have the following effects:</div>` +
-        `<ul>` +
-            `<li style="margin: 7px 0px">All existing results and predictions will be destroyed.</li>` +
-            `<li style="margin: 7px 0px">Model weights will be returned to their initial state.</li>` +
-            `<li style="margin: 7px 0px">All annotations will be preserved. All images currently marked as <em>Completed for Training</em> will have their status changed to <em>Completed for Testing.</em></li>` +
-            `<li style="margin: 7px 0px">You will be unable access this workspace until the restart request is processed.</li>` +
-        `</ul>` +
-
-    `<div style="text-align: center">
-    <button class="x-button x-button-hover" `+
-    `id="modal_restart_button" style="width: 200px" onclick="confirmed_restart_model()">Restart</button>` +
-    `<button class="std-button std-button-hover" ` +
-    `id="modal_cancel_button" style="width: 200px" onclick="close_modal()">Cancel</button>` +
-    `</div>`);
-
-    
-
-
-/*
-    <div>If you wish to proceed, you will be returned to the home page and prevented from accessing this workspace until the request is processed.</div>
-        
-        
-        
-    <p>When this restart request is processed, the model will be reset to its initial state. Additionally, the status of all fully annotated images will be ` + 
-    `set to <em>completed_for_testing</em>.</p>` + 
-    `<div style="text-align: center">
-    <button class="std-button std-button-hover" `+
-    `id="modal_restart_button" style="width: 200px" onclick="confirmed_restart_model()">Restart</button>` +
-    `<button class="std-button std-button-hover" ` +
-    `id="modal_cancel_button" style="width: 200px" onclick="close_modal()">Cancel</button>` +
-    `</div>`);*/
-
-    // $("#modal_head").append(
-    //     `<p>Restart model?</p>`);
-/*
-    $("#modal_body").append(`<p id="modal_message" align="left"></p>`);
-    $("#modal_message").html(`When this restart request is processed, the model will be reset to its initial state. Additionally, the status of all fully annotated images will be ` + 
-    `set to <em>completed_for_testing</em>.`);
-
-    $("#modal_body").append(`<div id="modal_button_container">
-    <button class="std-button std-button-hover" `+
-    `id="modal_restart_button" style="width: 200px" onclick="confirmed_restart_model()"><span>Restart</span></button>` +
-    `<button class="std-button std-button-hover" ` +
-    `id="modal_cancel_button" style="width: 200px" onclick="close_modal()"><span>Cancel</span></button>` +
-    `</div>`);
-*/
-
-    // $("#modal_body").append(`<div id="restart_loader" class="loader" hidden></div>`);
-
-    // $("#modal_close").click(function() {
-    //     close_modal();
-    // });
-
-    //$("#modal").css("display", "block");
-}
-
 
 function lower_slider() {
     let slider_val = parseFloat($("#confidence_slider").val());
@@ -1430,216 +1325,300 @@ function submit_prediction_request_confirmed(image_names_str, save_result) {
 
 }
 
-function show_model_details(model_log_index) {
-    console.log("show_public_models", show_public_models);
-    console.log("model_log_index", typeof(model_log_index));
-    //model_log_index = parseInt(model_log_index);
+function show_model_details(model_creator, model_name) {
 
-    let log = model_logs[parseInt(model_log_index)];
-    console.log("log", log);
+    console.log("show_model_details", model_creator, model_name);
+    $.post($(location).attr("href"),
+    {
+        action: "inspect_model",
+        model_creator: model_creator,
+        model_name: model_name
+    },
+    function(response, status) {
 
-    $("#model_info").empty();
-/*
-    $("#models_table").append(`<tr><td style="width: 200px">` +
-        `<button style="width: 200px" class="std-button std-button-hover" onclick="show_models(${show_public_models})">` +
-            `<i class="fa-solid fa-angle-left" style="padding-right: 8px"></i>Back to Model List</button></td>` +
-            `<td style="width: 100%"></td></tr>`);
-*/
-    $("#model_info").append(`<table id="details_table"></table>`);
+        if (response.error) {
+            show_modal_message("Error", "An error occurred while fetching the model details.");
+        }
 
-    let image_sets_col_width = "240px";
-    let image_set_entry_width = "240px";
-    let model_viewer_width = "450px";
-    let target_viewer_width = "450px";
-    let viewer_height = "390px";
-    $("#details_table").append(
-        `<tr>` +
-            `<td style="width: ${image_sets_col_width}; padding-left: 8px"><h class="header2">Model Image Sets</h></td>` +
-            `<td style="width: ${model_viewer_width}">` +
-            `<table>` +
+        else {
+            //console.log("show_public_models", show_public_models);
+            //console.log("model_log_index", typeof(model_log_index));
+            //model_log_index = parseInt(model_log_index);
+        
+            inspected_model_log = response.model_log; //model_logs[parseInt(model_log_index)];
+            let inspected_annotations = response.annotations;
+            for (let image_name of Object.keys(inspected_annotations)) {
+                for (let annotation of inspected_annotations[image_name]["annotations"]) {
+                    annotation["body"].push({"value": "COLOR_BRIGHT", "purpose": "highlighting"})
+                }
+            }
+            console.log("inspected_model_log", inspected_model_log);
+        
+            $("#model_info").empty();
+        /*
+            $("#models_table").append(`<tr><td style="width: 200px">` +
+                `<button style="width: 200px" class="std-button std-button-hover" onclick="show_models(${show_public_models})">` +
+                    `<i class="fa-solid fa-angle-left" style="padding-right: 8px"></i>Back to Model List</button></td>` +
+                    `<td style="width: 100%"></td></tr>`);
+        */
+            $("#model_info").append(`<table id="details_table"></table>`);
+        
+            let image_sets_col_width = "240px";
+            let image_set_entry_width = "240px";
+            let model_viewer_width = "450px";
+            let target_viewer_width = "450px";
+            let viewer_height = "390px";
+            $("#details_table").append(
                 `<tr>` +
-                    `<td><h style="width: 180px" class="header2">Model Image Set</h></td>` +
-                    `<td style="width: 100%"></td>` +
+                    `<td style="width: ${image_sets_col_width}; padding-left: 8px"><h class="header2">Model Image Sets</h></td>` +
+                    `<td style="width: ${model_viewer_width}">` +
+                    `<table>` +
+                        `<tr>` +
+                            `<td><h style="width: 180px" class="header2">Model Image Set</h></td>` +
+                            `<td style="width: 100%"></td>` +
+                            `<td>` +
+                                `<button id="prev_ims_button" class="std-button std-button-hover" style="padding: 2px; font-size: 14px; width: 80px">Previous</button>` +
+                            `</td>` +
+                            `<td>` +
+                                `<button id="next_ims_button" class="std-button std-button-hover" style="padding: 2px; font-size: 14px; width: 80px">Next</button>` +
+                            `</td>` +  
+                        `<tr>` +
+                    `</table>` +
+                    `<td style="width: ${model_viewer_width}">` +
+                    `<table>` +
+                        `<tr>` +
+                            `<td><h style="width: 180px" class="header2">Current Image Set</h></td>` +
+                            `<td style="width: 100%"></td>` +
+                            `<td>` +
+                                `<button id="prev_cs_button" class="std-button std-button-hover" style="padding: 2px; font-size: 14px; width: 80px">Previous</button>` +
+                            `</td>` +
+                            `<td>` +
+                                `<button id="next_cs_button" class="std-button std-button-hover" style="padding: 2px; font-size: 14px; width: 80px">Next</button>` +
+                            `</td>` +  
+                        `<tr>` +
+                    `</table>` +
+                    `</tr>` +
+                        
+                    //`<td><h style="width: ${target_viewer_width}" class="header2">Current Image Set</h></td>` +
+                `</tr>`);
+        
+        
+            $("#details_table").append(
+                `<tr>` +
                     `<td>` +
-                        `<button id="prev_ims_button" class="std-button std-button-hover" style="padding: 2px; font-size: 14px; width: 80px">Previous</button>` +
+                        `<div class="scrollable_area" style="height: ${viewer_height}; border: none; overflow-y: scroll">` +
+                            `<table id="model_image_sets"></table>` +
+                        `</div>` +
                     `</td>` +
-                    `<td>` +
-                        `<button id="next_ims_button" class="std-button std-button-hover" style="padding: 2px; font-size: 14px; width: 80px">Next</button>` +
-                    `</td>` +  
+                        
+                    
+                    //`<table id="model_image_sets" class="scrollable_area" style="width: ${image_sets_col_width}"></table></td>` +
+                    `<td><div id="model_viewer" class="viewer" style="height: ${viewer_height}; width: ${model_viewer_width}"></div></td>` +
+                    `<td><div id="target_viewer" class="viewer" style="height: ${viewer_height}; width: ${target_viewer_width}"></div></td>` +        `</tr>`
+            );
+        
+        /*
+            $("#details_table").append(
                 `<tr>` +
-            `</table>` +
-            `<td style="width: ${model_viewer_width}">` +
-            `<table>` +
-                `<tr>` +
-                    `<td><h style="width: 180px" class="header2">Current Image Set</h></td>` +
-                    `<td style="width: 100%"></td>` +
+                    `<td></td>` +
                     `<td>` +
-                        `<button id="prev_cs_button" class="std-button std-button-hover" style="padding: 2px; font-size: 14px; width: 80px">Previous</button>` +
+                        `<table><tr>` +
+                            `<td style="width:50%">` +
+                                `<button id="prev_ims_button" class="std-button std-button-hover" style="width: 100%">Previous</button>` +
+                            `</td>` +
+                            `<td style="width:50%">` +
+                                `<button id="next_ims_button" class="std-button std-button-hover" style="width: 100%">Next</button>` +
+                            `</td>` +                    
+                        `</tr></table>` +
                     `</td>` +
+        
                     `<td>` +
-                        `<button id="next_cs_button" class="std-button std-button-hover" style="padding: 2px; font-size: 14px; width: 80px">Next</button>` +
-                    `</td>` +  
-                `<tr>` +
-            `</table>` +
-            `</tr>` +
-                
-            //`<td><h style="width: ${target_viewer_width}" class="header2">Current Image Set</h></td>` +
-        `</tr>`);
-
-
-    $("#details_table").append(
-        `<tr>` +
-            `<td>` +
-                `<div class="scrollable_area" style="height: ${viewer_height}; border: none; overflow-y: scroll">` +
-                    `<table id="model_image_sets"></table>` +
-                `</div>` +
-            `</td>` +
-                
+                        `<table><tr>` +
+                            `<td style="width:50%">` +
+                                `<button id="prev_cs_button" class="std-button std-button-hover" style="width: 100%">Previous</button>` +
+                            `</td>` +
+                            `<td style="width:50%">` +
+                                `<button id="next_cs_button" class="std-button std-button-hover" style="width: 100%">Next</button>` +
+                            `</td>` +                    
+                        `</tr></table>` +
+                    `</td>` +
             
-            //`<table id="model_image_sets" class="scrollable_area" style="width: ${image_sets_col_width}"></table></td>` +
-            `<td><div id="model_viewer" class="viewer" style="height: ${viewer_height}; width: ${model_viewer_width}"></div></td>` +
-            `<td><div id="target_viewer" class="viewer" style="height: ${viewer_height}; width: ${target_viewer_width}"></div></td>` +        `</tr>`
-    );
+            
+                //`<td><div id="target_viewer" class="viewer" style="height: 300px; width: 400px"></div></td>` +
+                `</tr>`
+                );*/
+        
+        
+            let target_viewer = OpenSeadragon({
+                id: "target_viewer", //"seadragon_viewer",
+                sequenceMode: true,
+                prefixUrl: get_CC_PATH() + "/osd/images/",
+                tileSources: dzi_image_paths,
+                showNavigator: false,
+                maxZoomLevel: 100,
+                zoomPerClick: 1,
+                nextButton: "next_cs_button",
+                previousButton: "prev_cs_button",
+                showNavigationControl: false,
+                preserveViewport: true,
+                //imageSmoothingEnabled: false
+            });
 
-/*
-    $("#details_table").append(
-        `<tr>` +
-            `<td></td>` +
-            `<td>` +
-                `<table><tr>` +
-                    `<td style="width:50%">` +
-                        `<button id="prev_ims_button" class="std-button std-button-hover" style="width: 100%">Previous</button>` +
+
+            let target_anno = OpenSeadragon.Annotorious(target_viewer, {
+                disableEditor: true,
+                disableSelect: true,
+                readOnly: true,
+                formatter: formatter
+            });
+
+            target_viewer.addHandler("open", function(event) {
+                let cur_dzi = basename(event.source)
+                let cur_image_name = cur_dzi.substring(0, cur_dzi.length - 4);
+                target_anno.clearAnnotations();
+                for (let annotation of inspected_annotations[cur_image_name]["annotations"]) {
+                    target_anno.addAnnotation(annotation);
+                }
+            });
+        
+            for (let i = 0; i < inspected_model_log["image_sets"].length; i++) {
+        
+                let image_set = inspected_model_log["image_sets"][i];
+        
+                let entry = `<table class="transparent_table" style="font-size: 14px">` +
+                `<tr>` +
+                    `<td style="text-align: right">` +
+                        `<div style="color: #ddccbb; font-weight: 400; width: 90px">Username</div>` +
+                    `</td>` + 
+                    `<td style="text-align: left; padding-left: 15px; width: 100%;">` +
+                        `<div>${image_set["username"]}</div>` +
                     `</td>` +
-                    `<td style="width:50%">` +
-                        `<button id="next_ims_button" class="std-button std-button-hover" style="width: 100%">Next</button>` +
-                    `</td>` +                    
-                `</tr></table>` +
-            `</td>` +
-
-            `<td>` +
-                `<table><tr>` +
-                    `<td style="width:50%">` +
-                        `<button id="prev_cs_button" class="std-button std-button-hover" style="width: 100%">Previous</button>` +
+                `<tr>` +
+                    `<td style="text-align: right">` +
+                        `<div style="color: #ddccbb; font-weight: 400; width: 90px">Farm Name</div>` +
+                    `</td>` + 
+                    `<td style="text-align: left; padding-left: 15px; width: 100%;">` +
+                        `<div>${image_set["farm_name"]}</div>` +
                     `</td>` +
-                    `<td style="width:50%">` +
-                        `<button id="next_cs_button" class="std-button std-button-hover" style="width: 100%">Next</button>` +
-                    `</td>` +                    
-                `</tr></table>` +
-            `</td>` +
-    
-    
-        //`<td><div id="target_viewer" class="viewer" style="height: 300px; width: 400px"></div></td>` +
-        `</tr>`
-        );*/
+                `<tr>` +
+                    `<td style="text-align: right">` +
+                        `<div style="color: #ddccbb; font-weight: 400; width: 90px">Field Name</div>` +
+                    `</td>` + 
+                    `<td style="text-align: left; padding-left: 15px; width: 100%;">` +
+                        `<div>${image_set["field_name"]}</div>` +
+                    `</td>` +
+                `<tr>` +
+                    `<td style="text-align: right">` +
+                        `<div style="color: #ddccbb; font-weight: 400; width: 90px">Mission Date</div>` +
+                    `</td>` + 
+                    `<td style="text-align: left; padding-left: 15px; width: 100%;">` +
+                        `<div>${image_set["mission_date"]}</div>` +
+                    `</td>`;
+        
+        
+        
+        
+                $("#model_image_sets").append(`<tr>` +
+                
+                    //`<td><div>${extensionless_name}</div></td>` +
+                    //`<td><div class="table_entry std_tooltip" style="background-color: ${image_color}; cursor: default; position: relative; width: ${image_status_col_width}; border: 1px solid white">${abbreviated_status}` +
+                    //`<span class="std_tooltiptext">${image_status}</span></div></td>` +
+        
+                    //`<td><div class="table_entry std_tooltip" style="margin: 0px 1px; background-color: ${image_color}; cursor: default; position: relative; width: ${image_status_col_width}; border: 1px solid white">${abbreviated_status}</div></td>` +
+        
+        
+                    `<td><div class="table_button table_button_hover" style="width: ${image_set_entry_width}; margin: 0px 1px;" ` +
+                    // `onclick="change_image('${dzi_image_path}')">${extensionless_name}</div></td>` +
+                    `onclick="change_image_set('${i}')">` +
+                    entry +
+                    `</div></td>` +
+                    //`</div></td>` + 
+                    //`<td><div class="table_entry">${img_dataset}</div></td>` +
+                    `</tr>`);
+            }
+            change_image_set(0);
+        
+        }
 
-
-    OpenSeadragon({
-        id: "target_viewer", //"seadragon_viewer",
-        sequenceMode: true,
-        prefixUrl: get_CC_PATH() + "/osd/images/",
-        tileSources: dzi_image_paths,
-        showNavigator: false,
-        maxZoomLevel: 100,
-        zoomPerClick: 1,
-        nextButton: "next_cs_button",
-        previousButton: "prev_cs_button",
-        showNavigationControl: false,
-        preserveViewport: true
     });
-
-    for (let i = 0; i < log["image_sets"].length; i++) {
-
-        let image_set = log["image_sets"][i];
-        //let text = image_set["username"] + "/" +image_set["farm_name"] + "/" + image_set["field_name"] + "/" + image_set["mission_date"]
-
-
-
-        let entry = `<table class="transparent_table" style="font-size: 14px">` +
-        `<tr>` +
-            `<td style="text-align: right">` +
-                `<div style="color: #ddccbb; font-weight: 400; width: 90px">Username</div>` +
-            `</td>` + 
-            `<td style="text-align: left; padding-left: 15px; width: 100%;">` +
-                `<div>${image_set["username"]}</div>` +
-            `</td>` +
-        `<tr>` +
-            `<td style="text-align: right">` +
-                `<div style="color: #ddccbb; font-weight: 400; width: 90px">Farm Name</div>` +
-            `</td>` + 
-            `<td style="text-align: left; padding-left: 15px; width: 100%;">` +
-                `<div>${image_set["farm_name"]}</div>` +
-            `</td>` +
-        `<tr>` +
-            `<td style="text-align: right">` +
-                `<div style="color: #ddccbb; font-weight: 400; width: 90px">Field Name</div>` +
-            `</td>` + 
-            `<td style="text-align: left; padding-left: 15px; width: 100%;">` +
-                `<div>${image_set["field_name"]}</div>` +
-            `</td>` +
-        `<tr>` +
-            `<td style="text-align: right">` +
-                `<div style="color: #ddccbb; font-weight: 400; width: 90px">Mission Date</div>` +
-            `</td>` + 
-            `<td style="text-align: left; padding-left: 15px; width: 100%;">` +
-                `<div>${image_set["mission_date"]}</div>` +
-            `</td>`;
-
-
-
-
-        $("#model_image_sets").append(`<tr>` +
-           
-            //`<td><div>${extensionless_name}</div></td>` +
-            //`<td><div class="table_entry std_tooltip" style="background-color: ${image_color}; cursor: default; position: relative; width: ${image_status_col_width}; border: 1px solid white">${abbreviated_status}` +
-            //`<span class="std_tooltiptext">${image_status}</span></div></td>` +
-
-            //`<td><div class="table_entry std_tooltip" style="margin: 0px 1px; background-color: ${image_color}; cursor: default; position: relative; width: ${image_status_col_width}; border: 1px solid white">${abbreviated_status}</div></td>` +
-
-
-            `<td><div class="table_button table_button_hover" style="width: ${image_set_entry_width}; margin: 0px 1px;" ` +
-            // `onclick="change_image('${dzi_image_path}')">${extensionless_name}</div></td>` +
-             `onclick="change_image_set('${model_log_index}', '${i}')">` +
-             entry +
-             `</div></td>` +
-            //`</div></td>` + 
-            //`<td><div class="table_entry">${img_dataset}</div></td>` +
-            `</tr>`);
-    }
-    change_image_set(model_log_index, 0);
 
 
 
 }
-function change_image_set(model_log_index, image_set_index) {
+function change_image_set(image_set_index) {
     //console.log("text", text);
-    let image_set = model_logs[parseInt(model_log_index)]["image_sets"][parseInt(image_set_index)];
-    let model_dzi_image_paths = [];
-    for (let image_name of image_set["images"]) {
-        let dzi_path = get_CC_PATH() + "/usr/data/" + image_set["username"] + "/image_sets/" +
-                                 image_set["farm_name"] + "/" +
-                                 image_set["field_name"] + "/" +
-                                 image_set["mission_date"] + "/" +
-                                 "dzi_images" + "/" +
-                                 image_name + ".dzi";
-        model_dzi_image_paths.push(dzi_path);
-    }
+    let image_set = inspected_model_log["image_sets"][parseInt(image_set_index)];
+    $.post($(location).attr("href"),
+    {
+        action: "fetch_annotations",
+        username: image_set["username"],
+        farm_name: image_set["farm_name"],
+        field_name: image_set["field_name"],
+        mission_date: image_set["mission_date"]
+    },
+    function(response, status) {
 
-    $("#model_viewer").empty();
+        if (response.error) {
+            show_modal_message("Error", "An error occurred while fetching the image set annotations.");
+        }
+        else {
 
-    OpenSeadragon({
-        id: "model_viewer", //"seadragon_viewer",
-        sequenceMode: true,
-        prefixUrl: get_CC_PATH() + "/osd/images/",
-        tileSources: model_dzi_image_paths,
-        showNavigator: false,
-        maxZoomLevel: 100,
-        zoomPerClick: 1,
-        nextButton: "next_ims_button",
-        previousButton: "prev_ims_button",
-        showNavigationControl: false,
-        preserveViewport: true
+            let image_set_annotations = response.annotations;
+            for (let image_name of Object.keys(image_set_annotations)) {
+                for (let annotation of image_set_annotations[image_name]["annotations"]) {
+                    annotation["body"].push({"value": "COLOR_BRIGHT", "purpose": "highlighting"})
+                }
+            }
+
+
+            let model_dzi_image_paths = [];
+            for (let image_name of image_set["images"]) {
+                let dzi_path = get_CC_PATH() + "/usr/data/" + image_set["username"] + "/image_sets/" +
+                                         image_set["farm_name"] + "/" +
+                                         image_set["field_name"] + "/" +
+                                         image_set["mission_date"] + "/" +
+                                         "dzi_images" + "/" +
+                                         image_name + ".dzi";
+                model_dzi_image_paths.push(dzi_path);
+            }
+        
+            $("#model_viewer").empty();
+        
+            let model_viewer = OpenSeadragon({
+                id: "model_viewer", //"seadragon_viewer",
+                sequenceMode: true,
+                prefixUrl: get_CC_PATH() + "/osd/images/",
+                tileSources: model_dzi_image_paths,
+                showNavigator: false,
+                maxZoomLevel: 100,
+                zoomPerClick: 1,
+                nextButton: "next_ims_button",
+                previousButton: "prev_ims_button",
+                showNavigationControl: false,
+                preserveViewport: true,
+                //imageSmoothingEnabled: false
+            });
+
+
+            let model_anno = OpenSeadragon.Annotorious(model_viewer, {
+                disableEditor: true,
+                disableSelect: true,
+                readOnly: true,
+                formatter: formatter
+            });
+
+            model_viewer.addHandler("open", function(event) {
+                let cur_dzi = basename(event.source)
+                let cur_image_name = cur_dzi.substring(0, cur_dzi.length - 4);
+                //update_inspected_overlays(cur_image_name);
+
+                model_anno.clearAnnotations();
+                for (let annotation of image_set_annotations[cur_image_name]["annotations"]) {
+                    model_anno.addAnnotation(annotation);
+                }
+            });
+        }
     });
-
 }
 
 
@@ -1689,12 +1668,12 @@ function show_models(show_public_models) {
                 `</div>`);
 
             $("#models_table").empty();
-            model_logs = response.model_logs;
+            let models = response.models; //_logs;
                         //[{"name": "foo", "creator": "erik"}, 
                         //  {"name": "bar", "creator": "erik"}, 
                         //  {"name": "baz0-0-0-0", "creator": "erik"}];
             
-            if (model_logs.length == 0) {
+            if (models.length == 0) {
                 $("#models_table").append(`<tr><td>No Models Found!</td></tr>`);
             }
             else {
@@ -1707,9 +1686,9 @@ function show_models(show_public_models) {
                     $("#models_table").append(`<tr>` +
                     `<td><div class="table_entry" style="font-weight: bold; width: ${model_name_col_width};">Name</div></td></tr>`);
                 }*/
-                for (let i = 0; i < model_logs.length; i++) {
-                    let model_name = model_logs[i]["model_name"];
-                    let model_creator = model_logs[i]["model_creator"];
+                for (let i = 0; i < models.length; i++) {
+                    let model_name = models[i]["model_name"];
+                    let model_creator = models[i]["model_creator"];
                     let model_id = model_creator + ":" + model_name;
                     let button_id = "btn_" + model_id;
 
@@ -1726,7 +1705,7 @@ function show_models(show_public_models) {
                         `</div></td>` +
                         `<td><div class="table_entry" style="text-align: center; width: ${model_creator_col_width}">${model_creator}` +
                         `</div></td>` +
-                        `<td><button id="${button_id}" onclick="show_model_details('${i}')" ` +
+                        `<td><button id="${button_id}" onclick="show_model_details('${model_creator}', '${model_name}')" ` +
                               `class="std-button std-button-hover" style="padding: 2px; font-size: 14px; width: ${details_button_width}">Inspect` +
                         `</button></td>` +
                     `</tr>`);
@@ -1929,7 +1908,7 @@ $(document).ready(function() {
         path: get_CC_PATH() + "/socket.io"
     });
 
-    socket.emit("join_annotate", username + "/" + image_set_info["farm_name"] + "/" + image_set_info["field_name"] + "/" + image_set_info["mission_date"]);
+    socket.emit("join_workspace", username + "/" + image_set_info["farm_name"] + "/" + image_set_info["field_name"] + "/" + image_set_info["mission_date"]);
 
     socket.on("workspace_occupied", function(update) {
         window.location.href = get_CC_PATH() + "/home/" + username;
@@ -1949,6 +1928,7 @@ $(document).ready(function() {
         else if (waiting_for_model_switch) {
             num_training_images = 0;
             for (let image_name of Object.keys(annotations)) {
+                
                 if (annotations[image_name]["status"] === "completed_for_training") {
                     annotations[image_name]["status"] = "completed_for_testing"
                 }
@@ -1960,16 +1940,23 @@ $(document).ready(function() {
         }
 
         num_images_fully_trained_on = update["num_images_fully_trained_on"];
-        model_unassigned = (update["model_name"] === "---");
+        model_unassigned = (!("model_name" in update)) || (update["model_name"] === "---");
 
         console.log("model_unassigned", model_unassigned);
 
-
-        $("#model_name").html(update["model_name"]);
+        let model_name;
+        if ("model_name" in update) {
+            model_name = update["model_name"];
+        }
+        else {
+            model_name = "---";
+        }
+        $("#model_name").html(model_name);
 
         if (model_unassigned) {
             $("#model_fully_trained").html("---");
             $("#model_fine_tuned").html("---");
+            disable_std_buttons(["request_result_button", "predict_single_button", "predict_all_button"]);
         }
         else {
             if (num_training_images == num_images_fully_trained_on) {
@@ -2051,7 +2038,7 @@ $(document).ready(function() {
             let update_field_name = update["field_name"];
             let update_mission_date = update["mission_date"];
             let date = timestamp_to_date(update_timestamp);
-            let display_statuses = ["Training", "Predicting", "Switching Model", "Idle", "Training Baseline"];
+            let display_statuses = ["Fine-Tuning", "Predicting", "Switching Model", "Idle", "Training"];
             let update_is_for_this_set = ((update_username === username && update_farm_name === image_set_info["farm_name"]) &&
             (update_field_name === image_set_info["field_name"] && update_mission_date === image_set_info["mission_date"]));
 
@@ -2118,7 +2105,7 @@ $(document).ready(function() {
 
                             for (let prediction_image_name of prediction_image_names) {
                                 predictions[prediction_image_name] = response.predictions[prediction_image_name];
-                                // if (response.metrics[prediction_image_name] !== "") {
+                                // if (response.metrics[prediction_imadd_annotatage_name] !== "") {
                                 //     metrics[prediction_image_name] = response.metrics[prediction_image_name];
                                 // }
                                 
@@ -2151,147 +2138,6 @@ $(document).ready(function() {
     });
 
 
-    /*
-    socket.on("status_change", function(status) {
-
-        if (status["error"] === 'True') {
-            let error_message = `An error occurred during ` + status["error_setting"] + 
-            `:<br><br>` + status["error_message"];
-            
-
-            if (status["error_setting"] === "prediction") {
-                error_message = error_message + `<br><br>Please report this error to the site administrator.`;
-            }
-            else if (status["error_setting"] === "training") {
-                error_message = error_message + `<br><br>The model will be prevented from training until the error is resolved. Please contact the site administrator.`;
-            }
-
-            show_modal_message("Error", error_message);
-        }
-
-        let update_num = parseInt(status["update_num"]);
-        if (update_num > cur_update_num) {
-            cur_update_num = update_num;
-            // let cur_num_trained_on = parseInt(status["num_images_fully_trained_on"]);
-            
-            // $("#model_status").html(capitalizeFirstLetter(status["status"]));
-
-            if (status["fully_trained"] === "True") {
-                $("#model_training_status").html("Yes");
-            }
-            else {
-                $("#model_training_status").html("No");
-            }
-        
-
-
-            if (status["outstanding_prediction_requests"] === "True") {
-                //disable_buttons(["request_prediction_button", "request_result_button"]);
-                disable_std_buttons(["request_result_button", "predict_single_button", "predict_all_button"]);
-                //disable_buttons(["predict_single_button", "predict_all_button"]);
-            }
-            else {
-                //enable_buttons(["request_prediction_button", "request_result_button"]);
-                enable_std_buttons(["request_result_button", "predict_single_button", "predict_all_button"]);
-                //enable_buttons(["predict_single_button", "predict_all_button"]);
-            }
-
-
-            if (status["sys_training_blocked"] === "True") {
-                $("#train_block_text").html("Yes");
-                $("#train_block_switch").prop("checked", true);
-
-                $("#train_block_switch").prop('disabled', true);
-                $("#train_block_label").css("opacity", 0.5);
-                $("#train_block_slider").css("cursor", "default");
-
-                $("#train_block_message").html("Training blocked due to system error.");
-
-            }
-
-            else {
-
-                $("#train_block_switch").prop('disabled', false);
-                $("#train_block_label").css("opacity", 1);
-                $("#train_block_slider").css("cursor", "pointer");
-
-                $("#train_block_message").html("");
-
-                if (status["usr_training_blocked"] === "True") {
-                    $("#train_block_text").html("Yes");
-                    $("#train_block_switch").prop("checked", true);
-                }
-                else {
-                    $("#train_block_text").html("No");
-                    $("#train_block_switch").prop("checked", false);
-                }
-            }
-
-            // if (status["restart_requested"] === "True") {
-            //     $("#restart_requested_text").html("yes");
-            //     $("#restart_requested_switch").prop("checked", true);
-            //     $("#restart_requested_switch").prop('disabled', true);
-            //     $("#restart_requested_label").css("opacity", 0.5);
-            //     $("#restart_requested_slider").css("cursor", "default");
-            // }
-            // else {
-
-            //     $("#restart_requested_switch").prop('disabled', false);
-            //     $("#restart_requested_label").css("opacity", 1);
-            //     $("#restart_requested_slider").css("cursor", "pointer");
-            //     $("#restart_requested_text").html("no");
-            //     $("#restart_requested_switch").prop("checked", false);
-            // }
-
-            if ("prediction_image_names" in status) {
-                let prediction_image_names = status["prediction_image_names"].split(",");
-                //for (prediction_image_name of prediction_image_names) {
-                $.post($(location).attr('href'),
-                {
-                    action: "retrieve_predictions",
-                    image_names: status["prediction_image_names"]
-                },
-            
-                function(response, status) {
-            
-                    if (response.error) {
-                        show_modal_message("Error", response.message);
-            
-                    }
-                    else {
-
-                        for (let prediction_image_name of prediction_image_names) {
-                            predictions[prediction_image_name] = response.predictions[prediction_image_name];
-                            // if (response.metrics[prediction_image_name] !== "") {
-                            //     metrics[prediction_image_name] = response.metrics[prediction_image_name];
-                            // }
-                            
-                            for (let annotation of predictions[prediction_image_name]["annotations"]) {
-                                annotation["body"].push({"value": "COLOR_1", "purpose": "highlighting"});
-                            }
-                        }
-
-                        if ((cur_panel === "prediction") && (prediction_image_names.includes(cur_img_name))) {
-                            
-                            $("#predictions_unavailable").hide();
-                            $("#predictions_available").show();
-                            set_count_chart_data();
-                            set_score_chart_data();
-                            
-                            update_count_chart();
-                            update_score_chart();
-
-                            add_annotations();
-                        }
-                    }
-                });
-            }
-        }
-
-    });
-    */
-
-
 
     $('#chart_combo').append($('<option>', {
         value: "Count",
@@ -2302,16 +2148,8 @@ $(document).ready(function() {
             value: "Count per square metre",
             text: "Count per square metre"
         }));
-        //$('#chart_combo').append(`<option value="Count per square meter">Count / m&sup2;</option>`);
     }
-    // $('#chart_combo').append($('<option>', {
-    //     value: "MS COCO mAP",
-    //     text: "MS COCO mAP"
-    // }));
-    // $('#chart_combo').append($('<option>', {
-    //     value: "PASCAL VOC mAP",
-    //     text: "PASCAL VOC mAP"
-    // }));
+
 
     $("#chart_combo").change(function() {
         set_count_chart_data();
@@ -2421,7 +2259,7 @@ $(document).ready(function() {
     });
 
 
-    $("#score_switch").change(function() {
+    $("#scores_switch").change(function() {
         add_annotations();
     });
 
@@ -2540,13 +2378,11 @@ $(document).ready(function() {
     $("#next_image_button").click(function() {
         let index = cur_img_list.findIndex(x => x == cur_img_name) + 1;
         change_image(cur_img_list[index]);
-    
     });
 
     $("#prev_image_button").click(function() {
         let index = cur_img_list.findIndex(x => x == cur_img_name) - 1;
         change_image(cur_img_list[index]);
-    
     });
 
 

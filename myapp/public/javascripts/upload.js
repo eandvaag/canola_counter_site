@@ -4,7 +4,7 @@ let num_sent = 0;
 let queued_filenames;
 let upload_error = null;
 // let errors = [];
-let format = /[ `!@#$%^&*()+\=\[\]{};':"\\|,<>\/?~]/;
+let format = /[\s `!@#$%^&*()+\=\[\]{};':"\\|,<>\/?~]/;
 
 function clear_form() {
     $("#farm_input").val("");
@@ -108,10 +108,21 @@ function enable_submit() {
 function form_is_complete() {
     let inputs_to_check = ["farm_input", "field_input", "mission_input"];
     for (let input of inputs_to_check) {
-        let input_length = ($("#" + input).val()).length;
+        let input_val = $("#" + input).val();
+        let input_length = input_val.length;
         if ((input_length < 3) || (input_length > 20)) {
             return false;
         }
+        if (format.test(input_val)) {
+            return false;
+        }
+    }
+
+
+    let model_object = $("#object_input").val();
+    console.log(objects);
+    if (!(objects["object_names"].includes(model_object))) {
+        return false;
     }
     
     let camera_height = $("#camera_height_input").val();
@@ -157,6 +168,14 @@ function initialize_upload() {
 
     disable_submit();
 
+    for (let object_name of objects["object_names"]) {
+        $("#object_input").append($('<option>', {
+            value: object_name,
+            text: object_name
+        }));
+    }
+    $("#object_input").prop("selectedIndex", -1);
+
 
     dropzone_handler = new Dropzone("#file-drop", { 
         url: get_CC_PATH() + "/upload",
@@ -167,7 +186,8 @@ function initialize_upload() {
         field_name: '',
         mission_date: '',
         parallelUploads: 10,
-        maxUploads: 10000
+        maxUploads: 10000,
+        maxFilesize: 100000
     });
 
     dropzone_handler.on("success", function(file, response) {   
@@ -205,6 +225,8 @@ function initialize_upload() {
 
     dropzone_handler.on("error", function(file, response) {
 
+        console.log(response);
+
         if (!upload_error) {
 
             upload_error = response.error;
@@ -226,6 +248,7 @@ function initialize_upload() {
         formData.append('farm_name', $("#farm_input").val());
         formData.append('field_name', $("#field_input").val());
         formData.append('mission_date', $("#mission_input").val());
+        formData.append("object_name", $("#object_input").val());
         formData.append("queued_filenames", queued_filenames.join(","));
         formData.append('camera_height', $("#camera_height_input").val());
         if (num_sent == 0) {

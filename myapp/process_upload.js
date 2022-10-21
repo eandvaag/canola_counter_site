@@ -82,7 +82,7 @@ function upload_notify(username, farm_name, field_name, mission_date) {
 
 
 
-async function process_upload(username, farm_name, field_name, mission_date, camera_height) {
+async function process_upload(username, farm_name, field_name, mission_date, object_name, camera_height) {
 
     let notify_data = {
         "username": username,
@@ -207,6 +207,7 @@ async function process_upload(username, farm_name, field_name, mission_date, cam
             // "write_time": 0
         };
     }
+
     console.log("Writing the annotations file");
     try {
         fs.writeFileSync(annotations_path, JSON.stringify(annotations));
@@ -215,6 +216,16 @@ async function process_upload(username, farm_name, field_name, mission_date, cam
         write_and_notify(upload_status_path, {"status": "failed", "error": error.toString()}, notify_data);
         return;
     }
+
+    let object_info_path = path.join(annotations_dir, "object_info.json");
+    try {
+        fs.writeFileSync(object_info_path, JSON.stringify({"object_name": object_name}));
+    }
+    catch (error) {
+        write_and_notify(upload_status_path, {"status": "failed", "error": error.toString()}, notify_data);
+        return;
+    }
+
 
     // let annotations_lock_path = path.join(annotations_dir, "lock.json")
     // let annotations_lock = {
@@ -412,6 +423,7 @@ let username = process.argv[2]
 let farm_name = process.argv[3];
 let field_name = process.argv[4];
 let mission_date = process.argv[5];
-let camera_height = process.argv[6];
+let object_name = process.argv[6];
+let camera_height = process.argv[7];
 
-process_upload(username, farm_name, field_name, mission_date, camera_height);
+process_upload(username, farm_name, field_name, mission_date, object_name, camera_height);

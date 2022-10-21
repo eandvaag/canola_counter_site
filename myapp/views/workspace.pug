@@ -106,7 +106,7 @@ html
                                                     td(style="text-align: left")
                                                         h(class="header2") Image
 
-                                                    td(style="width: 100%; text-align: left; padding-left: 12px")
+                                                    td(style="width: 100%; text-align: left; padding-left: 10px")
                                                         h(id="image_name" style="word-break: break-all;")
 
                                             table(class="transparent_table")
@@ -115,8 +115,8 @@ html
                                                     td(style="text-align: left")
                                                         h(class="header2") Status
 
-                                                    td(style="width: 100%; text-align: left; padding-left: 12px")
-                                                        select(id="status_combo" class="nonfixed_dropdown")
+                                                    td(style="width: 100%; text-align: left; padding-left: 10px;")
+                                                        select(id="status_combo" class="nonfixed_dropdown" style="width: 238px")
 
                                                 //-
                                                     tr
@@ -142,9 +142,11 @@ html
                                             br
 
 
+                                            //div(style="width: 280px;")
+
                                             h(class="header2" style="text-align: left") Images
 
-                                            div(class="scrollable_area" style="height: 475px; border: none; overflow-y: scroll")
+                                            div(class="scrollable_area" style="height: 475px; width: 280px; border: none; overflow-y: scroll")
                                                 table(id="image_set_table")
 
                                             div(style="height: 10px")
@@ -207,7 +209,7 @@ html
                                                             td(style="width: 100%")
                                                             td
                                                                 button(class="std-button std-button-hover" style="padding: 2px; font-size: 14px; width: 90px" onclick="change_model()")
-                                                                    i(class="fa-solid fa-cube" style="margin-right:4px") 
+                                                                    i(class="fa-solid fa-cube" style="margin-right: 4px") 
                                                                     |
                                                                     | Switch 
                                                                 //div(style="width: 30px")
@@ -453,7 +455,7 @@ html
                                                                     div(style="width: 140px; text-align:left" class="header2") Show scores
                                                                 td(style="width: 40px")
                                                                     label(class="switch")
-                                                                        input(id="score_switch" type="checkbox")
+                                                                        input(id="scores_switch" type="checkbox")
                                                                         span(class="switch_slider round")
                                                                 td(style="width: 100%")
 
