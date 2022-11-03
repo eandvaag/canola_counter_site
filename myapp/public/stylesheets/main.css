@@ -280,6 +280,7 @@ tr:first-child{ ;}*/
   background-color: #222621; /* #6f6449; /*#003f5e; /*#9c9179; /*#4c6645;*/
   font-size: 14px;
   border-radius: 50px;
+  text-align: center;
 }
 
 .table_entry {
@@ -996,7 +997,7 @@ textarea {
 .dropzone {
   /*width: 100px;*/
   /*height: 390px;*/
-  height: 470px; /*370px;*/
+  /*height: 470px; *//*370px;*/
   /*border-top: 1px solid white;*/
   /*border-bottom: 1px solid white;*/
   /*border-style: dashed;*/
@@ -1098,13 +1099,16 @@ svg.a9s-annotationlayer .a9s-selection-mask {
 
 
 .a9s-annotationlayer .a9s-annotation .a9s-inner {
-  stroke:#0080C0 !important;
+  stroke: #0080ff !important; /*#0080C0 !important;*/
 }
-
+/*
 .a9s-annotationlayer .a9s-annotation.editable.selected .a9s-inner,
-.a9s-annotationlayer .a9s-annotation:hover .a9s-inner  {
-  stroke:#0080C0 !important;
-}
+.a9s-annotationlayer .a9s-annotation:hover .a9s-inner  {*/
+/*.a9s-annotationlayer .a9s-annotation.editable.selected  {*/
+  /*stroke:#0080C0 !important;*/
+  /*
+  stroke:pink !important;
+}*/
 
 
 .a9s-annotationlayer circle.a9s-handle-inner {
@@ -1116,6 +1120,40 @@ svg.a9s-annotationlayer .a9s-selection-mask {
 }
 
 
+.a9s-annotationlayer .a9s-annotation .training_region .a9s-inner {
+  stroke:#ff51eb !important;
+}
+.a9s-annotationlayer .a9s-annotation.training_region .a9s-inner {
+  stroke:#ff51eb !important;
+}
+/*
+.a9s-annotationlayer .a9s-annotation.training_region .a9s-inner {
+  stroke:#f705bb !important;
+}*/
+/*
+.a9s-annotationlayer .a9s-annotation.training_region.editable.selected .a9s-inner,
+.a9s-annotationlayer .a9s-annotation.training_region:hover .a9s-inner  {*/
+/*
+.a9s-annotationlayer.training_region .a9s-annotation.editable.selected .a9s-inner,
+.a9s-annotationlayer.training_region .a9s-annotation.a9s-inner:hover .a9s-inner  {
+  stroke:#f705bb !important;
+}*/
+
+.a9s-annotationlayer .a9s-annotation .test_region .a9s-inner {
+  stroke:#ffae00 !important;
+}
+.a9s-annotationlayer .a9s-annotation.test_region .a9s-inner {
+  stroke:#ffae00 !important; /*#ffa200 !important;*/
+}
+/*
+.a9s-annotationlayer .a9s-annotation.test_region.editable.selected .a9s-inner,
+.a9s-annotationlayer .a9s-annotation.test_region:hover .a9s-inner  {
+  stroke:#ffa200 !important;
+}*/
+
+
+
+/*
 .a9s-annotationlayer .a9s-annotation.COLOR_0 .a9s-inner {
   stroke:#0080C0 !important;
 }
@@ -1230,7 +1268,7 @@ svg.a9s-annotationlayer .a9s-selection-mask {
   stroke:#ff00ff !important;
 }
 
-
+*/
 
 
 
@@ -1828,6 +1866,7 @@ input:checked + .small_switch_slider:before {
   }
 }
 
+/*
 [type="radio"]:checked,
 [type="radio"]:not(:checked) {
     position: absolute;
@@ -1878,7 +1917,88 @@ input:checked + .small_switch_slider:before {
     -webkit-transform: scale(1);
     transform: scale(1);
 }
+*/
 
+/* Customize the label (the container) */
+.custom_radio_container {
+  display: block;
+  position: relative;
+  padding-left: 35px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  font-size: 16px;
+  text-align: left;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Hide the browser's default radio button */
+.custom_radio_container input {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+  height: 0;
+  width: 0;
+}
+
+/* Create a custom radio button */
+.custom_radio {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 16px;
+  width: 16px;
+  background-color: #eee;
+  border-radius: 50%;
+}
+
+/* On mouse-over, add a grey background color */
+.custom_radio_container:hover input ~ .custom_radio {
+  background-color: #ccc;
+}
+
+/* When the radio button is checked, add a blue background */
+.custom_radio_container input:checked ~ .custom_radio {
+  background-color: #2196F3;
+}
+
+
+.custom_radio_container input:checked ~ .custom_radio#annotation_radio {
+  background-color: #009be8; /*#0080C0*/
+}
+
+.custom_radio_container input:checked ~ .custom_radio#training_region_radio {
+  background-color: #ff51eb; /* #809c79;*/
+}
+
+.custom_radio_container input:checked ~ .custom_radio#test_region_radio {
+  background-color: #ffae00;
+}
+
+
+/* Create the indicator (the dot/circle - hidden when not checked) */
+.custom_radio:after {
+  content: "";
+  position: absolute;
+  display: none;
+}
+
+/* Show the indicator (dot/circle) when checked */
+.custom_radio_container input:checked ~ .custom_radio:after {
+  display: block;
+}
+
+/* Style the indicator (dot/circle) */
+.custom_radio_container .custom_radio:after {
+  top: 5px;
+  left: 5px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: white;
+}
 
 
 

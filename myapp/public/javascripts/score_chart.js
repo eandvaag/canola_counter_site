@@ -1,10 +1,11 @@
 
 //let score_thresholds = [0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1];
-let score_chart_data = {};
+let score_chart_data; // = {};
 // let scores_max_y_bin;
 let score_xScale, score_yScale;
 let score_chart_x_axis, score_chart_y_axis;
 let score_thresholds;
+let score_histogram;
 
 function set_score_chart_data() {
 
@@ -13,34 +14,68 @@ function set_score_chart_data() {
         score_thresholds.push(i / 100);
     }
 
+    score_histogram = d3.histogram()
+                        .value(function(d) { return d; })
+                        .domain([0, 1])
+                        .thresholds(score_thresholds);
+    /*
+    let scores = [];
+    for (let i = 0; i < predictions[cur_img_name]["scores"].length; i++) {
+        scores.push(parseFloat(predictions[cur_img_name]["scores"][i]));
+    }*/
+    
+
     score_chart_data = {};
 
-    for (let image_name of Object.keys(annotations)) {
+
+
+    // for (let image_name of Object.keys(annotations)) {
         
-        let scores = [];
-        if (image_name in predictions) {
-            for (let prediction of predictions[image_name]["annotations"]) {
-                let bodies = Array.isArray(prediction.body) ?
-                                prediction.body : [ prediction.body ];
-                let scoreTag = bodies.find(b => b.purpose == 'score');
-                scores.push(parseFloat(scoreTag.value));
+        // let scores = [];
+        // if (image_name in predictions) {
+        //     for (let i = 0; i < predictions[image_name]["scores"].length; i++) {
+        //         scores.push()
+        //     }
+        //     for (let prediction of predictions[image_name]["annotations"]) {
+        //         let bodies = Array.isArray(prediction.body) ?
+        //                         prediction.body : [ prediction.body ];
+        //         let scoreTag = bodies.find(b => b.purpose == 'score');
+        //         scores.push(parseFloat(scoreTag.value));
+        //     }
+        // }
+        score_chart_data[cur_img_name] = {};
+        if (cur_img_name in predictions) {
+            let navigation_type = $('#navigation_dropdown').val();
+            if (navigation_type === "images") {
+                score_chart_data[cur_img_name]["scores"] = predictions[cur_img_name]["scores"];
+            }
+            else {
+                score_chart_data[cur_img_name]["scores"] = [];
+                let region = annotations[cur_img_name][navigation_type][cur_region_index];
+                for (let i = 0; i < predictions[cur_img_name]["boxes"].length; i++) {
+                    if (box_intersects_region(predictions[cur_img_name]["boxes"][i], region)) {
+                        score_chart_data[cur_img_name]["scores"].push(predictions[cur_img_name]["scores"][i]);
+                    }
+                }
             }
         }
+        else {
+            score_chart_data[cur_img_name]["scores"] = [];
+        }
 
-        let histogram = d3.histogram()
-        .value(function(d) { return d; })
-        .domain([0, 1])
-        .thresholds(score_thresholds);
+        // if (image_name in predictions) {
 
-        let bins = histogram(scores);
+        let bins = score_histogram(score_chart_data[cur_img_name]["scores"]);
         bins[bins.length-1].x1 = 1.01;
         //bins = bins.slice(0, bins.length-1);
 
-        score_chart_data[image_name] = {};
-        score_chart_data[image_name]["bins"] = bins;
-        score_chart_data[image_name]["scores"] = scores;
+        // score_chart_data[cur_img_name] = {};
+        score_chart_data[cur_img_name]["bins"] = bins;
+        /*["bins"] = bins;
+        score_chart_data[cur_img_name]["scores"] = scores;*/
+        // }
 
-    }
+    //}
 
 }
 
@@ -49,15 +84,18 @@ function evaluate_scores(bins, scores) {
     let quality_score = 0;
     let bin_i_prob, bin_i_score;
 
-    for (let i = 0; i < bins.length; i++) {
-        
-        bin_i_prob = bins[i].length / scores.length
-        bin_i_score = score_thresholds[i];
-        quality_score = quality_score + (bin_i_prob * (bin_i_score * bin_i_score));
-    }
+    if (scores.length > 0) {
 
-    //quality_score = range_map(quality_score, 0.25, 1.0, 0.0, 1.0);
-    quality_score = range_map(quality_score, 0.0156, 1.0, 0.0, 1.0);
+        for (let i = 0; i < bins.length; i++) {
+            
+            bin_i_prob = bins[i].length / scores.length;
+            bin_i_score = score_thresholds[i];
+            quality_score = quality_score + (bin_i_prob * (bin_i_score * bin_i_score));
+        }
+
+        //quality_score = range_map(quality_score, 0.25, 1.0, 0.0, 1.0);
+        quality_score = range_map(quality_score, 0.0156, 1.0, 0.0, 1.0);
+    }
 
     let certainty;
     if (scores.length < 10) {
@@ -76,6 +114,8 @@ function evaluate_scores(bins, scores) {
 
 function draw_score_chart() {
 
+    console.log("draw_score_chart");
+
     // let scores = [];
     // for (prediction of predictions[cur_img_name]["annotations"]) {
     //     let bodies = Array.isArray(prediction.body) ?
@@ -89,15 +129,16 @@ function draw_score_chart() {
     let chart_height = $("#score_chart").height(); // - 10;
 
     let margin_top = 10;
-    let margin_right = 10;
+    let margin_right = 0;
     let margin_bottom = 20;
-    let margin_left = 35;
+    let margin_left = 45;
 
     let width = chart_width - margin_left - margin_right;
     let height = chart_height - margin_top - margin_bottom;
 
     score_svg = d3.select("#score_chart")
                     .append("svg")
+                    .attr("id", "score_chart_svg")
                     .attr("width", chart_width)
                     .attr("height", chart_height)
                     .append("g")
@@ -177,7 +218,7 @@ function draw_score_chart() {
             // .attr("stroke-width", "0.5");
     
     
-    let slider_val = parseFloat($("#confidence_slider").val()).toFixed(2);
+    let slider_val = parseFloat($("#confidence_slider").val()); //.toFixed(2);
     score_svg
         .append("line")
         .attr("class", "score_line")
@@ -192,6 +233,8 @@ function draw_score_chart() {
 
 
 function update_score_chart() {
+
+    console.log("update_score_chart");
 
 
     let chart_width = $("#score_chart").width(); // - 5;
@@ -252,7 +295,7 @@ function update_score_chart() {
         // .attr("width", function(d) {
         //     return count_xScale(count_chart_data[cur_img_name][d]) - 2 * count_margin;
         // });
-    let slider_val = parseFloat($("#confidence_slider").val()).toFixed(2);
+    let slider_val = parseFloat($("#confidence_slider").val()); //.toFixed(2);
     d3.selectAll(".score_line")
         .data([slider_val])
         .transition()

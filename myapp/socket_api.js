@@ -247,6 +247,35 @@ function emit_scheduler_status(status) {
     }*/
 }
 
+exports.post_model_notification = function(req, res, next) {
+    let username = req.body.username;
+
+    model_notification(username);
+
+    let response = {};
+    response.message = "received";
+    return res.json(response);
+}
+
+function model_notification(username) {
+
+    console.log("model update occurred, sending to sockets");
+    console.log("username", username);
+    //console.log(username, farm_name, field_name, mission_date);
+
+    //console.log("home_key_to_ids", home_key_to_ids);
+    console.log("home_id_to_key", home_id_to_key);
+
+    let key = username;
+
+    for (let socket_id of Object.keys(home_id_to_key)) {
+        if (home_id_to_key[socket_id] === key) {
+            console.log("sending to socket", key);
+            io.to(socket_id).emit("model_change", {});
+        }
+    }
+}
+
 exports.post_results_notification = function(req, res, next) {
     let username = req.body.username;
     let farm_name = req.body.farm_name;

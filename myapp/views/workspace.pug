@@ -28,6 +28,7 @@ html
         script(type='text/javascript' src=process.env.CC_PATH + '/javascripts/map_chart.js')
         script(type='text/javascript' src=process.env.CC_PATH + '/javascripts/common.js')
         script(type='text/javascript' src=process.env.CC_PATH + '/javascripts/modal.js')
+        script(type='text/javascript' src=process.env.CC_PATH + '/javascripts/canvas_overlay.js')
 
     body
         div(id="container")
@@ -101,7 +102,7 @@ html
 
                                         div(style="width: 280px;")
 
-                                            table(class="transparent_table")
+                                            table(class="transparent_table" id="image_name_table")
                                                 tr
                                                     td(style="text-align: left")
                                                         h(class="header2") Image
@@ -109,14 +110,27 @@ html
                                                     td(style="width: 100%; text-align: left; padding-left: 10px")
                                                         h(id="image_name" style="word-break: break-all;")
 
-                                            table(class="transparent_table")
+                                                    td
+                                                        div(style="width: 75px;" id="region_name")
 
-                                                tr 
-                                                    td(style="text-align: left")
-                                                        h(class="header2") Status
 
-                                                    td(style="width: 100%; text-align: left; padding-left: 10px;")
-                                                        select(id="status_combo" class="nonfixed_dropdown" style="width: 238px")
+
+                                                //- tr 
+                                                //-     td(style="text-align: left")
+                                                //-         h(class="header2") Region
+
+                                                //-     td(style="width: 100%; text-align: left; padding-left: 10px")
+                                                //-         h(id="region_name" style="word-break: break-all;")
+                                            //-
+
+                                                table(class="transparent_table" id="status_table")
+
+                                                    tr 
+                                                        td(style="text-align: left")
+                                                            h(class="header2") Status
+
+                                                        td(style="width: 100%; text-align: left; padding-left: 10px;")
+                                                            select(id="status_combo" class="nonfixed_dropdown" style="width: 238px")
 
                                                 //-
                                                     tr
@@ -144,10 +158,72 @@ html
 
                                             //div(style="width: 280px;")
 
-                                            h(class="header2" style="text-align: left") Images
 
-                                            div(class="scrollable_area" style="height: 475px; width: 280px; border: none; overflow-y: scroll")
-                                                table(id="image_set_table")
+                                            // div(id="image_set_navigation" hidden)
+
+  
+
+
+                                                //-
+
+                                                    h(class="header2" style="text-align: left") Image
+
+                                                    div(class="scrollable_area" style="height: 475px; width: 280px; border: none; overflow-y: scroll")
+                                                        table(id="image_set_table")
+
+                                            h(class="header2" style="text-align: left") Active Layer
+                                            table(style="border: 1px solid white; border-radius: 10px; width: 100%" id="active_layer_table")
+                                                tr
+                                                    td 
+                                                        div(style="height: 10px")
+                                                tr 
+                                                    td(style="width: 50%")
+                                                    td
+                                                        div(style="width: 175px")
+                                                            label(class="custom_radio_container" id="annotation_label") Annotation
+                                                                input(type="radio" checked="checked" name="edit_layer_radio" value="annotation")
+                                                                span(class="custom_radio" id="annotation_radio")
+
+                                                            label(class="custom_radio_container" id="training_region_label") Fine-Tuning Region
+                                                                input(type="radio" name="edit_layer_radio" value="training_region")
+                                                                span(class="custom_radio" id="training_region_radio")
+
+                                                            label(class="custom_radio_container" id="test_region_label") Test Region
+                                                                input(type="radio" name="edit_layer_radio" value="test_region")
+                                                                span(class="custom_radio" id="test_region_radio")
+                                                    td(style="width: 50%")
+
+
+                                            div(style="height: 10px")
+
+                                            table
+                                                tr 
+                                                    td
+                                                        h(class="header2" style="text-align: left") Navigation 
+                                                    td(style="width: 100%")
+                                                        select(id="navigation_dropdown" class="nonfixed_dropdown" style="display: inline-block; width: 200px")
+                                                            option(value="images") Images 
+                                                            //option(value="training_regions") Training Regions 
+                                                            //option(value="test_regions") Test Regions
+
+                                            // h(class="header2" style="text-align: left") Images 
+                                            div(id="navigation_table_container" class="scrollable_area" style="height: 365px; width: 280px; border: none; overflow-y: scroll")
+                                                table(id="navigation_table")
+
+                                            //-
+                                                h(class="header2" style="text-align: left") Regions 
+                                                table 
+                                                    tr 
+                                                        td 
+                                                            div Training 
+                                                            div(class="scrollable_area" style="height: 100px; width: 140px; border: none; overflow-y: scroll")
+                                                                table(id="training_region_navigation")    
+                                                        td 
+                                                            div Test 
+                                                            div(class="scrollable_area" style="height: 100px; width: 140px; border: none; overflow-y: scroll")
+                                                                table(id="test_region_navigation")    
+
+
 
                                             div(style="height: 10px")
                                             table
@@ -159,8 +235,18 @@ html
                                                             | Previous
                                                     td(style="width: 140px")
                                                         button(id="next_image_button" class="std-button std-button-hover" style="font-size: 16px; width: 100%") Next 
-                                                            i(class="fa-solid fa-circle-chevron-right" style="padding-left: 5px")    
+                                                            i(class="fa-solid fa-circle-chevron-right" style="padding-left: 5px")  
 
+                                                //-
+                                                    table
+                                                        tr
+                                                            td
+                                                                h(class="header2" style="text-align: left; width: 200px") Training Regions
+                                                            td(style="width: 100%")
+                                                            td
+                                                                button(id="add_training_region_button" class="std-button std-button-hover" style="width: 30px; padding-top: 2px; padding-bottom: 3px")
+                                                                    i(class="fa-solid fa-circle-plus" style="font-size: 14px") 
+                                                
 
 
                                     td(style="width: 100%; position: relative" class="viewer" id="seadragon_viewer")
@@ -211,7 +297,7 @@ html
                                                                 button(class="std-button std-button-hover" style="padding: 2px; font-size: 14px; width: 90px" onclick="change_model()")
                                                                     i(class="fa-solid fa-cube" style="margin-right: 4px") 
                                                                     |
-                                                                    | Switch 
+                                                                    | Select 
                                                                 //div(style="width: 30px")
                                                                 //    div(class="blob")
 
@@ -375,13 +461,15 @@ html
                                                     
                                                     hr
 
-                                                    div(style="height: 10px")
+                                                    div(id="image_sugggestion_container")
 
-                                                    button(id="suggest_image_button" class="std-button std-button-hover" style="font-size: 16px; width: 260px") Suggest An Image For Annotation
-                                                    
-                                                    div(style="height: 10px;")
-                                                    div(style="font-size: 13px; text-align: justify") Image suggestions are based on score distributions of predictions. For best results, generate predictions for all images before requesting a suggestion.
-                                                    div(style="height: 10px")
+                                                        div(style="height: 5px")
+
+                                                        button(id="suggest_image_button" class="std-button std-button-hover" style="font-size: 16px; width: 260px") Suggest An Image For Annotation
+                                                        
+                                                        div(style="height: 10px;")
+                                                        div(style="font-size: 13px; text-align: justify") Image suggestions are based on score distributions of predictions. For best results, generate predictions for all images before requesting a suggestion.
+                                                        div(style="height: 10px")
 
                                                     //-
                                                         hr
@@ -403,6 +491,11 @@ html
                                                     
                                                     //br
                                                     //br
+                                                    div(id="predictions_loading" hidden)
+                                                        div(style="height: 50px")
+                                                        div(class="loader")
+
+
 
                                                     div(id="predictions_unavailable" hidden)
                                                         div(style="height: 50px")

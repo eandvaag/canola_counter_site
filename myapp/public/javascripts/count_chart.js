@@ -20,7 +20,7 @@ function set_count_chart_data() {
     let sensor_width;
     let focal_length;
     let camera_height;
-    if (metric == "Count per square metre") {
+    if (metric == "Count Per Square Metre") {
         let make = metadata["camera_info"]["make"];
         let model = metadata["camera_info"]["model"];
 
@@ -34,25 +34,87 @@ function set_count_chart_data() {
     /*
     let annotated_count;
     let pred_count;*/
-    let slider_val = Number.parseFloat($("#confidence_slider").val()).toFixed(2);
+    let slider_val = Number.parseFloat($("#confidence_slider").val());
 
-    for (let image_name of Object.keys(annotations)) {
-        count_chart_data[image_name] = {};
-        for (let overlay_name of Object.keys(overlay_colors)) {
-            count_chart_data[image_name][overlay_name] = 0;
-        }
-    }
+
+    // count_chart_data[cur_img_name] = {};
+    // count_chart_data[cur_img_name]["Annotations"] = 0
+    // count_chart_data[cur_img_name]["Predictions"] = 0
+
+    // for (let image_name of Object.keys(annotations)) {
+    //     count_chart_data[image_name] = {};
+    //     for (let overlay_name of ["annotation", "prediction"]) {//["Annotations", "Predictions"]) {//Object.keys(overlay_colors)) {
+    //         count_chart_data[image_name][overlay_name] = 0;
+    //     }
+    // }
     
+    /*
     let overlay_map = {
         "Annotations": annotations,
         "Predictions": predictions
-    }
-
+    }*/
+/*
     if (metric === "Count" || metric === "Count per square metre") {
-        for (let image_name of Object.keys(annotations)) {
+        for (let overlay_name of Object.keys(overlay_colors)) {
+           
+            for (let i = slider_val * 100; i < score_chart_data[cur_img_name]["bins"].length; i++) {
+                count_chart_data[cur_img_name][overlay_name] += score_chart_data[cur_img_name]["bins"][i];
+            }
+        }
+
+        max_count = 0;
+
+    }*/
+
+    let navigation_type = $('#navigation_dropdown').val();
+    if (metric === "Count" || metric === "Count Per Square Metre") {
+
+        
+        if (navigation_type === "images") {
+            for (let image_name of Object.keys(annotations)) {
+                let nav_item = image_name + "/-1";
+                count_chart_data[nav_item] = {"annotation":  0, "prediction": 0};
+                count_chart_data[nav_item]["annotation"] = annotations[image_name]["boxes"].length;
+
+                if (image_name in predictions) {
+                    for (let i = 0; i < predictions[image_name]["scores"].length; i++) {
+                        if (predictions[image_name]["scores"][i] >= slider_val) {
+                            count_chart_data[nav_item]["prediction"]++;
+                        }
+                    }
+                }
+            }
+        }
+        else {
+            for (let image_name of Object.keys(annotations)) {
+                for (let i = 0; i < annotations[image_name][navigation_type].length; i++) {
+                    let nav_item = image_name + "/" + i;
+                    count_chart_data[nav_item] = {"annotation":  0, "prediction": 0};
+                    for (let j = 0; j < annotations[image_name]["boxes"].length; j++) {
+                        if (box_intersects_region(annotations[image_name]["boxes"][j], annotations[image_name][navigation_type][i])) {
+                            count_chart_data[nav_item]["annotation"]++;
+                        }
+                    }
+                    if (image_name in predictions) {
+                        for (let j = 0; j < predictions[image_name]["boxes"].length; j++) {
+                            if (predictions[image_name]["scores"][j] >= slider_val && 
+                                box_intersects_region(predictions[image_name]["boxes"][j], annotations[image_name][navigation_type][i])) {
+                                    count_chart_data[nav_item]["prediction"]++;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+
+/*
+
             for (let overlay_name of Object.keys(overlay_colors)) {
                 if (image_name in overlay_map[overlay_name]) {
                     for (let annotation of overlay_map[overlay_name][image_name]["annotations"]) {
+                    //if (image_name in overlay_map[overlay_name]) 
+                    //for (let i = 0; i < overlay_map[overlay_name][image_name]["boxes"].length; i++) {
                         let score_el = annotation["body"].find(b => b.purpose == 'score');
                         if (!score_el || score_el.value >= slider_val) {
                             count_chart_data[image_name][overlay_name]++;
@@ -60,13 +122,14 @@ function set_count_chart_data() {
                     }
                 }
             }
-        }
+        }*/
 
         max_count = 0;
-        for (let image_name of Object.keys(annotations)) {
-            for (let overlay_name of Object.keys(count_chart_data[image_name])) {
-                let v = count_chart_data[image_name][overlay_name];
-                if (metric == "Count per square metre") {
+        for (let nav_item of Object.keys(count_chart_data)) {
+            for (let overlay_name of Object.keys(count_chart_data[nav_item])) {
+                let v = count_chart_data[nav_item][overlay_name];
+                let image_name = nav_item.split("/")[0];
+                if (metric == "Count Per Square Metre") {
 
 
                     let gsd_h = (camera_height * sensor_height) / (focal_length * metadata["images"][image_name]["height_px"]);
@@ -82,10 +145,73 @@ function set_count_chart_data() {
                     v = v / area_m2;
                     v = Math.round((v + Number.EPSILON) * 100) / 100;
 
-                    count_chart_data[image_name][overlay_name] = v;
+                    count_chart_data[nav_item][overlay_name] = v;
                 }
                 if (v > max_count) {
                     max_count = v;
+                }
+            }
+        }
+    }
+
+    else if (metric === "Percent Count Error") {
+
+        max_count = 0;
+        if (navigation_type === "images") {
+            for (let image_name of Object.keys(annotations)) {
+                let nav_item = image_name + "/-1";
+                count_chart_data[nav_item] = {"annotation":  0, "prediction": 0};
+                let annotated_count = annotations[image_name]["boxes"].length;
+
+
+                if (image_name in predictions) {
+                    let predicted_count = 0;
+                    for (let i = 0; i < predictions[image_name]["scores"].length; i++) {
+                        if (predictions[image_name]["scores"][i] >= slider_val) {
+                            predicted_count++;
+                        }
+                    }
+                    if (annotated_count == 0) {
+                        count_chart_data[nav_item]["prediction"] = 0;
+                    }
+                    else {
+                        count_chart_data[nav_item]["prediction"] = (Math.abs((predicted_count - annotated_count) / (annotated_count)) * 100);
+                    }
+                }
+                if (count_chart_data[nav_item]["prediction"] > max_count) {
+                    max_count = count_chart_data[nav_item]["prediction"];
+                }
+            }
+        }
+        else {
+            for (let image_name of Object.keys(annotations)) {
+                for (let i = 0; i < annotations[image_name][navigation_type].length; i++) {
+                    let nav_item = image_name + "/" + i;
+                    count_chart_data[nav_item] = {"annotation":  0, "prediction": 0};
+                    let annotated_count = 0;
+                    for (let j = 0; j < annotations[image_name]["boxes"].length; j++) {
+                        if (box_intersects_region(annotations[image_name]["boxes"][j], annotations[image_name][navigation_type][i])) {
+                            annotated_count++;
+                        }
+                    }
+                    if (image_name in predictions) {
+                        let predicted_count = 0;
+                        for (let j = 0; j < predictions[image_name]["boxes"].length; j++) {
+                            if (predictions[image_name]["scores"][j] >= slider_val && 
+                                box_intersects_region(predictions[image_name]["boxes"][j], annotations[image_name][navigation_type][i])) {
+                                    predicted_count++;
+                            }
+                        }
+                        if (annotated_count == 0) {
+                            count_chart_data[nav_item]["prediction"] = 0;
+                        }
+                        else {
+                            count_chart_data[nav_item]["prediction"] = (Math.abs((predicted_count - annotated_count) / (annotated_count)) * 100);
+                        }
+                    }
+                    if (count_chart_data[nav_item]["prediction"] > max_count) {
+                        max_count = count_chart_data[nav_item]["prediction"];
+                    }
                 }
             }
         }
@@ -103,13 +229,20 @@ function set_count_chart_data() {
             // "MS COCO mAP": "Image MS COCO mAP",
             //"PASCAL VOC mAP": "Image PASCAL VOC mAP"
         // }
-        for (let image_name of Object.keys(annotations)) {
-            count_chart_data[image_name]["Annotations"] = 0;
-            if ((image_name in metrics) && (metric in metrics[image_name])) {
-                count_chart_data[image_name]["Predictions"] = metrics[image_name][metric].toFixed(2);
-            }
-            else {
-                count_chart_data[image_name]["Predictions"] = 0;
+        if ((navigation_type === "training_regions") || (navigation_type === "test_regions")) {
+            for (let image_name of Object.keys(annotations)) {
+                for (let i = 0; i < annotations[image_name][navigation_type].length; i++) {
+                    let nav_item = image_name + "/" + i;
+                    count_chart_data[nav_item] = {"annotation":  0, "prediction": 0};
+                    count_chart_data[nav_item]["annotation"] = 0;
+                    //if ((image_name in metrics) && (metric in metrics[image_name])) {
+                    //if ((metric in metrics) && (image in metrics[metric])) {
+                    count_chart_data[nav_item]["prediction"] = metrics[metric][image_name][navigation_type][i];
+                    // }
+                    // else {
+                    //     count_chart_data[image_name]["prediction"] = 0;
+                    // }
+                }
             }
         }
         /*
@@ -127,7 +260,19 @@ function set_count_chart_data() {
                 }
             }
         }*/
-        max_count = 100;
+        if (metric === "MS COCO mAP") {
+            max_count = 100;
+        }
+        else if (metric === "F1 Score (IoU=0.5)") {
+            max_count = 1;
+        }
+        else if (metric === "F1 Score (IoU=0.7)") {
+            max_count = 1;
+        }
+        else if (metric === "F1 Score (IoU=0.9)") {
+            max_count = 1;
+        }
+
     }
 }
 
@@ -136,6 +281,8 @@ function set_count_chart_data() {
 
 
 function draw_count_chart() {
+
+    let cur_nav_item = cur_img_name + "/" + cur_region_index;
     
 
     let chart_width = $("#count_chart").width(); // - 10;
@@ -145,7 +292,7 @@ function draw_count_chart() {
 
     count_margin = 30;
 
-    let num_bars = Object.keys(overlay_colors).length;
+    let num_bars = 2; //Object.keys(overlay_colors).length;
 
 
     count_svg = d3.select("#count_chart")
@@ -163,7 +310,7 @@ function draw_count_chart() {
 
     count_xScale = d3.scaleLinear()
                 .domain([0, max_count])
-                .range([2.5 * count_margin, chart_width - 1.5 * count_margin]);
+                .range([2.5 * count_margin, chart_width - 1.8 * count_margin]);
 
     count_yScale = d3.scaleLinear()
                 .domain([0, num_bars])
@@ -177,7 +324,14 @@ function draw_count_chart() {
     let tooltip = d3.select("#count_chart_tooltip");
 
     let tip_mouseover = function(d) {
-        let html = count_chart_data[cur_img_name][d];
+        let cur_nav_item = cur_img_name + "/" + cur_region_index;
+        let metric = $("#chart_combo").val();
+        let disp_val = count_chart_data[cur_nav_item][d];
+        if (metric !== "Count") {
+            disp_val = disp_val.toFixed(2);
+        }
+        let html = numberWithCommas(disp_val);
+
         tooltip.html(html)
                .style("opacity", 1.0);
         d3.select(this).style("cursor", "default"); 
@@ -197,7 +351,7 @@ function draw_count_chart() {
     //let sel_class = "plant"; //$("#class_combo").val();
 
     chart.selectAll("text")
-         .data(Object.keys(count_chart_data[cur_img_name])) //[sel_class])
+         .data(["Annotated", "Predicted"]) //count_chart_data[cur_img_name])) //[sel_class])
          .enter()
          .append("text")
          .attr("class", "chart_text")
@@ -216,7 +370,7 @@ function draw_count_chart() {
 
 
     chart.selectAll(".bar")
-         .data(Object.keys(count_chart_data[cur_img_name]))
+         .data(Object.keys(count_chart_data[cur_nav_item]))
          .enter()
          .append("rect")
          .attr("class", "bar")
@@ -228,7 +382,7 @@ function draw_count_chart() {
             return count_margin + 30 * i; //count_yScale(i);
          })
          .attr("width", function(d) {
-            return count_xScale(count_chart_data[cur_img_name][d]) - 2.5 * count_margin;
+            return count_xScale(count_chart_data[cur_nav_item][d]) - 2.5 * count_margin;
          })
          .attr("height", function(d) {
             return 25; //chart_height / (1.65 * num_bars);
@@ -249,18 +403,19 @@ function update_count_chart() {
     let chart_width = $("#count_chart").width(); // - 10;
 
     //let sel_class = "plant"; //$("#class_combo").val();
+    let cur_nav_item = cur_img_name + "/" + cur_region_index;
 
     count_xScale.domain([0, max_count]);
     count_chart_axis.transition().duration(250).call(d3.axisTop(count_xScale).ticks(chart_width / 100)); //.tickFormat(d3.format("d")));
 
     d3.selectAll(".bar")
-        .data(Object.keys(count_chart_data[cur_img_name])) //[sel_class])
+        .data(Object.keys(count_chart_data[cur_nav_item])) //[sel_class])
         .transition()
         .duration(250)
         // .attr("x", function(d, i) {
         //     return 3 * count_margin;
         // })
         .attr("width", function(d) {
-            return count_xScale(count_chart_data[cur_img_name][d]) - 2.5 * count_margin;
+            return count_xScale(count_chart_data[cur_nav_item][d]) - 2.5 * count_margin;
         });
 }

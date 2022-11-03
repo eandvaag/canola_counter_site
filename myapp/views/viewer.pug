@@ -27,6 +27,7 @@ html
         script(type='text/javascript' src=process.env.CC_PATH + '/javascripts/viewer_map_chart.js')
         script(type='text/javascript' src=process.env.CC_PATH + '/javascripts/common.js')
         script(type='text/javascript' src=process.env.CC_PATH + '/javascripts/modal.js')
+        script(type='text/javascript' src=process.env.CC_PATH + '/javascripts/canvas_overlay.js')
 
     body
         div(id="container")
@@ -84,7 +85,7 @@ html
                                         div(style="width: 280px;")
                                             div(id="left_panel")
 
-                                                table(class="transparent_table")
+                                                table(class="transparent_table" id="image_name_table")
 
 
                                                     tr
@@ -95,13 +96,14 @@ html
                                                         td(style="width: 100%; text-align: left; padding-left: 12px")
                                                             h(id="image_name" style="word-break: break-all;")
 
-
-                                                
-                                                    tr
-                                                        td(style="text-align: left")
-                                                            h(class="header2" style="width: 60px") Status
-                                                        td(style="width:100%; text-align: left; padding-left: 12px")
-                                                            h(id="image_status")
+                                                        td
+                                                            div(style="width: 75px;" id="region_name")
+                                                    //-
+                                                        tr
+                                                            td(style="text-align: left")
+                                                                h(class="header2" style="width: 60px") Status
+                                                            td(style="width:100%; text-align: left; padding-left: 12px")
+                                                                h(id="image_status")
                                                     
                                                     //-
                                                         tr
@@ -115,22 +117,35 @@ html
 
                                                
                                                 hr
+                                                //-
+                                                    table(class="transparent_table")
+                                                        tr
+                                                            td(style="text-align: left")
+                                                                h(class="header2" style="width: 60px") Images
 
-                                                table(class="transparent_table")
-                                                    tr
-                                                        td(style="text-align: left")
-                                                            h(class="header2" style="width: 60px") Images
+                                                            td(style="width:100%")
+                                                                select(id="filter_combo" class="nonfixed_dropdown")
+                                                                    //- option all
+                                                                    //- option unannotated
+                                                                    //- option completed_for_training
+                                                                    //- option completed_for_testing
 
-                                                        td(style="width:100%")
-                                                            select(id="filter_combo" class="nonfixed_dropdown")
-                                                                //- option all
-                                                                //- option unannotated
-                                                                //- option completed_for_training
-                                                                //- option completed_for_testing
+                                                    br
+                                                
+                                                    div(id="image_set_table_container" class="scrollable_area" style="height: 470px; border:none; overflow-y: scroll")
+                                                        table(id="image_set_table")
 
-                                                br
-                                                div(id="image_set_table_container" class="scrollable_area" style="height: 470px; border:none; overflow-y: scroll")
-                                                    table(id="image_set_table")
+                                                table
+                                                    tr 
+                                                        td
+                                                            h(class="header2" style="text-align: left") Navigation 
+                                                        td(style="width: 100%")
+                                                            select(id="navigation_dropdown" class="nonfixed_dropdown" style="display: inline-block; width: 200px")
+                                                                option(value="images") Images 
+
+
+                                                div(id="navigation_table_container" class="scrollable_area" style="height: 520px; width: 280px; border: none; overflow-y: scroll")
+                                                    table(id="navigation_table")
 
                                                 div(style="height: 10px")
                                                 div(style="height: 30px")
@@ -148,7 +163,7 @@ html
                                                 hr
                                                 div(style="height: 5px")
 
-                                                button(id="request_csv_button" class="std-button std-button-hover")
+                                                button(id="request_spreadsheet_button" class="std-button std-button-hover")
                                                     i(class="fa fa-download fa-sm" style="padding-right: 5px")
                                                     |
                                                     | Download Results

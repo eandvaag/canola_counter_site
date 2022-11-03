@@ -8,7 +8,7 @@ let camera_specs;
 let predictions;
 let annotations;
 let metrics;
-let dzi_dir;
+//let dzi_dir;
 let dzi_image_paths;
 let excess_green_record;
 let download_uuid = "";
@@ -33,7 +33,9 @@ let image_names = {
 let viewer;
 let anno;
 let cur_img_name;
-let cur_img_list;
+let cur_region_index;
+//let cur_img_list;
+let cur_nav_list;
 let cur_view;
 let cur_map_model_uuid;
 
@@ -44,29 +46,63 @@ let min_max_rec = null;
 
 
 
-function change_image(image_name) {
-    cur_img_name = image_name;
+function change_image(cur_nav_item) {
+
+    let navigation_type = $("#navigation_dropdown").val();
+
+    console.log("change_image", cur_nav_item);
+
+    let pieces = cur_nav_item.split("/");
+    cur_img_name = pieces[0];
+    cur_region_index = parseInt(pieces[1]);
     
-    let index = cur_img_list.findIndex(x => x == cur_img_name);
+    let index = cur_nav_list.findIndex(x => x == cur_nav_item);
     if (index == 0) {
         disable_std_buttons(["prev_image_button"]);
     }
     else {
         enable_std_buttons(["prev_image_button"]);
     }
-    if (index == cur_img_list.length - 1) {
+    if (index == cur_nav_list.length - 1) {
         disable_std_buttons(["next_image_button"]);
     }
     else {
         enable_std_buttons(["next_image_button"]);
     }
 
+    $("#image_name").text(cur_img_name);
+    $("#region_name").empty();
+    if (navigation_type === "training_regions" || navigation_type === "test_regions") {
 
-    $("#seadragon_viewer").empty();
-    create_viewer_and_anno();
-    viewer.open(image_to_dzi[cur_img_name]);
+        let disp_region_index = cur_region_index + 1;
+        let region_color;
+        if (navigation_type === "training_regions") {
+            region_color = overlay_colors["training_region"];
+        }
+        else {
+            region_color = overlay_colors["test_region"];
+        }
+
+        $("#region_name").append(
+            `<div style="width: 75px; background-color: ${region_color}; margin: 0px 2px; color: black; border: none" class="object_entry">` +
+            `Region ` + disp_region_index +
+            `</div>`
+        );
+    }
+
+    if (viewer == null) {
+        create_viewer("seadragon_viewer");
+    }
+
+    let dzi_image_path = image_to_dzi[cur_img_name];
+    viewer.open(dzi_image_path);
+
+    set_count_chart_data();
+    set_score_chart_data();
+    update_score_chart();
+    update_count_chart();
 }
-
+/*
 function set_prediction_overlay_color() {
 
     for (let image_name of Object.keys(predictions)) {
@@ -83,8 +119,9 @@ function set_prediction_overlay_color() {
     //         }
     //     }
     // }
-}
+}*/
 
+/*
 
 function create_overlays_table() {
 
@@ -117,7 +154,7 @@ function create_overlays_table() {
             `</tr>`);
     }
 }
-
+*/
 // function create_overlays_table() {
 
 //     let models_col_width = "215px";
@@ -146,66 +183,66 @@ function create_overlays_table() {
 // }
 
 
-function create_image_set_table() {
+// function create_image_set_table() {
 
 
-    let image_name_col_width = "180px";
-    let image_status_col_width = "60px";
+//     let image_name_col_width = "180px";
+//     let image_status_col_width = "60px";
 
-    $("#image_set_table").empty();
+//     $("#image_set_table").empty();
 
-    let filter_val = $("#filter_combo").val();
+//     let filter_val = $("#filter_combo").val();
 
-    let abbreviation = {
-        "unannotated": "Un.",
-        "started": "St.",
-        "completed_for_training": "C. Tr.",
-        "completed_for_testing": "C. Te."
-    };
+//     let abbreviation = {
+//         "unannotated": "Un.",
+//         "started": "St.",
+//         "completed_for_training": "C. Tr.",
+//         "completed_for_testing": "C. Te."
+//     };
 
-    cur_img_list = [];
-    for (let image_name of natsort(Object.keys(annotations))) {
-        if ((filter_val === "all") || (annotations[image_name]["status"] === filter_val)) {
+//     cur_img_list = [];
+//     for (let image_name of natsort(Object.keys(annotations))) {
+//         if ((filter_val === "all") || (annotations[image_name]["status"] === filter_val)) {
 
-            let image_status = annotations[image_name]["status"];
-            let abbreviated_status = abbreviation[image_status];
-            let image_color = status_color[image_status];
+//             let image_status = annotations[image_name]["status"];
+//             let abbreviated_status = abbreviation[image_status];
+//             let image_color = status_color[image_status];
 
-            $("#image_set_table").append(`<tr>` +
+//             $("#image_set_table").append(`<tr>` +
 
-            `<td><div class="table_entry std_tooltip" style="margin: 0px 1px; background-color: ${image_color}; cursor: default; position: relative; width: ${image_status_col_width}; border: 1px solid white">${abbreviated_status}</div></td>` +
-            `<td><div class="table_button table_button_hover" style="width: ${image_name_col_width}; margin: 0px 1px;" ` +
-             `onclick="change_image('${image_name}')">${image_name}</div></td>` +
-            `</tr>`);
+//             `<td><div class="table_entry std_tooltip" style="margin: 0px 1px; background-color: ${image_color}; cursor: default; position: relative; width: ${image_status_col_width}; border: 1px solid white">${abbreviated_status}</div></td>` +
+//             `<td><div class="table_button table_button_hover" style="width: ${image_name_col_width}; margin: 0px 1px;" ` +
+//              `onclick="change_image('${image_name}')">${image_name}</div></td>` +
+//             `</tr>`);
 
-            cur_img_list.push(image_name);
-        }
-    }
-}
+//             cur_img_list.push(image_name);
+//         }
+//     }
+// }
 
 
 
-function update_overlays() {
+// function update_overlays() {
 
-    anno.clearAnnotations();
-    if ($("#annotations").is(":checked")) {
-        for (let annotation of annotations[cur_img_name]["annotations"]) {
-            anno.addAnnotation(annotation);
-        }
-    }
-    let slider_val = Number.parseFloat($("#confidence_slider").val()).toFixed(2);
-    if ((cur_img_name in predictions) && ($("#predictions").is(":checked"))) {
-        for (let annotation of predictions[cur_img_name]["annotations"]) {
+//     anno.clearAnnotations();
+//     if ($("#annotations").is(":checked")) {
+//         for (let annotation of annotations[cur_img_name]["annotations"]) {
+//             anno.addAnnotation(annotation);
+//         }
+//     }
+//     let slider_val = Number.parseFloat($("#confidence_slider").val()).toFixed(2);
+//     if ((cur_img_name in predictions) && ($("#predictions").is(":checked"))) {
+//         for (let annotation of predictions[cur_img_name]["annotations"]) {
 
-            let bodies = Array.isArray(annotation.body) ?
-            annotation.body : [ annotation.body ];
-            let scoreTag = bodies.find(b => b.purpose == 'score');
-            if (!scoreTag || scoreTag.value >= slider_val) {
-                anno.addAnnotation(annotation);
-            }
-        }
-    }
-}
+//             let bodies = Array.isArray(annotation.body) ?
+//             annotation.body : [ annotation.body ];
+//             let scoreTag = bodies.find(b => b.purpose == 'score');
+//             if (!scoreTag || scoreTag.value >= slider_val) {
+//                 anno.addAnnotation(annotation);
+//             }
+//         }
+//     }
+// }
 
 
 function build_map() {
@@ -323,7 +360,8 @@ function show_image(image_name) {
     $("#map_view_container").hide();
     $("#image_view_container").show();
 
-    change_image(image_name);
+    set_heights();
+    change_image(image_name + "/" + cur_region_index);
     
 }
 
@@ -346,7 +384,7 @@ function raise_slider() {
 }
 
 
-function create_viewer_and_anno() {
+function create_viewer() {
 
     viewer = OpenSeadragon({
         id: "seadragon_viewer",
@@ -361,27 +399,232 @@ function create_viewer_and_anno() {
         showNavigationControl: false
     });
 
-    anno = OpenSeadragon.Annotorious(viewer, {
-        disableEditor: true,
-        disableSelect: true,
-        readOnly: true,
-        formatter: formatter
+
+    
+    overlay = viewer.canvasOverlay({
+
+        onOpen: function() {
+            set_cur_bounds();
+        },
+        onRedraw: function() {
+            //console.log("onRedraw", selected_annotation_index, cur_edit_layer);
+
+        
+            let boxes_to_add = {};
+            boxes_to_add["training_region"] = {};
+            boxes_to_add["training_region"]["boxes"] = annotations[cur_img_name]["training_regions"];
+            boxes_to_add["test_region"] = {};
+            boxes_to_add["test_region"]["boxes"] = annotations[cur_img_name]["test_regions"]
+
+
+            if ($("#annotation").is(":checked")) {
+                boxes_to_add["annotation"] = {};
+                boxes_to_add["annotation"]["boxes"] = annotations[cur_img_name]["boxes"];
+            }
+
+            if ($("#prediction").is(":checked")) {
+                boxes_to_add["prediction"] = {};
+                boxes_to_add["prediction"]["boxes"] = predictions[cur_img_name]["boxes"];
+                boxes_to_add["prediction"]["scores"] = predictions[cur_img_name]["scores"];
+            }
+
+            let slider_val = Number.parseFloat($("#confidence_slider").val()); //.toFixed(2);
+                
+            let viewer_bounds = viewer.viewport.getBounds();
+            let container_size = viewer.viewport.getContainerSize();
+
+            let hw_ratio = overlay.imgHeight / overlay.imgWidth;
+            let min_x = Math.floor(viewer_bounds.x * overlay.imgWidth);
+            let min_y = Math.floor((viewer_bounds.y / hw_ratio) * overlay.imgHeight);
+            let viewport_w = Math.ceil(viewer_bounds.width * overlay.imgWidth);
+            let viewport_h = Math.ceil((viewer_bounds.height / hw_ratio) * overlay.imgHeight);
+            let max_x = min_x + viewport_w;
+            let max_y = min_y + viewport_h;
+
+            overlay.context2d().font = "14px arial";
+
+
+            let draw_order = ["training_region", "test_region", "annotation", "prediction"];
+            for (let key of draw_order) {
+
+                if (!(key in boxes_to_add)) {
+                    continue;
+                }
+
+                overlay.context2d().strokeStyle = overlay_colors[key];
+                overlay.context2d().lineWidth = 2;
+
+                for (let i = 0; i < boxes_to_add[key]["boxes"].length; i++) {
+
+                    let box = boxes_to_add[key]["boxes"][i];
+                    if (key === "prediction") {
+                        let score = boxes_to_add[key]["scores"][i];
+                        if (score < slider_val) {
+                            continue;
+                        }
+                    }
+
+                    let box_width_pct_of_image = (box[3] - box[1]) / overlay.imgWidth;
+                    let disp_width = (box_width_pct_of_image / viewer_bounds.width) * container_size.x;
+                    let box_height_pct_of_image = (box[3] - box[1]) / overlay.imgHeight;
+                    let disp_height = (box_height_pct_of_image / viewer_bounds.height) * container_size.y;
+
+                    if ((disp_width * disp_height) < 0.5) {
+                        continue;
+                    }
+
+                    if (((box[1] < max_x) && (box[3] > min_x)) && ((box[0] < max_y) && (box[2] > min_y))) {
+                        let viewer_point = viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(box[1], box[0]));
+                        let viewer_point_2 = viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(box[3], box[2]));
+
+                        
+                        overlay.context2d().strokeRect(
+                            viewer_point.x,
+                            viewer_point.y,
+                            (viewer_point_2.x - viewer_point.x),
+                            (viewer_point_2.y - viewer_point.y)
+                        );
+                    }
+                }
+            }
+
+            if (("prediction" in boxes_to_add) && ($("#scores_switch").is(":checked"))) {
+                for (let i = 0; i < boxes_to_add["prediction"]["boxes"].length; i++) {
+    
+                    let box = boxes_to_add["prediction"]["boxes"][i];
+                    let score = boxes_to_add["prediction"]["scores"][i];
+                    if (score < slider_val) {
+                        continue;
+                    }
+                    
+                    let box_width_pct_of_image = (box[3] - box[1]) / overlay.imgWidth;
+                    let disp_width = (box_width_pct_of_image / viewer_bounds.width) * container_size.x;
+                    let box_height_pct_of_image = (box[3] - box[1]) / overlay.imgHeight;
+                    let disp_height = (box_height_pct_of_image / viewer_bounds.height) * container_size.y;
+
+                    if ((disp_width * disp_height) < 10) {
+                        continue;
+                    }
+
+                    if (((box[1] < max_x) && (box[3] > min_x)) && ((box[0] < max_y) && (box[2] > min_y))) {
+
+
+                        let viewer_point = viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(box[1], box[0]));
+
+                        let score_text = score.toFixed(2);
+
+                        overlay.context2d().fillStyle = "white";
+                        overlay.context2d().fillRect(
+                                viewer_point.x - 1,
+                                viewer_point.y - 20,
+                                36,
+                                20
+                            );
+
+                        overlay.context2d().fillStyle = "black";
+                        overlay.context2d().fillText(score_text, 
+
+                            viewer_point.x + 3,
+                            viewer_point.y - 5
+                        );
+                    }
+                }
+            }
+
+            
+            let navigation_type = $("#navigation_dropdown").val();
+            if (navigation_type === "training_regions" || navigation_type === "test_regions") {
+
+                let region = annotations[cur_img_name][navigation_type][cur_region_index];
+
+                let image_px_width = metadata["images"][cur_img_name]["width_px"];
+                let image_px_height = metadata["images"][cur_img_name]["height_px"];
+
+
+                let rects = [
+                    [0 -10 , 0 -10, region[0], image_px_width +10],
+                    [0, region[3], image_px_height +10, image_px_width +10],
+                    [region[2], 0 -10, image_px_height +10, image_px_width +10],
+                    [0 -10, 0 -10, image_px_height +10, region[1]]
+
+                ];
+                
+                overlay.context2d().fillStyle = "#222621";
+                for (let rect of rects) {
+                    let viewer_point = viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(rect[1], rect[0]));
+                    let viewer_point_2 = viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(rect[3], rect[2]));
+                    
+                    overlay.context2d().fillRect(
+                        viewer_point.x,
+                        viewer_point.y,
+                        (viewer_point_2.x - viewer_point.x),
+                        (viewer_point_2.y - viewer_point.y)
+                    );
+
+                }
+
+
+                if (cur_bounds != null) {
+                    viewer.world.getItemAt(0).setClip(
+                        new OpenSeadragon.Rect(
+                            region[1],
+                            region[0],
+                            (region[3] - region[1]),
+                            (region[2] - region[0])
+                        )
+                    );
+
+                    withFastOSDAnimation(viewer.viewport, function() {
+                        viewer.viewport.fitBounds(cur_bounds);
+                    });
+                    cur_bounds = null;
+                }
+            }
+        },
+        clearBeforeRedraw: true
     });
 
-    viewer.addHandler("open", function(event) {
 
-        let cur_status = annotations[cur_img_name]["status"];
+    // anno = OpenSeadragon.Annotorious(viewer, {
+    //     disableEditor: true,
+    //     disableSelect: true,
+    //     readOnly: true,
+    //     formatter: formatter
+    // });
 
-        $("#image_name").text(cur_img_name);
-        $("#image_status").text(status_to_text[cur_status]);
+    // viewer.addHandler("open", function(event) {
 
-        update_overlays();
-        update_count_chart();
-        update_score_chart();
+    //     let cur_status = annotations[cur_img_name]["status"];
 
-    });
+    //     $("#image_name").text(cur_img_name);
+    //     $("#image_status").text(status_to_text[cur_status]);
+
+    //     update_overlays();
+    //     update_count_chart();
+    //     update_score_chart();
+
+    // });
 
 }
+
+
+function set_heights() {
+    let max_height = 0;
+    for (let image_name of Object.keys(annotations)) {
+        $("#image_name").html(image_name);
+        let table_height = $("#image_name_table").height();
+        console.log("table_height", table_height);
+        if (table_height > max_height) {
+            max_height = table_height;
+        };
+    }
+    console.log("max_height", max_height);
+    $("#image_name_table").height(max_height);
+    $("#navigation_table_container").height(553 - max_height);
+}
+
+
+
 
 $(document).ready(function() {
     
@@ -394,19 +637,19 @@ $(document).ready(function() {
     metadata = data["metadata"];
     camera_specs = data["camera_specs"];
     metrics = data["metrics"];
-    dzi_dir = data["dzi_dir"];
+    //dzi_dir = data["dzi_dir"];
     dzi_image_paths = data["dzi_image_paths"];
 
 
-    for (let image_status of Object.keys(status_color)) {
-        let color = status_color[image_status];
-        let text = status_to_text[image_status];
-        $("#filter_combo").append(`<option style="background-color: ${color}" value="${image_status}">${text}</option>`);
-    }
+    // for (let image_status of Object.keys(status_color)) {
+    //     let color = status_color[image_status];
+    //     let text = status_to_text[image_status];
+    //     $("#filter_combo").append(`<option style="background-color: ${color}" value="${image_status}">${text}</option>`);
+    // }
 
 
 
-    $("#request_csv_button").click(function() {
+    $("#request_spreadsheet_button").click(function() {
 
         let farm_name = image_set_info["farm_name"];
         let field_name = image_set_info["field_name"];
@@ -414,7 +657,7 @@ $(document).ready(function() {
         let timestamp = image_set_info["timestamp"];
 
         show_modal_message("Preparing Download", 
-        `<div id="prep_csv_message">Preparing CSV file...</div><div id="prep_csv_loader" class="loader"></div>` +
+        `<div id="prep_spreadsheet_message">Preparing spreadsheet...</div><div id="prep_spreadsheet_loader" class="loader"></div>` +
         `<div style="text-align: center; margin-top: 20px"><a class="table_button table_button_hover" id="download_button" hidden>` +
         `<i class="fa fa-download fa-sm"></i><span style="margin-left: 10px">Download Results</span></a></div>`);
 
@@ -422,23 +665,23 @@ $(document).ready(function() {
 
         $.post($(location).attr('href'),
         {
-            action: "create_csv",
+            action: "create_spreadsheet",
             download_uuid: download_uuid,
             annotation_version: $("#annotation_version_combo").val()
         },
         
         function(response, status) {
-            $("#prep_csv_loader").hide();
+            $("#prep_spreadsheet_loader").hide();
             $("#modal_close").show();
 
             if (response.error) {
                 $("#modal_head_text").html("Error");
-                $("#prep_csv_message").html("An error occurred while generating the results file.");
+                $("#prep_spreadsheet_message").html("An error occurred while generating the results file.");
 
             }
             else {
                 $("#modal_head_text").html("Ready For Download");
-                $("#prep_csv_message").html("Your results file has been created. Click the button to download the results.");
+                $("#prep_spreadsheet_message").html("Your results file has been created. Click the button to download the results.");
                 $("#download_button").show();
     
                 download_uuid = response.download_uuid;
@@ -481,6 +724,8 @@ $(document).ready(function() {
     }
     let init_image_name = basename(dzi_image_paths[0]);
     cur_img_name = init_image_name.substring(0, init_image_name.length - 4);
+    cur_region_index = -1;
+    console.log("cur_img_name", cur_img_name);
 
     disable_std_buttons(["prev_image_button"]);
     if (dzi_image_paths.length == 1) {
@@ -491,23 +736,8 @@ $(document).ready(function() {
                               field_name + "  |  " + 
                               mission_date);
 
+    update_count_combo(true);
 
-
-    $('#chart_combo').append($('<option>', {
-        value: "Count",
-        text: "Count"
-    }));
-    if (can_calculate_density(metadata, camera_specs)) {
-        $('#chart_combo').append($('<option>', {
-            value: "Count per square metre",
-            text: "Count per square metre"
-        }));
-        // $('#chart_combo').append(`<option value="Count per square meter">Count / m&sup2;</option>`);
-    }
-    $('#chart_combo').append($('<option>', {
-        value: "MS COCO mAP",
-        text: "MS COCO mAP"
-    }));
     // $('#chart_combo').append($('<option>', {
     //     value: "PASCAL VOC mAP",
     //     text: "PASCAL VOC mAP"
@@ -542,9 +772,11 @@ $(document).ready(function() {
 
     //assemble_datasets();
     // overlay_initialization();
-    set_prediction_overlay_color();
+    //set_prediction_overlay_color();
     //create_image_set_table(); //dataset_images["all"]);
-    create_image_set_table();
+    //create_image_set_table();
+    create_navigation_table();
+    update_navigation_dropdown();
     
     create_overlays_table();
     set_count_chart_data();
@@ -552,23 +784,25 @@ $(document).ready(function() {
     draw_count_chart();
     draw_score_chart();
 
-    create_viewer_and_anno();
+    show_image(cur_img_name);
+
+    //create_viewer_and_anno();
 
     //show_image();
 
 
     $("#overlays_table").change(function() {
-        update_overlays();
+        viewer.raiseEvent('update-viewport');
     });
 
 
     $("#confidence_slider").change(function() {
         let slider_val = Number.parseFloat($("#confidence_slider").val()).toFixed(2);
         $("#slider_val").html(slider_val);
-        update_overlays();
+        viewer.raiseEvent('update-viewport');
         set_count_chart_data();
-        update_score_chart();
         update_count_chart();
+        update_score_chart();
     });
 
     $("#confidence_slider").on("input", function() {
@@ -577,7 +811,7 @@ $(document).ready(function() {
     });
 
     $("#scores_switch").change(function() {
-        update_overlays();
+        viewer.raiseEvent('update-viewport');
     });
 
     $("#chart_combo").change(function() {
@@ -585,6 +819,7 @@ $(document).ready(function() {
         update_count_chart();
     });
 
+    /*
     $("#filter_combo").change(function() {
         $("#filter_combo").css("background-color", status_color[$("#filter_combo").val()]);
         create_image_set_table();
@@ -606,6 +841,9 @@ $(document).ready(function() {
             $("#image_navigation_buttons").hide();
         }
     });
+    */
+
+
 
     let score_handler;
     $("#score_down").mousedown(function() {
@@ -627,29 +865,15 @@ $(document).ready(function() {
     });
 
     $("#next_image_button").click(function() {
-
-        let index = cur_img_list.findIndex(x => x == cur_img_name) + 1;
-        // if (index > 0) {
-        //     enable_std_buttons(["prev_image_button"]);
-        // }
-        // if (index == dzi_image_paths.length - 1) {
-        //     disable_std_buttons(["next_image_button"]);
-        // }
-        change_image(cur_img_list[index]);
-    
+        let cur_nav_item = cur_img_name + "/" + cur_region_index;
+        let index = cur_nav_list.findIndex(x => x == cur_nav_item) + 1;
+        change_image(cur_nav_list[index]);
     });
 
     $("#prev_image_button").click(function() {
-
-        let index = cur_img_list.findIndex(x => x == cur_img_name) - 1;
-        // if (index < dzi_image_paths.length - 1) {
-        //     enable_std_buttons(["next_image_button"]);
-        // }
-        // if (index == 0) {
-        //     disable_std_buttons(["prev_image_button"]);
-        // }
-        change_image(cur_img_list[index]);
-    
+        let cur_nav_item = cur_img_name + "/" + cur_region_index;
+        let index = cur_nav_list.findIndex(x => x == cur_nav_item) - 1;
+        change_image(cur_nav_list[index]);
     });
 
 
@@ -720,6 +944,16 @@ $(document).ready(function() {
 
 
         });
+    });
+
+
+    $("#navigation_dropdown").change(function() {
+        create_navigation_table();
+        update_count_combo(true);
+
+        let navigation_type = $("#navigation_dropdown").val();
+        console.log("navigation_type", navigation_type);
+        change_image(cur_nav_list[0]);
     });
 
 

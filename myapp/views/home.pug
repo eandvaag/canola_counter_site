@@ -25,6 +25,7 @@ html
         script(type='text/javascript' src=process.env.CC_PATH + '/javascripts/modal.js')
         script(type='text/javascript' src=process.env.CC_PATH + '/javascripts/upload.js')
         script(type='text/javascript' src=process.env.CC_PATH + '/javascripts/train.js')
+        script(type='text/javascript' src=process.env.CC_PATH + '/javascripts/canvas_overlay.js')
 
     body
         div(id="container")
@@ -140,7 +141,7 @@ html
                                         table(id="input_table")
                                             tr 
                                                 th 
-                                                    div(class="table_head" style="width: 140px") Farm Name 
+                                                    div(class="table_head" style="width: 170px") Farm Name 
                                                         span(style="color: yellow") *
                                                 th 
                                                     div(style="width: 250px")
@@ -148,7 +149,7 @@ html
                                         
                                             tr 
                                                 th 
-                                                    div(class="table_head" style="width: 140px") Field Name 
+                                                    div(class="table_head" style="width: 170px") Field Name 
                                                         span(style="color: yellow") *
                                                 th 
                                                     div(style="width: 250px")
@@ -156,7 +157,7 @@ html
 
                                             tr 
                                                 th 
-                                                    div(class="table_head" style="width: 140px") Mission Date 
+                                                    div(class="table_head" style="width: 170px") Mission Date 
                                                         span(style="color: yellow") *
                                                 th 
                                                     div(style="width: 250px")
@@ -164,7 +165,7 @@ html
 
                                             tr 
                                                 th 
-                                                    div(class="table_head" style="width: 140px") Object Name 
+                                                    div(class="table_head" style="width: 170px") Object Name 
                                                         span(style="color: yellow") *
                                                 th 
                                                     div(style="width: 250px")
@@ -173,26 +174,68 @@ html
 
                                             tr 
                                                 th 
-                                                    div(class="table_head" style="width: 140px") Camera Height (m)
+                                                    div(class="table_head" style="width: 170px") Camera Height (m)
                                                 th 
                                                     div(style="width: 250px")
                                                         input(id="camera_height_input" class="nonfixed_input")
                                         
+                                            //tr 
+                                            //    td(style="height: 15px")
+                                            tr
+                                                td 
+                                                    div(class="table_head" style="width: 170px") Make Image Set Public
+                                                td
+                                                    div(style="width: 250px; text-align: left; padding-left: 2px")
+                                                        label(for="upload_set_public" class="container" style="display: inline; margin-botton: 20px; margin-left: 12px")
+                                                            input(type="checkbox" id="upload_set_public" name="upload_set_public" checked)
+                                                            span(class="checkmark")
+
+
+
                                         br
                                         div(style="color: yellow") * 
                                             span(style="color: white") Indicates required field.
 
                                         br
-                                        hr(style="margin: 0px 0px")
-                                        div(id="file-drop" class="dropzone")
-                                            div(class="dz-message data-dz-message")
-                                                span Drop Images Here 
-                                            div(id="upload_loader" class="loader" hidden)
+                                        //hr(style="margin: 0px 0px")
 
-                                        hr
-                                        div(style="height: 50px")
-                                            button(id="upload_button" class="std-button std-button-hover" style="width: 200px; height: 40px;" type="submit") Upload 
-                                
+                                        div(style="width: 99%; margin: auto; border: 1px solid white; border-bottom: none")
+                                            // border-radius: 0px 0px 50px 50px")
+                                            ul(class="nav")
+                                                li(id="image_set_tab_btn" class="nav tab-btn-active")
+                                                    a(class="nav")
+                                                        span
+                                                            i(class="fa-solid fa-images" style="margin-right:3px")
+                                                            |
+                                                            | Image Set
+
+                                                li(id="orthomosaic_tab_btn" class="nav")
+                                                    a(class="nav")
+                                                        span
+                                                            i(class="fa-solid fa-image" style="margin-right:3px")
+                                                            |
+                                                            | Orthomosaic
+
+
+
+                                            div(id="image_set_tab")
+                                                div(id="image_set_dropzone" class="dropzone" style="height: 375px")
+                                                    div(class="dz-message data-dz-message")
+                                                        span Drop Images Here 
+                                                    div(id="image_set_upload_loader" class="loader" hidden)
+
+                                            div(id="orthomosaic_tab" hidden)
+                                                div(id="orthomosaic_dropzone" class="dropzone" style="height: 375px")
+                                                    div(class="dz-message data-dz-message")
+                                                        span Drop Orthomosaic Here 
+                                                    div(id="orthomosaic_upload_loader" class="loader" hidden)
+
+                                        div(style="width: 99%; margin: auto; height: 25px; border-top: none; border-left: 1px solid white; border-bottom: 1px solid white; border-right: 1px solid white; border-radius: 0px 0px 50px 50px")
+
+
+                                        div(style="height: 10px")
+                                        button(id="upload_button" class="std-button std-button-hover" style="width: 200px; height: 40px;" type="submit") Upload 
+                                        //div(style="height: 25px")
                                 
                                 div(id="train" hidden)
 
@@ -260,7 +303,7 @@ html
                                                                     select(id="sort_combo_2" class="nonfixed_dropdown" style="display: inline-block; width: 150px")
                                                                         option(value="set_owner") Set Owner 
                                                                         option(value="set_name") Set Name
-                                                                    select(id="sort_combo_3" class="nonfixed_dropdown" style="display: inline-block;; width: 150px")
+                                                                    select(id="sort_combo_3" class="nonfixed_dropdown" style="display: inline-block; width: 150px")
                                                                         option(value="set_name") Set Name
                                                             //td
                                                             //    div(style="width: 60px")
@@ -285,14 +328,15 @@ html
                                                                         td
                                                                             h(class="header2" style="text-align: left; width: 100px; padding-left: 5px") Added Sets
                                                                         td(style="width: 100%")
-                                                                        td 
-                                                                            h(class="header2" style="text-align: right; padding-right: 10px") Images 
-                                                                        td 
-                                                                            div(id="added_images" style="width: 80px; text-align: left") 0
+                                                                        //-
+                                                                            td 
+                                                                                h(class="header2" style="text-align: right; padding-right: 10px") Images 
+                                                                            td 
+                                                                                div(id="added_images" style="width: 80px; text-align: left") 0
                                                                         td 
                                                                             h(class="header2" style="text-align: right; padding-right: 10px") Annotations 
                                                                         td 
-                                                                            div(id="added_annotations"  style="width: 80px; text-align: left") 0
+                                                                            div(id="added_annotations" style="width: 100px; text-align: left") 0
                                                                         
                                                         tr
                                                             td
@@ -308,13 +352,13 @@ html
                                                                         td
                                                                     tr
                                                                         td 
-                                                                            h(class="header2" style="width: 200px; text-align: right") Model Name
+                                                                            div(class="table_head" style="width: 200px; text-align: right") Model Name
                                                                         td
                                                                             div(style="width: 250px")
                                                                                 input(id="model_name_input" class="nonfixed_input")
                                                                     tr 
                                                                         td 
-                                                                            h(class="header2" style="width: 200px; text-align: right") Target Object
+                                                                            div(class="table_head" style="width: 200px; text-align: right") Target Object
                                                                         td
                                                                             div(style="width: 250px")
                                                                                 select(id="model_object_input" class="nonfixed_dropdown")
@@ -329,16 +373,16 @@ html
                                                                                 span(class="checkmark")
                                                                     tr
                                                                         td 
-                                                                            h(class="header2" style="width: 200px; text-align: right") Make Model Public
+                                                                            div(class="table_head" style="width: 200px; text-align: right") Make Model Public
                                                                         td
                                                                             div(style="width: 250px; text-align: left")
-                                                                                label(for="public_checkbox" class="container" style="display: inline; margin-botton: 20px; margin-left: 12px")
-                                                                                    input(type="checkbox" id="public_checkbox" name="public_checkbox" checked)
+                                                                                label(for="model_public" class="container" style="display: inline; margin-botton: 20px; margin-left: 12px")
+                                                                                    input(type="checkbox" id="model_public" name="model_public" checked)
                                                                                     span(class="checkmark")
                                                         
                                                         tr 
                                                             td
-                                                                div(style="height: 4px")           
+                                                                div(style="height: 12px")           
 
                                                         tr 
                                                             td
@@ -417,7 +461,7 @@ html
                                         br
                                         br
 
-                                        table(id="available_models_head" style="padding-right: 20px")
+                                        table(id="available_models_head" style="padding-right: 20px; height: 30px")
                                         div(style="margin: 0 auto; height: 550px; overflow-y: scroll;")
                                             table(id="available_models")
 
@@ -427,17 +471,33 @@ html
                                         br
                                         br
                                         br
-                                        div PENDING                                        
+                                        h(style="font-weight: bold") #{username}'s
+                                        div(class="header2") Pending Models
+
+                                        br
+                                        br
+
+                                        table(id="pending_models_head" style="padding-right: 20px; height: 30px")
+                                        div(style="margin: 0 auto; height: 550px; overflow-y: scroll;")
+                                            table(id="pending_models")                                       
                                     
                                     div(id="aborted_train_tab")
                                         br
                                         br
                                         br
-                                        div ABORTED
+                                        h(style="font-weight: bold") #{username}'s
+                                        div(class="header2") Aborted Models
+
+                                        br
+                                        br
+
+                                        table(id="aborted_models_head" style="padding-right: 20px; height: 30px")
+                                        div(style="margin: 0 auto; height: 550px; overflow-y: scroll;")
+                                            table(id="aborted_models")
 
     script.
         let username = !{JSON.stringify(username)};
         let image_sets_data = !{JSON.stringify(image_sets_data)};
         let camera_specs = !{JSON.stringify(camera_specs)};
         let objects = !{JSON.stringify(objects)};
-        let all_datasets = !{JSON.stringify(all_datasets)};
+        let available_image_sets = !{JSON.stringify(available_image_sets)};

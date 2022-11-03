@@ -1,5 +1,9 @@
 
-let viewing_results = false;
+//let viewing_results = false;
+let viewing = {
+    "browse": null,
+    "train": null
+};
 let active_results_tab_btn = "completed_results_tab_btn";
 let proposed_camera_height;
 let metadata;
@@ -20,7 +24,7 @@ function delete_request() {
         `style="width: 150px" onclick="cancel_delete_request()">Cancel</button>` +
         `<div style="height: 20px" id="loader_container"></div>` +
         `</div>`
-    )
+    );
 /*
     $("#modal_header").empty();
     //$("#modal_header").append(`<p id="modal_header_text" style="white-space: pre-line;">Are you sure?</p>`);
@@ -653,7 +657,9 @@ function submit_camera_height_change() {
 
 function show_overview() {
 
-    viewing_results = false;
+    //viewing_results = false;
+    viewing["browse"] = "overview";
+
 
     let farm_name = $("#farm_combo").val();
     let field_name = $("#field_combo").val();
@@ -674,8 +680,10 @@ function show_overview() {
             show_modal_message(`Error`, response.message);
         }
         else {
+            console.log("response", response);
             let annotation_info = response.annotation_info;
             let metadata = response.metadata;
+            let is_public = metadata["is_public"] === "yes" ? "Yes": "No";
 
             let label_width = "200px";
             let value_width = "200px";
@@ -688,12 +696,14 @@ function show_overview() {
             `<td style="width: 50%;" id="left_section">` +
             `</td>` +
             `<td style="width: 50%;" id="right_section">` +
-                `<div style="height: 70px"></div>` +
+                //`<div style="height: 70px"></div>` +
                 `<table id="right_table">` +
+                    `<tr style="height: 70px"></tr>` +
                     `<tr id="top_row" style="height: 160px">` +
                         `<td id="top_left" style="vertical-align: top;"></td>` +
                         `<td id="top_right" style="vertical-align: top"></td>` +
                     `</tr>` +
+                    `<tr style="height: 70px"></tr>` +
                     `<tr id="bottom_row" style="height: 270px">` +
                         `<td id="bottom_left" style="vertical-align: top;"></td>` +
                         `<td id="bottom_right" style="vertical-align: top"></td>` +
@@ -721,19 +731,25 @@ function show_overview() {
             //         `<td><div class="table_head" style="width: ${label_width};">Camera Height</div></td>` +
             //         `<td><div class="table_text" style="width: ${value_width};">${camera_height}</div></td>` +
             //         `</tr>`);
-            $("#image_set_metadata_table").append(`<tr>` +
-                    `<td><div class="table_head" style="width: ${label_width};">Camera Height (m)</div></td>` +
-                    `<td><input id="update_camera_height_input" class="nonfixed_input" style="width: 80px" value="${camera_height}">` 
-                    +`<button id="update_camera_height_button" class="std-button std-button-hover" style="width: 80px; font-size: 16px">Update</button></td>` +
-                    `</tr>`);
+
         
         
             //         div(style="width: 250px")
             //             input(id="mission_input" type="date" class="nonfixed_input")
         
+
+            $("#image_set_metadata_table").append(`<tr>` +
+                    `<td><div class="table_head" style="width: ${label_width};">Public</div></td>` +
+                    `<td><div class="table_text" style="width: ${value_width};">${is_public}</div></td>` +
+                    `</tr>`);
             $("#image_set_metadata_table").append(`<tr>` +
                     `<td><div class="table_head" style="width: ${label_width};">Georeferenced</div></td>` +
                     `<td><div class="table_text" style="width: ${value_width};">${is_georeferenced}</div></td>` +
+                    `</tr>`);
+            $("#image_set_metadata_table").append(`<tr>` +
+                    `<td><div class="table_head" style="width: ${label_width};">Camera Height (m)</div></td>` +
+                    `<td><input id="update_camera_height_input" class="nonfixed_input" style="width: 80px" value="${camera_height}">` 
+                    +`<button id="update_camera_height_button" class="std-button std-button-hover" style="width: 80px; font-size: 16px">Update</button></td>` +
                     `</tr>`);
         
             disable_std_buttons(["update_camera_height_button"]);
@@ -892,15 +908,36 @@ function show_overview() {
                         `</td>` +
                         `</tr>` +
                         `</table>`);
+
+            $("#top_left").append(`<div style="text-decoration: underline; font-weight: bold;">Images</div><br>`);
+            $("#top_left").append(`<table class="transparent_table" id="image_stats_table"></table>`);     
         
-            $("#top_left").append(`<div style="text-decoration: underline; font-weight: bold;">Annotations</div><br>`);
-            $("#top_left").append(`<table class="transparent_table" id="annotation_stats_table"></table>`);
+            $("#image_stats_table").append(`<tr>` +
+                    `<td><div class="table_head" style="width: ${label_width};">Total</div></td>` +
+                    `<td><div class="table_text" style="width: ${value_width};">${annotation_info["num_images"]}</div></td>` +
+                    `</tr>`); 
+        
+            $("#bottom_left").append(`<div style="text-decoration: underline; font-weight: bold;">Annotations</div><br>`);
+            $("#bottom_left").append(`<table class="transparent_table" id="annotation_stats_table"></table>`);
         
             $("#annotation_stats_table").append(`<tr>` +
-                    `<td><div class="table_head" style="width: ${label_width};">Total</div></td>` +
+                    `<td><div class="table_head" style="width: ${label_width};">Boxes</div></td>` +
                     `<td><div class="table_text" style="width: ${value_width};">${annotation_info["num_annotations"]}</div></td>` +
                     `</tr>`);
+
+            $("#annotation_stats_table").append(`<tr>` +
+                    `<td><div class="table_head" style="width: ${label_width};">Fine-Tuning Regions</div></td>` +
+                    `<td><div class="table_text" style="width: ${value_width};">${annotation_info["num_training_regions"]}</div></td>` +
+                    `</tr>`);
+            $("#annotation_stats_table").append(`<tr>` +
+                    `<td><div class="table_head" style="width: ${label_width};">Test Regions</div></td>` +
+                    `<td><div class="table_text" style="width: ${value_width};">${annotation_info["num_test_regions"]}</div></td>` +
+                    `</tr>`);
         
+
+
+
+            /*
             $("#bottom_left").append(`<div style="text-decoration: underline; font-weight: bold;">Images</div><br>`);
             $("#bottom_left").append(`<table class="transparent_table" id="image_stats_table"></table>`);
         
@@ -921,6 +958,8 @@ function show_overview() {
                     `<td><div class="table_head" style="width: ${label_width};">Unannotated</div></td>` +
                     `<td><div class="table_text" style="width: ${value_width};">${annotation_info["num_unannotated"]}</div></td>` +
                     `</tr>`);
+
+            */
         
                     
         
@@ -1012,6 +1051,7 @@ function fetch_and_show_results() {
     },
     function(response, status) {
         if (response.error) {
+            $("#tab_details").empty();
             show_modal_message(`Error`, `An error occurred while fetching the image set results.`);
         }
         else {
@@ -1076,7 +1116,8 @@ function view_comment(comment) {
 
 function show_results(results) {
 
-    viewing_results = true;
+    //viewing_results = true;
+    viewing["browse"] = "results";
 
 
     let completed_results = results.completed_results.sort(function(a, b) {
@@ -1406,13 +1447,31 @@ $(document).ready(function() {
         let mission_date = message["mission_date"];
         if ((farm_name === $("#farm_combo").val() && field_name === $("#field_combo").val()) 
             && mission_date == $("#mission_combo").val()) {
-            if (viewing_results) {
+            if (viewing["browse"] === "results") {
                 fetch_and_show_results();
             }
         }
-    })
+    });
 
+    socket.on("model_change", function() {
+        //if (viewing["train"] === "submit") {
+        //    show_submit_train();
+        //}
+        console.log("got model_change update");
 
+        if (viewing["train"] === "available") {
+            console.log("reshowing available models");
+            show_available_train();
+        }
+        else if (viewing["train"] === "pending") {
+            console.log("reshowing pending models");
+            show_pending_train();
+        }
+        else if (viewing["train"] === "aborted") {
+            console.log("reshowing aborted models");
+            show_aborted_train();
+        }
+    });
 
     $("#browse_tab_btn").click(function() {
         if (!global_disabled)

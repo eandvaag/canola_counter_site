@@ -17,8 +17,10 @@ let status_to_text = {
 };
 
 let overlay_colors = {
-    "Annotations": "#0080C0",
-    "Predictions": "#FF4040"
+    "annotation": "#0080ff", // "#0080C0",
+    "prediction": "#FF4040",
+    "training_region": "#ff51eb", //"#f705bb",
+    "test_region": "#ffae00" //"#ffa200"
 };
 /*
 let backend_color = {
@@ -28,6 +30,38 @@ let backend_color = {
     "Restarting": "#802626"
 }
 */
+
+
+function numberWithCommas(x) {
+    return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
+function arraysEqual(a, b) {
+    if (a === b) return true;
+    if (a == null || b == null) return false;
+    if (a.length !== b.length) return false;
+  
+    // If you don't care about the order of the elements inside
+    // the array, you should sort both arrays here.
+    // Please note that calling sort on an array will modify that array.
+    // you might want to clone your array first.
+  
+    for (var i = 0; i < a.length; ++i) {
+      if (a[i] !== b[i]) return false;
+    }
+    return true;
+  }
+
+
+
+function delay(time) {
+    return new Promise(resolve => setTimeout(resolve, time));
+}
+
+const argFact = (compareFn) => (array) => array.map((el, idx) => [el, idx]).reduce(compareFn)[1]
+
+const argMax = argFact((min, el) => (el[0] > min[0] ? el : min))
+const argMin = argFact((max, el) => (el[0] < max[0] ? el : max))
 
 /**
   * Uses canvas.measureText to compute and return the width of the given text of given font in pixels.
@@ -247,6 +281,11 @@ function can_calculate_density(metadata, camera_specs) {
     let make = metadata["camera_info"]["make"];
     let model = metadata["camera_info"]["model"];
 
+
+    if (metadata["is_ortho"] === "yes") {
+        return false;
+    }
+
     if (((metadata["missing"]["latitude"]) || metadata["missing"]["longitude"]) || (metadata["camera_height"] === "")) {
         return false;
     }
@@ -300,3 +339,347 @@ let formatter = function(annotation) {
     }
 }
   
+
+
+
+
+
+function create_image_set_details_table(username, farm_name, field_name, mission_date) {
+
+    return  `<table style="font-size: 14px">` +
+                `<tr>` +
+                    `<td style="text-align: right">` +
+                        `<div style="color: #ddccbb; font-weight: 400; width: 90px">Owner</div>` +
+                    `</td>` + 
+                    `<td style="text-align: left; padding-left: 15px; width: 100%;">` +
+                        `<div>${username}</div>` +
+                    `</td>` +
+                `</tr>` +
+                `<tr>` +
+                    `<td style="text-align: right">` +
+                        `<div style="color: #ddccbb; font-weight: 400; width: 90px">Farm Name</div>` +
+                    `</td>` + 
+                    `<td style="text-align: left; padding-left: 15px; width: 100%;">` +
+                        `<div>${farm_name}</div>` +
+                    `</td>` +
+                `</tr>` +
+                `<tr>` +
+                    `<td style="text-align: right">` +
+                        `<div style="color: #ddccbb; font-weight: 400; width: 90px">Field Name</div>` +
+                    `</td>` + 
+                    `<td style="text-align: left; padding-left: 15px; width: 100%;">` +
+                        `<div>${field_name}</div>` +
+                    `</td>` +
+                `</tr>` +
+                `<tr>` +
+                    `<td style="text-align: right">` +
+                        `<div style="color: #ddccbb; font-weight: 400; width: 90px">Mission Date</div>` +
+                    `</td>` + 
+                    `<td style="text-align: left; padding-left: 15px; width: 100%;">` +
+                        `<div>${mission_date}</div>` +
+                    `</td>` +
+                `</tr>` +
+            `</table>`;
+}
+
+
+
+function create_model_details_table(creator, model_name) {
+
+
+    return  `<table style="font-size: 14px">` +
+                `<tr>` +
+                    `<td style="text-align: right">` +
+                        `<div style="color: #ddccbb; font-weight: 400; width: 90px">Creator</div>` +
+                    `</td>` + 
+                    `<td style="text-align: left; padding-left: 15px; width: 100%;">` +
+                        `<div>${creator}</div>` +
+                    `</td>` +
+                `</tr>` +
+                `<tr>` +
+                    `<td style="text-align: right">` +
+                        `<div style="color: #ddccbb; font-weight: 400; width: 90px">Model Name</div>` +
+                    `</td>` + 
+                    `<td style="text-align: left; padding-left: 15px; width: 100%;">` +
+                        `<div>${model_name}</div>` +
+                    `</td>` +
+                `</tr>` +
+            `</table>`;
+}
+
+
+
+function box_intersects_region(box, region) {
+    return ((box[1] < region[3] && box[3] > region[1]) && (box[0] < region[2] && box[2] > region[0]));
+}
+
+
+
+
+function withFastOSDAnimation(viewport, f) {
+
+    // save old ones
+    var oldValues = {};
+    oldValues.centerSpringXAnimationTime = viewport.centerSpringX.animationTime;
+    oldValues.centerSpringYAnimationTime = viewport.centerSpringY.animationTime;
+    oldValues.zoomSpringAnimationTime = viewport.zoomSpring.animationTime;
+    
+    // set our new ones
+    viewport.centerSpringX.animationTime =
+      viewport.centerSpringY.animationTime =
+      viewport.zoomSpring.animationTime =
+      0.01;
+    
+    // callback
+    f()
+    
+    // restore values
+    viewport.centerSpringX.animationTime = oldValues.centerSpringXAnimationTime;
+    viewport.centerSpringY.animationTime = oldValues.centerSpringYAnimationTime;
+    viewport.zoomSpring.animationTime = oldValues.zoomSpringAnimationTime;
+}
+
+
+
+
+function create_overlays_table() {
+
+    let models_col_width = "215px";
+    let disp_text = {
+        "annotation": "Annotations",
+        "prediction": "Predictions"
+    }
+
+    for (let overlay_id of ["annotation", "prediction"]) { //Object.keys(overlay_colors)) {
+        let overlay_color = overlay_colors[overlay_id];
+        //let overlay_id = overlay_name; //.toLowerCase();
+        let disp_overlay_text = disp_text[overlay_id]
+
+        let model_row_id = overlay_id + "_row";
+        $("#overlays_table").append(`<tr id=${model_row_id}>` +
+            `<td><label class="table_label" ` +
+            `style="width: ${models_col_width}; background-color: ${overlay_color};">` +
+            `<table class="transparent_table">` +
+            `<tr>` + 
+            `<td style="width: 40px">` +
+                `<label class="switch">` +
+                `<input id=${overlay_id} type="checkbox" checked></input>` +
+                `<span class="switch_slider round"></span></label>` +
+            `</td>` +
+            `<td style="width: 100%">` +
+                `<div style="margin-left: 8px">${disp_overlay_text}</div>` +
+            `</td>` +
+            `</tr>` +
+            `</table>` +
+            `</label>` +
+            `</td>`+
+            `</tr>`);
+    }
+}
+
+
+
+
+function create_navigation_table() {
+
+    let navigation_type = $("#navigation_dropdown").val();
+    console.log("create_navigation_table", navigation_type);
+
+    $("#navigation_table").empty();
+    cur_nav_list = [];
+
+    if (navigation_type === "images") {
+
+        for (let image_name of natsort(Object.keys(annotations))) {
+            let nav_item = image_name + "/" + -1;
+            let item = 
+            `<tr>` +
+                `<td>`+
+                    `<div class="table_button table_button_hover" style="width: 245px;" ` +
+                            `onclick="change_image('${nav_item}')">${image_name}</div>` +
+                `</td>` +
+            `</tr>`;
+            $("#navigation_table").append(item);
+            cur_nav_list.push(nav_item);
+
+        }
+    }
+    else if (navigation_type === "training_regions" || navigation_type === "test_regions") {
+
+        for (let image_name of natsort(Object.keys(annotations))) {
+
+            for (let i = 0; i < annotations[image_name][navigation_type].length; i++) {
+                let nav_item = image_name + "/" + i;
+                let disp_region_index = i + 1;
+                let region_color;
+                if (navigation_type === "training_regions") {
+                    region_color = overlay_colors["training_region"];
+                }
+                else {
+                    region_color = overlay_colors["test_region"];
+                }
+                console.log("region_color", region_color);
+                let item = 
+                `<tr>` +
+                    `<td>` +
+                        `<div class="table_button table_button_hover" style="width: 245px" ` +
+                            `onclick="change_image('${nav_item}')">` +
+                            `<table>` +
+                                `<tr>` +
+                                    `<td>` +
+                                        `<div style="width: 156px;">${image_name}</div>` +
+                                    `</td>` +
+                                    `<td>` +
+                                        `<div style="width: 75px; background-color: ${region_color}; margin: 0px 2px; color: black; border: none" class="object_entry">Region ${disp_region_index}</div>` +
+                                    `</td>` +
+                                `</tr>` +
+                            `</table>` +
+                        `</div>` +
+                    `</td>` +
+                `</tr>`;
+                $("#navigation_table").append(item);
+                cur_nav_list.push(nav_item);
+            }
+        }
+    }
+}
+
+
+
+function update_navigation_dropdown() {
+
+    let cur_navigation_val = $("#navigation_dropdown").val();
+    let num_training_regions = get_num_regions("training_regions");
+    let num_test_regions = get_num_regions("test_regions");
+    $("#navigation_dropdown").empty();
+    $("#navigation_dropdown").append($("<option></option>").val("images").text("Images"));
+    if (num_training_regions > 0 && num_test_regions > 0) {
+        $("#navigation_dropdown").append($("<option></option>").val("training_regions").text("Fine-Tuning Regions"));
+        $("#navigation_dropdown").append($("<option></option>").val("test_regions").text("Test Regions"));
+    }
+    else if (num_training_regions > 0) {
+        $("#navigation_dropdown").append($("<option></option>").val("training_regions").text("Fine-Tuning Regions"));
+    }
+    else if (num_test_regions > 0) {
+        $("#navigation_dropdown").append($("<option></option>").val("test_regions").text("Test Regions"));
+    }
+    $("#navigation_dropdown").val(cur_navigation_val);
+
+}
+
+
+function get_num_regions(region_key) {
+    let num_regions = 0
+    for (let image_name of Object.keys(annotations)) {
+        num_regions += annotations[image_name][region_key].length;
+    }
+    return num_regions;
+}
+
+
+function image_is_fully_annotated(annotations, image_name, image_w, image_h) {
+    for (let region_key of ["training_regions", "test_regions"]) {
+        for (let region of annotations[image_name][region_key]) {
+            if (((region[0] == 0) && (region[1] == 0)) && ((region[2] == image_h) && (region[3] == image_w))) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+
+function set_cur_bounds() {
+    let navigation_type = $("#navigation_dropdown").val();
+
+
+    // if (cur_panel === "annotation" || cur_panel === "prediction") {
+    if (navigation_type === "training_regions" || navigation_type === "test_regions") {
+        console.log("annotations", annotations);
+        console.log("cur_img_name", cur_img_name);
+        console.log("navigation_type", navigation_type);
+        console.log("cur_region_index", cur_region_index);
+        let bounds = annotations[cur_img_name][navigation_type][cur_region_index];
+        console.log("bounds", bounds);
+        //let image_w = metadata["images"][cur_img_name]["width_px"];
+        //let image_h = metadata["images"][cur_img_name]["height_px"];
+        //let image_w = overlays[id_prefix].imgWidth;
+        //let image_h = overlays[id_prefix].imgHeight;
+        let content_size = viewer.world.getItemAt(0).getContentSize();
+        let image_w = content_size.x;
+        let image_h = content_size.y;
+
+        let hw_ratio = image_h / image_w;
+        let viewport_bounds = [
+            bounds[1] / image_w,
+            (bounds[0] / image_h) * hw_ratio,
+            (bounds[3] - bounds[1]) / image_w,
+            ((bounds[2] - bounds[0]) / image_h) * hw_ratio
+        ];
+        console.log("viewport_bounds", viewport_bounds);
+
+        cur_bounds = new OpenSeadragon.Rect(
+            viewport_bounds[0],
+            viewport_bounds[1],
+            viewport_bounds[2],
+            viewport_bounds[3]
+        );
+    }
+    else {
+        cur_bounds = null;
+    }
+    // }
+
+}
+
+
+
+
+
+
+function update_count_combo(include_viewer_metrics) {
+
+    $("#chart_combo").empty();
+
+    $('#chart_combo').append($('<option>', {
+        value: "Count",
+        text: "Count"
+    }));
+
+    if (can_calculate_density(metadata, camera_specs)) {
+        $('#chart_combo').append($('<option>', {
+            value: "Count Per Square Metre",
+            text: "Count Per Square Metre"
+        }));
+    }
+
+    let navigation_type = $('#navigation_dropdown').val();
+    if (navigation_type === "training_regions" || navigation_type === "test_regions") {
+
+
+        $('#chart_combo').append($('<option>', {
+            value: "Percent Count Error",
+            text: "Percent Count Error"
+        }));
+
+        if (include_viewer_metrics) {
+
+            $('#chart_combo').append($('<option>', {
+                value: "MS COCO mAP",
+                text: "MS COCO mAP"
+            }));
+            $('#chart_combo').append($('<option>', {
+                value: "F1 Score (IoU=0.5)",
+                text: "F1 Score (IoU=0.5)"
+            }));
+            $('#chart_combo').append($('<option>', {
+                value: "F1 Score (IoU=0.7)",
+                text: "F1 Score (IoU=0.7)"
+            }));
+            $('#chart_combo').append($('<option>', {
+                value: "F1 Score (IoU=0.9)",
+                text: "F1 Score (IoU=0.9)"
+            }));
+        }
+    }
+}

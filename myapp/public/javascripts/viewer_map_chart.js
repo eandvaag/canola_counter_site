@@ -27,10 +27,17 @@ function draw_map_chart() {
 
     let num_completed = 0;
     for (let image_name of Object.keys(annotations)) {
-        let status = annotations[image_name]["status"];
-        if ((status === "completed_for_training") || (status === "completed_for_testing")) {
+
+        let image_width_px = metadata["images"][image_name]["width_px"];
+        let image_height_px = metadata["images"][image_name]["height_px"];
+        if (image_is_fully_annotated(annotations, image_name, image_width_px, image_height_px)) {
             num_completed++;
         }
+
+        // let status = annotations[image_name]["status"];
+        // if ((status === "completed_for_training") || (status === "completed_for_testing")) {
+        //     num_completed++;
+        // }
     }
     //let include_annotated_map = (!(diff_map) && num_completed >= 3);
     let include_annotated_map = num_completed >= 3;
@@ -125,10 +132,13 @@ function draw_map_chart() {
 
             let latitude = metadata["images"][image_name]["latitude"];
             let longitude = metadata["images"][image_name]["longitude"];
-            let status = annotations[image_name]["status"];
+            let image_width_px = metadata["images"][image_name]["width_px"];
+            let image_height_px = metadata["images"][image_name]["height_px"];
+
+            //let status = annotations[image_name]["status"];
 
             let color;
-            if ((status === "completed_for_training") || (status === "completed_for_testing")) {
+            if (image_is_fully_annotated(annotations, image_name, image_width_px, image_height_px)) {
                 color = "#0080C0";
                 // if (include_annotated_map) {
                 //     let density = overlays["annotations"][image_name]["annotations"].length / metadata["images"][image_name]["area_m2"];

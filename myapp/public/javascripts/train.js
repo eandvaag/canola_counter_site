@@ -2,15 +2,22 @@ let valid_filter_values;
 let applied_filters;
 
 let viewers = {};
-let annos = {};
+//let annos = {};
+let overlays = {};
 let annotations = {};
+let regions = {};
+let cur_bounds = {};
 
-let object_col_width = "150px";
-let username_col_width = "100px";
-let image_set_col_width = "100%";
-let inspect_button_width = "80px";
-let add_button_width = "80px"; 
-let remove_button_width = "80px";
+//let object_col_width = "150px";
+//let username_col_width = "100px";
+//let image_set_col_width = "100%";
+//let inspect_button_width = "80px";
+//let add_button_width = "80px"; 
+//let remove_button_width = "80px";
+
+let added_image_sets = [];
+
+let model_name_format = /[\s `!@#$%^&*()+\=\[\]{};':"\\|,<>\/?~]/;
 
 let sort_options = [
     {"text": "Object Name", "value": "object_name"}, 
@@ -29,31 +36,31 @@ function set_filters() {
 
         let values = [];
         if (key === "username") {
-            for (let username of Object.keys(all_datasets)) {
+            for (let username of Object.keys(available_image_sets)) {
                 values.push(username);
             }
         }
         else if (key === "farm_name") {
-            for (let username of Object.keys(all_datasets)) {
-                for (let farm_name of Object.keys(all_datasets[username])) {
+            for (let username of Object.keys(available_image_sets)) {
+                for (let farm_name of Object.keys(available_image_sets[username])) {
                     values.push(farm_name);
                 }
             }
         }
         else if (key === "field_name") {
-            for (let username of Object.keys(all_datasets)) {
-                for (let farm_name of Object.keys(all_datasets[username])) {
-                    for (let field_name of Object.keys(all_datasets[username][farm_name])) {
+            for (let username of Object.keys(available_image_sets)) {
+                for (let farm_name of Object.keys(available_image_sets[username])) {
+                    for (let field_name of Object.keys(available_image_sets[username][farm_name])) {
                         values.push(field_name);
                     }
                 }
             }
         }
         else if (key === "mission_date") {
-            for (let username of Object.keys(all_datasets)) {
-                for (let farm_name of Object.keys(all_datasets[username])) {
-                    for (let field_name of Object.keys(all_datasets[username][farm_name])) {
-                        for (let mission_date of Object.keys(all_datasets[username][farm_name][field_name])) {
+            for (let username of Object.keys(available_image_sets)) {
+                for (let farm_name of Object.keys(available_image_sets[username])) {
+                    for (let field_name of Object.keys(available_image_sets[username][farm_name])) {
+                        for (let mission_date of Object.keys(available_image_sets[username][farm_name][field_name])) {
                             values.push(mission_date.substring(0, 4));
                         }
                     }
@@ -61,11 +68,11 @@ function set_filters() {
             }
         }
         else if (key === "object_name") {
-            for (let username of Object.keys(all_datasets)) {
-                for (let farm_name of Object.keys(all_datasets[username])) {
-                    for (let field_name of Object.keys(all_datasets[username][farm_name])) {
-                        for (let mission_date of Object.keys(all_datasets[username][farm_name][field_name])) {
-                            values.push(all_datasets[username][farm_name][field_name][mission_date]["object_name"]);
+            for (let username of Object.keys(available_image_sets)) {
+                for (let farm_name of Object.keys(available_image_sets[username])) {
+                    for (let field_name of Object.keys(available_image_sets[username][farm_name])) {
+                        for (let mission_date of Object.keys(available_image_sets[username][farm_name][field_name])) {
+                            values.push(available_image_sets[username][farm_name][field_name][mission_date]["object_name"]);
                         }
                     }
                 }
@@ -85,25 +92,36 @@ function train_form_is_complete() {
     let inputs_to_check = ["model_name_input"];
 
     for (let input of inputs_to_check) {
-        let input_length = ($("#" + input).val()).length;
+        let input_val = $("#" + input).val();
+        let input_length = input_val.length;
         if ((input_length < 3) || (input_length > 20)) {
             return false;
         }
+
+        if (model_name_format.test(input_val)) {
+            return false;
+        }
     }
+    if (added_image_sets.length == 0) {
+        return false;
+    }
+
+
+    /*
     let num_image_sets = 0;
     $("#added_image_sets tr").each(function() {
         num_image_sets++;
-    });
+    });*/
 
     let model_object = $("#model_object_input").val();
-    console.log(objects);
+    //console.log(objects);
     if (!(objects["object_names"].includes(model_object))) {
         return false;
     }
-
+/*
     if (num_image_sets == 0) {
         return false;
-    }
+    }*/
     return true;
 }
 
@@ -151,6 +169,7 @@ function show_train_tab(sel_tab_btn_id) {
 }
 
 function show_submit_train() {
+    viewing["train"] = "submit";
     $("#available_train_tab").hide();
     $("#pending_train_tab").hide();
     $("#aborted_train_tab").hide();
@@ -166,21 +185,222 @@ function show_submit_train() {
 
 
 function show_pending_train() {
+    viewing["train"] = "pending";
     $("#submit_train_tab").hide();
     $("#available_train_tab").hide();
     $("#aborted_train_tab").hide();
     $("#pending_train_tab").show();
+
+    $("#pending_models_head").empty();
+    $("#pending_models").empty();
+
+    $.post($(location).attr('href'),
+    {
+        action: "fetch_my_models",
+        model_state: "pending"
+    },
+    function(response, status) {
+
+        if (response.error) {
+            show_modal_message(`Error`, response.message);
+        }
+        else {
+            
+            if (response.models.length == 0) {
+                $("#pending_models").append(
+                    `<tr>` +
+                        `<td><div>No Pending Models Found</div></td>` +
+                    `</tr>`
+                );
+
+            }
+            else {
+
+                let model_name_width = "300px";
+                let model_public_width = "300px";
+                let model_loader_width = "300px";
+
+                let models = response.models.sort(function(a, b) {
+                    return b["model_name"] - a["model_name"];
+                });
+
+
+                $("#pending_models_head").append(
+                    `<tr>` +
+                        `<td class="table_entry" style="font-weight: bold; width: ${model_name_width}">Model Name</td>` +
+                        `<td class="table_entry" style="font-weight: bold; width: ${model_public_width}">Public?</td>` +
+                        `<td class="table_entry" style="font-weight: bold; width: ${model_loader_width}"></td>` +
+                    `</tr>`
+                );
+
+                for (let model of models) {
+                    let model_name = model["model_name"];
+                    let is_public = model["public"] ? "Yes" : "No";
+
+
+                    $("#pending_models").append(
+                        `<tr>` +
+                            `<td class="table_entry" style="width: ${model_name_width};">${model_name}</td>` +
+                            `<td class="table_entry" style="width: ${model_public_width};">${is_public}</td>` +
+                            `<td style="width: ${model_loader_width};">` +
+                                `<div class="loader" style="width: 20px; height: 20px"></div>` +
+                            `</td>` +
+                        `</tr>`
+                    );
+                }
+            }
+
+        }
+    });
 }
 
 function show_aborted_train() {
+    viewing["train"] = "aborted";
     $("#submit_train_tab").hide();
     $("#available_train_tab").hide();
     $("#pending_train_tab").hide();
     $("#aborted_train_tab").show();
+
+    $("#aborted_models_head").empty();
+    $("#aborted_models").empty();
+
+
+    $.post($(location).attr('href'),
+    {
+        action: "fetch_my_models",
+        model_state: "aborted"
+    },
+    function(response, status) {
+
+        if (response.error) {
+            show_modal_message(`Error`, response.message);
+        }
+        else {
+            
+            if (response.models.length == 0) {
+                $("#aborted_models").append(
+                    `<tr>` +
+                        `<td><div>No Aborted Models Found</div></td>` +
+                    `</tr>`
+                );
+
+            }
+            else {
+
+                let model_name_width = "300px";
+                let model_aborted_time_width = "300px";
+                let model_error_message_width = "300px";
+                let model_destroy_width = "300px"
+                let button_width = "100px";
+
+                let models = response.models.sort(function(a, b) {
+                    return b["model_name"] - a["model_name"];
+                });
+
+
+                $("#aborted_models_head").append(
+                    `<tr>` +
+                        `<td class="table_entry" style="font-weight: bold; width: ${model_name_width}">Model Name</td>` +
+                        `<td class="table_entry" style="font-weight: bold; width: ${model_aborted_time_width}">Aborted Time</td>` +
+                        `<td class="table_entry" style="font-weight: bold; width: ${model_error_message_width}">Error Message</td>` +
+                        `<td class="table_entry" style="font-weight: bold; width: ${model_destroy_width}">Destroy Model</td>` +
+                    `</tr>`
+                );
+
+                for (let model of models) {
+                    let model_name = model["model_name"];
+                    let aborted_date = timestamp_to_date(model["aborted_time"]);
+                    //let is_public = model["public"] ? "Yes" : "No";
+
+
+                    $("#aborted_models").append(
+                        `<tr>` +
+                            `<td class="table_entry" style="width: ${model_name_width};">${model_name}</td>` +
+                            `<td class="table_entry" style="width: ${model_aborted_time_width};">${aborted_date}</td>` +
+                            `<td style="width: ${model_error_message_width}">` +
+                                `<div class="std-button std-button-hover" style="width: ${button_width}" ` +
+                                    `onclick="show_modal_message('Error Message', \`${model["error_message"]}\`)">` +
+                                    `<i class="fa-solid fa-circle-info"></i>` +
+                                `</div>` +
+                            `</td>` +
+                            `<td style="width: ${model_destroy_width};"><button class="x-button x-button-hover" style="width: ${button_width}" ` +
+                                `onclick="destroy_model_request('aborted', '${model_name}')"><i class="fa-regular fa-circle-xmark"></i></button>` +
+                        `</td>` +
+                        `</tr>`
+                    );
+                }
+            }
+
+        }
+    });
+
 }
 
+function destroy_model_request(model_state, model_name) {
+
+
+    show_modal_message(`Are you sure?`, `<div style="height: 30px">Are you sure you want to destroy this model?</div>` +
+        `<div style="height: 20px"></div>` +
+        `<div id="modal_button_container" style="text-align: center">` +
+        `<button id="confirm_delete" class="x-button x-button-hover" `+
+        `style="width: 150px" onclick="confirmed_model_destroy_request('${model_state}', '${model_name}')">Destroy</button>` +
+        `<button id="cancel_delete" class="std-button std-button-hover" ` +
+        `style="width: 150px" onclick="close_modal()">Cancel</button>` +
+        `<div style="height: 20px" id="loader_container"></div>` +
+        `</div>`
+    );
+
+}
+
+function confirmed_model_destroy_request(model_state, model_name) {
+
+    $("#modal_close").off('click').on('click', function() {
+        // do nothing
+    });
+
+    disable_x_buttons(["confirm_delete"]);
+    disable_std_buttons(["cancel_delete"]);
+    $("#loader_container").append(
+        `<div class="loader"></div>`
+    );
+
+    
+    $.post($(location).attr('href'),
+    {
+        action: "destroy_model",
+        model_name: model_name,
+        model_state: model_state
+    },
+    function(response, status) {
+
+        if (response.error) {
+            show_modal_message(`Error`, response.message);
+            $("#modal_close").off('click').on('click', function() {
+                close_modal();
+            });
+            
+            //$("#modal_header_text").html("Error");
+            //$("#modal_message").html(response.message);
+            //$("#result_modal").css("display", "block");
+        }
+        else {
+            close_modal();
+            if (viewing["train"] === "available") {
+                show_available_train();
+            }
+            else if (viewing["train"] === "aborted") {
+                show_aborted_train();
+            }
+            //window.location.href = response.redirect;
+        }
+    });
+
+
+
+}
 
 function show_available_train() {
+    viewing["train"] = "available";
     $("#submit_train_tab").hide();
     $("#pending_train_tab").hide();
     $("#aborted_train_tab").hide();
@@ -193,9 +413,10 @@ function show_available_train() {
     $.post($(location).attr('href'),
     {
         action: "fetch_my_models",
+        model_state: "available"
     },
     function(response, status) {
-        console.log("got response", response);
+        //console.log("got response", response);
 
         if (response.error) {
             show_modal_message(`Error`, response.message);
@@ -205,16 +426,21 @@ function show_available_train() {
             if (response.models.length == 0) {
                 $("#available_models").append(
                     `<tr>` +
-                        `<td><div class="table_text">No models found!</div></td>` +
+                        `<td><div>No Available Models Found</div></td>` +
                     `</tr>`
                 );
 
             }
             else {
 
-                let model_name_width = "200px";
-                let model_public_width = "100px";
-                let model_destroy_width = "200px";
+                let models = response.models.sort(function(a, b) {
+                    return b["model_name"] - a["model_name"];
+                });
+
+                let model_name_width = "300px";
+                let model_public_width = "300px";
+                let model_destroy_width = "300px";
+                let button_width = "100px";
 
 
                 $("#available_models_head").append(
@@ -225,7 +451,7 @@ function show_available_train() {
                     `</tr>`
                 );
 
-                for (let model of response.models) {
+                for (let model of models) {
                     let model_name = model["model_name"];
                     let is_public = model["public"] ? "Yes" : "No";
 
@@ -234,8 +460,8 @@ function show_available_train() {
                         `<tr>` +
                             `<td class="table_entry" style="width: ${model_name_width};">${model_name}</td>` +
                             `<td class="table_entry" style="width: ${model_public_width};">${is_public}</td>` +
-                            `<td style="width: ${model_destroy_width};"><button class="x-button x-button-hover" style="width: 100px" ` +
-                                    `onclick="delete_model_request('${model_name}')"><i class="fa-regular fa-circle-xmark"></i></button>` +
+                            `<td style="width: ${model_destroy_width};"><button class="x-button x-button-hover" style="width: ${button_width}" ` +
+                                    `onclick="destroy_model_request('available', '${model_name}')"><i class="fa-regular fa-circle-xmark"></i></button>` +
                             `</td>` +
                         `</tr>`
                     );
@@ -249,12 +475,12 @@ function show_available_train() {
 function get_filtered_datasets() {
 
     let filtered_datasets = []; //{};
-    for (let username of Object.keys(all_datasets)) {
-        for (let farm_name of Object.keys(all_datasets[username])) {
-            for (let field_name of Object.keys(all_datasets[username][farm_name])) {
-                for (let mission_date of Object.keys(all_datasets[username][farm_name][field_name])) {
+    for (let username of Object.keys(available_image_sets)) {
+        for (let farm_name of Object.keys(available_image_sets[username])) {
+            for (let field_name of Object.keys(available_image_sets[username][farm_name])) {
+                for (let mission_date of Object.keys(available_image_sets[username][farm_name][field_name])) {
 
-                    let object_name = all_datasets[username][farm_name][field_name][mission_date]["object_name"];
+                    let object_name = available_image_sets[username][farm_name][field_name][mission_date]["object_name"];
                     //let keep = false;
 
                     let keep = true;
@@ -295,7 +521,7 @@ function get_filtered_datasets() {
                         if (!(field_name in filtered_datasets[username][farm_name])) {
                             filtered_datasets[username][farm_name][field_name] = {};
                         }
-                        filtered_datasets[username][farm_name][field_name][mission_date] = all_datasets[username][farm_name][field_name][mission_date];
+                        filtered_datasets[username][farm_name][field_name][mission_date] = available_image_sets[username][farm_name][field_name][mission_date];
                         
                         filtered_datasets.push({
                             "username": username,
@@ -361,7 +587,7 @@ function get_filtered_datasets() {
     let sort_combo_2_val = $("#sort_combo_2").val();
     let sort_combo_3_val = $("#sort_combo_3").val();
 
-    console.log("sort_combo_1_val", sort_combo_1_val);
+    //console.log("sort_combo_1_val", sort_combo_1_val);
 
 
     filtered_datasets.sort(function(a, b) {
@@ -376,6 +602,7 @@ function get_filtered_datasets() {
     return filtered_datasets;
 
 }
+
 
 
 function create_image_set_list() {
@@ -413,38 +640,67 @@ function create_image_set_list() {
                     let disp_text = username + " | " + farm_name + " | " + field_name + " | " + mission_date;
                     let add_button_id = username + "." + farm_name + "." + field_name + "." + mission_date;*/
 
+                    let image_set_details = create_image_set_details_table(username, farm_name, field_name, mission_date);
+
                     $("#available_image_sets").append(
                         `<tr style="border-bottom: 1px solid white; border-color: #4c6645;">` + 
-                            `<td style="padding: 6px 0px"><div style="margin: 0px 18px 0px 8px; width: ${object_col_width};" class="object_entry">${object_name}</div></td>` +
-                            `<td>`+
-                                `<div class="table_entry" style="text-align: left; width: ${username_col_width}">${username}</div>` +
-                            `</td>` +
-                            `<td style="width: ${image_set_col_width}">` +
-                                `<div class="table_entry" style="text-align: left;">${farm_name}<br>${field_name}<br>${mission_date}</div>` +
-                            `</td>` +
-                            `<td>` +
-                                `<button onclick="inspect_image_set('${image_set_text_id}', false)" style="margin-right: 4px; padding: 2px; font-size: 14px; width: ${inspect_button_width}" class="std-button std-button-hover">Inspect</button>` +
+                            //`<td style="padding: 6px 0px"><div style="margin: 0px 8px; width: ${object_col_width};" class="object_entry">${object_name}</div></td>` +
+                            //`<td>`+
+                            //    `<div class="table_entry" style="text-align: left; width: ${username_col_width}">${username}</div>` +
+                            //`</td>` +
+                            `<td style="width: 100%">` +
+                                `<div class="table_entry" style="text-align: left;">${image_set_details}</div>` +
                             `</td>` +
                             `<td>` +
-                                `<button id="${add_button_id}" onclick="add_image_set('${add_button_id}', '${image_set_text_id}')" style="margin-right: 4px; padding: 2px; font-size: 14px; width: ${add_button_width};" class="std-button std-button-hover">Add</button>` +                         
+                                `<table>` +
+                                    `<tr>` +
+                                        `<td>` +
+                                            `<div style="width: 200px" class="object_entry">${object_name}</div>` +
+                                        `</td>` +
+                                    `</tr>` +
+                                    `<tr>` +
+                                        `<td>` +
+                                            `<table>` +
+                                                `<tr>` +
+                                                    `<td>` +
+                                                        `<button onclick="inspect_image_set('${image_set_text_id}', false)" style="padding: 2px; font-size: 14px; width: 100px" class="std-button std-button-hover">Inspect</button>` +
+                                                    `</td>` +
+                                                    `<td>` +
+                                                        `<button id="${add_button_id}" onclick="add_image_set('${add_button_id}', '${image_set_text_id}')" style="padding: 2px; font-size: 14px; width: 100px" class="std-button std-button-hover">Add</button>` +                         
+                                                    `</td>` +
+                                                `</tr>` +
+                                            `</table>` +
+                                        `</td>` +
+                                    `</tr>` +
+                                `</table>` +
                             `</td>` +
+                            `<td><div style="width: 5px;></div></td>` +
+
+
+                            // `<td>` +
+                            //     `<button onclick="inspect_image_set('${image_set_text_id}', false)" style="margin-right: 4px; padding: 2px; font-size: 14px; width: ${inspect_button_width}" class="std-button std-button-hover">Inspect</button>` +
+                            // `</td>` +
+                            // `<td>` +
+                            //     `<button id="${add_button_id}" onclick="add_image_set('${add_button_id}', '${image_set_text_id}')" style="margin-right: 4px; padding: 2px; font-size: 14px; width: ${add_button_width};" class="std-button std-button-hover">Add</button>` +                         
+                            // `</td>` +
                         `</tr>`
                     );
 
-                    $("#added_image_sets tr").each(function() {
-                        let pieces = this.id.split(":");
-                        let added_username = pieces[0];
-                        let added_farm_name = pieces[1];
-                        let added_field_name = pieces[2];
-                        let added_mission_date = pieces[3];
+                    //$("#added_image_sets tr").each(function() {
+                    for (let added_image_set of added_image_sets) {
+                        //let pieces = this.id.split(":");
+                        let added_username = added_image_set["username"]; //pieces[0];
+                        let added_farm_name = added_image_set["farm_name"]; //pieces[1];
+                        let added_field_name = added_image_set["field_name"]; //pieces[2];
+                        let added_mission_date = added_image_set["mission_date"]; //pieces[3];
 
                         if ((added_username === username && added_farm_name === farm_name) && 
-                            (added_field_name == field_name && added_mission_date === mission_date)) {
+                            (added_field_name === field_name && added_mission_date === mission_date)) {
 
                             disable_std_buttons([add_button_id.split(".").join("\\.")]);
                         }
                 
-                    });
+                    }
                 }
                 /*
             }
@@ -453,7 +709,9 @@ function create_image_set_list() {
 }
 
 
-function create_viewer_and_anno(id_prefix, dzi_image_paths) {
+function create_viewer(id_prefix, dzi_image_paths) {
+
+    $("#" + id_prefix + "_viewer").empty();
 
 
     viewers[id_prefix] = OpenSeadragon({
@@ -462,7 +720,7 @@ function create_viewer_and_anno(id_prefix, dzi_image_paths) {
         prefixUrl: get_CC_PATH() + "/osd/images/",
         tileSources: dzi_image_paths,
         showNavigator: false,
-        maxZoomLevel: 100,
+        maxZoomLevel: 1000,
         zoomPerClick: 1,
         nextButton: id_prefix + "_next",
         previousButton: id_prefix + "_prev",
@@ -470,29 +728,213 @@ function create_viewer_and_anno(id_prefix, dzi_image_paths) {
         //preserveViewport: true,
     });
 
-    annos[id_prefix] = OpenSeadragon.Annotorious(viewers[id_prefix], {
-        disableEditor: true,
-        disableSelect: true,
-        readOnly: true,
-        formatter: formatter
+
+
+    overlays[id_prefix] = viewers[id_prefix].canvasOverlay({
+
+        onOpen: function() {
+
+            //viewers[id_prefix].world.resetItems();
+            console.log(viewers[id_prefix].currentPage());
+            let region = regions[id_prefix][viewers[id_prefix].currentPage()];
+            if (region != null) {
+                // let image_w = overlays[id_prefix].imgWidth;
+                // let image_h = overlays[id_prefix].imgHeight;
+
+                let content_size = viewers[id_prefix].world.getItemAt(0).getContentSize();
+                let image_w = content_size.x;
+                let image_h = content_size.y;
+                let hw_ratio = image_h / image_w;
+                let viewport_bounds = [
+                    region[1] / image_w,
+                    (region[0] / image_h) * hw_ratio,
+                    (region[3] - region[1]) / image_w,
+                    ((region[2] - region[0]) / image_h) * hw_ratio
+                ];
+                //console.log("viewport_bounds", viewport_bounds);
+            
+                cur_bounds[id_prefix] = new OpenSeadragon.Rect(
+                    viewport_bounds[0],
+                    viewport_bounds[1],
+                    viewport_bounds[2],
+                    viewport_bounds[3]
+                );
+            }
+            else {
+                cur_bounds[id_prefix] = null;
+            }
+            //viewers[id_prefix].viewport.goHome();;
+
+        },
+        onRedraw: function() {
+            if (id_prefix in viewers) {
+                console.log("onRedraw"); //, selected_annotation_index, cur_edit_layer);
+                let cur_tiles_url = viewers[id_prefix].source.tilesUrl;
+                let basename_url = basename(cur_tiles_url);
+                let cur_img_name = basename_url.substring(0, basename_url.length-6);
+                let region = regions[id_prefix][viewers[id_prefix].currentPage()];
+            
+                let boxes_to_add = {};
+                boxes_to_add["training_region"] = {};
+                boxes_to_add["training_region"]["boxes"] = annotations[id_prefix][cur_img_name]["training_regions"];
+                boxes_to_add["test_region"] = {};
+                boxes_to_add["test_region"]["boxes"] = annotations[id_prefix][cur_img_name]["test_regions"]
+                boxes_to_add["annotation"] = {};
+                boxes_to_add["annotation"]["boxes"] = annotations[id_prefix][cur_img_name]["boxes"];
+                    
+                let viewer_bounds = viewers[id_prefix].viewport.getBounds();
+                let container_size = viewers[id_prefix].viewport.getContainerSize();
+
+                let hw_ratio = overlays[id_prefix].imgHeight / overlays[id_prefix].imgWidth;
+                let min_x = Math.floor(viewer_bounds.x * overlays[id_prefix].imgWidth);
+                let min_y = Math.floor((viewer_bounds.y / hw_ratio) * overlays[id_prefix].imgHeight);
+                let viewport_w = Math.ceil(viewer_bounds.width * overlays[id_prefix].imgWidth);
+                let viewport_h = Math.ceil((viewer_bounds.height / hw_ratio) * overlays[id_prefix].imgHeight);
+                let max_x = min_x + viewport_w;
+                let max_y = min_y + viewport_h;
+
+                //overlays[id_prefix].context2d().font = "14px arial";
+
+                
+
+                let draw_order;
+                if (region == null) {
+                    draw_order = ["annotation", "training_region", "test_region"];
+                }
+                else {
+                    draw_order = ["annotation"];
+                }
+                for (let key of draw_order) { 
+                    // let strokeStyle;
+                    // if (key === "annotation" || region != null) {
+                    //     strokeStyle = overlay_colors[key];
+                    // }
+                    // else {
+                    //     strokeStyle = "#22f222";
+                    // }
+                    
+                    overlays[id_prefix].context2d().strokeStyle = overlay_colors[key];
+                    overlays[id_prefix].context2d().lineWidth = 2;
+
+                    for (let i = 0; i < boxes_to_add[key]["boxes"].length; i++) {
+
+                        let box = boxes_to_add[key]["boxes"][i];
+
+                        let box_width_pct_of_image = (box[3] - box[1]) / overlays[id_prefix].imgWidth;
+                        let disp_width = (box_width_pct_of_image / viewer_bounds.width) * container_size.x;
+                        let box_height_pct_of_image = (box[3] - box[1]) / overlays[id_prefix].imgHeight;
+                        let disp_height = (box_height_pct_of_image / viewer_bounds.height) * container_size.y;
+
+                        if ((disp_width * disp_height) < 0.5) {
+                            continue;
+                        }
+
+                        if (((box[1] < max_x) && (box[3] > min_x)) && ((box[0] < max_y) && (box[2] > min_y))) {
+                            let viewer_point = viewers[id_prefix].viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(box[1], box[0]));
+                            let viewer_point_2 = viewers[id_prefix].viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(box[3], box[2]));
+                            
+                            overlays[id_prefix].context2d().strokeRect(
+                                viewer_point.x,
+                                viewer_point.y,
+                                (viewer_point_2.x - viewer_point.x),
+                                (viewer_point_2.y - viewer_point.y)
+                            );
+                        }
+                    }
+                }
+
+                
+                // let region = annotations[cur_img_name][navigation_type][cur_region_index];
+
+                let image_px_width = overlays[id_prefix].imgWidth;
+                let image_px_height = overlays[id_prefix].imgHeight;
+
+                
+                if (region != null) {
+                    let rects = [
+                        [0 -10 , 0 -10, region[0], image_px_width +10],
+                        [0, region[3], image_px_height +10, image_px_width +10],
+                        [region[2], 0 -10, image_px_height +10, image_px_width +10],
+                        [0 -10, 0 -10, image_px_height +10, region[1]]
+
+                    ];
+
+                    // let bounds = annotations[cur_img_name][$("#navigation_dropdown").val()][cur_region_index];
+                    
+                    overlays[id_prefix].context2d().fillStyle = "#222621";
+                    for (let rect of rects) {
+                        let viewer_point = viewers[id_prefix].viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(rect[1], rect[0]));
+                        let viewer_point_2 = viewers[id_prefix].viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(rect[3], rect[2]));
+                        
+                        overlays[id_prefix].context2d().fillRect(
+                            viewer_point.x,
+                            viewer_point.y,
+                            (viewer_point_2.x - viewer_point.x),
+                            (viewer_point_2.y - viewer_point.y)
+                        );
+                    }
+                
+
+
+                    if (cur_bounds[id_prefix] != null) {
+                        //let my_bounds = cur_bounds[id_prefix];
+                        
+                        // withFastOSDAnimation(viewers[id_prefix].viewport, function() {
+                        //     viewers[id_prefix].viewport.fitBounds(my_bounds); //cur_bounds[id_prefix]);
+                        // });
+                        // viewers[id_prefix].world.resetItems();
+
+                        viewers[id_prefix].world.getItemAt(0).setClip(
+                            new OpenSeadragon.Rect(
+                                region[1],
+                                region[0],
+                                (region[3] - region[1]),
+                                (region[2] - region[0])
+                            )
+                        );
+
+                        // viewers[id_prefix].viewport.fitBounds(new OpenSeadragon.Rect(
+                        //     0, 0, 1, hw_ratio
+                        // ));
+
+                        //delay(1000).then(() => {
+                        withFastOSDAnimation(viewers[id_prefix].viewport, function() {
+                            viewers[id_prefix].viewport.fitBounds(cur_bounds[id_prefix]); //cur_bounds[id_prefix]);
+                        });
+
+                        cur_bounds[id_prefix] = null;
+                        //});
+                        //cur_bounds[id_prefix] = null;
+                    }
+                }
+            }
+        },
+        clearBeforeRedraw: true
     });
 
-    viewers[id_prefix].addHandler("open", function(event) {
-        let cur_dzi = basename(event.source)
-        let cur_image_name = cur_dzi.substring(0, cur_dzi.length - 4);
-        update_overlays(id_prefix, cur_image_name);
-    });
+    // annos[id_prefix] = OpenSeadragon.Annotorious(viewers[id_prefix], {
+    //     disableEditor: true,
+    //     disableSelect: true,
+    //     readOnly: true,
+    //     formatter: formatter
+    // });
+
+    // viewers[id_prefix].addHandler("open", function(event) {
+    //     let cur_dzi = basename(event.source)
+    //     let cur_image_name = cur_dzi.substring(0, cur_dzi.length - 4);
+    //     update_overlays(id_prefix, cur_image_name);
+    // });
 
 
 
 }
 
-function update_overlays(id_prefix, img_name) {
-    annos[id_prefix].clearAnnotations();
-    for (let annotation of annotations[id_prefix][img_name]["annotations"]) {
-        annos[id_prefix].addAnnotation(annotation);
-    }
-}
+// function update_overlays(id_prefix, img_name) {
+//     annos[id_prefix].clearAnnotations();
+//     for (let annotation of annotations[id_prefix][img_name]["annotations"]) {
+//         annos[id_prefix].addAnnotation(annotation);
+//     }
+// }
 
 function inspect_image_set(image_set_text_id, for_target) {
 
@@ -518,40 +960,65 @@ function inspect_image_set(image_set_text_id, for_target) {
             show_modal_message(`Error`, response.message);
         }
         else {
-
             let dzi_image_paths = [];
             let image_names;
             let id_prefix;
+            let cur_regions;
             if (for_target) {
                 id_prefix = "target";
                 image_names = Object.keys(response.annotations);
+                cur_regions = Array(image_names.length).fill(null);
             }
             else {
                 id_prefix = "inspect";
                 $("#inspected_set").html(disp_text);
-                image_names = all_datasets[username][farm_name][field_name][mission_date]["annotated_images"];
+                //image_names = all_datasets[username][farm_name][field_name][mission_date]["annotated_images"];
+                image_names = [];
+                cur_regions = [];
+                for (let image_name of Object.keys(response.annotations)) {
+                    // if (response.annotations[image_name]["training_regions"].length > 0 || response.annotations[image_name]["test_regions"].length > 0) {
+                    //     image_names.push(image_name);
+                    // }
+                    for (let i = 0; i < response.annotations[image_name]["training_regions"].length; i++) {
+                        image_names.push(image_name);
+                        cur_regions.push(response.annotations[image_name]["training_regions"][i]);
+                    }
+                    for (let i = 0; i < response.annotations[image_name]["test_regions"].length; i++) {
+                        image_names.push(image_name);
+                        cur_regions.push(response.annotations[image_name]["test_regions"][i]);
+                    }
+                }
+
             }
+            $("#" + id_prefix + "_prev").show();
+            $("#" + id_prefix + "_next").show();
 
             //let annotated_images = all_datasets[username][farm_name][field_name][mission_date]["annotated_images"];
             for (let image_name of image_names) {
                 let dzi_image_path = get_CC_PATH() + "/" + image_set_dir + "/dzi_images/" + image_name + ".dzi";
                 dzi_image_paths.push(dzi_image_path);
             }
-
+            /*
             for (let image_name of Object.keys(response.annotations)) {
                 for (let annotation of response.annotations[image_name]["annotations"]) {
                     annotation["body"].push({"value": "COLOR_BRIGHT", "purpose": "highlighting"})
                 }
-            }
+            }*/
+            console.log(response.annotations);
+            console.log("cur_regions", cur_regions);
+            regions[id_prefix] = cur_regions;
+
             if (!(id_prefix in viewers)) {
-                create_viewer_and_anno(id_prefix, dzi_image_paths);
+                create_viewer(id_prefix, dzi_image_paths);
             }
             else {
                 viewers[id_prefix].tileSources = dzi_image_paths;
             }
 
+            
             annotations[id_prefix] = response.annotations;
-            viewers[id_prefix].goToPage(0);            
+            viewers[id_prefix].open(dzi_image_paths[0]);
+            //viewers[id_prefix].goToPage(0);
 
         }
 
@@ -559,20 +1026,51 @@ function inspect_image_set(image_set_text_id, for_target) {
 }
 
 
-function remove_image_set(el, button_id) {
+function remove_image_set(button_id) {
+    /*
     let tr = el.parentNode.parentNode;
     tr.remove();
 
+    enable_std_buttons([button_id.split(".").join("\\.")]);*/
+
+
+    let pieces = button_id.split(".");
+    let username = pieces[0];
+    let farm_name = pieces[1];
+    let field_name = pieces[2];
+    let mission_date = pieces[3];
+
+    let row_id =  username + "\\:" + farm_name + "\\:" + field_name + "\\:" + mission_date;
+
+    //console.log("removing", row_id);
+
+    $("#" + row_id).remove();
     enable_std_buttons([button_id.split(".").join("\\.")]);
+
+    for (let i = 0; i < added_image_sets.length; i++) {
+        let added_image_set = added_image_sets[i];
+        if ((added_image_set["username"] === username && added_image_set["farm_name"] === farm_name) &&
+            (added_image_set["field_name"] === field_name && added_image_set["mission_date"] === mission_date)) {
+            added_image_sets.splice(i, 1);
+            break;
+        }
+    }
 
     update_annotation_stats();
 
+    //let added_objects = [];
+
     let added_objects = [];
+    for (let added_image_set of added_image_sets) {
+        let added_object = added_image_set["object_name"];
+        added_objects.push(added_object);
+    }
+    /*
     $("#added_image_sets tr").each(function() {
         let pieces = this.id.split(":");
         let added_object = all_datasets[pieces[0]][pieces[1]][pieces[2]][pieces[3]]["object_name"];
         added_objects.push(added_object);
-    });
+    });*/
     if ([... new Set(added_objects)].length == 1) {
         $("#model_object_input").val(added_objects[0]);
     }
@@ -587,32 +1085,63 @@ function remove_image_set(el, button_id) {
 
 function add_image_set(button_id, image_set_text_id) {
 
+    //console.log("add image set");
+
     disable_std_buttons([button_id.split(".").join("\\.")]);
     let pieces = image_set_text_id.split(":");
     let username = pieces[0];
     let farm_name = pieces[1];
     let field_name = pieces[2];
     let mission_date = pieces[3];
-    let image_set_text = username + " | " + farm_name + " | " + field_name + " | " + mission_date;
+    //let image_set_text = username + " | " + farm_name + " | " + field_name + " | " + mission_date;
     let row_id =  username + ":" + farm_name + ":" + field_name + ":" + mission_date;
-    let object_name = all_datasets[username][farm_name][field_name][mission_date]["object_name"];
+    let object_name = available_image_sets[username][farm_name][field_name][mission_date]["object_name"];
+    let image_set_details = create_image_set_details_table(username, farm_name, field_name, mission_date);
+    //console.log("image_set_details", image_set_details);
+
+    added_image_sets.push({
+        "username": username,
+        "farm_name": farm_name,
+        "field_name": field_name,
+        "mission_date": mission_date,
+        //"num_annotations": all_datasets[username][farm_name][field_name][mission_date]["num_annotations"],
+        //"num_annotations": get_num_useable_boxes(annotations),
+        //"annotated_images": all_datasets[username][farm_name][field_name][mission_date]["annotated_images"],
+        "num_useable_boxes": available_image_sets[username][farm_name][field_name][mission_date]["num_useable_boxes"],
+        "object_name": available_image_sets[username][farm_name][field_name][mission_date]["object_name"]
+    });
 
     $("#added_image_sets").append(
         `<tr style="border-bottom: 1px solid white; border-color: #4c6645;" id="${row_id}">` + 
-        `<td style="padding: 6px 0px"><div style="margin: 0px 18px 0px 8px; width: ${object_col_width};" class="object_entry">${object_name}</div></td>` +
-        `<td>`+
-            `<div class="table_entry" style="text-align: left; width: ${username_col_width}">${username}</div>` +
-        `</td>` +
-        `<td style="width: ${image_set_col_width}">` +
-            `<div class="table_entry" style="text-align: left;">${farm_name}<br>${field_name}<br>${mission_date}</div>` +
-        `</td>` +
-        `<td>` +
-            `<button onclick="inspect_image_set('${image_set_text_id}', false)" style="margin-right: 4px; padding: 2px; font-size: 14px; width: ${inspect_button_width}" class="std-button std-button-hover">Inspect</button>` +
-        `</td>` +
-        `<td>` +
-            `<button onclick="remove_image_set(this, '${button_id}')" style="margin-right: 4px; padding: 2px; font-size: 14px; width: ${add_button_width};" class="x-button x-button-hover">Remove</button>` +                         
-        `</td>` +        
-        
+
+            `<td style="width: 100%">` +
+                `<div class="table_entry" style="text-align: left;">${image_set_details}</div>` +
+            `</td>` +
+            
+            `<td>` +
+                `<table>` +
+                    `<tr>` +
+                        `<td>` +
+                            `<div style="width: 200px" class="object_entry">${object_name}</div>` +
+                        `</td>` +
+                    `</tr>` +
+                    `<tr>` +
+                        `<td>` +
+                            `<table>` +
+                                `<tr>` +
+                                    `<td>` +
+                                        `<button onclick="inspect_image_set('${image_set_text_id}', false)" style="padding: 2px; font-size: 14px; width: 100px" class="std-button std-button-hover">Inspect</button>` +
+                                    `</td>` +
+                                    `<td>` +
+                                        `<button onclick="remove_image_set('${button_id}')" style="padding: 2px; font-size: 14px; width: 100px" class="x-button x-button-hover">Remove</button>` + 
+                                    `</td>` +
+                                `</tr>` +
+                            `</table>` +
+                        `</td>` +
+                    `</tr>` +
+                `</table>` +
+            `</td>` +
+            `<td><div style="width: 5px"></div></td>` +    
         
         /*
         `<td>`+
@@ -627,17 +1156,23 @@ function add_image_set(button_id, image_set_text_id) {
         `<td>` +
             `<button onclick="remove_image_set(this, '${button_id}')" style="margin: 0px 1px; padding: 2px; font-size: 14px; width: ${remove_button_width};" class="x-button x-button-hover">Remove</button>` +                         
         `</td>` +*/
-    `</tr>`
+        `</tr>`
     );
 
     update_annotation_stats();
 
     let added_objects = [];
+    for (let added_image_set of added_image_sets) {
+        let added_object = added_image_set["object_name"];
+        added_objects.push(added_object);
+    }
+
+/*
     $("#added_image_sets tr").each(function() {
         let pieces = this.id.split(":");
         let added_object = all_datasets[pieces[0]][pieces[1]][pieces[2]][pieces[3]]["object_name"];
         added_objects.push(added_object);
-    });
+    });*/
     if ([... new Set(added_objects)].length == 1) {
         $("#model_object_input").val(added_objects[0]);
     }
@@ -649,24 +1184,82 @@ function add_image_set(button_id, image_set_text_id) {
 }
 
 function update_annotation_stats() {
-    let num_images = 0;
-    let num_annotations = 0;
+    //let num_images = 0;
+    let num_useable_boxes = 0;
+
+    for (let added_image_set of added_image_sets) {
+        /*
+        let username = added_image_set["username"];
+        let farm_name = added_image_set["farm_name"];
+        let field_name = added_image_set["field_name"];
+        let mission_date = added_image_set["mission_date"];
+
+        let entry = all_datasets[username][farm_name][field_name][mission_date];
+        num_images += entry["annotated_images"].length;
+        num_annotations += entry["num_annotations"];*/
+
+        //num_images += added_image_set["annotated_images"].length;
+        //num_annotations += added_image_set["num_annotations"];
+        num_useable_boxes += added_image_set["num_useable_boxes"];
+    }
+
+
+
+/*
     $("#added_image_sets tr").each(function() {
         //console.log(this);
+        console.log(this.id);
         let pieces = this.id.split(":");
+        console.log("pieces", pieces);
         let entry = all_datasets[pieces[0]][pieces[1]][pieces[2]][pieces[3]];
         num_images += entry["annotated_images"].length;
         num_annotations += entry["num_annotations"];
-    });
+    });*/
 
-    $("#added_images").html(num_images);
-    $("#added_annotations").html(num_annotations);
+    //$("#added_images").html(num_images);
+    $("#added_annotations").html(num_useable_boxes);
 }
 
 function clear_train_form() {
+    for (let added_image_set of added_image_sets) {
+        let username = added_image_set["username"];
+        let farm_name = added_image_set["farm_name"];
+        let field_name = added_image_set["field_name"];
+        let mission_date = added_image_set["mission_date"];
+        let add_button_id = username + "\\." + farm_name + "\\." + field_name + "\\." + mission_date;
+        enable_std_buttons([add_button_id]);
+    }
+    added_image_sets = [];
+
+    //$("#added_images").html(0);
+    $("#added_annotations").html(0);
+
+    $("#inspected_set").html("");
+    //create_viewer("inspect", []);
+
+    delete viewers["inspect"];
+    $("#inspect_viewer").empty();
+    $("#inspect_prev").hide();
+    $("#inspect_next").hide();
+    //disable_std_buttons(["inspect_prev", "inspect_next"]);
+
+    //viewers["inspect"].tileSources = [];
+
+    
+    //create_viewer("target", []);
+    delete viewers["target"];
+    $("#target_viewer").empty();
+    $("#target_farm_combo").prop("selectedIndex", -1);
+    $("#target_field_combo").prop("selectedIndex", -1);
+    $("#target_mission_combo").prop("selectedIndex", -1);
+    //viewers["target"].tileSources = [];
+    $("#target_prev").hide();
+    $("#target_next").hide();
+
     $("#model_name_input").val("");
+    $("#model_object_input").prop("selectedIndex", -1);
     $("#added_image_sets").empty();
-    $('#public_checkbox').prop('checked', true);
+    $('#model_public').prop('checked', true);
 }
 
 
@@ -675,7 +1268,7 @@ function show_filter() {
     show_modal_message("Filter Image Sets", `<table id="filter_table"></table>`);
 
     let display_text = {
-        "username": "Username",
+        "username": "Set Owner",
         "farm_name": "Farm Name",
         "field_name": "Field Name",
         "mission_date": "Mission Year",
@@ -830,8 +1423,16 @@ function show_filter() {
 
 function initialize_train() {
 
+
+    // create_viewer("inspect", []);
+    // create_viewer("target", []);
     //create_viewer_and_anno("inspect");
     //create_viewer_and_anno("target");
+
+    $("#inspect_prev").hide();
+    $("#inspect_next").hide();
+    $("#target_prev").hide();
+    $("#target_next").hide();
 
     disable_std_buttons(["submit_training_request"]);
     set_filters();
@@ -911,6 +1512,7 @@ function initialize_train() {
     $("#submit_training_request").click(function() {
 
         disable_std_buttons(["submit_training_request"]);
+        /*
         let image_sets = [];
 
 
@@ -923,40 +1525,45 @@ function initialize_train() {
                 "mission_date": pieces[3],
                 "images": all_datasets[pieces[0]][pieces[1]][pieces[2]][pieces[3]]["annotated_images"]
             });
-        });
+        });*/
+
+        let submitted_image_sets = [];
+        for (let added_image_set of added_image_sets) {
+            submitted_image_sets.push({
+                "username": added_image_set["username"],
+                "farm_name": added_image_set["farm_name"],
+                "field_name": added_image_set["field_name"],
+                "mission_date": added_image_set["mission_date"],
+                "object_name": added_image_set["object_name"]
+            });
+        }
 
         let model_name = $("#model_name_input").val();
-        let model_object = ("#model_object_input").val();
+        let model_object = $("#model_object_input").val();
 
-        let public;
-        if ($("#public_checkbox").is(':checked')) {
-            public = "yes";
-        }
-        else {
-            public = "no";
-        }
+        let is_public = ($("#model_public").is(':checked')) ? "yes" : "no";
 
         $.post($(location).attr('href'),
         {
             action: "train",
             model_name: model_name,
             model_object: model_object,
-            image_sets: image_sets,
-            public: public
+            image_sets: submitted_image_sets,
+            is_public: is_public
         },
     
         function(response, status) {
-    
+
             if (response.error) {  
 
                 clear_train_form();
-                show_modal_message("Error", "An error occurred while submitting the training request.");  
+                show_modal_message("Error", response.message);  
     
             }
             else {
 
                 clear_train_form();
-                show_modal_message("Success", "Your training request has been successfully submitted.");
+                show_modal_message("Success", response.message);
     
             }
         });
@@ -997,6 +1604,11 @@ function initialize_train() {
         create_image_set_list();
     });
     
+
+
+    // $("#" + "inspect" + "_next").click(function() {
+    //     console.log("ASDFSADF");
+    // });
 }
 //});
 

@@ -13,7 +13,8 @@ router.post('/home/:username', landing.post_home);
 router.get('/workspace/:username/:farm_name/:field_name/:mission_date', landing.get_workspace);
 router.post('/workspace/:username/:farm_name/:field_name/:mission_date', landing.post_workspace);
 //router.get('/upload', landing.get_upload);
-router.post('/upload', upload_files.array('source_file[]'), landing.post_upload);
+router.post('/image_set_upload', upload_files.array('source_file[]'), landing.post_image_set_upload);
+router.post('/orthomosaic_upload', upload_files.array('source_file[]'), landing.post_orthomosaic_upload);
 //router.get('/train', landing.get_train);
 //router.get('/predict', landing.get_predict);
 //router.get('/manage', landing.get_manage);
@@ -42,6 +43,7 @@ router.get('/logout', landing.logout);
 router.post('/status_notification', socket_api.post_status_notification);
 router.post('/upload_notification', socket_api.post_upload_notification);
 router.post('/results_notification', socket_api.post_results_notification);
+router.post('/model_notification', socket_api.post_model_notification);
 
 
 

@@ -1,7 +1,7 @@
 function show_modal_message(head, message, modal_width=650) {
 
-    console.log("show_modal_message");
-    console.log("modal_width", modal_width);
+    //console.log("show_modal_message");
+    //console.log("modal_width", modal_width);
 
     $("#modal_head").empty();
     $("#modal_body").empty();
