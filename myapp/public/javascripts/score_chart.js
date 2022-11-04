@@ -99,13 +99,13 @@ function evaluate_scores(bins, scores) {
 
     let certainty;
     if (scores.length < 10) {
-        certainty = "low";
+        certainty = "Low";
     }
     else if (scores.length < 50) {
-        certainty = "moderate";
+        certainty = "Moderate";
     }
     else {
-        certainty = "high";
+        certainty = "High";
     }
 
     return [quality_score, certainty];
@@ -167,7 +167,7 @@ function draw_score_chart() {
     let quality_score =  Math.round((ret[0] + Number.EPSILON) * 100);
     let certainty = ret[1];
 
-    $("#quality_score").html(quality_score + "% (" + certainty + " certainty)");
+    $("#quality_score").html(quality_score + "% (" + certainty + " Certainty)");
 
     score_yScale = d3.scaleLinear()
                 .range([height, 0]);
@@ -256,7 +256,7 @@ function update_score_chart() {
     let quality_score =  Math.round((ret[0] + Number.EPSILON) * 100);
     let certainty = ret[1];
 
-    $("#quality_score").html(quality_score + "% (" + certainty + " certainty)");
+    $("#quality_score").html(quality_score + "% (" + certainty + " Certainty)");
 
     //count_xScale.domain([0, max_count]);
     score_yScale.domain([0, d3.max(bins, function(d) { return d.length; })]);

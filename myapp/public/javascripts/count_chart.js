@@ -260,18 +260,15 @@ function set_count_chart_data() {
                 }
             }
         }*/
-        if (metric === "MS COCO mAP") {
+        let AP_metrics = ["AP (IoU=.50:.50:.95)", "AP (IoU=.50)", "AP (IoU=.75)"];
+        let f1_metrics = ["F1 Score (IoU=.50)", "F1 Score (IoU=.75)"];
+        if (AP_metrics.includes(metric)) {
             max_count = 100;
         }
-        else if (metric === "F1 Score (IoU=0.5)") {
+        else if (f1_metrics.includes(metric)) {
             max_count = 1;
         }
-        else if (metric === "F1 Score (IoU=0.7)") {
-            max_count = 1;
-        }
-        else if (metric === "F1 Score (IoU=0.9)") {
-            max_count = 1;
-        }
+
 
     }
 }

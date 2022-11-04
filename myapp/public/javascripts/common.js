@@ -665,20 +665,25 @@ function update_count_combo(include_viewer_metrics) {
         if (include_viewer_metrics) {
 
             $('#chart_combo').append($('<option>', {
-                value: "MS COCO mAP",
-                text: "MS COCO mAP"
+                value: "AP (IoU=.50:.50:.95)",
+                text: "AP (IoU=.50:.50:.95)"
             }));
             $('#chart_combo').append($('<option>', {
-                value: "F1 Score (IoU=0.5)",
-                text: "F1 Score (IoU=0.5)"
+                value: "AP (IoU=.50)",
+                text: "AP (IoU=.50)"
             }));
             $('#chart_combo').append($('<option>', {
-                value: "F1 Score (IoU=0.7)",
-                text: "F1 Score (IoU=0.7)"
+                value: "AP (IoU=.75)",
+                text: "AP (IoU=.75)"
+            }));
+
+            $('#chart_combo').append($('<option>', {
+                value: "F1 Score (IoU=.50)",
+                text: "F1 Score (IoU=.50)"
             }));
             $('#chart_combo').append($('<option>', {
-                value: "F1 Score (IoU=0.9)",
-                text: "F1 Score (IoU=0.9)"
+                value: "F1 Score (IoU=.75)",
+                text: "F1 Score (IoU=.75)"
             }));
         }
     }

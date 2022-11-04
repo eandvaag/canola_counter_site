@@ -56,6 +56,10 @@ let locked_training_regions; // = [];
 
 //let num_training_regions;
 let num_regions_fully_trained_on;
+
+let d_rgb;
+let rgb_ctx;
+
 // let overlay_colors = [
 //     "#0080C0",        
 //     "#FF4040"
@@ -150,12 +154,12 @@ function change_image(cur_nav_item) {
     
     // set_image_status_combo();
 
-    if (viewer == null) {
-        create_viewer("seadragon_viewer");
-    }
+    // if (viewer == null) {
+    //     create_viewer("seadragon_viewer");
+    // }
 
-    let dzi_image_path = image_to_dzi[cur_img_name];
-    viewer.open(dzi_image_path);
+    // let dzi_image_path = image_to_dzi[cur_img_name];
+    // viewer.open(dzi_image_path);
 
     //set_cur_bounds();
     // if (cur_panel === "annotation" || cur_panel === "prediction") {
@@ -886,7 +890,7 @@ function create_viewer(viewer_id) {
         //homeFillsViewer: true,
         //defaultZoomLevel: 1
         //preserveViewport: true,
-        //imageSmoothingEnabled: false,
+        imageSmoothingEnabled: true, //true,
         //minZoomLevel: 1,
         //maxZoomLevel: 7
         //minPixelRatio: 2
@@ -902,19 +906,21 @@ function create_viewer(viewer_id) {
     
     overlay = viewer.canvasOverlay({
 
-        onOpen: function() {
-            set_cur_bounds();
-        },
+        // onOpen: function() {
+        //     set_cur_bounds();
+        // },
         onRedraw: function() {
             console.log("onRedraw", selected_annotation_index, cur_edit_layer);
 
 
         
             let boxes_to_add = {};
-            boxes_to_add["training_region"] = {};
-            boxes_to_add["training_region"]["boxes"] = annotations[cur_img_name]["training_regions"];
-            boxes_to_add["test_region"] = {};
-            boxes_to_add["test_region"]["boxes"] = annotations[cur_img_name]["test_regions"]
+            if ((cur_panel === "annotation") || (cur_panel === "prediction")) {
+                boxes_to_add["training_region"] = {};
+                boxes_to_add["training_region"]["boxes"] = annotations[cur_img_name]["training_regions"];
+                boxes_to_add["test_region"] = {};
+                boxes_to_add["test_region"]["boxes"] = annotations[cur_img_name]["test_regions"];
+            }
 
 
             if ((cur_panel === "annotation") || (cur_panel === "prediction" && ($("#annotation").is(":checked")))) {
@@ -1919,6 +1925,14 @@ function build_map() {
 }
 
 function show_map() {
+
+    cur_bounds = null;
+    overlay.onOpen = function() {};
+    overlay.onRedraw = function() {};
+    viewer = null;
+    $("#seadragon_viewer").empty();
+
+
     cur_view = "map";
 
     $("#view_button_text").empty();
@@ -2288,7 +2302,9 @@ function confirmed_use_predictions() {
 }
 
 
-function show_annotation(force_reset=false) {
+function show_annotation(change_image=false) {
+
+    let prev_panel = cur_panel;
 
     $("#show_annotation_button").addClass("tab-btn-active");
     $("#show_prediction_button").removeClass("tab-btn-active");
@@ -2308,13 +2324,28 @@ function show_annotation(force_reset=false) {
     //$("#seadragon_viewer").show();
     $("#annotation_panel").show();
 
+
+
+    if (viewer == null) {
+        $("#seadragon_viewer").empty();
+        create_viewer("seadragon_viewer");
+    }
+
+
+    overlay.onOpen = function() {
+        set_cur_bounds();
+    };
+
+    // let dzi_image_path = image_to_dzi[cur_img_name];
+    // viewer.open(dzi_image_path);
+
     //$("#seadragon_viewer").empty();
 
 
     console.log("show_annotation");
 
     //create_viewer_and_anno("seadragon_viewer");
-
+    viewer.zoomPerScroll = 1.2;
     anno.readOnly = false; //annotations[cur_img_name]["status"] === "completed_for_training";
 
 
@@ -2352,9 +2383,13 @@ function show_annotation(force_reset=false) {
     //viewer.raiseEvent('update-viewport');
     //add_annotations();
 
-
-    viewer.world.resetItems();
-
+    if (change_image || prev_panel == "segmentation") {
+        let dzi_image_path = image_to_dzi[cur_img_name];
+        viewer.open(dzi_image_path);      
+    } 
+    else {
+        viewer.world.resetItems();
+    }
     //let dzi_image_path = image_to_dzi[cur_img_name];
     //viewer.open(dzi_image_path);
     //viewer.viewport.goHome();
@@ -2363,9 +2398,11 @@ function show_annotation(force_reset=false) {
 }
 
 
-async function show_prediction(force_reset=false) {
+async function show_prediction(change_image=false) {
 
     // let source_dimensions = viewer.world.getItemAt(0).source.dimensions;
+
+    let prev_panel = cur_panel;
 
     $("#show_annotation_button").removeClass("tab-btn-active");
     $("#show_prediction_button").addClass("tab-btn-active");
@@ -2413,7 +2450,15 @@ async function show_prediction(force_reset=false) {
 
     //$("#seadragon_viewer").empty();
 
-        
+    if (viewer == null) {
+        $("#seadragon_viewer").empty();
+        create_viewer("seadragon_viewer");
+    }
+
+    overlay.onOpen = function() {
+        set_cur_bounds();
+    };
+
 
     //let cur_bounds_str;
     // if (metadata["is_ortho"] == "yes") {
@@ -2461,9 +2506,17 @@ async function show_prediction(force_reset=false) {
         $("#predictions_unavailable").show();
     }
 
+    viewer.zoomPerScroll = 1.2;
     anno.readOnly = true;
     
-    viewer.world.resetItems();
+    if (change_image || prev_panel == "segmentation") {
+        let dzi_image_path = image_to_dzi[cur_img_name];
+        viewer.open(dzi_image_path);      
+    } 
+    else {
+        viewer.world.resetItems();
+    }
+    
     
 /*
 
@@ -2595,6 +2648,394 @@ async function show_prediction(force_reset=false) {
 }
 
 
+function show_segmentation() {
+
+    $("#show_annotation_button").removeClass("tab-btn-active");
+    $("#show_prediction_button").removeClass("tab-btn-active");
+    $("#show_segmentation_button").addClass("tab-btn-active");
+
+    cur_panel = "segmentation";
+
+
+    $("#annotation_panel").hide();
+    $("#prediction_panel").hide();
+    $("#segmentation_panel").show();
+
+    // if (segmentation_viewer == null) {
+
+    //     segmentation_viewer = OpenSeadragon({
+    //         id: "segmentation_viewer", //"seadragon_viewer",
+    //         sequenceMode: true,
+    //         prefixUrl: get_CC_PATH() + "/osd/images/",
+    //         tileSources: dzi_image_paths,
+    //         showNavigator: false,
+    //         maxZoomLevel: 1000,
+    //         zoomPerClick: 1,
+    //         nextButton: "next-btn",
+    //         previousButton: "prev-btn",
+    //         showNavigationControl: false,
+    //         //preserveViewport: true,
+    //         //homeFillsViewer: true,
+    //         //defaultZoomLevel: 1
+    //         //preserveViewport: true,
+    //         //imageSmoothingEnabled: false,
+    //         //minZoomLevel: 1,
+    //         //maxZoomLevel: 7
+    //         //minPixelRatio: 2
+    //         //maxZoomPixelRatio: 20
+    //         //homeFillsViewer: true
+    //         //defaultZoomLevel: 1.1,
+    //         //viewportMargins: 20
+    //         //navigatorMaintainSizeRatio: true
+    //     });
+
+        
+
+
+    //     segmentation_viewer.addHandler('canvas-click', function(event) {
+
+    //         $("#test_seg_viewer").hide();
+    //         $("#seadragon_viewer").show();
+
+    //         // $("#seadragon_viewer").empty();
+    //         // create_viewer("seadragon_viewer");
+
+    //         // let dzi_image_path = image_to_dzi[cur_img_name];
+    //         // viewer.open(dzi_image_path);
+
+    //         //overlay.onOpen = function() {
+
+    //             let container_width = $("#seadragon_viewer").width();
+    //             let container_height = $("#seadragon_viewer").height();
+
+    //             console.log("CANVAS-CLICK");
+            
+        
+    //             let webPoint = event.position;
+
+    //             let viewportPoint = segmentation_viewer.viewport.pointFromPixel(webPoint);
+    //             let imagePoint = segmentation_viewer.viewport.viewportToImageCoordinates(viewportPoint);
+
+    //             console.log("image_point", imagePoint);
+
+
+    //             let content_size = viewer.world.getItemAt(0).getContentSize();
+
+            
+    //             // let num_x_tiles = Math.ceil(content_size.x / container_size.x);
+    //             // let num_y_tiles = Math.ceil(content_size.y / container_size.y);
+
+    //             let tile_index_x = Math.floor(imagePoint.x / container_width);
+    //             let tile_index_y = Math.floor(imagePoint.y / container_height);
+
+    //             let tile_px_coords = [
+    //                 tile_index_y * container_height,
+    //                 tile_index_x * container_width,
+    //                 (tile_index_y * container_height) + container_height,
+    //                 (tile_index_x * container_width) + container_width
+    //             ];
+
+    //             console.log("tile_px_coords", tile_px_coords)
+
+        
+    //             console.log("content_size", content_size);
+    //             let hw_ratio = content_size.y / content_size.x;
+    //             let viewport_bounds = new OpenSeadragon.Rect(
+    //                 tile_px_coords[1] / content_size.x,
+    //                 (tile_px_coords[0] / content_size.y) * hw_ratio,
+    //                 (tile_px_coords[3] - tile_px_coords[1]) / content_size.x,
+    //                 ((tile_px_coords[2] - tile_px_coords[0]) / content_size.y) * hw_ratio
+    //             );
+
+    //             console.log("viewport_bounds", viewport_bounds);
+
+    //             viewer.viewport.fitBounds(viewport_bounds);
+    //         //};
+
+    //         // delay(1000).then(() => {
+    //         // $("#test_seg_viewer").show();
+    //         // $("#seadragon_viewer").hide();
+    //         // });
+
+    //         //$("#test_seg_viewer").show();
+    //         //$("#seadragon_viewer").hide();
+            
+    //         delay(10000).then(() => {
+    //             let img = viewer.drawer.canvas.toDataURL("image/png");
+    //             console.log(img);
+    //             console.log(typeof(img));
+                
+    //             let canvas = document.createElement("canvas");
+    //             canvas.id = "my_canvas";
+    //             // let image_canvas = document.createElement("canvas");
+    //             // let exg_ctx = canvas.getContext("2d");
+    //             let rgb_ctx = canvas.getContext("2d");
+            
+            
+            
+    //             let rgb_image = new Image();
+    //             rgb_image.src = img; //"/plant_detection/fake_url/image/png";
+            
+    //             rgb_image.onload = function() {
+            
+            
+            
+    //                 console.log("rgb_image.data (1)", rgb_image.data);
+            
+    //                 //let container_size = viewer.viewport.getContainerSize();
+            
+    //                 rgb_ctx.canvas.width = container_width;
+    //                 rgb_ctx.canvas.height = container_height;
+            
+    //                 let w = rgb_ctx.canvas.width;
+    //                 let h = rgb_ctx.canvas.height 
+            
+            
+    //                 rgb_ctx.drawImage(rgb_image, 0, 0, w, h);      // Set image to Canvas context
+    //                 var d_rgb = rgb_ctx.getImageData(0, 0, w, h);  // Get image Data from Canvas context
+    //                 console.log("d_rgb.data", d_rgb.data);
+            
+                
+    //                 let threshold = 0.16;
+    //                 let num_foreground = 0;
+    //                 let non_zero = [];
+    //                 for (let i = 0; i < d_rgb.data.length; i += 4) {
+    //                     r_val = d_rgb.data[i] / 255;
+    //                     g_val = d_rgb.data[i+1] / 255;
+    //                     b_val = d_rgb.data[i+2] / 255;
+    //                     if ((r_val != 0 || g_val != 0) || b_val != 0) {
+    //                         non_zero.push({"r_val": r_val, "g_val": g_val, "b_val": b_val}); //console.log("non zero pixel", r_val, g_val, b_val);
+    //                     }
+    //                     let exg_val = (2 * g_val) - r_val - b_val;
+            
+    //                     let is_foreground = exg_val > threshold;
+    //                     d_rgb.data[i+3] = is_foreground ? 255 : 30;
+            
+    //                     if (is_foreground) {
+    //                         num_foreground++;
+    //                     }
+                        
+    //                 }
+    //                 console.log("non_zero", non_zero);
+    //                 console.log("num_foreground", num_foreground);
+            
+    //                 let percent_vegetation = ((num_foreground / (d_rgb.data.length / 4)) * 100).toFixed(2);
+    //                 console.log("percent_vegetation", percent_vegetation);
+    //                 //excess_green_record[cur_img_name]["ground_cover_percentage"] = parseFloat(percent_vegetation);
+            
+    //                 rgb_ctx.putImageData(d_rgb, 0, 0);
+            
+    //                 $("#seadragon_viewer").hide();
+    //                 $("#test_seg_viewer").empty();
+    //                 $("#test_seg_viewer").append(
+    //                     rgb_ctx.canvas
+    //                 );
+
+    //                 $("#test_seg_viewer").show();
+
+    //                 // $("#seadragon_viewer").empty();
+    //                 // $("#seadragon_viewer").append(
+    //                 //     rgb_ctx.canvas
+    //                 // );
+    //             };
+    //         });
+            
+    //     });
+
+    
+
+
+    // }
+
+    $("#threshold_slider_val").html(excess_green_record[cur_img_name]["sel_val"]);
+    $("#threshold_slider").val(excess_green_record[cur_img_name]["sel_val"]);
+
+    // $("input[name=segmentation_radio][value='pan']").prop("checked", true).change();
+    $("#panning_enabled_status").html("No");
+    $("#enable_pan_button").click();
+    //$("#pan_switch").prop("checked", true).change();
+
+    // if (viewer == null) {
+    //     $("#seadragon_viewer").empty();
+    //     create_viewer("seadragon_viewer");
+    // }
+
+    // overlay.onOpen = function() {
+    //     set_cur_bounds();
+    //     let tiledImage = viewer.world.getItemAt(0);
+    //     let targetZoom = tiledImage.source.dimensions.x / $("#seadragon_viewer").width();
+    //     console.log("tiledImage.source.dimensions.x", tiledImage.source.dimensions.x);
+    //     console.log("viewer.viewport.getContainerSize()", viewer.viewport.getContainerSize());
+    //     viewer.viewport.zoomTo(targetZoom, null, true);
+    // };
+
+    // viewer.zoomPerScroll = 1;
+
+    // //console.log("segmentation_viewer is opening", cur_img_name);
+    // let dzi_image_path = image_to_dzi[cur_img_name];
+    // viewer.open(dzi_image_path);
+
+    // let tiledImage = viewer.world.getItemAt(0);
+    // let targetZoom = tiledImage.source.dimensions.x / viewer.viewport.getContainerSize().x;
+    // viewer.viewport.zoomTo(targetZoom, null, true);
+
+
+    // segmentation_viewer.open(dzi_image_path);
+
+    
+    //viewer.world.resetItems();
+}
+
+function pan_viewport() {
+
+    console.log("pan_viewport");
+
+
+    if (viewer == null) {
+        $("#seadragon_viewer").empty();
+        create_viewer("seadragon_viewer");
+    }
+
+    overlay.onOpen = function() {
+        //set_cur_bounds();
+
+        //console.log("viewer.viewport.getContainerSize()", viewer.viewport.getContainerSize());
+        //viewer.viewport.zoomTo(targetZoom, null, true);
+        //viewer.viewport.fitBounds(cur_bounds);
+        if (cur_bounds) {
+            console.log("fitting to cur_bounds");
+            withFastOSDAnimation(viewer.viewport, function() {
+                viewer.viewport.fitBounds(cur_bounds);
+            });
+        }
+        else {
+            console.log("zooming to correct level");
+            let tiledImage = viewer.world.getItemAt(0);
+            let viewer_width = $("#seadragon_viewer").width();
+            let targetZoom = tiledImage.source.dimensions.x / viewer_width;
+            console.log("tiledImage.source.dimensions.x", tiledImage.source.dimensions.x);
+            console.log("seadragon_viewer_width", viewer_width);
+            viewer.viewport.zoomTo(targetZoom, null, true);
+        }
+    };
+
+    anno.readOnly = true;
+    viewer.zoomPerScroll = 1;
+    //viewer.imageSmoothingEnabled = false;
+
+    let dzi_image_path = image_to_dzi[cur_img_name];
+    viewer.open(dzi_image_path);
+    //viewer.viewport.fitBounds(cur_bounds);
+    
+}
+
+function segment_viewport() {
+
+    console.log("segmenting the viewport");
+
+    if (viewer != null) {
+        cur_bounds = viewer.viewport.getBounds();
+
+        // Make the img a global and check if it is null. If it is not just don't do this step.
+        // This way we can call Segment multiple times instead of alternating between pan and segment.
+        let img = viewer.drawer.canvas.toDataURL("image/png");
+        // console.log(img);
+        // console.log(typeof(img));
+        
+        let canvas = document.createElement("canvas");
+        canvas.id = "my_canvas";
+        // let image_canvas = document.createElement("canvas");
+        // let exg_ctx = canvas.getContext("2d");
+        rgb_ctx = canvas.getContext("2d");
+
+        let container_width = $("#seadragon_viewer").width();
+        let container_height = $("#seadragon_viewer").height();
+
+
+
+        let rgb_image = new Image();
+        rgb_image.src = img; //"/plant_detection/fake_url/image/png";
+
+        rgb_image.onload = function() {
+
+
+
+        // console.log("rgb_image.data (1)", rgb_image.data);
+
+        //let container_size = viewer.viewport.getContainerSize();
+
+        rgb_ctx.canvas.width = container_width;
+        rgb_ctx.canvas.height = container_height;
+
+        let w = rgb_ctx.canvas.width;
+        let h = rgb_ctx.canvas.height 
+
+
+        rgb_ctx.drawImage(rgb_image, 0, 0, w, h);      // Set image to Canvas context
+        d_rgb = rgb_ctx.getImageData(0, 0, w, h);  // Get image Data from Canvas context
+        // console.log("d_rgb.data", d_rgb.data);
+
+        draw_segmentation();
+        }
+    }
+    else {
+        draw_segmentation();
+    }
+}
+
+function draw_segmentation() {
+    console.log("draw_segmentation called");
+    
+    let threshold = excess_green_record[cur_img_name]["sel_val"]; //0.16;
+    let num_foreground = 0;
+    let non_zero = [];
+    for (let i = 0; i < d_rgb.data.length; i += 4) {
+        r_val = d_rgb.data[i] / 255;
+        g_val = d_rgb.data[i+1] / 255;
+        b_val = d_rgb.data[i+2] / 255;
+        if ((r_val != 0 || g_val != 0) || b_val != 0) {
+            non_zero.push({"r_val": r_val, "g_val": g_val, "b_val": b_val}); //console.log("non zero pixel", r_val, g_val, b_val);
+        }
+        let exg_val = (2 * g_val) - r_val - b_val;
+
+        let is_foreground = exg_val > threshold;
+        d_rgb.data[i+3] = is_foreground ? 255 : 30;
+
+        if (is_foreground) {
+            num_foreground++;
+        }
+        
+    }
+    // console.log("non_zero", non_zero);
+    // console.log("num_foreground", num_foreground);
+
+    let percent_vegetation = ((num_foreground / (d_rgb.data.length / 4)) * 100).toFixed(2);
+    console.log("percent_vegetation", percent_vegetation);
+    //excess_green_record[cur_img_name]["ground_cover_percentage"] = parseFloat(percent_vegetation);
+
+    rgb_ctx.putImageData(d_rgb, 0, 0);
+
+    // $("#seadragon_viewer").hide();
+    // $("#test_seg_viewer").empty();
+    // $("#test_seg_viewer").append(
+    //     rgb_ctx.canvas
+    // );
+
+    //$("#test_seg_viewer").show();
+    //overlay = null;
+    overlay.onOpen = function() {};
+    overlay.onRedraw = function() {};
+    viewer = null;
+    //cur_bounds = null;
+    $("#seadragon_viewer").empty();
+    $("#seadragon_viewer").append(
+        rgb_ctx.canvas
+    );
+
+
+
+}
+
 function my_seg_test() {
 
     // let img = viewer.drawer.canvas.toDataURL("image/png");
@@ -2610,56 +3051,153 @@ function my_seg_test() {
     // //     }
     // }
 
-
+    let tiledImage = viewer.world.getItemAt(0); // Assuming you just have a single image in the viewer
+    let targetZoom = tiledImage.source.dimensions.x / viewer.viewport.getContainerSize().x;
+    viewer.viewport.zoomTo(targetZoom, null, true);
 
     // var w = rgb_ctx.canvas.width  = rgb_image.width,
     // h = rgb_ctx.canvas.height = rgb_image.height;
 
-    let container_size = viewer.viewport.getContainerSize();
+    //let container_size = viewer.viewport.getContainerSize();
     // rgb_ctx.drawImage(rgb_image, 0, 0, w, h);      // Set image to Canvas context
-    let img = overlay.context2d().getImageData(0, 0, container_size.x, container_size.y); 
+    //let img = overlay.context2d().getImageData(0, 0, container_size.x, container_size.y); 
+
+    delay(1000).then(() => {
+    let img = viewer.drawer.canvas.toDataURL("image/png");
     console.log(img);
+    console.log(typeof(img));
+    
+    let canvas = document.createElement("canvas");
+    canvas.id = "my_canvas";
+    // let image_canvas = document.createElement("canvas");
+    // let exg_ctx = canvas.getContext("2d");
+    let rgb_ctx = canvas.getContext("2d");
 
 
-    img.onload = function() {
+
+    let rgb_image = new Image();
+    rgb_image.src = img; //"/plant_detection/fake_url/image/png";
+
+    rgb_image.onload = function() {
 
 
-        console.log("started iterating");
+
+        console.log("rgb_image.data (1)", rgb_image.data);
+
+        let container_size = viewer.viewport.getContainerSize();
+
+        rgb_ctx.canvas.width = container_size.x;
+        rgb_ctx.canvas.height = container_size.y;
+
+        let w = rgb_ctx.canvas.width;
+        let h = rgb_ctx.canvas.height 
+
+
+        rgb_ctx.drawImage(rgb_image, 0, 0, w, h);      // Set image to Canvas context
+        var d_rgb = rgb_ctx.getImageData(0, 0, w, h);  // Get image Data from Canvas context
+        console.log("d_rgb.data", d_rgb.data);
+
+    
+        let threshold = 0.16;
         let num_foreground = 0;
-        let is_foreground;
-        let exg_val;
-        let r_val, b_val, g_val;
-
-
-        for (let i = 0; i < img.data.length; i += 4) {
-            r_val = img.data[i] / 255;
-            g_val = img.data[i+1] / 255;
-            b_val = img.data[i+2] / 255;
+        let non_zero = [];
+        for (let i = 0; i < d_rgb.data.length; i += 4) {
+            r_val = d_rgb.data[i] / 255;
+            g_val = d_rgb.data[i+1] / 255;
+            b_val = d_rgb.data[i+2] / 255;
             if ((r_val != 0 || g_val != 0) || b_val != 0) {
-                console.log("non zero pixel", r_val, g_val, b_val);
+                non_zero.push({"r_val": r_val, "g_val": g_val, "b_val": b_val}); //console.log("non zero pixel", r_val, g_val, b_val);
             }
-            exg_val = (2 * g_val) - r_val - b_val;
-            is_foreground = exg_val > -10000;
-            img.data[i+3] = is_foreground ? 255 : 30;
-            //console.log(img.data[i]);
-        //     let is_foreground = img.data[i] > threshold;
-        //     img.data[i+3] = is_foreground ? 255 : 30;
+            let exg_val = (2 * g_val) - r_val - b_val;
+
+            let is_foreground = exg_val > threshold;
+            d_rgb.data[i+3] = is_foreground ? 255 : 30;
 
             if (is_foreground) {
                 num_foreground++;
             }
+            
         }
-
+        console.log("non_zero", non_zero);
         console.log("num_foreground", num_foreground);
 
-        console.log("finished iterating");
+        let percent_vegetation = ((num_foreground / (d_rgb.data.length / 4)) * 100).toFixed(2);
+        console.log("percent_vegetation", percent_vegetation);
+        //excess_green_record[cur_img_name]["ground_cover_percentage"] = parseFloat(percent_vegetation);
+
+        rgb_ctx.putImageData(d_rgb, 0, 0);
+
+        $("#seadragon_viewer").hide();
+
+        $("#test_seg_viewer").show();
+        // $("#seadragon_viewer").append(
+        //     `<div id="my_image_container"></div>`
+        //     // class="scrollable_area" style="cursor: grab; height: ${container_height}; width: ${container_width}; border: none">` +
+        //    // `</div>`
+        // );
 
 
-        overlay.context2d().putImageData(img, 0, 0);
-    }
+        $("#test_seg_viewer").append(
+            rgb_ctx.canvas
+        );
 
 
 
+        /*
+        let non_zero = [];
+        for (let i = 0; i < rgb_image.data.length; i += 4) {
+            r_val = rgb_image.data[i] / 255;
+            g_val = rgb_image.data[i+1] / 255;
+            b_val = rgb_image.data[i+2] / 255;
+            if ((r_val != 0 || g_val != 0) || b_val != 0) {
+                non_zero.push({"r_val": r_val, "g_val": g_val, "b_val": b_val}); //console.log("non zero pixel", r_val, g_val, b_val);
+            }
+        }
+        console.log("non_zero", non_zero);*/
+
+    };
+
+
+    // img.onload = function() {
+
+
+    //     console.log("started iterating");
+    //     let num_foreground = 0;
+    //     let is_foreground;
+    //     let exg_val;
+    //     let r_val, b_val, g_val;
+
+
+    //     for (let i = 0; i < img.data.length; i += 4) {
+    //         r_val = img.data[i] / 255;
+    //         g_val = img.data[i+1] / 255;
+    //         b_val = img.data[i+2] / 255;
+    //         if ((r_val != 0 || g_val != 0) || b_val != 0) {
+    //             console.log("non zero pixel", r_val, g_val, b_val);
+    //         }
+    //         exg_val = (2 * g_val) - r_val - b_val;
+    //         is_foreground = exg_val > -10000;
+    //         img.data[i+3] = is_foreground ? 255 : 30;
+    //         //console.log(img.data[i]);
+    //     //     let is_foreground = img.data[i] > threshold;
+    //     //     img.data[i+3] = is_foreground ? 255 : 30;
+
+    //         if (is_foreground) {
+    //             num_foreground++;
+    //         }
+    //     }
+
+    //     console.log("num_foreground", num_foreground);
+
+    //     console.log("finished iterating");
+
+
+    //     overlay.context2d().putImageData(img, 0, 0);
+    // }
+
+
+
+});
 
 }
 
@@ -2956,7 +3494,8 @@ function add_annotations() {
 }*/
 
 
-function show_segmentation() {
+
+function show_segmentation_old() {
 
     let container_height = $("#seadragon_viewer").height() + "px";
     let container_width = $("#seadragon_viewer").width() + "px";
@@ -4715,17 +5254,20 @@ $(document).ready(function() {
 
     //draw_ground_cover_chart();
     
-    if (metadata["is_ortho"] === "no") {
-        draw_ground_cover_chart();
-    }
-    else {
+    if (metadata["is_ortho"] === "yes") {
         $("#image_sugggestion_container").hide();
-
-
-        $("#show_segmentation_button").hide();
-        $("#show_annotation_button").css("width", "148px");
-        $("#show_prediction_button").css("width", "148px");
     }
+    // if (metadata["is_ortho"] === "no") {
+    //     draw_ground_cover_chart();
+    // }
+    // else {
+    //     $("#image_sugggestion_container").hide();
+
+
+    //     $("#show_segmentation_button").hide();
+    //     $("#show_annotation_button").css("width", "148px");
+    //     $("#show_prediction_button").css("width", "148px");
+    // }
 
 
 
@@ -5109,6 +5651,45 @@ $(document).ready(function() {
         }
     });
 
+    // $("input[name=segmentation_radio]").change(function(e) {
+
+    //     let control_val = $('input[name=segmentation_radio]:checked').val();
+
+    //     if (control_val === "segment") {
+    //         segment_viewport();
+    //     }
+    //     else {
+    //         pan_viewport();
+    //     }
+    // });
+
+    // $("#pan_switch").change(function() {
+    //     if ($("#pan_switch").is(":checked")) {
+    //         $("#pan_switch").prop("disabled", true)
+    //         $("#pan_switch").css("opacity", 0.5);
+    //         pan_viewport();
+    //     }
+    // });
+
+    $("#enable_pan_button").click(function() {
+        if ($("#panning_enabled_status").html() !== "Yes") {
+            $("#panning_enabled_status").html("Yes");
+            pan_viewport();
+        }
+    });
+    
+
+
+    $("#segment_button").click(function() {
+        // if ($("#pan_switch").is(":checked")) {
+        //     $("#pan_switch").prop("checked", false);
+        //     $("#pan_switch").prop("disabled", false)
+        //     $("#pan_switch").css("opacity", 1.0);
+        // }
+        $("#panning_enabled_status").html("No");
+        segment_viewport();
+    });
+
     $("input[name=edit_layer_radio]").change(async function(e) {
         //e.preventDefault();
 
@@ -5192,13 +5773,91 @@ $(document).ready(function() {
             // $("#test_region_label").prop("opacity", 0.5);
             $("#active_layer_table").css("opacity", 0.5);
             $("input:radio[name=edit_layer_radio]").change();
+
+            $("#show_segmentation_button").hide();
+            // $("#show_annotation_button").css("width", "148px");
+            // $("#show_prediction_button").css("width", "148px");
+
+
         }
         else {
             $("#active_layer_table").css("opacity", 1.0);
             $("input:radio[name=edit_layer_radio]").prop("disabled", false);
+
+
+
+            $("#show_segmentation_button").show();
+            // $("#show_annotation_button").css("width", "99px");
+            // $("#show_prediction_button").css("width", "98px");
+            // $("#show_segmentation_button").css("width", "99px");
+        }
+        if (cur_panel === "segmentation") {
+            viewer = null;
+            cur_panel = "annotation";
         }
         change_image(cur_nav_list[0]);
 
+    });
+
+
+
+
+
+
+
+
+    $("#threshold_slider").on("input", function() {
+        $("#save_icon").css("color", "#ed452b");
+        excess_green_record[cur_img_name]["sel_val"] = parseFloat(parseFloat($("#threshold_slider").val()).toFixed(2));
+        $("#threshold_slider_val").html( excess_green_record[cur_img_name]["sel_val"]);
+    });
+
+    $("#threshold_slider").change(function() {
+        $("#save_icon").css("color", "#ed452b");
+        excess_green_record[cur_img_name]["sel_val"] = parseFloat(parseFloat($("#threshold_slider").val()).toFixed(2));
+        $("#threshold_slider_val").html(excess_green_record[cur_img_name]["sel_val"]);
+    });
+
+
+
+
+    function raise_threshold_slider() {
+        let slider_val = parseFloat($("#threshold_slider").val());
+        if (slider_val < 2) {
+            slider_val = slider_val + 0.01;
+            $("#threshold_slider").val(slider_val).change();
+        }
+    }
+    function lower_threshold_slider() {
+        let slider_val = parseFloat($("#threshold_slider").val());
+        if (slider_val > -2) {
+            slider_val = slider_val - 0.01;
+            $("#threshold_slider").val(slider_val).change();
+        }
+    }
+
+
+    let threshold_handler;
+    $("#threshold_score_down").off("mousedown");
+    $("#threshold_score_down").mousedown(function() {
+        lower_threshold_slider();
+        threshold_handler = setInterval(lower_threshold_slider, 300);
+    });
+
+    $("#threshold_score_down").off("mouseup");
+    $("#threshold_score_down").mouseup(function() {
+        clearInterval(threshold_handler);
+    }); 
+
+    $("#threshold_score_up").off("mousedown");
+    $("#threshold_score_up").mousedown(function() {
+        raise_threshold_slider();
+        threshold_handler = setInterval(raise_threshold_slider, 300);
+    });
+
+    $("#threshold_score_up").off("mouseup");
+    $("#threshold_score_up").mouseup(function() {
+        clearInterval(threshold_handler);
     });
 
 });
