@@ -1,3 +1,5 @@
+const MAX_EDGES_DISPLAYED = 30000;
+const MAX_BOXES_DISPLAYED = 30000;
 
 
 let status_color = {
@@ -449,7 +451,58 @@ function create_overlays_table() {
         "annotation": "Annotations",
         "prediction": "Predictions"
     }
+    $("#overlays_table").append(
+        `<tr>` +
+            `<td>` +
+                `<div class="header2" style="width: 80px; font-size: 14px"></div>` +
+            `</td>` +
+            // `<td>` +
+            //     `<div style="width: 15px"></div>` +
+            // `</td>` +
+            `<td>` +
+                `<div class="header2" style="width: 60px; font-size: 14px">Boxes</div>` +
+            `</td>` +
+            `<td>` +
+                `<div class="header2" style="width: 60px; font-size: 14px">Voronoi</div>` +
+            `</td>` +
+        `</tr>`
+    );
 
+
+    for (let overlay_id of ["annotation", "prediction"]) {
+        let overlay_color = overlay_colors[overlay_id] + "ee";
+        let voronoi_id = "voronoi_" + overlay_id;
+        let disp_overlay_text = disp_text[overlay_id]
+        $("#overlays_table").append(
+            `<tr style="background-color: ${overlay_color}">` +
+                `<td style="border-radius: 30px 0px 0px 30px; border: 1px solid white; border-right: none">` +
+                    `<div style="padding: 8px 32px;">${disp_overlay_text}</div>` +
+                `</td>` +
+                // `<td style="border-top: 1px solid white; border-bottom: 1px solid white;">` +
+                //     `<div style="width: 15px"></div>` +
+                // `</td>` +
+                `<td style="border-top: 1px solid white; border-bottom: 1px solid white;">` +
+                    `<label class="switch">` +
+                        `<input id=${overlay_id} type="checkbox" checked></input>` +
+                        `<span class="switch_slider round"></span>` +
+                    `</label>` +
+                `</td>` +
+                `<td style="border-radius: 0px 30px 30px 0px; border: 1px solid white; border-left: none">` +
+                    `<label class="switch">` +
+                        `<input id=${voronoi_id} type="checkbox"></input>` +
+                        `<span class="switch_slider round"></span>` +
+                    `</label>` +
+                `</td>` +
+            `</tr>` +
+            `<tr>` +
+                `<td><div style="height: 1px"></div></td>` +
+                `<td></td>` +
+                `<td></td>` +
+            `</tr>`
+        );
+    }
+
+/*
     for (let overlay_id of ["annotation", "prediction"]) { //Object.keys(overlay_colors)) {
         let overlay_color = overlay_colors[overlay_id];
         //let overlay_id = overlay_name; //.toLowerCase();
@@ -474,7 +527,7 @@ function create_overlays_table() {
             `</label>` +
             `</td>`+
             `</tr>`);
-    }
+    }*/
 }
 
 
@@ -577,7 +630,34 @@ function get_num_regions(region_key) {
 }
 
 
+function image_is_fully_annotated_for_training(annotations, image_name, image_w, image_h) {
+    if (annotations[image_name]["training_regions"].length == 0) {
+        return false;
+    }
+    let training_region = annotations[image_name]["training_regions"][0];
+    if (((training_region[0] == 0) && (training_region[1] == 0)) && ((training_region[2] == image_h) && (training_region[3] == image_w))) {
+        return true;
+    }
+    return false;
+}
+
+function image_is_fully_annotated_for_testing(annotations, image_name, image_w, image_h) {
+    for (let region of annotations[image_name]["test_regions"]) {
+        if (((region[0] == 0) && (region[1] == 0)) && ((region[2] == image_h) && (region[3] == image_w))) {
+            return true;
+        }
+    }
+    return false;
+}
+
 function image_is_fully_annotated(annotations, image_name, image_w, image_h) {
+    return (image_is_fully_annotated_for_training(annotations, image_name, image_w, image_h) || image_is_fully_annotated_for_testing(annotations, image_name, image_w, image_h));
+
+/*
+    let training_region = annotations[image_name]["training_regions"][0];
+    if (((training_region[0] == 0) && (training_region[1] == 0)) && ((training_region[2] == image_h) && (training_region[3] == image_w))) {
+        return true;
+    }
     for (let region_key of ["training_regions", "test_regions"]) {
         for (let region of annotations[image_name][region_key]) {
             if (((region[0] == 0) && (region[1] == 0)) && ((region[2] == image_h) && (region[3] == image_w))) {
@@ -585,7 +665,7 @@ function image_is_fully_annotated(annotations, image_name, image_w, image_h) {
             }
         }
     }
-    return false;
+    return false;*/
 }
 
 
@@ -665,8 +745,8 @@ function update_count_combo(include_viewer_metrics) {
         if (include_viewer_metrics) {
 
             $('#chart_combo').append($('<option>', {
-                value: "AP (IoU=.50:.50:.95)",
-                text: "AP (IoU=.50:.50:.95)"
+                value: "AP (IoU=.50:.05:.95)",
+                text: "AP (IoU=.50:.05:.95)"
             }));
             $('#chart_combo').append($('<option>', {
                 value: "AP (IoU=.50)",
@@ -678,13 +758,104 @@ function update_count_combo(include_viewer_metrics) {
             }));
 
             $('#chart_combo').append($('<option>', {
-                value: "F1 Score (IoU=.50)",
-                text: "F1 Score (IoU=.50)"
+                value: "F1 Score (IoU=.50, conf>=.50)",
+                text: "F1 Score (IoU=.50, conf>=.50)"
             }));
             $('#chart_combo').append($('<option>', {
-                value: "F1 Score (IoU=.75)",
-                text: "F1 Score (IoU=.75)"
+                value: "F1 Score (IoU=.75, conf>=.50)",
+                text: "F1 Score (IoU=.75, conf>=.50)"
             }));
         }
     }
+}
+
+
+
+
+function compute_voronoi(target) {
+    let bounds_min_y;
+    let bounds_min_x;
+    let bounds_max_y;
+    let bounds_max_x;
+
+    let navigation_type = $("#navigation_dropdown").val();
+    let slider_val = Number.parseFloat($("#confidence_slider").val());
+    if (navigation_type === "training_regions" || navigation_type === "test_regions") {
+        let cur_region = annotations[cur_img_name][navigation_type][cur_region_index];
+        bounds_min_y = cur_region[0];
+        bounds_min_x = cur_region[1];
+        bounds_max_y = cur_region[2];
+        bounds_max_x = cur_region[3];
+    }
+    else {
+        bounds_min_y = 0;
+        bounds_min_x = 0;
+        bounds_max_y = metadata["images"][cur_img_name]["height_px"];
+        bounds_max_x = metadata["images"][cur_img_name]["width_px"];
+    }
+
+    let bounds = {xl: bounds_min_x, xr: bounds_max_x, yt: bounds_min_y, yb: bounds_max_y};
+    let points = [];
+    //for (let predicted_box of predictions[cur_img_name]["boxes"]) {
+    if (target === "prediction") {
+        for (let i = 0; i < predictions[cur_img_name]["scores"].length; i++) {
+            if (predictions[cur_img_name]["scores"][i] < slider_val) {
+                continue;
+            }
+            let box = predictions[cur_img_name]["boxes"][i];
+            let centre_y = (box[0] + box[2]) / 2;
+            let centre_x = (box[1] + box[3]) / 2;
+
+            if ((centre_y > bounds_min_y && centre_y < bounds_max_y) &&
+                (centre_x > bounds_min_x && centre_x < bounds_max_x)) {
+                    points.push({
+                        "x": centre_x,
+                        "y": centre_y
+                    });
+            }
+        }
+    }
+    //let annotated_points = [];
+    else {
+        for (let i = 0; i < annotations[cur_img_name]["boxes"].length; i++) {
+            let box = annotations[cur_img_name]["boxes"][i];
+            let centre_y = (box[0] + box[2]) / 2;
+            let centre_x = (box[1] + box[3]) / 2;
+
+            if ((centre_y > bounds_min_y && centre_y < bounds_max_y) &&
+                (centre_x > bounds_min_x && centre_x < bounds_max_x)) {
+                    points.push({
+                        "x": centre_x,
+                        "y": centre_y
+                    });
+            }
+        }
+    }
+
+    if (points.length == 0) {
+        return null;
+    }
+    else {
+        let voronoi = new Voronoi();
+        return voronoi.compute(points, bounds);
+    }
+
+    /*
+    if (predicted_points.length > 0) {
+        voronoi_data["prediction"] = 
+    }
+    else {
+        voronoi_data["prediction"] = null;
+    }
+    if (annotated_points.length > 0) {
+        voronoi_data["annotation"] = voronoi.compute(annotated_points, bounds);
+    }
+    else {
+        voronoi_data["annotation"] = null;
+    }*/
+    //console.log("diagram",  voronoi_diagram);
+
+
+
+    //overlay.onRedraw = redraw_voronoi;
 }

@@ -78,7 +78,7 @@ html
                                 li(id="upload_tab_btn" class="nav")
                                     a(class="nav")
                                         span
-                                            i(class="fa-solid fa-upload" style="margin-right:3px")
+                                            i(class="fa-solid fa-file-arrow-up" style="margin-right:3px")
                                             |
                                             | Upload
 
@@ -108,27 +108,27 @@ html
                                     table(id="combo_table")
                                         tr
                                             th
-                                                div(class="table_head" style="width: 130px") Farm Name 
+                                                div(class="table_head" style="width: 170px") Farm Name 
                                             th 
                                                 div(style="width: 250px")
                                                     select(id="farm_combo" class="nonfixed_dropdown")
 
                                         tr
                                             th 
-                                                div(class="table_head" style="width: 130px") Field Name 
+                                                div(class="table_head" style="width: 170px") Field Name 
                                             th 
                                                 div(style="width: 250px")
                                                     select(id="field_combo" class="nonfixed_dropdown")
 
                                         tr
                                             th 
-                                                div(class="table_head" style="width: 130px") Mission Date
+                                                div(class="table_head" style="width: 170px") Mission Date
                                             th 
                                                 div(style="width: 250px")
                                                     select(id="mission_combo" class="nonfixed_dropdown")
 
                                     div(style="height: 50px")
-                                    hr(style="margin: 0px 0px")
+                                    hr(class="panel_line" style="margin: 0px")
                                     div(id="image_set_container")
 
 
@@ -234,7 +234,10 @@ html
 
 
                                         div(style="height: 10px")
-                                        button(id="upload_button" class="std-button std-button-hover" style="width: 200px; height: 40px;" type="submit") Upload 
+                                        button(id="upload_button" class="std-button std-button-hover" style="width: 200px; height: 40px;" type="submit") 
+                                            i(class="fa-solid fa-file-arrow-up" style="padding-right: 5px")
+                                            |
+                                            | Upload 
                                         //div(style="height: 25px")
                                 
                                 div(id="train" hidden)
@@ -461,9 +464,13 @@ html
                                         br
                                         br
 
-                                        table(id="available_models_head" style="padding-right: 20px; height: 30px")
-                                        div(style="margin: 0 auto; height: 550px; overflow-y: scroll;")
-                                            table(id="available_models")
+                                        div(id="available_models")
+
+
+
+                                        //- table(id="available_models_head" style="padding-right: 20px; height: 30px")
+                                        //- div(style="margin: 0 auto; height: 550px; overflow-y: scroll;")
+                                        //-     table(id="available_models")
 
                                         
 
@@ -477,9 +484,11 @@ html
                                         br
                                         br
 
-                                        table(id="pending_models_head" style="padding-right: 20px; height: 30px")
-                                        div(style="margin: 0 auto; height: 550px; overflow-y: scroll;")
-                                            table(id="pending_models")                                       
+                                        div(id="pending_models")
+
+                                        //- table(id="pending_models_head" style="padding-right: 20px; height: 30px")
+                                        //- div(style="margin: 0 auto; height: 550px; overflow-y: scroll;")
+                                        //-     table(id="pending_models")                                       
                                     
                                     div(id="aborted_train_tab")
                                         br
@@ -491,9 +500,11 @@ html
                                         br
                                         br
 
-                                        table(id="aborted_models_head" style="padding-right: 20px; height: 30px")
-                                        div(style="margin: 0 auto; height: 550px; overflow-y: scroll;")
-                                            table(id="aborted_models")
+                                        div(id="aborted_models")
+
+                                        //- table(id="aborted_models_head" style="padding-right: 20px; height: 30px")
+                                        //- div(style="margin: 0 auto; height: 550px; overflow-y: scroll;")
+                                        //-     table(id="aborted_models")
 
     script.
         let username = !{JSON.stringify(username)};

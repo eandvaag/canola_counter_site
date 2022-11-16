@@ -35,6 +35,7 @@ app.use(express.json());
 
 //app.use(express.json({ limit: "50000kb" }));
 app.use(cookieParser());
+
 app.use(process.env.CC_PATH, express.static(path.join(__dirname, 'public')));
 app.use(process.env.CC_PATH + '/usr', express.static(path.join(__dirname, 'usr')));
 app.use(session({

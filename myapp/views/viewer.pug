@@ -28,6 +28,7 @@ html
         script(type='text/javascript' src=process.env.CC_PATH + '/javascripts/common.js')
         script(type='text/javascript' src=process.env.CC_PATH + '/javascripts/modal.js')
         script(type='text/javascript' src=process.env.CC_PATH + '/javascripts/canvas_overlay.js')
+        script(type='text/javascript' src=process.env.CC_PATH + '/javascripts/voronoi.js')
 
     body
         div(id="container")
@@ -85,8 +86,19 @@ html
                                         div(style="width: 280px;")
                                             div(id="left_panel")
 
-                                                table(class="transparent_table" id="image_name_table")
+                                                div(style="font-size: 20px; height: 20px" id="result_name")
+                                                div(style="height: 10px")
+                                                    hr(class="panel_line")
 
+                                                div(style="height: 7px")
+                                                table(class="transparent_table" id="image_name_table")
+                                                    //- tr
+
+                                                    //-     td(style="text-align: left")
+                                                    //-         h(class="header2" style="width: 60px") Result
+                                                    
+                                                    //-     td(style="width: 100%; text-align: left; padding-left: 12px")
+                                                    //-         h(id="result_name" style="word-break: break-all;")
 
                                                     tr
 
@@ -116,7 +128,8 @@ html
 
 
                                                
-                                                hr
+                                                //hr(class="panel_line")
+                                                div(style="height: 10px")
                                                 //-
                                                     table(class="transparent_table")
                                                         tr
@@ -144,7 +157,7 @@ html
                                                                 option(value="images") Images 
 
 
-                                                div(id="navigation_table_container" class="scrollable_area" style="height: 520px; width: 280px; border: none; overflow-y: scroll")
+                                                div(id="navigation_table_container" class="scrollable_area" style="height: 500px; width: 280px; border: none; overflow-y: scroll")
                                                     table(id="navigation_table")
 
                                                 div(style="height: 10px")
@@ -160,11 +173,11 @@ html
                                                                 button(id="next_image_button" class="std-button std-button-hover" style="font-size: 16px; width: 100%;") Next 
                                                                     i(class="fa-solid fa-circle-chevron-right" style="padding-left: 5px")                                                    
 
-                                                hr
+                                                hr(class="panel_line")
                                                 div(style="height: 5px")
 
                                                 button(id="request_spreadsheet_button" class="std-button std-button-hover")
-                                                    i(class="fa fa-download fa-sm" style="padding-right: 5px")
+                                                    i(class="fa-solid fa-file-arrow-down" style="padding-right: 5px")
                                                     |
                                                     | Download Results
                                                 
@@ -175,7 +188,7 @@ html
                                                 //div(style="height: 5px")                                     
 
 
-                                    td(style="width: 100%" class="viewer" id="seadragon_viewer")
+                                    td(style="width: 100%; border-left: none; border-right: none" class="viewer" id="seadragon_viewer")
 
 
                                     td(class="dark-bg" style="vertical-align:top")
@@ -184,7 +197,7 @@ html
                                             div(id="right_panel")
 
                                                 div(class="header2" style="text-align: left") Annotation Version
-                                                select(id="annotation_version_combo" class="nonfixed_dropdown")
+                                                select(id="annotation_version_combo" class="nonfixed_dropdown" style="max-width: 100%")
                                                     option(value="preserved") From Time of Result Creation
                                                     option(value="most_recent") Most Recent
                                                 //- table(class="transparent_table" style="border: 1px solid white; width: 260px")
@@ -198,50 +211,77 @@ html
                                                 //-                 input(type="radio" name="annotation_version" value="most_recent")
                                                 //-                 span(class="custom_radio")
 
-                                                br
-                                                br
-                                                hr
+                                                //div(style="height: 15px")
+                                                hr(class="panel_line")
 
                                                 div(style="height: 40px")
-                                                    table(class="transparent_table")
-                                                        td(style="text-align: left")
-                                                            h(class="header2") Metric
-                                                        td(style="width: 100%")
-                                                            select(id="chart_combo" class="nonfixed_dropdown")
+                                                    div(class="header2" style="text-align: left") Metric Version
+                                                    select(id="chart_combo" class="nonfixed_dropdown" style="max-width: 100%")
+                                                    //- table
+                                                    //-     tr
+                                                    //-         td(style="text-align: left")
+                                                    //-             h(class="header2") Metric
+                                                    //-         td(style="width: 100%")
+                                                    //- table
+                                                    //-     tr
+                                                    //-         td(style="width: 280px")
+                                                    //-             select(id="chart_combo" class="nonfixed_dropdown")
+
+                                                div(style="height: 15px")
                                                                 
                                                 div(id="count_chart" style="height: 95px; border:none")
                                                     div(id="count_chart_tooltip" class="tooltip" style="z-index: 10")
 
-                                                hr
+                                                hr(class="panel_line")
                                                 
 
                                                 h(class="header2" style="text-align:left") Overlays
 
-                                                div(class="scrollable_area" style="height: 90px; border:none")
-                                                    table(id="overlays_table" class="transparent_table")
+                                                //div(class="scrollable_area" style="height: 90px; border:none")
+                                                table(id="overlays_table" style="margin-top: -22px;")
+
+                                                //- table(style="border-collapse: collapse")
+                                                //-         tr
+                                                //-             //(style="border: 1px solid white")
+                                                //-             td(style="text-align: right")
+                                                //-                 h(class="header2" style="width: 90px; font-size: 14px") Hide Image
+
+                                                //-             td(style="width: 60px")
+                                                //-                 label(class="small_switch")
+                                                //-                     input(id="image_visible_switch" type="checkbox")
+                                                //-                     span(class="small_switch_slider round")
+                                                //collapse;")
 
 
-                                                hr  
+                                                hr(class="panel_line")
 
                                                 h(class="header2" style="text-align:left") Score Distribution
                                                 h(class="header2" style="text-align: left; font-size: 16px") Est. Quality: 
                                                     span(id="quality_score" style="color: white; text-align: left")
                                                 div(id="score_chart" style="height: 175px; border:none")
                                                 
-                                                div(style="height: 10px")
-                                                hr
+                                                //div(style="height: 10px")
+                                                hr(class="panel_line")
                                                     
-                                                table(class="transparent_table")
+                                                table
                                                     tr
                                                         td(style="width: 155px")
-                                                            div(style="width: 155px; text-align:left" class="header2") Show Scores
+                                                            div(style="width: 155px; text-align:left; margin: 3px 0px;" class="header2") Show Image
+                                                        td(style="width:40px")
+                                                            label(class="switch")
+                                                                input(id="image_visible_switch" type="checkbox" checked)
+                                                                span(class="switch_slider round")
+                                                        td(style="width: 100%")       
+                                                    tr
+                                                        td(style="width: 155px")
+                                                            div(style="width: 155px; text-align:left; margin: 3px 0px;" class="header2") Show Scores
                                                         td(style="width:40px")
                                                             label(class="switch")
                                                                 input(id="scores_switch" type="checkbox")
                                                                 span(class="switch_slider round")
                                                         td(style="width: 100%")
 
-                                                table(class="transparent_table")
+                                                table
                                                         
                                                     tr
                                                         td(style="width: 50px")
@@ -275,14 +315,14 @@ html
                                                 div(style="font-size: 20px") Map Builder Controls 
                                                 br
                                                 div(class="header2" style="text-align: left; padding-left: 10px") Interpolation 
-                                                table(class="transparent_table" style="border: 1px solid white; width: 260px")
+                                                table(style="border: 1px solid white; width: 260px; padding-top: 15px; padding-left: 25px")
                                                     tr 
                                                         td 
-                                                            label(class="radio_container") Linear 
+                                                            label(class="custom_radio_container") Linear 
                                                                 input(type="radio" id="interpolation_linear" name="interpolation" value="linear" checked)
                                                                 span(class="custom_radio")
                                                         td 
-                                                            label(class="radio_container") Nearest 
+                                                            label(class="custom_radio_container") Nearest 
                                                                 input(type="radio" id="interpolation_nearest" name="interpolation" value="nearest")
                                                                 span(class="custom_radio")
 
@@ -295,14 +335,16 @@ html
                                                 div(id="sufficient_annotation_options" hidden)
                                                     br
                                                     div(class="header2" style="text-align: left; padding-left: 10px") Images Used for Predicted Map
-                                                    table(class="transparent_table" style="border: 1px solid white; width: 260px")
+                                                    table(style="border: 1px solid white; width: 260px; padding-top: 15px; padding-left: 25px")
                                                         tr 
                                                             td 
-                                                                label(class="radio_container") All 
+                                                                label(class="custom_radio_container") All 
                                                                     input(type="radio" id="pred_image_status_all" name="pred_image_status" value="all" checked)
                                                                     span(class="custom_radio")
                                                             td 
-                                                                label(class="radio_container") Annotated 
+                                                                div(style="width: 20px")
+                                                            td 
+                                                                label(class="custom_radio_container") Annotated 
                                                                     input(type="radio" id="pred_image_status_completed" name="pred_image_status" value="completed")
                                                                     span(class="custom_radio")
 
@@ -320,7 +362,7 @@ html
                                                                     input(type="radio" name="comparison_type" value="diff")
                                                                     span(class="custom_radio")
                                                 br
-                                                hr
+                                                hr(class="panel_line")
                                                 br
                                                 button(style="width: 140px; margin: 0px" id="build_map_button" class="table_button table_button_hover" onclick="build_map()")
                                                     i(class="fa-solid fa-gears" style="padding-right: 10px; color: white")
@@ -329,12 +371,9 @@ html
                                                 br
                                                 br
                                                 div(id="build_loader" class="loader" hidden)
-                                            
-                                            div(id="insufficient_annotation_container" hidden)
-                                                div To build a density map, at least three images must be fully annotated.
 
 
-                                    td(style="width: 100%" id="chart_container")                        
+                                    td(style="width: 100%; border-left: none" id="chart_container")                        
 
     script.
         let username = !{JSON.stringify(username)};

@@ -11,7 +11,7 @@ if [[ "$2" = "start" ]] || [[ "$2" = "start-headless" ]]; then
 	cp .dockerignore ..
 	cd ..
 	if [ "$2" = "start" ]; then
-		docker-compose up
+		export CACHEBUST=$(date +%s) && docker-compose up
 	else
 		docker-compose up -d
 	fi

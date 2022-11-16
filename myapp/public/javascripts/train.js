@@ -208,32 +208,42 @@ function show_pending_train() {
             
             if (response.models.length == 0) {
                 $("#pending_models").append(
-                    `<tr>` +
-                        `<td><div>No Pending Models Found</div></td>` +
-                    `</tr>`
+                    `<div>No Pending Models Found</div>`
+                    // `<tr>` +
+                    //     `<td><div>No Pending Models Found</div></td>` +
+                    // `</tr>`
                 );
 
             }
             else {
 
-                let model_name_width = "300px";
-                let model_public_width = "300px";
-                let model_loader_width = "300px";
+                // let model_name_width = "300px";
+                // let model_public_width = "300px";
+                // let model_loader_width = "300px";
 
                 let models = response.models.sort(function(a, b) {
-                    return b["model_name"] - a["model_name"];
+                    return b["log"]["model_name"] - a["log"]["model_name"];
                 });
 
-
-                $("#pending_models_head").append(
-                    `<tr>` +
-                        `<td class="table_entry" style="font-weight: bold; width: ${model_name_width}">Model Name</td>` +
-                        `<td class="table_entry" style="font-weight: bold; width: ${model_public_width}">Public?</td>` +
-                        `<td class="table_entry" style="font-weight: bold; width: ${model_loader_width}"></td>` +
-                    `</tr>`
+                $("#pending_models").append(
+                    `<div class="scrollable_area" style="border-radius: 10px; height: 550px; width: 1200px; margin: 0 auto; overflow-y: scroll">` +
+                        `<table id="pending_models_table" style="border-collapse: collapse"></table>` +
+                    `</div>`
                 );
 
+
+                // $("#pending_models_head").append(
+                //     `<tr>` +
+                //         `<td class="table_entry" style="font-weight: bold; width: ${model_name_width}">Model Name</td>` +
+                //         `<td class="table_entry" style="font-weight: bold; width: ${model_public_width}">Public?</td>` +
+                //         `<td class="table_entry" style="font-weight: bold; width: ${model_loader_width}"></td>` +
+                //     `</tr>`
+                // );
+
                 for (let model of models) {
+
+                    create_model_entry(model["log"], "pending");
+                    /*
                     let model_name = model["model_name"];
                     let is_public = model["public"] ? "Yes" : "No";
 
@@ -246,7 +256,7 @@ function show_pending_train() {
                                 `<div class="loader" style="width: 20px; height: 20px"></div>` +
                             `</td>` +
                         `</tr>`
-                    );
+                    );*/
                 }
             }
 
@@ -279,40 +289,48 @@ function show_aborted_train() {
             
             if (response.models.length == 0) {
                 $("#aborted_models").append(
-                    `<tr>` +
-                        `<td><div>No Aborted Models Found</div></td>` +
-                    `</tr>`
+                    `<div>No Aborted Models Found</div>`
+                    // `<tr>` +
+                    //     `<td><div>No Aborted Models Found</div></td>` +
+                    // `</tr>`
                 );
 
             }
             else {
-
-                let model_name_width = "300px";
-                let model_aborted_time_width = "300px";
-                let model_error_message_width = "300px";
-                let model_destroy_width = "300px"
-                let button_width = "100px";
+                // let model_name_width = "300px";
+                // let model_aborted_time_width = "300px";
+                // let model_error_message_width = "300px";
+                // let model_destroy_width = "300px"
+                // let button_width = "100px";
 
                 let models = response.models.sort(function(a, b) {
-                    return b["model_name"] - a["model_name"];
+                    return b["log"]["model_name"] - a["log"]["model_name"];
                 });
 
-
-                $("#aborted_models_head").append(
-                    `<tr>` +
-                        `<td class="table_entry" style="font-weight: bold; width: ${model_name_width}">Model Name</td>` +
-                        `<td class="table_entry" style="font-weight: bold; width: ${model_aborted_time_width}">Aborted Time</td>` +
-                        `<td class="table_entry" style="font-weight: bold; width: ${model_error_message_width}">Error Message</td>` +
-                        `<td class="table_entry" style="font-weight: bold; width: ${model_destroy_width}">Destroy Model</td>` +
-                    `</tr>`
+                $("#aborted_models").append(
+                    `<div class="scrollable_area" style="border-radius: 10px; height: 550px; width: 1200px; margin: 0 auto; overflow-y: scroll">` +
+                        `<table id="aborted_models_table" style="border-collapse: collapse"></table>` +
+                    `</div>`
                 );
 
+
+                // $("#aborted_models_head").append(
+                //     `<tr>` +
+                //         `<td class="table_entry" style="font-weight: bold; width: ${model_name_width}">Model Name</td>` +
+                //         `<td class="table_entry" style="font-weight: bold; width: ${model_aborted_time_width}">Aborted Time</td>` +
+                //         `<td class="table_entry" style="font-weight: bold; width: ${model_error_message_width}">Error Message</td>` +
+                //         `<td class="table_entry" style="font-weight: bold; width: ${model_destroy_width}">Destroy Model</td>` +
+                //     `</tr>`
+                // );
+
                 for (let model of models) {
-                    let model_name = model["model_name"];
-                    let aborted_date = timestamp_to_date(model["aborted_time"]);
+
+                    create_model_entry(model["log"], "aborted");
+                    //let model_name = model["model_name"];
+                    //let aborted_date = timestamp_to_date(model["aborted_time"]);
                     //let is_public = model["public"] ? "Yes" : "No";
 
-
+/*
                     $("#aborted_models").append(
                         `<tr>` +
                             `<td class="table_entry" style="width: ${model_name_width};">${model_name}</td>` +
@@ -327,7 +345,7 @@ function show_aborted_train() {
                                 `onclick="destroy_model_request('aborted', '${model_name}')"><i class="fa-regular fa-circle-xmark"></i></button>` +
                         `</td>` +
                         `</tr>`
-                    );
+                    );*/
                 }
             }
 
@@ -344,6 +362,7 @@ function destroy_model_request(model_state, model_name) {
         `<div id="modal_button_container" style="text-align: center">` +
         `<button id="confirm_delete" class="x-button x-button-hover" `+
         `style="width: 150px" onclick="confirmed_model_destroy_request('${model_state}', '${model_name}')">Destroy</button>` +
+        `<div style="display: inline-block; width: 10px"></div>` +
         `<button id="cancel_delete" class="std-button std-button-hover" ` +
         `style="width: 150px" onclick="close_modal()">Cancel</button>` +
         `<div style="height: 20px" id="loader_container"></div>` +
@@ -399,6 +418,206 @@ function confirmed_model_destroy_request(model_state, model_name) {
 
 }
 
+function create_model_entry(model_log, model_status) {
+
+    let model_name = model_log["model_name"];
+    let is_public = capitalizeFirstLetter(model_log["public"]); //["public"] ? "Yes" : "No";
+    let model_object = model_log["model_object"];
+
+
+    let start_date;
+    start_date = timestamp_to_date(model_log["submission_time"]);
+
+    let disp_end_title; 
+    let disp_end_date;
+    if (model_status === "available") {
+        disp_end_date = timestamp_to_date(model_log["training_end_time"]);
+        disp_end_title = "End Time";
+    }
+    else if (model_status === "aborted") {
+        disp_end_date = timestamp_to_date(model_log["aborted_time"]);
+        disp_end_title = "Aborted Time";
+    }
+    else {
+        disp_end_date = " ";
+        disp_end_title = " ";
+    }
+
+
+
+    // let time_info = 
+    // `<table style="font-size: 14px">` +
+    //     `<tr>` +
+    //             `<td style="height: 18px; text-align: right">` +
+    //                 `<div style="color: #ddccbb; font-weight: 400; width: 120px">Training Start Time</div>` +
+    //             `</td>` + 
+    //             `<td style="text-align: left; padding-left: 15px; width: 100%;">` +
+    //                 `<div>${start_date}</div>` +
+    //             `</td>` +
+    //     `</tr>` +
+    //     `<tr>` +
+    //             `<td style="height: 18px; text-align: right">` +
+    //                 `<div style="color: #ddccbb; font-weight: 400; width: 120px">${disp_end_title}</div>` +
+    //             `</td>` + 
+    //             `<td style="text-align: left; padding-left: 15px; width: 100%;">` +
+    //                 `<div>${disp_end_date}</div>` +
+    //             `</td>` + 
+    //     `</tr>` +
+    // `</table>`;
+    let row_uuid = uuidv4();
+    let destroy_button_container_id = row_uuid + "_destroy_button_container";
+    let error_button_container_id = row_uuid + "_error_button_container";
+
+
+    let template = 
+        `<tr style="border-bottom: 1px solid #4c6645; height: 70px">` +
+            `<td><div style="width: 15px"></div></td>` + 
+            `<td>` +
+                `<table style="font-size: 14px">` +
+                    `<tr>` +
+                        `<td style="text-align: right">` +
+                            `<div style="color: #ddccbb; font-weight: 400; width: 80px">Model Name</div>` +
+                        `</td>` + 
+                        `<td style="text-align: left; padding-left: 15px;">` +
+                            `<div style="width: 150px">${model_name}</div>` +
+                        `</td>` +
+                    `</tr>` +
+                        `<tr>` +
+                        `<td style="text-align: right">` +
+                            `<div style="color: #ddccbb; font-weight: 400; width: 80px">Public?</div>` +
+                        `</td>` + 
+                        `<td style="text-align: left; padding-left: 15px;">` +
+                            `<div style="width: 150px">${is_public}</div>` +
+                        `</td>` +
+                    `</tr>` +
+                `</table>` +
+            `</td>` +
+            `<td>` +
+                `<div style="width: 5px"></div>` +
+            `</td>` +
+            `<td>` +
+                `<table style="font-size: 14px">` +
+                    `<tr>` +
+                        `<td style="height: 18px; text-align: right">` +
+                            `<div style="color: #ddccbb; font-weight: 400; width: 90px">Start Time</div>` +
+                        `</td>` + 
+                        `<td style="text-align: left; padding-left: 15px;">` +
+                            `<div style="width: 140px">${start_date}</div>` +
+                        `</td>` +
+                    `</tr>` +
+                    `<tr>` +
+                        `<td style="height: 18px; text-align: right">` +
+                            `<div style="color: #ddccbb; font-weight: 400; width: 90px">${disp_end_title}</div>` +
+                        `</td>` + 
+                        `<td style="text-align: left; padding-left: 15px;">` +
+                            `<div style="width: 140px">${disp_end_date}</div>` +
+                        `</td>` + 
+                    `</tr>` +
+                `</table>` +
+            `<td>` +
+                `<div style="width: 120px"></div>` +
+            `</td>` +
+            `<td>` +
+                `<div style="width: 180px;" class="object_entry">${model_object}</div>` +
+            `</td>` +
+            `<td>` +
+                `<div style="width: 25px"></div>` +
+            `</td>` +
+            // `<td>` +
+            //     time_info +
+            // `</td>` +
+
+
+
+            `<td style="width: 100%">` +
+            //     `<div class="table_entry" style="text-align: left;">${time_info}</div>` +
+            `</td>` +
+
+            `<td>` +
+                `<div style="width: 15px"></div>` +
+            `</td>` +
+            `<td>` +
+                `<table>` +
+                    `<tr>` +
+                        `<td>` +
+                            `<div id="${error_button_container_id}">` +
+                            `</div>` +
+                        `</td>` +
+                    `</tr>` +
+                    `<tr>` +
+                        `<td>` +
+                            `<div id="${destroy_button_container_id}">` +
+                            `</div>` +
+                        `</td>` +
+                    `</tr>` +
+                `</table>` +
+
+            `</td>` +
+
+            `<td>` +
+                `<div style="width: 15px"></div>` +
+            `</td>` +
+            // `<td style="width: 100%">` +
+            // //     `<div class="table_entry" style="text-align: left;">${time_info}</div>` +
+            // `</td>` +
+
+            // `<td>` +
+            //     `<div id="${destroy_button_container_id}">` +
+
+            //     `</div>` +
+            // `</td>` +
+            // `<td>` +
+            //     `<div style="width: 15px"></div>` +
+            // `</td>` +
+        `</tr>`;
+
+    $("#" + model_status + "_models_table").append(template);
+    if (model_status === "available") {
+        
+        $("#" + destroy_button_container_id).append(
+            `<button class="x-button x-button-hover"` +
+                `onclick="destroy_model_request('available', '${model_name}')"  style="width: 180px; font-size: 14px; padding: 3px;">` +//<i class="fa-regular fa-circle-xmark"></i></button>`
+
+
+                `<i class="fa-regular fa-circle-xmark" style="margin-right: 14px"></i><div style="display: inline-block; text-align: left;">Destroy Model</div>` +
+        
+            `</button>`
+        );
+
+
+        // `<td style="width: ${model_destroy_width};"><button class="x-button x-button-hover" style="width: ${button_width}" ` +
+        //             `onclick="destroy_model_request('available', '${model_name}')"><i class="fa-regular fa-circle-xmark"></i></button>` +
+        //     `</td>` +
+    }
+    else if (model_status === "aborted") {
+
+        $("#" + destroy_button_container_id).append(
+            `<button class="x-button x-button-hover"` +
+                `onclick="destroy_model_request('available', '${model_name}')"  style="width: 180px; font-size: 14px; padding: 3px;">` +//<i class="fa-regular fa-circle-xmark"></i></button>`
+
+
+                `<i class="fa-regular fa-circle-xmark" style="margin-right: 14px"></i><div style="display: inline-block; text-align: left; width: 130px">Destroy Model</div>` +
+        
+            `</button>`
+        );
+
+        $("#" + error_button_container_id).append(
+
+            `<button class="std-button std-button-hover"` +
+                `onclick="show_modal_message('Error Message', \`${model_log["error_message"]}\`)" style="width: 180px; font-size: 14px; padding: 3px;">` +//<i class="fa-regular fa-circle-xmark"></i></button>`
+                `<i class="fa-solid fa-triangle-exclamation" style="margin-right: 14px"></i><div style="display: inline-block; text-align: left; width: 130px">View Error Message</div>` +
+            `</button>`
+        );
+    }
+    else {
+        $("#" + destroy_button_container_id).append(
+            `<div style="width: 100px"><div class="loader"></div></div>`
+        );
+    }
+}
+
+
+
 function show_available_train() {
     viewing["train"] = "available";
     $("#submit_train_tab").hide();
@@ -406,7 +625,7 @@ function show_available_train() {
     $("#aborted_train_tab").hide();
     $("#available_train_tab").show();
 
-    $("#available_models_head").empty();
+    //$("#available_models_head").empty();
     $("#available_models").empty();
 
 
@@ -425,46 +644,101 @@ function show_available_train() {
             
             if (response.models.length == 0) {
                 $("#available_models").append(
-                    `<tr>` +
-                        `<td><div>No Available Models Found</div></td>` +
-                    `</tr>`
+                    `<div>No Available Models Found</div>`
+                    // `<tr>` +
+                    //     `<td><div>No Available Models Found</div></td>` +
+                    // `</tr>`
                 );
 
             }
             else {
 
+                $("#available_models").append(
+                    `<div class="scrollable_area" style="border-radius: 10px; height: 550px; width: 1200px; margin: 0 auto; overflow-y: scroll">` +
+                        `<table id="available_models_table" style="border-collapse: collapse"></table>` +
+                    `</div>`
+                );
+                // `<div id="completed_results" hidden>` +
+                //     `<div style="height: 90px"></div>` +
+                //     `<div class="scrollable_area" style="border-radius: 10px; height: ${completed_results_container_height}; width: 1200px; margin: 0 auto; overflow-y: scroll">` +
+                //         `<table id="completed_results_table" style="border-collapse: collapse"></table>` +
+                //     `</div>` +
+                // `</div>` +
+
+
+
+
                 let models = response.models.sort(function(a, b) {
-                    return b["model_name"] - a["model_name"];
+                    return b["log"]["model_name"] - a["log"]["model_name"];
                 });
 
-                let model_name_width = "300px";
-                let model_public_width = "300px";
-                let model_destroy_width = "300px";
-                let button_width = "100px";
+                // let model_name_width = "300px";
+                // let model_public_width = "300px";
+                // let model_destroy_width = "300px";
+                // let button_width = "100px";
 
 
-                $("#available_models_head").append(
-                    `<tr>` +
-                        `<td class="table_entry" style="font-weight: bold; width: ${model_name_width}">Model Name</td>` +
-                        `<td class="table_entry" style="font-weight: bold; width: ${model_public_width}">Public?</td>` +
-                        `<td class="table_entry" style="font-weight: bold; width: ${model_destroy_width}">Destroy Model</td>` +
-                    `</tr>`
-                );
+                // $("#available_models_head").append(
+                //     `<tr>` +
+                //         `<td class="table_entry" style="font-weight: bold; width: ${model_name_width}">Model Name</td>` +
+                //         `<td class="table_entry" style="font-weight: bold; width: ${model_public_width}">Public?</td>` +
+                //         `<td class="table_entry" style="font-weight: bold; width: ${model_destroy_width}">Destroy Model</td>` +
+                //     `</tr>`
+                // );
 
                 for (let model of models) {
-                    let model_name = model["model_name"];
-                    let is_public = model["public"] ? "Yes" : "No";
+                    create_model_entry(model["log"], "available");
+/*
+                    let model_name = model["log"]["model_name"];
+                    let is_public = capitalizeFirstLetter(model["log"]["public"]); //["public"] ? "Yes" : "No";
+                    let model_object = model["log"]["model_object"];
 
 
-                    $("#available_models").append(
-                        `<tr>` +
-                            `<td class="table_entry" style="width: ${model_name_width};">${model_name}</td>` +
-                            `<td class="table_entry" style="width: ${model_public_width};">${is_public}</td>` +
-                            `<td style="width: ${model_destroy_width};"><button class="x-button x-button-hover" style="width: ${button_width}" ` +
-                                    `onclick="destroy_model_request('available', '${model_name}')"><i class="fa-regular fa-circle-xmark"></i></button>` +
+                    
+                    $("#available_models_table").append(
+                        `<tr style="border-bottom: 1px solid #4c6645; height: 70px">` +
+                            `<td><div style="width: 25px"></div></td>` + 
+                            `<td>` +
+                                `<table style="font-size: 14px">` +
+                                    `<tr>` +
+                                        `<td style="text-align: right">` +
+                                            `<div style="color: #ddccbb; font-weight: 400; width: 90px">Model Name</div>` +
+                                        `</td>` + 
+                                        `<td style="text-align: left; padding-left: 15px; width: 100%;">` +
+                                            `<div>${model_name}</div>` +
+                                        `</td>` +
+                                    `</tr>` +
+                                        `<tr>` +
+                                        `<td style="text-align: right">` +
+                                            `<div style="color: #ddccbb; font-weight: 400; width: 90px">Public?</div>` +
+                                        `</td>` + 
+                                        `<td style="text-align: left; padding-left: 15px; width: 100%;">` +
+                                            `<div>${is_public}</div>` +
+                                        `</td>` +
+                                    `</tr>` +
+                                `</table>` +
                             `</td>` +
+                            `<td>` +
+                                `<div style="width: 45px"></div>` +
+                            `</td>` +
+                            `<td>` +
+                                `<div style="width: 180px" class="object_entry">${model_object}</div>` +
+                            `</td>` +
+
+
+
+                            `<td style="width: 100%"></td>` +
+
+                        
+
+                        // `<tr>` +
+                        //     `<td class="table_entry" style="width: ${model_name_width};">${model_name}</td>` +
+                        //     `<td class="table_entry" style="width: ${model_public_width};">${is_public}</td>` +
+                        //     `<td style="width: ${model_destroy_width};"><button class="x-button x-button-hover" style="width: ${button_width}" ` +
+                        //             `onclick="destroy_model_request('available', '${model_name}')"><i class="fa-regular fa-circle-xmark"></i></button>` +
+                        //     `</td>` +
                         `</tr>`
-                    );
+                    );*/
                 }
             }
 
@@ -816,20 +1090,27 @@ function create_viewer(id_prefix, dzi_image_paths) {
                     overlays[id_prefix].context2d().strokeStyle = overlay_colors[key];
                     overlays[id_prefix].context2d().lineWidth = 2;
 
+                    let visible_boxes = [];
                     for (let i = 0; i < boxes_to_add[key]["boxes"].length; i++) {
 
                         let box = boxes_to_add[key]["boxes"][i];
 
-                        let box_width_pct_of_image = (box[3] - box[1]) / overlays[id_prefix].imgWidth;
-                        let disp_width = (box_width_pct_of_image / viewer_bounds.width) * container_size.x;
-                        let box_height_pct_of_image = (box[3] - box[1]) / overlays[id_prefix].imgHeight;
-                        let disp_height = (box_height_pct_of_image / viewer_bounds.height) * container_size.y;
+                        // let box_width_pct_of_image = (box[3] - box[1]) / overlays[id_prefix].imgWidth;
+                        // let disp_width = (box_width_pct_of_image / viewer_bounds.width) * container_size.x;
+                        // let box_height_pct_of_image = (box[3] - box[1]) / overlays[id_prefix].imgHeight;
+                        // let disp_height = (box_height_pct_of_image / viewer_bounds.height) * container_size.y;
 
-                        if ((disp_width * disp_height) < 0.5) {
-                            continue;
-                        }
+                        // if ((disp_width * disp_height) < 0.5) {
+                        //     continue;
+                        // }
 
                         if (((box[1] < max_x) && (box[3] > min_x)) && ((box[0] < max_y) && (box[2] > min_y))) {
+                            visible_boxes.push(box);
+                        }
+                    }
+                    if (visible_boxes.length < MAX_BOXES_DISPLAYED) {
+                        for (let box of visible_boxes) {
+                            
                             let viewer_point = viewers[id_prefix].viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(box[1], box[0]));
                             let viewer_point_2 = viewers[id_prefix].viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(box[3], box[2]));
                             
@@ -1017,8 +1298,8 @@ function inspect_image_set(image_set_text_id, for_target) {
 
             
             annotations[id_prefix] = response.annotations;
-            viewers[id_prefix].open(dzi_image_paths[0]);
-            //viewers[id_prefix].goToPage(0);
+            //viewers[id_prefix].open(dzi_image_paths[0]);
+            viewers[id_prefix].goToPage(0);
 
         }
 

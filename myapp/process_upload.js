@@ -82,28 +82,28 @@ function upload_notify(username, farm_name, field_name, mission_date) {
 }
 
 
-function slicer() {
+// function slicer() {
 
-    let conv_cmd = "convert " + fpath + " " + new_path;
-    let conv_options = [fpath, new_path];
-    let slice_cmd = "./MagickSlicer/magick-slicer.sh -v1 '" + new_path + "' '" + img_dzi_path + "'";
-    let slice_options = ["-v1", "'" + new_path + "'", "'" + img_dzi_path + "'"];
+//     let conv_cmd = "convert " + fpath + " " + new_path;
+//     let conv_options = [fpath, new_path];
+//     let slice_cmd = "./MagickSlicer/magick-slicer.sh -v1 '" + new_path + "' '" + img_dzi_path + "'";
+//     let slice_options = ["-v1", "'" + new_path + "'", "'" + img_dzi_path + "'"];
 
-    let p = spawn(conv_cmd, conv_options);
-    p.stdout.on('data', (data) => {
-        console.log(`stdout: ${data}`);
-    });
-    p.stderr.on('data', (data) => {
-        console.log(`stderr: ${data}`);
-    });
-    p.on('close', (code) => {
-        console.log(`child process exited with code ${code}`);
-        if (code == 0) {
-            console.log("finished");
-        }
-    });
+//     let p = spawn(conv_cmd, conv_options);
+//     p.stdout.on('data', (data) => {
+//         console.log(`stdout: ${data}`);
+//     });
+//     p.stderr.on('data', (data) => {
+//         console.log(`stderr: ${data}`);
+//     });
+//     p.on('close', (code) => {
+//         console.log(`child process exited with code ${code}`);
+//         if (code == 0) {
+//             console.log("finished");
+//         }
+//     });
     
-}
+// }
 
 async function process_upload(username, farm_name, field_name, mission_date, object_name, camera_height, is_public, is_ortho) {
 
@@ -153,8 +153,9 @@ async function process_upload(username, farm_name, field_name, mission_date, obj
 
         let image_names = [];
         for (let image_path of image_paths) {
-            let image_name = path.basename(image_path);
-            image_names.push(image_name);
+            let full_image_name = path.basename(image_path);
+            let extensionless_fname = full_image_name.substring(0, full_image_name.length-4);
+            image_names.push(extensionless_fname);
 
             let identify_command = "identify " + image_path + " | grep sRGB";
             //let result;
@@ -268,13 +269,13 @@ async function process_upload(username, farm_name, field_name, mission_date, obj
         for (let image_name of image_names) {
             //let sanitized_fname = sanitize(filename);
             //let extensionless_fname = sanitized_fname.substring(0, sanitized_fname.length-4);
-            let extensionless_fname = image_name.substring(0, image_name.length-4);
+            
             // if (is_ortho === "yes") {
-            annotations[extensionless_fname] = {
+            annotations[image_name] = {
                 "boxes": [],
                 "training_regions": [],
                 "test_regions": [],
-                "predictions_used_as_annotations": false
+                "source": "NA"
             }
             // }
             // else {
@@ -389,6 +390,32 @@ async function process_upload(username, farm_name, field_name, mission_date, obj
             return;
         }
 
+
+        let excess_green_record = {};
+        for (let image_name of image_names) {
+            excess_green_record[image_name] = {}
+            excess_green_record[image_name]["sel_val"] = 0;
+        }
+        let excess_green_record_path = path.join(mission_dir, "excess_green", "record.json");
+        try {
+            fs.writeFileSync(excess_green_record_path, JSON.stringify(excess_green_record));
+        }
+        catch (error) {
+            write_and_notify(upload_status_path, {"status": "failed", "error": error.toString()}, notify_data);
+            return;
+        }
+
+        let vegetation_record = {};
+        let vegetation_record_path = path.join(mission_dir, "excess_green", "vegetation_record.json");
+        try {
+            fs.writeFileSync(vegetation_record_path, JSON.stringify(vegetation_record));
+        }
+        catch (error) {
+            write_and_notify(upload_status_path, {"status": "failed", "error": error.toString()}, notify_data);
+            return;
+        }
+
+
         metadata["is_public"] = is_public;
         metadata["is_ortho"] = is_ortho;
         metadata["object_name"] = object_name;
@@ -431,22 +458,22 @@ async function process_upload(username, farm_name, field_name, mission_date, obj
 
 
 
-            if (is_ortho === "no") {
-                console.log("Creating excess green images...");
-                let exg_command = "python ../../plant_detection/src/excess_green.py " + mission_dir;
-                try {
-                    result = execSync(exg_command, {shell: "/bin/bash"});
-                }
-                catch (error) {
-                    console.log(error.stack);
-                    console.log('Error code: '+error.code);
-                    console.log('Signal received: '+error.signal);
-                    write_and_notify(upload_status_path, {"status": "failed", "error": error.toString()}, notify_data);
-                    return;
-                }
-                console.log(result.toString("utf8"));
+            // if (is_ortho === "no") {
+            //     console.log("Creating excess green images...");
+            //     let exg_command = "python ../../plant_detection/src/excess_green.py " + mission_dir;
+            //     try {
+            //         result = execSync(exg_command, {shell: "/bin/bash"});
+            //     }
+            //     catch (error) {
+            //         console.log(error.stack);
+            //         console.log('Error code: '+error.code);
+            //         console.log('Signal received: '+error.signal);
+            //         write_and_notify(upload_status_path, {"status": "failed", "error": error.toString()}, notify_data);
+            //         return;
+            //     }
+            //     console.log(result.toString("utf8"));
         
-            }
+            // }
         
         
             write_and_notify(upload_status_path, {"status": "uploaded"}, notify_data);

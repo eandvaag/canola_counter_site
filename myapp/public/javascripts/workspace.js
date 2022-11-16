@@ -60,6 +60,22 @@ let num_regions_fully_trained_on;
 let d_rgb;
 let rgb_ctx;
 
+let annotations_dropzone;
+
+
+let voronoi_data = {};
+
+
+let format_sample_text = 
+'{\n' + 
+'   "image_1": [\n' +
+'       [2, 4, 10, 9],\n' +
+'       ...\n' +
+'   ]\n' +
+'   "image_2": [\n' +
+'       ...';
+
+
 // let overlay_colors = [
 //     "#0080C0",        
 //     "#FF4040"
@@ -86,7 +102,179 @@ function set_prediction_overlay_color() {
 
 
 
+let keydown_handler = async function(e) {
+    console.log("keyDown");
 
+    if (e.keyCode == 46) {
+
+        let selected = anno.getSelected();
+        if (selected != null) {
+
+            anno.removeAnnotation(selected);
+            anno.cancelSelected();
+
+            //annotations[cur_img_name]["annotations"] = anno.getAnnotations();
+
+            let sel_box_array;
+            if (cur_edit_layer === "annotation") {
+                sel_box_array = annotations[cur_img_name]["boxes"];
+            }
+            else if (cur_edit_layer === "training_region") {
+                sel_box_array = annotations[cur_img_name]["training_regions"];
+
+                // let num_regions = get_num_regions("training_regions");
+                // if (num_regions == 1) {
+                    
+                //     let num_options = $('#navigation_dropdown').children('option').length;
+                //     $("#navigation_dropdown").empty();
+                //     if (num_options == 2) {
+                //         $("#navigation_dropdown").append($("<option></option>").val("images").text("Images"));
+                //         //$("#navigation_dropdown").append($("<option></option>").val("training_regions").text("Fine-Tuning Regions"));
+                //     }
+                //     else if (num_options == 3) {
+                //         $("#navigation_dropdown").append($("<option></option>").val("images").text("Images"));
+                //         //$("#navigation_dropdown").append($("<option></option>").val("training_regions").text("Fine-Tuning Regions"));
+                //         $("#navigation_dropdown").append($("<option></option>").val("test_regions").text("Test Regions"));
+                //     }
+                // }
+            }
+            else {
+                sel_box_array = annotations[cur_img_name]["test_regions"];
+
+                // let num_regions = get_num_regions("test_regions");
+                // if (num_regions == 1) {
+                //     let num_options = $('#navigation_dropdown').children('option').length;
+                //     $("#navigation_dropdown").empty();
+                //     if (num_options == 2) {
+                //         $("#navigation_dropdown").append($("<option></option>").val("images").text("Images"));
+                //         //$("#navigation_dropdown").append($("<option></option>").val("test_regions").text("Test Regions"));
+                //     }
+                //     else if (num_options == 3) {
+                //         $("#navigation_dropdown").append($("<option></option>").val("images").text("Images"));
+                //         $("#navigation_dropdown").append($("<option></option>").val("training_regions").text("Fine-Tuning Regions"));
+                //         //$("#navigation_dropdown").append($("<option></option>").val("test_regions").text("Test Regions"));
+                //     }
+                      
+                // }
+
+            }
+            //if ((cur_edit_layer !== "training_region") || !(locked_training_regions[selected_annotation_index])) {
+
+
+
+
+            sel_box_array.splice(selected_annotation_index, 1);
+            selected_annotation = null;
+            selected_annotation_index = -1;
+
+            update_navigation_dropdown();
+
+
+            if (cur_edit_layer === "training_region") {
+                locked_training_regions[cur_img_name].splice(selected_annotation_index, 1);
+            }
+
+            
+            if ((cur_edit_layer === "annotation") && (sel_box_array.length == 0)) {
+                annotations[cur_img_name]["source"] = "NA";
+                //annotations[cur_img_name]["predictions_used_as_annotations"] = false;
+            }
+            
+
+            
+
+            // annotations[cur_img_name]["update_time"] = parseInt(new Date().getTime() / 1000);
+
+            // update_image_status();
+            // set_image_status_combo();
+            $("#save_icon").css("color", "#ed452b");
+            // create_image_set_table();
+            //}
+        }
+
+    }
+
+    else if (e.keyCode == 77) {
+
+        //let selected = anno.getSelected();
+        if ((selected_annotation != null) && (cur_edit_layer === "test_region")) {
+            // anno.removeAnnotation(selected);
+            // anno.cancelSelected();
+
+            let held_annotation_index = selected_annotation_index;
+            await anno.updateSelected(selected_annotation, true);
+
+            
+            let source_box_array;
+            let target_box_array;
+            let selected_region;
+            let illegal_intersection = false;
+            // if (cur_edit_layer === "training_region") {
+            //     source_box_array = annotations[cur_img_name]["training_regions"];
+            //     target_box_array = annotations[cur_img_name]["test_regions"];
+            //     selected_region = source_box_array[held_annotation_index];
+                
+            //     loop1:
+            //     for (let i = 0; i < annotations[cur_img_name]["training_regions"].length; i++) {
+            //         if (i == held_annotation_index) {
+            //             continue;
+            //         }
+            //         if ((box_intersects_region(selected_region, annotations[cur_img_name]["training_regions"][i]))) {
+            //             illegal_intersection = true;
+            //             break loop1;
+            //         }
+            //     }
+            // }
+            // else {
+            source_box_array = annotations[cur_img_name]["test_regions"];
+            target_box_array = annotations[cur_img_name]["training_regions"];
+            selected_region = source_box_array[held_annotation_index];
+
+
+            loop1:
+            for (let region_key of ["training_regions", "test_regions"]) {
+                for (let i = 0; i < annotations[cur_img_name][region_key].length; i++) {
+                    if (i == held_annotation_index) {
+                        continue;
+                    }
+                    if (box_intersects_region(selected_region, annotations[cur_img_name][region_key][i])) {
+                        illegal_intersection = true;
+                        break loop1;
+                    }
+                }
+            }
+            // }
+            console.log("illegal?", illegal_intersection);
+            if (!(illegal_intersection)) {
+                source_box_array.splice(held_annotation_index, 1);
+                target_box_array.push(selected_region);
+                selected_annotation = null;
+                selected_annotation_index = -1;
+
+                // if (cur_edit_layer === "training_region") {
+                //     locked_training_regions[cur_img_name].splice(held_annotation_index, 1);
+                // }
+                // else {
+                locked_training_regions[cur_img_name].push(false);
+                // }
+
+                
+
+                update_navigation_dropdown();
+
+                $("#save_icon").css("color", "#ed452b");
+
+                //viewer.world.resetItems();
+                viewer.raiseEvent('update-viewport');
+
+
+            }
+
+        }
+    }
+
+
+}
 
 
 
@@ -358,7 +546,7 @@ function resize_px_str(px_str) {
 
 
     let min_dim = 4;
-    let max_dim = 1600;
+    let max_dim = 800; //1600;
     if (box_w < min_dim) {
 
         let tentative_box_min_x = box_centre_x - Math.floor(min_dim / 2);
@@ -639,7 +827,15 @@ function create_anno() {
         }
 
         let illegal_intersection = false;
-        if ((cur_edit_layer === "annotation") || (cur_edit_layer === "test_region")) {
+        if (cur_edit_layer === "annotation") {
+            for (let i = 0; i < annotations[cur_img_name]["training_regions"].length; i++) {
+                if ((box_intersects_region(box, annotations[cur_img_name]["training_regions"][i])) && locked_training_regions[cur_img_name][i]) {
+                    illegal_intersection = true;
+                    break;
+                }
+            }
+        }
+        else if (cur_edit_layer === "test_region") {
             for (let i = 0; i < annotations[cur_img_name]["training_regions"].length; i++) {
                 if (box_intersects_region(box, annotations[cur_img_name]["training_regions"][i])) {
                     illegal_intersection = true;
@@ -666,6 +862,25 @@ function create_anno() {
             if (cur_edit_layer === "training_region") {
                 locked_training_regions[cur_img_name].push(false);
             }
+            else if (cur_edit_layer === "annotation") {
+                if (annotations[cur_img_name]["source"] === "NA") {
+                    annotations[cur_img_name]["source"] = "manually_annotated_from_scratch";
+                }
+                else if (annotations[cur_img_name]["source"] === "unmodified_model_predictions") {
+                    annotations[cur_img_name]["source"] = "edited_model_predictions";
+                }
+                else if (annotations[cur_img_name]["source"] === "uploaded") {
+                    annotations[cur_img_name]["source"] = "uploaded_and_edited";
+                }
+                if (cur_img_name in voronoi_data && "annotation" in voronoi_data[cur_img_name]) {
+                    delete voronoi_data[cur_img_name]["annotation"];
+                }
+            }
+            
+
+
+
+
             $("#save_icon").css("color", "#ed452b");
         }
 
@@ -794,7 +1009,15 @@ function create_anno() {
         }
 
         let illegal_intersection = false;
-        if ((cur_edit_layer === "annotation") || (cur_edit_layer === "test_region")) {
+        if (cur_edit_layer === "annotation") {
+            for (let i = 0; i < annotations[cur_img_name]["training_regions"].length; i++) {
+                if ((box_intersects_region(updated_box, annotations[cur_img_name]["training_regions"][i])) && locked_training_regions[cur_img_name][i]) {
+                    illegal_intersection = true;
+                    break;
+                }
+            }
+        }
+        else if (cur_edit_layer === "test_region") {
             for (let i = 0; i < annotations[cur_img_name]["training_regions"].length; i++) {
                 if ((box_intersects_region(updated_box, annotations[cur_img_name]["training_regions"][i]))) {
                     illegal_intersection = true;
@@ -822,6 +1045,19 @@ function create_anno() {
 
             if (!(arraysEqual(updated_box, prev_box))) {
                 $("#save_icon").css("color", "#ed452b");
+
+
+                if (cur_edit_layer === "annotation") {
+                
+                    if (annotations[cur_img_name]["source"] === "unmodified_model_predictions") {
+                        annotations[cur_img_name]["source"] = "edited_model_predictions";
+                    }
+
+                    if (cur_img_name in voronoi_data && "annotation" in voronoi_data[cur_img_name]) {
+                        delete voronoi_data[cur_img_name]["annotation"];
+                    }
+                }
+
             }
             // $("#save_icon").css("color", "#ed452b");
         }
@@ -910,9 +1146,9 @@ function create_viewer(viewer_id) {
         //     set_cur_bounds();
         // },
         onRedraw: function() {
-            console.log("onRedraw", selected_annotation_index, cur_edit_layer);
+            //console.log("onRedraw", selected_annotation_index, cur_edit_layer);
 
-
+            let navigation_type = $("#navigation_dropdown").val();
         
             let boxes_to_add = {};
             if ((cur_panel === "annotation") || (cur_panel === "prediction")) {
@@ -957,6 +1193,82 @@ function create_viewer(viewer_id) {
 
             overlay.context2d().font = "14px arial";
 
+            if ((cur_panel === "prediction") && (!($("#image_visible_switch").is(":checked")))) {
+                let viewer_point_1 = viewer.viewport.imageToViewerElementCoordinates(
+                    new OpenSeadragon.Point(0, 0));
+                let viewer_point_2 = viewer.viewport.imageToViewerElementCoordinates(
+                        new OpenSeadragon.Point(overlay.imgWidth, overlay.imgHeight));
+                        
+                overlay.context2d().fillStyle = "#222621";         
+                overlay.context2d().fillRect(
+                    viewer_point_1.x,
+                    viewer_point_1.y,
+                    (viewer_point_2.x - viewer_point_1.x),
+                    (viewer_point_2.y - viewer_point_1.y)
+                );
+            }
+
+
+            let voronoi_keys = [];
+            if ($("#voronoi_annotation").is(":checked")) {
+                voronoi_keys.push("annotation");
+            }
+            if ($("#voronoi_prediction").is(":checked")) {
+                voronoi_keys.push("prediction");
+            }
+
+            if (cur_panel === "prediction") {
+                for (let key of voronoi_keys) {
+                    if (!(cur_img_name in voronoi_data)) {
+                        voronoi_data[cur_img_name] = {};
+                    }
+                    if (!(key in voronoi_data[cur_img_name])) {
+                        voronoi_data[cur_img_name][key] = compute_voronoi(key);
+                    }
+                    if (voronoi_data[cur_img_name][key] != null) {
+                        let visible_edges = [];
+                        for (let edge of voronoi_data[cur_img_name][key].edges) {
+
+
+                            let line_box_min_x = Math.min(edge.va.x, edge.vb.x);
+                            let line_box_min_y = Math.min(edge.va.y, edge.vb.y);
+                            let line_box_max_x = Math.max(edge.va.x, edge.vb.x);
+                            let line_box_max_y = Math.max(edge.va.y, edge.vb.y);
+                            if (((line_box_min_x < max_x) && (line_box_max_x > min_x)) && ((line_box_min_y < max_y) && (line_box_max_y > min_y))) {
+                                visible_edges.push(edge);
+                            }
+                    
+                        }
+                        if (visible_edges.length < MAX_EDGES_DISPLAYED) {
+                            for (let edge of visible_edges) {
+                                overlay.context2d().strokeStyle = overlay_colors[key];
+                                overlay.context2d().lineWidth = 2;
+                        
+                                let viewer_point_1 = viewer.viewport.imageToViewerElementCoordinates(
+                                    new OpenSeadragon.Point(edge.va.x, edge.va.y));
+                                let viewer_point_2 = viewer.viewport.imageToViewerElementCoordinates(
+                                        new OpenSeadragon.Point(edge.vb.x, edge.vb.y));    
+                        
+                                overlay.context2d().beginPath();
+                                overlay.context2d().moveTo(viewer_point_1.x, viewer_point_1.y);
+                                overlay.context2d().lineTo(viewer_point_2.x, viewer_point_2.y);
+                                overlay.context2d().closePath();
+                                overlay.context2d().stroke();
+                            }
+                        }
+                    }
+                }
+            }
+
+
+
+
+
+
+
+
+
+
 
             let draw_order = ["training_region", "test_region", "annotation", "prediction"];
             for (let key of draw_order) { //Object.keys(boxes_to_add)) {
@@ -973,6 +1285,7 @@ function create_viewer(viewer_id) {
 
 
                 //for (let i = 0; i < annotations[cur_img_name]["boxes"].length; i++) {
+                let visible_inds = [];
                 for (let i = 0; i < boxes_to_add[key]["boxes"].length; i++) {
                     if ((cur_edit_layer === key) && (i == selected_annotation_index)) {
                         continue;
@@ -991,13 +1304,24 @@ function create_viewer(viewer_id) {
                     let box_height_pct_of_image = (box[3] - box[1]) / overlay.imgHeight;
                     let disp_height = (box_height_pct_of_image / viewer_bounds.height) * container_size.y;
 
-                    if ((disp_width * disp_height) < 0.5) {
-                        continue;
-                    }
+                    // if ((disp_width * disp_height) < 0.5) {
+                    //     continue;
+                    // }
 
                     if (((box[1] < max_x) && (box[3] > min_x)) && ((box[0] < max_y) && (box[2] > min_y))) {
-                        let viewer_point = viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(box[1], box[0]));
-                        let viewer_point_2 = viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(box[3], box[2]));
+
+                        // if (cur_region_index == -1) {
+                        visible_inds.push(i);
+                        // }
+                        // else {
+                        //     let cur_region = annotations[cur_img_name][navigation_type][cur_region_index];
+                        //     if (((box[1] < cur_region[3]) && (box[3] > cur_region[1])) && ((box[0] < cur_region[2]) && (box[2] > cur_region[0]))) {
+                        //         visible_inds.push(i);
+                        //     }
+                        // }
+
+
+
 
 
                         
@@ -1013,6 +1337,21 @@ function create_viewer(viewer_id) {
                         // }
                         //console.log("ADDING A BOX!");
                         
+
+                    }
+                }
+                //console.log("visible_inds.length", visible_inds.length)
+
+
+
+
+
+                if (visible_inds.length < MAX_BOXES_DISPLAYED) {
+                    for (let ind of visible_inds) {
+                        let box = boxes_to_add[key]["boxes"][ind];
+                        let viewer_point = viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(box[1], box[0]));
+                        let viewer_point_2 = viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(box[3], box[2]));
+
                         overlay.context2d().strokeRect(
                             viewer_point.x,// * container_size.x,
                             viewer_point.y,// * container_size.y,
@@ -1020,78 +1359,84 @@ function create_viewer(viewer_id) {
                             (viewer_point_2.y - viewer_point.y)// * container_size.y
                         );
                     }
-                }
-            }
 
-            if (("prediction" in boxes_to_add) && ($("#scores_switch").is(":checked"))) {
-                for (let i = 0; i < boxes_to_add["prediction"]["boxes"].length; i++) {
-    
-                    let box = boxes_to_add["prediction"]["boxes"][i];
-                    let score = boxes_to_add["prediction"]["scores"][i];
-                    if (score < slider_val) {
-                        continue;
-                    }
                 
-                    
-                    let box_width_pct_of_image = (box[3] - box[1]) / overlay.imgWidth;
-                    let disp_width = (box_width_pct_of_image / viewer_bounds.width) * container_size.x;
-                    let box_height_pct_of_image = (box[3] - box[1]) / overlay.imgHeight;
-                    let disp_height = (box_height_pct_of_image / viewer_bounds.height) * container_size.y;
-
-                    if ((disp_width * disp_height) < 10) {
-                        continue;
-                    }
-
-                    if (((box[1] < max_x) && (box[3] > min_x)) && ((box[0] < max_y) && (box[2] > min_y))) {
 
 
-                        let viewer_point = viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(box[1], box[0]));
-                        //let viewer_point_2 = viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(box[3], box[2]));
+                    if ((key === "prediction") && ("prediction" in boxes_to_add) && ($("#scores_switch").is(":checked"))) {
+                        for (let ind of visible_inds) {
 
-                        let score_text = score.toFixed(2); //toString().padEnd(4, "0");
-
-                        // overlay.context2d().fillStyle = "white";
-                        // overlay.context2d().fillRect(
-                        //     box[1] / max_dim,// * container_size.x,
-                        //     box[0] / max_dim,// * container_size.y,
-                        //     (box[3] - box[1]) / max_dim,// * container_size.x,
-                        //     (box[2] - box[0]) / max_dim// * container_size.y
-                        // );
-
-                        // overlay.context2d().font = "bold 0.001em serif";
+                            let box = boxes_to_add[key]["boxes"][ind];
+                            let score = boxes_to_add[key]["scores"][ind];
+            
+                            // let box = boxes_to_add["prediction"]["boxes"][i];
+                            // let score = boxes_to_add["prediction"]["scores"][i];
+                            if (score < slider_val) {
+                                continue;
+                            }
                         
-                        // overlay.context2d().fillStyle = "black";
-                        // overlay.context2d().scale(10, 10);
-                        // overlay.context2d().fillText(score_text, 
+                            
+                            let box_width_pct_of_image = (box[3] - box[1]) / overlay.imgWidth;
+                            let disp_width = (box_width_pct_of_image / viewer_bounds.width) * container_size.x;
+                            let box_height_pct_of_image = (box[3] - box[1]) / overlay.imgHeight;
+                            let disp_height = (box_height_pct_of_image / viewer_bounds.height) * container_size.y;
 
-                        //     box[1] / max_dim, // + 5,// * container_size.x, //text_x,
-                        //     box[0] / max_dim //viewer_point.y - 5// * container_size.y//text_y
-                        // );
-                        
+                            if ((disp_width * disp_height) < 10) {
+                                continue;
+                            }
 
-                        overlay.context2d().fillStyle = "white";
-                        overlay.context2d().fillRect(
-                                viewer_point.x - 1,// * container_size.x,
-                                viewer_point.y - 20,// * container_size.y,
-                                36, //ctx.measureText(score).width,// * container_size.x,
-                                20// * container_size.y
-                            );
+                            if (((box[1] < max_x) && (box[3] > min_x)) && ((box[0] < max_y) && (box[2] > min_y))) {
 
 
+                                let viewer_point = viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(box[1], box[0]));
+                                //let viewer_point_2 = viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(box[3], box[2]));
+
+                                let score_text = score.toFixed(2); //toString().padEnd(4, "0");
+
+                                // overlay.context2d().fillStyle = "white";
+                                // overlay.context2d().fillRect(
+                                //     box[1] / max_dim,// * container_size.x,
+                                //     box[0] / max_dim,// * container_size.y,
+                                //     (box[3] - box[1]) / max_dim,// * container_size.x,
+                                //     (box[2] - box[0]) / max_dim// * container_size.y
+                                // );
+
+                                // overlay.context2d().font = "bold 0.001em serif";
+                                
+                                // overlay.context2d().fillStyle = "black";
+                                // overlay.context2d().scale(10, 10);
+                                // overlay.context2d().fillText(score_text, 
+
+                                //     box[1] / max_dim, // + 5,// * container_size.x, //text_x,
+                                //     box[0] / max_dim //viewer_point.y - 5// * container_size.y//text_y
+                                // );
+                                
+
+                                overlay.context2d().fillStyle = "white";
+                                overlay.context2d().fillRect(
+                                        viewer_point.x - 1,// * container_size.x,
+                                        viewer_point.y - 20,// * container_size.y,
+                                        36, //ctx.measureText(score).width,// * container_size.x,
+                                        20// * container_size.y
+                                    );
 
 
-                        overlay.context2d().fillStyle = "black";
-                        overlay.context2d().fillText(score_text, 
 
-                            viewer_point.x + 3,// * container_size.x, //text_x,
-                            viewer_point.y - 5// * container_size.y//text_y
-                        );
+
+                                overlay.context2d().fillStyle = "black";
+                                overlay.context2d().fillText(score_text, 
+
+                                    viewer_point.x + 3,// * container_size.x, //text_x,
+                                    viewer_point.y - 5// * container_size.y//text_y
+                                );
+                            }
+                        }
                     }
                 }
             }
 
             
-            let navigation_type = $("#navigation_dropdown").val();
+            
             //console.log("cur_bounds", cur_bounds);
             if (navigation_type === "training_regions" || navigation_type === "test_regions") {
 
@@ -1115,11 +1460,14 @@ function create_viewer(viewer_id) {
 
 
                     let rects = [
-                        [0 -10 , 0 -10, region[0], image_px_width +10],
-                        [0, region[3], image_px_height +10, image_px_width +10],
-                        [region[2], 0 -10, image_px_height +10, image_px_width +10],
-                        [0 -10, 0 -10, image_px_height +10, region[1]]
-
+                        // [0 -10 , 0 -10, region[0], image_px_width +10],
+                        // [0, region[3], image_px_height +10, image_px_width +10],
+                        // [region[2], 0 -10, image_px_height +10, image_px_width +10],
+                        // [0 -10, 0 -10, image_px_height +10, region[1]]
+                        [0 , 0, region[0], image_px_width],
+                        [0, region[3], image_px_height, image_px_width],
+                        [region[2], 0, image_px_height, image_px_width],
+                        [0, 0, image_px_height, region[1]]
                     ];
 
                     //let bounds = annotations[cur_img_name][navigation_type][cur_region_index];
@@ -1161,6 +1509,8 @@ function create_viewer(viewer_id) {
 
                 //}
             }
+
+
 
                 // let top_left = viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(bounds[1], bounds[0]));
                 // let bot_right = viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(bounds[3], bounds[2]));
@@ -1493,97 +1843,8 @@ function create_viewer(viewer_id) {
 
     
 
-    viewer.innerTracker.keyDownHandler = function(e) {
-        //console.log("del fired");
+    //viewer.innerTracker.keyDownHandler = async function(e) {
 
-        if (e.keyCode == 46) {
-
-            let selected = anno.getSelected();
-            if (selected != null) {
-
-                anno.removeAnnotation(selected);
-                anno.cancelSelected();
-
-                //annotations[cur_img_name]["annotations"] = anno.getAnnotations();
-
-                let sel_box_array;
-                if (cur_edit_layer === "annotation") {
-                    sel_box_array = annotations[cur_img_name]["boxes"];
-                }
-                else if (cur_edit_layer === "training_region") {
-                    sel_box_array = annotations[cur_img_name]["training_regions"];
-
-                    // let num_regions = get_num_regions("training_regions");
-                    // if (num_regions == 1) {
-                        
-                    //     let num_options = $('#navigation_dropdown').children('option').length;
-                    //     $("#navigation_dropdown").empty();
-                    //     if (num_options == 2) {
-                    //         $("#navigation_dropdown").append($("<option></option>").val("images").text("Images"));
-                    //         //$("#navigation_dropdown").append($("<option></option>").val("training_regions").text("Fine-Tuning Regions"));
-                    //     }
-                    //     else if (num_options == 3) {
-                    //         $("#navigation_dropdown").append($("<option></option>").val("images").text("Images"));
-                    //         //$("#navigation_dropdown").append($("<option></option>").val("training_regions").text("Fine-Tuning Regions"));
-                    //         $("#navigation_dropdown").append($("<option></option>").val("test_regions").text("Test Regions"));
-                    //     }
-                    // }
-                }
-                else {
-                    sel_box_array = annotations[cur_img_name]["test_regions"];
-
-                    // let num_regions = get_num_regions("test_regions");
-                    // if (num_regions == 1) {
-                    //     let num_options = $('#navigation_dropdown').children('option').length;
-                    //     $("#navigation_dropdown").empty();
-                    //     if (num_options == 2) {
-                    //         $("#navigation_dropdown").append($("<option></option>").val("images").text("Images"));
-                    //         //$("#navigation_dropdown").append($("<option></option>").val("test_regions").text("Test Regions"));
-                    //     }
-                    //     else if (num_options == 3) {
-                    //         $("#navigation_dropdown").append($("<option></option>").val("images").text("Images"));
-                    //         $("#navigation_dropdown").append($("<option></option>").val("training_regions").text("Fine-Tuning Regions"));
-                    //         //$("#navigation_dropdown").append($("<option></option>").val("test_regions").text("Test Regions"));
-                    //     }
-                          
-                    // }
-
-                }
-                //if ((cur_edit_layer !== "training_region") || !(locked_training_regions[selected_annotation_index])) {
-
-
-
-                sel_box_array.splice(selected_annotation_index, 1);
-                selected_annotation = null;
-                selected_annotation_index = -1;
-
-                update_navigation_dropdown();
-
-
-                if (cur_edit_layer === "training_region") {
-                    locked_training_regions[cur_img_name].splice(selected_annotation_index, 1);
-                }
-
-                
-                if ((cur_edit_layer === "annotation") && (sel_box_array.length == 0)) {
-                    annotations[cur_img_name]["predictions_used_as_annotations"] = false;
-                }
-                
-
-                
-
-                // annotations[cur_img_name]["update_time"] = parseInt(new Date().getTime() / 1000);
-
-                // update_image_status();
-                // set_image_status_combo();
-                $("#save_icon").css("color", "#ed452b");
-                // create_image_set_table();
-                //}
-            }
-
-        }
-
-    }
 /*
     viewer.addHandler("open", function(event) {
 
@@ -1595,7 +1856,9 @@ function create_viewer(viewer_id) {
         
     });*/
 
-
+    // $("#seadragon_viewer").keydown(function(e) {
+    //     keydown_handler(e);
+    // });
     
     viewer.addHandler('canvas-click', function(event) {
         // The canvas-click event gives us a position in web coordinates.
@@ -1731,7 +1994,7 @@ function create_viewer(viewer_id) {
 
                     if (cur_edit_layer === "annotation") {
                         for (let i = 0; i < annotations[cur_img_name]["training_regions"].length; i++) {
-                            if ((box_intersects_region(box, annotations[cur_img_name]["training_regions"][i]))) {
+                            if ((box_intersects_region(box, annotations[cur_img_name]["training_regions"][i])) && (locked_training_regions[cur_img_name][i])) {
 
                                 selected_annotation_index = -1;
                                 return;
@@ -2029,7 +2292,6 @@ function save_annotations() {
         action: "save_annotations",
         annotations: JSON.stringify(annotations),
         excess_green_record: JSON.stringify(excess_green_record),
-        is_ortho: metadata["is_ortho"],
         is_public: metadata["is_public"],
         //train_num_increased: train_num_increased ? "True" : "False"
         num_training_regions_increased: new_training_regions > 0 ? "yes" : "no",
@@ -2260,8 +2522,8 @@ function confirmed_use_predictions() {
             }
         }
     }
-
-    annotations[cur_img_name]["predictions_used_as_annotations"] = true;
+    annotations[cur_img_name]["source"] = "unmodified_model_predictions";
+    //annotations[cur_img_name]["predictions_used_as_annotations"] = true;
     
 /*
     annotations[cur_img_name]["annotations"] = [];
@@ -2505,6 +2767,8 @@ async function show_prediction(change_image=false) {
     else {
         $("#predictions_unavailable").show();
     }
+
+    //compute_voronoi();
 
     viewer.zoomPerScroll = 1.2;
     anno.readOnly = true;
@@ -2847,11 +3111,19 @@ function show_segmentation() {
 
     // }
 
-    $("#threshold_slider_val").html(excess_green_record[cur_img_name]["sel_val"]);
-    $("#threshold_slider").val(excess_green_record[cur_img_name]["sel_val"]);
+    let cur_exg_val = excess_green_record[cur_img_name]["sel_val"];
+    $("#threshold_slider_val").html(cur_exg_val.toFixed(2));
+    $("#threshold_slider").val(cur_exg_val);
 
     // $("input[name=segmentation_radio][value='pan']").prop("checked", true).change();
-    $("#panning_enabled_status").html("No");
+    //$("#panning_enabled_status").html("No");
+    // if (excess_green_values_are_all_the_same()) {
+    //     disable_std_buttons(["apply_threshold_to_all_button"]);
+    // }
+    // else {
+    //     enable_std_buttons(["apply_threshold_to_all_button"]);
+    // }
+    update_apply_current_threshold_to_all_images_button();
     $("#enable_pan_button").click();
     //$("#pan_switch").prop("checked", true).change();
 
@@ -2889,6 +3161,7 @@ function show_segmentation() {
 function pan_viewport() {
 
     console.log("pan_viewport");
+    $("#segmentation_loader").hide();
 
 
     if (viewer == null) {
@@ -2944,6 +3217,8 @@ function segment_viewport() {
         
         let canvas = document.createElement("canvas");
         canvas.id = "my_canvas";
+        // canvas.margin = "0px";
+        // canvas.padding = "0px";
         // let image_canvas = document.createElement("canvas");
         // let exg_ctx = canvas.getContext("2d");
         rgb_ctx = canvas.getContext("2d");
@@ -2960,35 +3235,55 @@ function segment_viewport() {
 
 
 
-        // console.log("rgb_image.data (1)", rgb_image.data);
+            // console.log("rgb_image.data (1)", rgb_image.data);
 
-        //let container_size = viewer.viewport.getContainerSize();
+            //let container_size = viewer.viewport.getContainerSize();
 
-        rgb_ctx.canvas.width = container_width;
-        rgb_ctx.canvas.height = container_height;
+            rgb_ctx.canvas.width = container_width
+            rgb_ctx.canvas.height = container_height;
 
-        let w = rgb_ctx.canvas.width;
-        let h = rgb_ctx.canvas.height 
+            let w = rgb_ctx.canvas.width;
+            let h = rgb_ctx.canvas.height;
 
 
-        rgb_ctx.drawImage(rgb_image, 0, 0, w, h);      // Set image to Canvas context
-        d_rgb = rgb_ctx.getImageData(0, 0, w, h);  // Get image Data from Canvas context
-        // console.log("d_rgb.data", d_rgb.data);
+            console.log("w, h", w, h);
 
-        draw_segmentation();
+
+            rgb_ctx.drawImage(rgb_image, 0, 0, w, h);      // Set image to Canvas context
+            d_rgb = rgb_ctx.getImageData(0, 0, w, h);  // Get image Data from Canvas context
+            // console.log("d_rgb.data", d_rgb.data);
+
+            draw_segmentation();
         }
     }
     else {
         draw_segmentation();
     }
+    container_height = $("#seadragon_viewer").height();
+    console.log("container_height", container_height);
 }
 
 function draw_segmentation() {
     console.log("draw_segmentation called");
+
+
+
+
+    //$("#seadragon_viewer").css("height", "max-content");
+    // container_height = $("#seadragon_viewer").height();
+    // console.log("container_height", container_height);
+
+    //$("#segmentation_loader").toggleClass('load-complete');
+    //$("#segmentation_checkmark").toggle();
+    //fitToContainer(rgb_ctx.canvas);
+
+
+
     
     let threshold = excess_green_record[cur_img_name]["sel_val"]; //0.16;
     let num_foreground = 0;
     let non_zero = [];
+    console.log("d_rgb.data.length", d_rgb.data.length);
     for (let i = 0; i < d_rgb.data.length; i += 4) {
         r_val = d_rgb.data[i] / 255;
         g_val = d_rgb.data[i+1] / 255;
@@ -3011,15 +3306,25 @@ function draw_segmentation() {
 
     let percent_vegetation = ((num_foreground / (d_rgb.data.length / 4)) * 100).toFixed(2);
     console.log("percent_vegetation", percent_vegetation);
+
+
     //excess_green_record[cur_img_name]["ground_cover_percentage"] = parseFloat(percent_vegetation);
 
+    let container_width = $("#seadragon_viewer").width();
+    let container_height = $("#seadragon_viewer").height();
+
+    console.log("container_width, container_height", container_width, container_height);
     rgb_ctx.putImageData(d_rgb, 0, 0);
 
+    // container_height = $("#seadragon_viewer").height();
+    // console.log("container_height", container_height);
     // $("#seadragon_viewer").hide();
     // $("#test_seg_viewer").empty();
     // $("#test_seg_viewer").append(
     //     rgb_ctx.canvas
     // );
+
+
 
     //$("#test_seg_viewer").show();
     //overlay = null;
@@ -3027,14 +3332,45 @@ function draw_segmentation() {
     overlay.onRedraw = function() {};
     viewer = null;
     //cur_bounds = null;
+    let canvas_container_height = $("#seadragon_viewer").height() + "px";
+    console.log(canvas_container_height);
+
     $("#seadragon_viewer").empty();
+   /*$("#seadragon_viewer").css("display", "grid");*/
+    //console.log($("#seadragon_viewer"));
+    //console.log($("#seasdragon_viewer").css("display"));
+    // container_height = $("#seadragon_viewer").height();
+    // console.log("container_height", container_height);
+    //$("#seadragon_viewer").css("height", "max-content");
+
+    //$("#seadragon_viewer").css("display", "inline-block");
+
+
+    console.log("Appending canvas", rgb_ctx.canvas);
     $("#seadragon_viewer").append(
-        rgb_ctx.canvas
+        `<div id="canvas_container" style="height: ${canvas_container_height}">`+
+        //rgb_ctx.canvas +
+        `</div>`
+
     );
 
+    $("#canvas_container").append(rgb_ctx.canvas);
+    container_width = $("#seadragon_viewer").width();
+    container_height = $("#seadragon_viewer").height();
+
+    console.log("container_width, container_height", container_width, container_height);
+
+
+    delay(1).then(() => {
+        $("#segmentation_loader").toggleClass('load-complete');
+        $("#segmentation_checkmark").toggle();
+
+        enable_std_buttons(["segment_button"]);
+    });
 
 
 }
+  
 
 function my_seg_test() {
 
@@ -3090,7 +3426,8 @@ function my_seg_test() {
         rgb_ctx.canvas.height = container_size.y;
 
         let w = rgb_ctx.canvas.width;
-        let h = rgb_ctx.canvas.height 
+        let h = rgb_ctx.canvas.height;
+
 
 
         rgb_ctx.drawImage(rgb_image, 0, 0, w, h);      // Set image to Canvas context
@@ -3610,7 +3947,7 @@ function submit_prediction_request(image_names) {
         ` Upon completion, your results will be preserved under this image set's` +
         ` <em>Results</em> tab (accessible from the home page).</div>` +
         `<div style="height: 30px"></div>` +
-        `<table class="transparent_table">` +
+        `<table>` +
         `<tr>` +
             `<td>` + 
                 `<div class="table_head" style="width: ${left_col_width_px}; padding-right: 10px">Name</div>` +
@@ -3875,25 +4212,32 @@ function show_model_details(model_creator, model_name) {
                     let max_y = min_y + viewport_h;
 
                     let draw_order = ["annotation", "training_region", "test_region"];
+                    
                     for (let key of draw_order) { 
                         
                         current_image_set_overlay.context2d().strokeStyle = overlay_colors[key];
                         current_image_set_overlay.context2d().lineWidth = 2;
                         //console.log("boxes_to_add", boxes_to_add, key);
+                        let visible_boxes = [];
                         for (let i = 0; i < boxes_to_add[key]["boxes"].length; i++) {
 
                             let box = boxes_to_add[key]["boxes"][i];
 
-                            let box_width_pct_of_image = (box[3] - box[1]) / current_image_set_overlay.imgWidth;
-                            let disp_width = (box_width_pct_of_image / viewer_bounds.width) * container_size.x;
-                            let box_height_pct_of_image = (box[3] - box[1]) / current_image_set_overlay.imgHeight;
-                            let disp_height = (box_height_pct_of_image / viewer_bounds.height) * container_size.y;
+                            //let box_width_pct_of_image = (box[3] - box[1]) / current_image_set_overlay.imgWidth;
+                            //let disp_width = (box_width_pct_of_image / viewer_bounds.width) * container_size.x;
+                            //let box_height_pct_of_image = (box[3] - box[1]) / current_image_set_overlay.imgHeight;
+                            //let disp_height = (box_height_pct_of_image / viewer_bounds.height) * container_size.y;
 
-                            if ((disp_width * disp_height) < 0.5) {
-                                continue;
-                            }
+                            // if ((disp_width * disp_height) < 0.5) {
+                            //     continue;
+                            // }
 
                             if (((box[1] < max_x) && (box[3] > min_x)) && ((box[0] < max_y) && (box[2] > min_y))) {
+                                visible_boxes.push(box);
+                            }
+                        }
+                        if (visible_boxes.length < MAX_BOXES_DISPLAYED) {
+                            for (let box of visible_boxes) {
                                 let viewer_point = current_image_set_viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(box[1], box[0]));
                                 let viewer_point_2 = current_image_set_viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(box[3], box[2]));
                                 
@@ -3984,7 +4328,7 @@ function change_image_set(image_set_index) {
     function(response, status) {
 
         if (response.error) {
-            show_modal_message("Error", error.message);
+            show_modal_message("Error", response.message);
         }
         else {
 
@@ -4115,20 +4459,26 @@ function change_image_set(image_set_index) {
                         model_overlay.context2d().strokeStyle = overlay_colors[key];
                         model_overlay.context2d().lineWidth = 2;
                         //console.log("boxes_to_add", boxes_to_add, key);
+                        let visible_boxes = [];
                         for (let i = 0; i < boxes_to_add[key]["boxes"].length; i++) {
 
                             let box = boxes_to_add[key]["boxes"][i];
 
-                            let box_width_pct_of_image = (box[3] - box[1]) / model_overlay.imgWidth;
-                            let disp_width = (box_width_pct_of_image / viewer_bounds.width) * container_size.x;
-                            let box_height_pct_of_image = (box[3] - box[1]) / model_overlay.imgHeight;
-                            let disp_height = (box_height_pct_of_image / viewer_bounds.height) * container_size.y;
+                            //let box_width_pct_of_image = (box[3] - box[1]) / model_overlay.imgWidth;
+                            //let disp_width = (box_width_pct_of_image / viewer_bounds.width) * container_size.x;
+                            //let box_height_pct_of_image = (box[3] - box[1]) / model_overlay.imgHeight;
+                            //let disp_height = (box_height_pct_of_image / viewer_bounds.height) * container_size.y;
 
-                            if ((disp_width * disp_height) < 0.5) {
-                                continue;
-                            }
+                            // if ((disp_width * disp_height) < 0.5) {
+                            //     continue;
+                            // }
 
                             if (((box[1] < max_x) && (box[3] > min_x)) && ((box[0] < max_y) && (box[2] > min_y))) {
+                                visible_boxes.push(box);
+                            }
+                        }
+                        if (visible_boxes.length < MAX_BOXES_DISPLAYED) {
+                            for (let box of visible_boxes) {
                                 let viewer_point = model_viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(box[1], box[0]));
                                 let viewer_point_2 = model_viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(box[3], box[2]));
                                 
@@ -4296,9 +4646,28 @@ function create_models_selection_table() {
         let button_id = model_creator + "." + model_name;
         $("#models_table").append(
             `<tr style="border-bottom: 1px solid white; border-color: #4c6645;">` + 
-                `<td style="width: 100%">` +
-                    `<div class="table_entry" style="text-align: left;">${model_details_table}</div>` +
+                `<td>` +
+                    `<div class="table_entry" style="width: 300px; text-align: left;">${model_details_table}</div>` +
                 `</td>` +
+                `<td>` +
+                    `<div style="width: 5px"></div>` +
+                `</td>` +
+                `<td>` +
+                    `<div style="width: 180px" class="object_entry">${model_object}</div>` +
+                `</td>` +
+                `<td style="width: 100%">` +
+                    //`<div style="width: 100%"></div>` +
+                `</td>` +
+                `<td>` +
+                    `<button id="${button_id}" onclick="select_model('${model_creator}', '${model_name}')" style="font-size: 14px; width: 80px" class="std-button std-button-hover">Select</button>` + 
+                `</td>` +
+                `<td>` +
+                    `<div style="width: 5px"></div>` +
+                `</td>` +
+                `<td>` +
+                    `<button onclick="show_model_details('${model_creator}', '${model_name}')" style="font-size: 14px; width: 80px" class="std-button std-button-hover">Inspect</button>` +
+                `</td>` +
+/*
                 `<td>` +
                     `<table>` +
                         `<tr>` +
@@ -4314,6 +4683,7 @@ function create_models_selection_table() {
                                             `<button onclick="show_model_details('${model_creator}', '${model_name}')" style="padding: 2px; font-size: 14px; width: 100px" class="std-button std-button-hover">Inspect</button>` +
                                         `</td>` +
                                         `<td>` +
+                                        
                                             `<button id="${button_id}" onclick="select_model('${model_creator}', '${model_name}')" style="padding: 2px; font-size: 14px; width: 100px" class="std-button std-button-hover">Select</button>` + 
                                         `</td>` +
                                     `</tr>` +
@@ -4321,8 +4691,10 @@ function create_models_selection_table() {
                             `</td>` +
                         `</tr>` +
                     `</table>` +
+                `</td>` +*/
+                `<td>` +
+                    `<div style="width: 5px"></div>` +
                 `</td>` +
-                `<td><div style="width: 5px"></div></td>` +
 
 
 
@@ -4408,35 +4780,10 @@ function show_models(show_public_models) {
 
 
                 $("#model_info").append(
-                    `<table style="width: 100%">` +
+                    `<table>` +
                         `<tr>` +
                             `<td>` +
-                                `<table id="navigate_table" style="width: 400px">` + 
-                                    `<tr>` +
-                                        `<td>` +
-                                            `<h class="header2" style="width: 150px; padding-left: 10px">Filter</h>` +
-                                        `</td>` +
-                                    `</tr>` +
-                                    `<tr>` +
-                                        `<td>` +
-                                            `<div style="height: 100px">` +
-                                                `<table id="filter_table"></table>` +
-                                            `</div>` +
-                                        `</td>` +
-                                    `</tr>` +
-                                    `<tr>` +
-                                        `<td>` +
-                                            `<h class="header2" style="width: 150px; padding-left: 10px">Sort Order</h>` +
-                                        `</td>` +
-                                    `</tr>` +
-                                    `<tr>` +
-                                        `<td>` +
-                                            `<div style="height: 190px">` +
-                                                `<table id="sort_table"></table>` +
-                                            `</div>` +
-                                        `</td>` +
-                                    `</tr>` +
-                                `</table>` +
+                                `<div style="width: 5px"></div>` +
                             `</td>` +
                             `<td>` +
                                 `<table>` +
@@ -4447,19 +4794,59 @@ function show_models(show_public_models) {
                                     `</tr>` +
                                     `<tr>` +
                                         `<td>` +
-                                            `<div class="scrollable_area" style="height: 350px; width: 700px; border: 1px solid white; overflow-y: scroll">` +
+                                            `<div class="scrollable_area" style="height: 350px; width: 800px; border: 1px solid white; overflow-y: scroll; border-radius: 10px;">` +
                                                 `<table id="models_table" style="border-collapse: collapse;"></table>` +
                                             `</div>` +
                                         `</td>` +
                                     `</tr>` +
                                 `</table>` +
                             `</td>` +
+                            `<td style="width: 100%">` +
+                                //`<div style="width: 5px"></div>` +
+                            `</td>` +
+
+                            `<td>` +
+                                `<table id="navigate_table">` + 
+                                    `<tr>` +
+                                        `<td>` +
+                                            `<h class="header2" style="width: 150px; padding-left: 10px">Filter</h>` +
+                                        `</td>` +
+                                    `</tr>` +
+                                    `<tr>` +
+                                        `<td>` +
+                                            `<div style="border: 1px solid white; border-radius: 10px; padding: 10px">` +
+                                                `<table id="filter_table"></table>` +
+                                            `</div>` +
+                                        `</td>` +
+                                    `</tr>` +
+                                    `<tr>` +
+                                        `<td>` +
+                                            `<div style="height: 15px"></div>` +
+                                        `</td>` +
+                                    `</tr>` +
+                                    `<tr>` +
+                                        `<td>` +
+                                            `<h class="header2" style="width: 150px; padding-left: 10px">Sort Order</h>` +
+                                        `</td>` +
+                                    `</tr>` +
+                                    `<tr>` +
+                                        `<td>` +
+                                            `<div style="border: 1px solid white; border-radius: 10px; padding: 10px">` +
+                                                `<table id="sort_table"></table>` +
+                                            `</div>` +
+                                        `</td>` +
+                                    `</tr>` +
+                                `</table>` +
+                            `</td>` +
+                            `<td>` +
+                                `<div style="width: 5px"></div>` +
+                            `</td>` +
                         `</tr>` +
                     `</table>`);
                     $("#model_info").append(
                     `<div style="text-align: center;">` +
                         `<div style="height: 10px"></div>` +
-                        `<button id="submit_model_change" class="std-button std-button-hover" style="width: 140px">Switch Model</button>` +
+                        `<button id="submit_model_change" class="std-button std-button-hover" style="width: 240px">Switch to Selected Model</button>` +
                         `<div style="height: 10px"></div>` +
                         `</div>`);
                 disable_std_buttons(["submit_model_change"]);
@@ -4510,14 +4897,18 @@ function show_models(show_public_models) {
                     //console.log("adding sort combo", select_id);
                     $("#sort_table").append(
                         `<tr>` +
+                        
                             `<td>` +
-                                `<div style="width: 120px; text-align: right; margin-right: 10px"></div>` +
+                                `<div style="width: 50px"></div>` +//100px; text-align: right; margin-right: 10px; font-size: 14px"></div>` +
                             `</td>` +
                             `<td>` +
-                                `<div style="width: 250px">` +
-                                    `<select id="${select_id}" class="dropdown"></select>` +
+                                `<div style="text-align: center; width: 200px">` + //style="width: 200px">` +
+                                    `<select id="${select_id}" class="nonfixed_dropdown" style="font-size: 14px"></select>` +
                                 `</div>` +
                             `</td>` +
+                            `<td>` +
+                            `<div style="width: 50px"></div>` +
+                        `</td>` +
                         `</tr>`
                     );
                     for (let j = i; j < switch_model_data["sort_options"].length; j++) {
@@ -4570,11 +4961,11 @@ function show_models(show_public_models) {
                     $("#filter_table").append(
                         `<tr>` +
                             `<td>` +
-                                `<div style="width: 120px; text-align: right; margin-right: 10px">${disp_text}</div>` +
+                                `<div style="width: 100px; text-align: right; margin-right: 10px; font-size: 14px">${disp_text}</div>` +
                             `</td>` +
                             `<td>` +
-                                `<div style="width: 250px">` +
-                                    `<select id="${select_id}" class="dropdown"></select>` +
+                                `<div style="width: 180px">` +
+                                    `<select id="${select_id}" class="dropdown" style="font-size: 14px"></select>` +
                                 `</div>` +
                             `</td>` +
                         `</tr>`
@@ -4815,7 +5206,17 @@ $(document).ready(function() {
     excess_green_record = data["excess_green_record"];
     predictions = data["predictions"];
 
-
+    if (metadata["is_ortho"] === "yes") {
+        $("#predict_container").append(
+            `<button id="predict_single_button" class="std-button std-button-hover" style="font-size: 16px; width: 260px">Predictions Only</button>` 
+        );
+    }
+    else {
+        $("#predict_container").append(
+            `<button id="predict_single_button" class="std-button std-button-hover" style="font-size: 16px; width: 130px; border-radius: 30px 0px 0px 30px">Current Image</button>` +
+            `<button id="predict_all_button" class="std-button std-button-hover" style="font-size: 16px; width: 130px; border-radius: 0px 30px 30px 0px; border-left: none">All Images</button>`
+        );
+    }
 
     create_overlays_table();
     //set_prediction_overlay_color();
@@ -5091,7 +5492,7 @@ $(document).ready(function() {
             let update_field_name = update["field_name"];
             let update_mission_date = update["mission_date"];
             let date = timestamp_to_date(update_timestamp);
-            let display_statuses = ["Fine-Tuning", "Predicting", "Switching Model", "Idle", "Training"];
+            let display_statuses = ["Fine-Tuning", "Predicting", "Collecting Metrics", "Switching Model", "Idle", "Training"];
             let update_is_for_this_set = ((update_username === username && update_farm_name === image_set_info["farm_name"]) &&
             (update_field_name === image_set_info["field_name"] && update_mission_date === image_set_info["mission_date"]));
 
@@ -5100,7 +5501,7 @@ $(document).ready(function() {
                 if (status === "Predicting") {
                     //let num_processed = parseInt(update["num_processed"]);
                     //let num_images = parseInt(update["num_images"]);
-                    let percent_complete = Math.round(parseFloat(update["percent_complete"]) * 100) + "%";
+                    let percent_complete = (update["percent_complete"]) + "%";
                     /*
                     let percent_complete_length = percent_complete.length;
                     console.log(percent_complete_length);
@@ -5192,6 +5593,10 @@ $(document).ready(function() {
                                 for (let annotation of predictions[prediction_image_name]["annotations"]) {
                                     annotation["body"].push({"value": "COLOR_1", "purpose": "highlighting"});
                                 }*/
+
+                                if (cur_img_name in voronoi_data && "prediction" in voronoi_data[cur_img_name]) {
+                                    delete voronoi_data[cur_img_name]["prediction"];
+                                }
                             }
 
                             if ((cur_panel === "prediction") && (prediction_image_names.includes(cur_img_name))) {
@@ -5406,11 +5811,12 @@ $(document).ready(function() {
     $("#help_button").click(function() {
 
         let head = "Help";
-        let message = "&#8226; Hold the <i>SHIFT</i> key and drag the mouse to create a new annotation." +
-        "<br><br>&#8226; Click on an existing annotation to select it and change its boundaries." +
-        "<br><br>&#8226; Use the <i>DELETE</i> key to remove a selected annotation." + 
-        "<br><br>&#8226; Don't forget to save your work!";
-        show_modal_message(head, message);
+        let message = `<div style="padding: 10px">&#8226; Hold the <span style='border: 1px solid white; font-size: 14px; padding: 5px 10px; margin: 0px 5px'>SHIFT</span> key while dragging the mouse to create a new annotation or region.` +
+        `<br><br>&#8226; Click on an existing annotation / region to select it and change its boundaries.` +
+        `<br><br>&#8226; Use the <span style='border: 1px solid white; font-size: 14px; padding: 5px 10px; margin: 0px 5px'>DELETE</span> key to remove whichever annotation / region is currently selected.` + 
+        `<br><br>&#8226; If a test region is selected, pressing the <span style='border: 1px solid white; font-size: 16px; padding: 5px 10px; margin: 0px 5px'>m</span> key will change that region into a fine-tuning region.` + 
+        `<br><br>&#8226; Don't forget to save your work!</div>`;
+        show_modal_message(head, message, modal_width=750);
     })
 
     $("#request_result_button").click(function() {
@@ -5447,6 +5853,7 @@ $(document).ready(function() {
         $("#modal_body").append(`<div id="modal_button_container">
         <button class="std-button std-button-hover" `+
         `style="width: 200px" onclick="confirmed_use_predictions()">Continue</button>` +
+        `<div style="display: inline-block; width: 10px"></div>` +
         `<button class="std-button std-button-hover" ` +
         `style="width: 200px" onclick="close_modal()">Cancel</button>` +
         `</div>`);
@@ -5461,6 +5868,17 @@ $(document).ready(function() {
     
     $("#overlays_table").change(function() {
         //add_annotations();
+        // if (($("#voronoi_annotation").is(":checked")) || ($("#voronoi_prediction").is(":checked"))) {
+        //     if (voronoi_data)
+        //     if (voronoi_data["annotation"] == null || voronoi_data["prediction"] == null) {
+        //         compute_voronoi();
+        //     }
+        // }
+        // else {
+        //     voronoi_data["annotation"] = null;
+        //     voronoi_data["prediction"] = null;
+        // }
+
         viewer.raiseEvent('update-viewport');
     });
 
@@ -5516,6 +5934,11 @@ $(document).ready(function() {
     $("#confidence_slider").change(function() {
         let slider_val = Number.parseFloat($("#confidence_slider").val()).toFixed(2);
         $("#confidence_slider_val").html(slider_val);
+
+        if (cur_img_name in voronoi_data && "prediction" in voronoi_data[cur_img_name]) {
+            delete voronoi_data[cur_img_name]["prediction"];
+        }
+
         viewer.raiseEvent('update-viewport');
         /*
         add_annotations();
@@ -5563,26 +5986,29 @@ $(document).ready(function() {
 
 
     $("#apply_threshold_to_all_button").click(function() {
-        let exg_val = parseFloat(parseFloat($("#threshold_slider").val()).toFixed(2));
+        disable_std_buttons(["apply_threshold_to_all_button"]);
+        let cur_val = parseFloat(parseFloat($("#threshold_slider").val()).toFixed(2));
 
         for (let image_name of Object.keys(excess_green_record)) {
-            let min_val = excess_green_record[cur_img_name]["min_val"];
-            let max_val = excess_green_record[cur_img_name]["max_val"];
-            let cur_val = excess_green_record[image_name]["sel_val"]; 
-            if (exg_val > max_val) {
-                excess_green_record[image_name]["sel_val"] = max_val;
-            }
-            else if (exg_val < min_val) {
-                excess_green_record[image_name]["sel_val"] = min_val;
-            }
-            else {
-                excess_green_record[image_name]["sel_val"] = exg_val;
-            }
+            // let min_val = excess_green_record[cur_img_name]["min_val"];
+            // let max_val = excess_green_record[cur_img_name]["max_val"];
+            let prev_val = excess_green_record[image_name]["sel_val"]; 
+            excess_green_record[image_name]["sel_val"] = cur_val;
+            // if (exg_val > max_val) {
+            //     excess_green_record[image_name]["sel_val"] = max_val;
+            // }
+            // else if (exg_val < min_val) {
+            //     excess_green_record[image_name]["sel_val"] = min_val;
+            // }
+            // else {
+            //     excess_green_record[image_name]["sel_val"] = exg_val;
+            // }
 
-            if (cur_val != exg_val) {
+            if (prev_val != cur_val) {
                 $("#save_icon").css("color", "#ed452b");
             }
         }
+        //enable_std_buttons(["apply_threshold_to_all_button"]);
     });
 
 
@@ -5672,10 +6098,14 @@ $(document).ready(function() {
     // });
 
     $("#enable_pan_button").click(function() {
-        if ($("#panning_enabled_status").html() !== "Yes") {
-            $("#panning_enabled_status").html("Yes");
-            pan_viewport();
-        }
+        let container_height = $("#seadragon_viewer").height();
+        console.log("container_height", container_height);
+
+        //if ($("#panning_enabled_status").html() !== "Yes") {
+        $("#panning_enabled_status").html("Yes");
+        disable_std_buttons(["enable_pan_button"]);
+        pan_viewport();
+        //}
     });
     
 
@@ -5686,8 +6116,24 @@ $(document).ready(function() {
         //     $("#pan_switch").prop("disabled", false)
         //     $("#pan_switch").css("opacity", 1.0);
         // }
+        disable_std_buttons(["segment_button"]);
+
+        if ($("#segmentation_loader").hasClass('load-complete')) {
+            console.log("removing load-complete");
+            $("#segmentation_loader").toggleClass('load-complete');
+            $("#segmentation_checkmark").toggle();
+        }
+        $("#segmentation_loader").show();
+        /*
+        $("#segmentation_loader").toggleClass('load-complete');
+        $("#segmentation_checkmark").toggle();*/
+        enable_std_buttons(["enable_pan_button"]);
         $("#panning_enabled_status").html("No");
         segment_viewport();
+
+        let container_height = $("#seadragon_viewer").height();
+        console.log("container_height", container_height);
+
     });
 
     $("input[name=edit_layer_radio]").change(async function(e) {
@@ -5807,15 +6253,21 @@ $(document).ready(function() {
 
 
     $("#threshold_slider").on("input", function() {
-        $("#save_icon").css("color", "#ed452b");
-        excess_green_record[cur_img_name]["sel_val"] = parseFloat(parseFloat($("#threshold_slider").val()).toFixed(2));
-        $("#threshold_slider_val").html( excess_green_record[cur_img_name]["sel_val"]);
+        console.log("threshold slider input");
+        //$("#save_icon").css("color", "#ed452b");
+        let cur_val = parseFloat($("#threshold_slider").val());
+        //excess_green_record[cur_img_name]["sel_val"] = cur_val; //parseFloat(parseFloat($("#threshold_slider").val()).toFixed(2));
+        $("#threshold_slider_val").html(cur_val.toFixed(2));
     });
 
     $("#threshold_slider").change(function() {
+        console.log("threshold slider change");
         $("#save_icon").css("color", "#ed452b");
-        excess_green_record[cur_img_name]["sel_val"] = parseFloat(parseFloat($("#threshold_slider").val()).toFixed(2));
-        $("#threshold_slider_val").html(excess_green_record[cur_img_name]["sel_val"]);
+        let cur_val = parseFloat($("#threshold_slider").val());
+        excess_green_record[cur_img_name]["sel_val"] = cur_val; //parseFloat(parseFloat($("#threshold_slider").val()).toFixed(2));
+        $("#threshold_slider_val").html(cur_val.toFixed(2));
+        update_apply_current_threshold_to_all_images_button();
+
     });
 
 
@@ -5827,6 +6279,13 @@ $(document).ready(function() {
             slider_val = slider_val + 0.01;
             $("#threshold_slider").val(slider_val).change();
         }
+        // if (excess_green_values_are_all_the_same()) {
+        //     disable_std_buttons(["apply_threshold_to_all_button"]);
+        // }
+        // else {
+        //     enable_std_buttons(["apply_threshold_to_all_button"]);
+        // }
+        update_apply_current_threshold_to_all_images_button();
     }
     function lower_threshold_slider() {
         let slider_val = parseFloat($("#threshold_slider").val());
@@ -5834,6 +6293,13 @@ $(document).ready(function() {
             slider_val = slider_val - 0.01;
             $("#threshold_slider").val(slider_val).change();
         }
+        // if (excess_green_values_are_all_the_same()) {
+        //     disable_std_buttons(["apply_threshold_to_all_button"]);
+        // }
+        // else {
+        //     enable_std_buttons(["apply_threshold_to_all_button"]);
+        // }
+        update_apply_current_threshold_to_all_images_button();
     }
 
 
@@ -5860,5 +6326,395 @@ $(document).ready(function() {
         clearInterval(threshold_handler);
     });
 
+    $("#upload_annotations_button").click(function() {
+
+
+
+        show_modal_message(`Upload Annotations`, 
+            `<div>Annotations must be provided as a single JSON file. The file must follow this format:</div>` +
+            `<div style="height: 10px"></div>` +
+            `<div style="text-align: center">` +
+                `<textarea class="json_text_area" style="width: 300px; margin: 0 auto; height: 120px">${format_sample_text}</textarea>` +
+            `</div>` +
+            `<div style="height: 10px"></div>` +
+            `<form id="annotations_upload_form" action="">` +
+            `<table>` + 
+                `<tr>` + 
+                    `<td>` +
+                        `<table>` +
+                            `<tr>` +
+                                `<td>` +
+                                    `<h class="header2" style="width: 350px">Box Format</h>` +
+                                `</td>` +
+                            `</tr>` +
+                            `<tr>` +
+                                `<td>` +
+                                    `<div style="margin-left: 20px">` +
+                                        `<label class="custom_radio_container">[ x_min, y_min, x_max, y_max ]` +
+                                            `<input type="radio" name="box_format_radio" value="[ x_min, y_min, x_max, y_max ]" checked>` +
+                                            `<span class="custom_radio"></span>` +
+                                        `</label>` +
+                                        `<label class="custom_radio_container">[ x_min, y_min, width, height ]` +
+                                            `<input type="radio" name="box_format_radio" value="[ x_min, y_min, width, height ]">` +
+                                            `<span class="custom_radio"></span>` +
+                                        `</label>` +
+                                        `<label class="custom_radio_container">[ x_centre, y_centre, width, height ]` +
+                                            `<input type="radio" name="box_format_radio" value="[ x_centre, y_centre, width, height ]">` +
+                                            `<span class="custom_radio"></span>` +
+                                        `</label>` +
+                                    `</div>` +
+                                `</td>` +
+                            `</tr>` +
+                        `</table>` +
+                        //`<h class="header2">Coordinates Format</h>` +
+                        `<table>` +
+                            `<tr>` +
+                                `<td>` +
+                                    `<h class="header2" style="width: 350px">Coordinates Format</h>` +
+                                `</td>` +
+                            `</tr>` +
+                            `<tr>` +
+                                `<td>` +
+                                    `<div style="margin-left: 20px">` +
+                                        `<label class="custom_radio_container">Pixel Coordinates` +
+                                            `<input type="radio" name="coordinates_format_radio" value="pixel_coordinates" checked>` +
+                                            `<span class="custom_radio"></span>` +
+                                        `</label>` +
+                                        `<label class="custom_radio_container">Normalized Coordinates` +
+                                            `<input type="radio" name="coordinates_format_radio" value="normalized_coordinates">` +
+                                            `<span class="custom_radio"></span>` +
+                                        `</label>` +
+                                    `</div>` +
+                                `</td>` +
+                            `</tr>` +
+                        `</table>` +
+                    `</td>` +
+                    `<td>` +
+                        `<div style="text-align: center">` +
+                            `<div style="border: 1px solid white; border-radius: 8px; width: 275px; margin: 0 auto">` +
+                                `<div id="annotations_dropzone" class="dropzone" style="height: 195px">` +
+                                    `<div class="dz-message data-dz-message">` +
+                                        `<span>Drop Annotations File Here</span>` +
+                                    `</div>` +
+                                `</div>`+
+                            `</div>` +
+                        `</div>` +
+                    `</td>` +
+                `</tr>` +
+            `</table>` +
+            `</form>` +
+            `<div style="height: 10px"></div>` +
+            `<div style="text-align: center">` +
+                `<button style="width: 250px;" class="std-button std-button-hover" id="submit_annotations_button">Upload Annotations</button>` +
+            `</div>`
+        );
+
+        disable_std_buttons(["submit_annotations_button"]);
+        console.log("url", $(location).attr('href') + "/annotations_upload");
+        annotations_dropzone = new Dropzone("#annotations_dropzone", { 
+            url: $(location).attr('href') + "/annotations_upload",
+            autoProcessQueue: false,
+            paramName: function(n) { return 'source_file[]'; },
+            uploadMultiple: false,
+            //chunking: true,
+            //forceChunking: true,
+            //chunkSize: 20000000,
+            //parallelChunkUploads: false,
+            //retryChunks: false,
+            //retryChunksLimit: 3,
+            //farm_name: '',
+            //field_name: '',
+            // mission_date: '',
+            maxFilesize: 100
+        });
+
+
+        annotations_dropzone.on("success", function(file, response) {   
+
+            annotations_dropzone.removeFile(file);
+            if (annotations_dropzone.getAcceptedFiles().length == 0) {
+
+                annotations_dropzone.removeAllFiles(true);
+                //num_sent = 0;
+                annotations_dropzone.options.autoProcessQueue = false;
+
+                console.log("got success response", response);
+
+                // TODO: 'refresh' page
+                annotations = response.annotations;
+                // cur_panel = "annotation";
+
+                // let init_image_name = basename(dzi_image_paths[0]);
+                // cur_img_name = init_image_name.substring(0, init_image_name.length - 4);
+                // cur_region_index = -1;
+                // cur_view = "image";
+                // cur_panel = "annotation";
+                //create_navigation_table();
+            
+                //update_navigation_dropdown();
+
+
+
+
+
+                $("#navigation_dropdown").val("images").change();
+                show_modal_message(`Success!`, `The annotation file you uploaded has been successfully processed.`);
+
+
+
+
+                //change_image()
+
+                
+            }
+        });
+
+        annotations_dropzone.on("error", function(file, response) {
+
+            //num_sent = 0;
+            annotations_dropzone.options.autoProcessQueue = false;
+
+            if (typeof(response) == "object" && "error" in response) {
+                upload_error = response.error;
+            }
+            else {
+                upload_error = response;
+            }
+
+            show_modal_message(`Error`, `An error occured while processing the uploaded annotations:<br><br>` + upload_error);
+            /*
+            console.log(response);
+
+            if (!upload_error) {
+
+                if (typeof(response) == "object" && "error" in response) {
+                    upload_error = response.error;
+                }
+                else {
+                    upload_error = response;
+                }
+                dropzone_handlers[key].removeAllFiles(true);
+
+                display_upload_error();
+            }*/
+
+        });
+
+
+
+
+        annotations_dropzone.on("addedfile", function() {
+            //$("form").change();
+            enable_std_buttons(["submit_annotations_button"]);
+        });
+
+        annotations_dropzone.on('sending', function(file, xhr, formData) {
+            console.log("sending", formData);
+
+            let box_format = $("input:radio[name=box_format_radio]:checked").val();
+            let coordinates_format = $("input:radio[name=coordinates_format_radio]:checked").val();
+
+            formData.append('box_format', box_format);
+            formData.append('coordinates_format', coordinates_format);
+            /*
+            formData.append('farm_name', $("#farm_input").val());
+            formData.append('field_name', $("#field_input").val());
+            formData.append('mission_date', $("#mission_input").val());
+            formData.append("object_name", $("#object_input").val());
+            formData.append("is_public", ($("#upload_set_public").is(':checked')) ? "yes" : "no");
+            formData.append("queued_filenames", queued_filenames.join(","));
+            formData.append('camera_height', $("#camera_height_input").val());
+            if (num_sent == 0) {
+                upload_uuid = uuidv4();
+            }
+            formData.append('upload_uuid', upload_uuid);*/
+            //num_sent++;
+            //formData.append("num_sent", num_sent.toString());
+
+        });
+
+
+
+
+        $("#submit_annotations_button").click(function(e) {
+
+            e.preventDefault();
+            e.stopPropagation();
+
+            for (let f of annotations_dropzone.getQueuedFiles()) {
+
+                console.log("DROPZONE HAS THIS IN IT", f.name);
+            }
+
+            annotations_dropzone.options.autoProcessQueue = true;
+            annotations_dropzone.processQueue();
+        });
+
+
+
+
+
+
+    })
+
+    $("#download_annotations_button").click(function() {
+
+        //let format_sample_text = JSON.stringify(
+        //    format_sample, undefined, 4
+        //);
+
+        show_modal_message(`Download Annotations`, 
+            `<div>Annotations will be downloaded as a single JSON file of the following format:</div>` +
+            `<div style="height: 10px"></div>` +
+            `<div style="text-align: center">` +
+                `<textarea class="json_text_area" style="width: 300px; margin: 0 auto; height: 120px">${format_sample_text}</textarea>` +
+            `</div>` +
+            `<div style="height: 10px"></div>` +
+            `<h class="header2">Box Format</h>` +
+            `<table>` +
+                `<tr>` +
+                    `<td>` +
+                        `<div style="width: 375px">` +
+                            `<label class="custom_radio_container">[ x_min, y_min, x_max, y_max ]` +
+                                `<input type="radio" name="box_format_radio" value="[ x_min, y_min, x_max, y_max ]" checked>` +
+                                `<span class="custom_radio"></span>` +
+                            `</label>` +
+                            `<label class="custom_radio_container">[ x_min, y_min, width, height ]` +
+                                `<input type="radio" name="box_format_radio" value="[ x_min, y_min, width, height ]">` +
+                                `<span class="custom_radio"></span>` +
+                            `</label>` +
+                            `<label class="custom_radio_container">[ x_centre, y_centre, width, height ]` +
+                                `<input type="radio" name="box_format_radio" value="[ x_centre, y_centre, width, height ]">` +
+                                `<span class="custom_radio"></span>` +
+                            `</label>` +
+                        `</div>` +
+                    `</td>` +
+                `</tr>` +
+            `</table>` +
+            `<h class="header2">Coordinates Format</h>` +
+            `<table>` +
+                `<tr>` +
+                    `<td>` +
+                        `<div  style="width: 375px">` +
+                            `<label class="custom_radio_container">Pixel Coordinates` +
+                                `<input type="radio" name="coordinates_format_radio" value="pixel_coordinates" checked>` +
+                                `<span class="custom_radio"></span>` +
+                            `</label>` +
+                            `<label class="custom_radio_container">Normalized Coordinates` +
+                                `<input type="radio" name="coordinates_format_radio" value="normalized_coordinates">` +
+                                `<span class="custom_radio"></span>` +
+                            `</label>` +
+                        `</div>` +
+                    `</td>` +
+                `</tr>` +
+            `</table>` +
+            `<div style="height: 10px"></div>` +
+            `<div style="text-align: center">` +
+                `<button style="width: 250px;" class="std-button std-button-hover" onclick="download_annotations()" id="prepare_download_button">Prepare Download</button>` +
+            `</div>`
+        );
+
+    });
+
+
+    $("body").keydown(function(e) {
+        console.log("Body keyDown")
+        if (selected_annotation !== null) {
+            keydown_handler(e);
+        }
+    });
+
+    $("#image_visible_switch").change(function() {
+        viewer.raiseEvent('update-viewport');
+    });
+
+
+
 });
+
+
+
+function download_annotations() {
+
+    let box_format = $("input:radio[name=box_format_radio]:checked").val();
+    let coordinates_format = $("input:radio[name=coordinates_format_radio]:checked").val();
+
+    // show_modal_message("Preparing Download", 
+    //     `<div id="prep_download_message">Preparing download...</div><div id="prep_download_loader" class="loader"></div>` +
+    //     `<div style="text-align: center; margin-top: 20px;"><a class="table_button table_button_hover" style="padding: 10px; border-radius: 30px" id="download_button" download="annotations.json" hidden>` +
+    //     `<i class="fa-solid fa-file-arrow-down"></i><span style="margin-left: 10px">Download Annotations</span></a></div>`);
+
+    show_modal_message("Preparing Download", 
+        `<div style="height: 50px">` +
+            `<div id="prep_download_message">Preparing spreadsheet...</div>` +
+            `<div id="prep_download_loader" class="loader"></div>` +
+            `<div style="text-align: center; margin-top: 20px"><a class="table_button table_button_hover" id="download_button" style="padding: 10px; border-radius: 30px" download="annotations.json" hidden>` +
+                `<i class="fa-solid fa-file-arrow-down"></i><span style="margin-left: 10px">Download Annotations</span></a>` +
+            `</div>` +
+        `</div>`);
+
+
+
+
+
+
+    console.log("box_format", box_format);
+    console.log("coordinates_format", coordinates_format);
+
+    $.post($(location).attr('href'),
+    {
+        action: "download_annotations",
+        box_format: box_format,
+        coordinates_format: coordinates_format
+    },
+    
+    function(response, status) {
+
+        $("#prep_download_loader").hide();
+
+        if (response.error) {
+            $("#modal_head_text").html("Error");
+            $("#prep_download_message").html("An error occurred while generating the annotations file: " + response.message);
+        }
+        else {
+            
+            let download_path = get_CC_PATH() + "/usr/data/" + username + "/image_sets/" + image_set_info["farm_name"] + "/" + 
+            image_set_info["field_name"] + "/" + image_set_info["mission_date"] + "/annotations/download_annotations.json";
+            // $("#modal_message").html(
+            //     `<div>Your download is ready.</div>` +
+            //     `<a href=${download_path} download="annotations.json" id="hidden_annotations_download">Download Annotations</a>`
+            // );
+
+
+
+            $("#download_button").attr("href", download_path);
+            $("#modal_head_text").html("Ready For Download");
+            $("#prep_download_message").html("The annotations file is ready for download.");
+            $("#download_button").show();
+            //$("#hidden_annotations_download").click();
+        }
+    });
+
+}
+
+function update_apply_current_threshold_to_all_images_button() {
+    if (excess_green_values_are_all_the_same()) {
+        disable_std_buttons(["apply_threshold_to_all_button"]);
+    }
+    else {
+        enable_std_buttons(["apply_threshold_to_all_button"]);
+    }
+}
+
+function excess_green_values_are_all_the_same() {
+    let image_names = Object.keys(excess_green_record);
+    for (let i = 1; i < image_names.length; i++) {
+        if (excess_green_record[image_names[i]]["sel_val"] != excess_green_record[image_names[i-1]]["sel_val"]) {
+            return false;
+        }
+    }
+    return true;
+}
+
+
 

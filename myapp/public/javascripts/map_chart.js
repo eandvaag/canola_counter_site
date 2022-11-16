@@ -15,7 +15,7 @@ function color_map(num, min_num, max_num, c1, c2) {
 
 function draw_map_chart() {
 
-    let chart_height = $("#seadragon_viewer").height() + "px";
+    let chart_height = ($("#seadragon_viewer").height() - 4) + "px";
     let chart_width = chart_height;
 
 

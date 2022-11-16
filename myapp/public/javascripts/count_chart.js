@@ -260,8 +260,8 @@ function set_count_chart_data() {
                 }
             }
         }*/
-        let AP_metrics = ["AP (IoU=.50:.50:.95)", "AP (IoU=.50)", "AP (IoU=.75)"];
-        let f1_metrics = ["F1 Score (IoU=.50)", "F1 Score (IoU=.75)"];
+        let AP_metrics = ["AP (IoU=.50:.05:.95)", "AP (IoU=.50)", "AP (IoU=.75)"];
+        let f1_metrics = ["F1 Score (IoU=.50, conf>=.50)", "F1 Score (IoU=.75, conf>=.50)"];
         if (AP_metrics.includes(metric)) {
             max_count = 100;
         }

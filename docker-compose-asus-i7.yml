@@ -16,7 +16,8 @@ services:
 
 
   myapp:
-    build: 
+    build:
+      #CACHEBUST: "${CACHEBUST}" 
       context: .
     environment:
       DB_SCHEMA: plant_detection_db
@@ -29,6 +30,7 @@ services:
       CC_PORT: "${CC_PORT}"
       CC_PY_PORT: "${CC_PY_PORT}"
       CC_PATH: "${CC_PATH}"
+      CACHEBUST: "${CACHEBUST}"
     depends_on:
       - db
     ports:

@@ -12,6 +12,8 @@ router.get('/home/:username', landing.get_home);
 router.post('/home/:username', landing.post_home);
 router.get('/workspace/:username/:farm_name/:field_name/:mission_date', landing.get_workspace);
 router.post('/workspace/:username/:farm_name/:field_name/:mission_date', landing.post_workspace);
+router.post('/workspace/:username/:farm_name/:field_name/:mission_date/annotations_upload', upload_files.array('source_file[]'), landing.post_annotations_upload);
+//router.post('/annotations_upload', landing.post_annotations_upload);
 //router.get('/upload', landing.get_upload);
 router.post('/image_set_upload', upload_files.array('source_file[]'), landing.post_image_set_upload);
 router.post('/orthomosaic_upload', upload_files.array('source_file[]'), landing.post_orthomosaic_upload);

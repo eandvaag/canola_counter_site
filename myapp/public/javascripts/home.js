@@ -20,6 +20,7 @@ function delete_request() {
         `<div id="modal_button_container" style="text-align: center">` +
         `<button id="confirm_delete" class="x-button x-button-hover" `+
         `style="width: 150px" onclick="confirmed_delete_request()">Delete</button>` +
+        `<div style="display: inline-block; width: 10px"></div>` +
         `<button id="cancel_delete" class="std-button std-button-hover" ` +
         `style="width: 150px" onclick="cancel_delete_request()">Cancel</button>` +
         `<div style="height: 20px" id="loader_container"></div>` +
@@ -682,7 +683,7 @@ function show_overview() {
         else {
             console.log("response", response);
             let annotation_info = response.annotation_info;
-            let metadata = response.metadata;
+            metadata = response.metadata;
             let is_public = metadata["is_public"] === "yes" ? "Yes": "No";
 
             let label_width = "200px";
@@ -904,7 +905,7 @@ function show_overview() {
                         `<tr>` +
                         `<td>` +
                         `<button class="std-button std-button-hover" style="width: 220px; height: 80px; border-radius: 100px" onclick="workspace_request()">`+
-                            `<span><i class="fa-solid fa-pen-to-square" style="margin-right:8px"></i>Workspace</span></button>` +
+                            `<span><i class="fa-regular fa-pen-to-square" style="margin-right: 12px"></i>Workspace</span></button>` +
                         `</td>` +
                         `</tr>` +
                         `</table>`);
@@ -1065,11 +1066,12 @@ function fetch_and_show_results() {
 function delete_result_request(result_type, result_id) {
 
 
-    show_modal_message(`Are you sure?`, `<div style="height: 30px">Are you sure you want to delete this result?</div>` +
+    show_modal_message(`Are you sure?`, `<div style="height: 30px">Are you sure you want to destroy this result?</div>` +
         `<div style="height: 20px"></div>` +
         `<div id="modal_button_container" style="text-align: center">` +
         `<button class="x-button x-button-hover" `+
-        `style="width: 150px" onclick="confirmed_delete_result_request('${result_type}', '${result_id}')">Delete</button>` +
+        `style="width: 150px" onclick="confirmed_delete_result_request('${result_type}', '${result_id}')">Destroy</button>` +
+        `<div style="display: inline-block; width: 10px"></div>` +
         `<button class="std-button std-button-hover" ` +
         `style="width: 150px" onclick="cancel_delete_request()">Cancel</button>` +
         `<div style="height: 20px" id="loader_container"></div>` +
@@ -1114,6 +1116,170 @@ function view_comment(comment) {
     show_modal_message("Comment", comment);
 }
 
+
+
+
+function create_result_entry(result) {
+
+    let result_name = result["results_name"];
+    console.log("result", result);
+    let start_date = timestamp_to_date(result["start_time"]);
+    let end_date, aborted_date;
+    let completed = "end_time" in result;
+    let aborted = "aborted_time" in result;
+
+    console.log("completed?", completed);
+    console.log("aborted?", aborted);
+    
+    let disp_end_date, disp_end_title;
+    if (completed) {
+        end_date = timestamp_to_date(result["end_time"]);
+        disp_end_date = end_date;
+        disp_end_title = "End Time";
+    }
+    else if (aborted) {
+        aborted_date = timestamp_to_date(result["aborted_time"]);
+        disp_end_date = aborted_date;
+        disp_end_title = "Aborted Time";
+
+    }
+    else {
+        disp_end_date = " ";
+        disp_end_title = " ";
+    }
+
+    let destroy_button_container_id = "destroy_button_container_" + result["start_time"];
+    let main_result_container_id = "main_result_container_" + result["start_time"];
+
+
+
+    let result_overview_info = 
+    `<table style="font-size: 14px">` +
+        `<tr>` +
+                `<td style="height: 18px; text-align: right">` +
+                    `<div style="color: #ddccbb; font-weight: 400; width: 90px">Start Time</div>` +
+                `</td>` + 
+                `<td style="text-align: left; padding-left: 15px; width: 100%;">` +
+                    `<div>${start_date}</div>` +
+                `</td>` +
+        `</tr>` +
+        `<tr>` +
+                `<td style="height: 18px; text-align: right">` +
+                    `<div style="color: #ddccbb; font-weight: 400; width: 90px">${disp_end_title}</div>` +
+                `</td>` + 
+                `<td style="text-align: left; padding-left: 15px; width: 100%;">` +
+                    `<div>${disp_end_date}</div>` +
+                `</td>` + 
+        `</tr>` +
+    `</table>`;
+
+
+    //$("#completed_results_table").append(
+    let template = 
+        `<tr style="border-bottom: 1px solid #4c6645; height: 70px">` +
+            `<td><div style="width: 25px"></div></td>` +   
+            `<td>` +
+                `<div class="object_entry" style="font-size: 16px; width: 260px; height: 50px; border-radius: 100px;">` +
+                    `<div style="padding-top: 10px">${result_name}</div>` +
+                `</div>` +
+            `</td>` +
+
+            `<td style="width: 100%">` +
+                `<div class="table_entry" style="text-align: left;">${result_overview_info}</div>` +
+            `</td>` +
+            `<td id="${main_result_container_id}">` +
+
+            `</td>` +
+            `<td>` +
+                `<div style="width: 120px"></div>` +
+            `</td>` +
+            `<td>` +
+                `<table>` +
+                    `<tr>` +
+                        `<td>` +
+                            `<div style="height: 24px">` +
+                                `<button class="std-button std-button-hover" style="width: 160px; font-size: 14px; padding: 3px;" ` +
+                                        `onclick="view_comment('${result["results_comment"]}')">` +
+
+                                    `<i class="fa-solid fa-comment-dots" style="margin-right: 14px"></i><div style="display: inline-block; text-align: left; width: 100px">View Comment</div>` +
+                                `</button>` +
+                            `</div>` +
+                        `</td>` +
+                    `</tr>` +
+                    `<tr>` +
+                        `<td>` +
+                            `<div style="height: 1px"></div>` +
+                        `</td>` +
+                    `</tr>` +
+                    `<tr>` +
+                        `<td>` +
+                            `<div style="height: 24px" id="${destroy_button_container_id}">` +
+                            // `<button class="x-button x-button-hover" style="width: 160px; font-size: 14px; padding: 3px;" ` +
+                            //         `onclick="delete_result_request('completed', '${result["end_time"]}')">` +
+                            //     `<i class="fa-regular fa-circle-xmark" style="margin-right: 14px"></i><div style="display: inline-block; text-align: left; width: 100px">Destroy Result</div>` +
+                            // `</button>` +
+                            `</div>` +
+                        `</td>` +
+                    `</tr>` +
+                `</table>` +
+            `</td>` +
+            `<td>` +
+                `<div style="width: 25px"></div>` +
+            `</td>` +    
+        `</tr>`;
+
+
+
+    if (completed) {
+        $("#completed_results_table").append(template);
+
+        console.log("adding extra stuff", main_result_container_id);
+        $("#" + main_result_container_id).append(
+            `<button class="std-button std-button-hover" style="font-size: 16px; width: 190px; height: 50px; border-radius: 100px" ` +
+                `onclick="view_result('${result["end_time"]}')">`+
+                `<span>` +
+                    `<i class="fa-regular fa-eye" style="margin-right:8px"></i>View Result` +
+                `</span>` +
+            `</button>`
+        );
+        $("#" + destroy_button_container_id).append(
+            `<button class="x-button x-button-hover" style="width: 160px; font-size: 14px; padding: 3px;" ` +
+                    `onclick="delete_result_request('completed', '${result["end_time"]}')">` +
+                `<i class="fa-regular fa-circle-xmark" style="margin-right: 14px"></i><div style="display: inline-block; text-align: left; width: 100px">Destroy Result</div>` +
+            `</button>`
+        );
+    }
+    else if (aborted) {
+        $("#aborted_results_table").append(template);
+
+        $("#" + main_result_container_id).append(
+            `<button class="std-button std-button-hover" style="font-size: 16px; width: 190px; height: 50px; border-radius: 100px" ` +
+                `onclick="show_modal_message('Error Message', \`${result["error_message"]}\`)">`+
+               // `<span>` +
+                    `<i class="fa-solid fa-triangle-exclamation" style="margin-right:8px"></i>View Error Message` +
+               // `</span>` +
+            `</button>`
+        );
+        $("#" + destroy_button_container_id).append(
+            `<button class="x-button x-button-hover" style="width: 160px; font-size: 14px; padding: 3px;" ` +
+                    `onclick="delete_result_request('completed', '${result["end_time"]}')">` +
+                `<i class="fa-regular fa-circle-xmark" style="margin-right: 14px"></i><div style="display: inline-block; text-align: left; width: 100px">Destroy Result</div>` +
+            `</button>`
+        );
+    }
+    else {
+        $("#pending_results_table").append(template);
+
+        $("#" + main_result_container_id).append(
+            `<div style="width: 190px"><div class="loader"></div></div>`);
+    }
+
+
+    return template;
+
+}
+
+
 function show_results(results) {
 
     //viewing_results = true;
@@ -1123,10 +1289,11 @@ function show_results(results) {
     let completed_results = results.completed_results.sort(function(a, b) {
         return b["start_time"] - a["start_time"];
     });
-    let completed_results_container_height = "375px";
-    if (completed_results.length > 1) {
-        completed_results_container_height = "325px";
-    }
+    // let completed_results_container_height = "375px";
+    // if (completed_results.length > 1) {
+    //     completed_results_container_height = "325px";
+    // }
+    let completed_results_container_height = "400px";
 
     $("#tab_details").empty();
 
@@ -1145,69 +1312,102 @@ function show_results(results) {
             `</li>` +
         `</ul>` +
         
-        `<div id="completed_results" hidden><div style="height: 90px"></div>` +
-        `<table class="transparent_table" style="padding-right: 20px">` +
+        // `<div id="completed_results" hidden><div style="height: 90px"></div>` +
+        // `<table class="transparent_table" style="padding-right: 20px">` +
 
-            `<tr>` +
-                `<td class="table_entry" style="font-weight: bold; width: 315px">Name</td>` +
-                `<td class="table_entry" style="font-weight: bold; width: 180px">Comment</td>` +
-                `<td class="table_entry" style="font-weight: bold; width: 220px">Start Time</td>` +
-                `<td class="table_entry" style="font-weight: bold; width: 220px">End Time</td>` +
-                `<td class="table_entry" style="font-weight: bold; width: 180px">View Result</td>` +
-                `<td class="table_entry" style="font-weight: bold; width: 180px">Delete Result</td>` +
-            `</tr></table>` +
-        `<div style="height: ${completed_results_container_height}; overflow-y: scroll">` +
-        `<table class="transparent_table" id="completed_table"></table></div></div>` +
+        //     `<tr>` +
+        //         `<td class="table_entry" style="font-weight: bold; width: 315px">Name</td>` +
+        //         `<td class="table_entry" style="font-weight: bold; width: 180px">Comment</td>` +
+        //         `<td class="table_entry" style="font-weight: bold; width: 220px">Start Time</td>` +
+        //         `<td class="table_entry" style="font-weight: bold; width: 220px">End Time</td>` +
+        //         `<td class="table_entry" style="font-weight: bold; width: 180px">View Result</td>` +
+        //         `<td class="table_entry" style="font-weight: bold; width: 180px">Delete Result</td>` +
+        //     `</tr></table>` +
+        // `<table id="completed_results" style="height: ${completed_results_container_height}; overflow-y: scroll; width: 1000px; border: 1px solid white"></table>` +
+        // `<table class="transparent_table" id="completed_table"></table></div></div>` +
+        `<div id="completed_results" hidden>` +
+            `<div style="height: 90px"></div>` +
+            `<div class="scrollable_area" style="border-radius: 10px; height: ${completed_results_container_height}; width: 1200px; margin: 0 auto; overflow-y: scroll">` +
+                `<table id="completed_results_table" style="border-collapse: collapse"></table>` +
+            `</div>` +
+        `</div>` +
 
-        `<div id="pending_results" hidden><div style="height: 90px"></div>` +
-        `<table class="transparent_table" style="padding-right: 20px">` +
-        `<tr>` +
-        `<td class="table_entry" style="font-weight: bold; width: 315px">Name</td>` +
-        `<td class="table_entry" style="font-weight: bold; width: 180px">Comment</td>` +
-        `<td class="table_entry" style="font-weight: bold; width: 220px">Start Time</td>` +
-        `<td class="table_entry" style="font-weight: bold; width: 220px"></td></tr></table>` +
-        `<div style="height: 375px; overflow-y: scroll">` +
-        `<table class="transparent_table" id="pending_table"></table></div></div>` +
 
-        `<div id="aborted_results" hidden><div style="height: 90px"></div>` +
-        `<table class="transparent_table" style="padding-right: 20px">` +
-        `<tr>` +
-        `<td class="table_entry" style="font-weight: bold; width: 315px">Name</td>` +
-        `<td class="table_entry" style="font-weight: bold; width: 180px">Comment</td>` +
-        `<td class="table_entry" style="font-weight: bold; width: 220px">Start Time</td>` +
-        `<td class="table_entry" style="font-weight: bold; width: 220px">Aborted Time</td>` +
-        `<td class="table_entry" style="font-weight: bold; width: 180px">View Error</td>` +
-        `<td class="table_entry" style="font-weight: bold; width: 180px">Delete</td>` +
-        `</tr></table>` +
-        `<div style="height: 375px; overflow-y: scroll">` +
-        `<table class="transparent_table" id="aborted_table"></table></div></div>`
+        `<div id="pending_results" hidden>` +
+            `<div style="height: 90px"></div>` +
+            `<div class="scrollable_area" style="border-radius: 10px; height: ${completed_results_container_height}; width: 1200px; margin: 0 auto; overflow-y: scroll">` +
+                `<table id="pending_results_table" style="border-collapse: collapse"></table>` +
+            `</div>` +
+        `</div>` +
+
+
+        `<div id="aborted_results" hidden>` +
+            `<div style="height: 90px"></div>` +
+            `<div class="scrollable_area" style="border-radius: 10px; height: ${completed_results_container_height}; width: 1200px; margin: 0 auto; overflow-y: scroll">` +
+                `<table id="aborted_results_table" style="border-collapse: collapse"></table>` +
+            `</div>` +
+        `</div>`
+
+
+
+
+        // `<div id="pending_results" hidden><div style="height: 90px"></div>` +
+        // `<table class="transparent_table" style="padding-right: 20px">` +
+        // `<tr>` +
+        // `<td class="table_entry" style="font-weight: bold; width: 315px">Name</td>` +
+        // `<td class="table_entry" style="font-weight: bold; width: 180px">Comment</td>` +
+        // `<td class="table_entry" style="font-weight: bold; width: 220px">Start Time</td>` +
+        // `<td class="table_entry" style="font-weight: bold; width: 220px"></td></tr></table>` +
+        // `<div style="height: 375px; overflow-y: scroll">` +
+        // `<table class="transparent_table" id="pending_table"></table></div></div>` +
+
+        // `<div id="aborted_results" hidden><div style="height: 90px"></div>` +
+        // `<table class="transparent_table" style="padding-right: 20px">` +
+        // `<tr>` +
+        // `<td class="table_entry" style="font-weight: bold; width: 315px">Name</td>` +
+        // `<td class="table_entry" style="font-weight: bold; width: 180px">Comment</td>` +
+        // `<td class="table_entry" style="font-weight: bold; width: 220px">Start Time</td>` +
+        // `<td class="table_entry" style="font-weight: bold; width: 220px">Aborted Time</td>` +
+        // `<td class="table_entry" style="font-weight: bold; width: 180px">View Error</td>` +
+        // `<td class="table_entry" style="font-weight: bold; width: 180px">Delete</td>` +
+        // `</tr></table>` +
+        // `<div style="height: 375px; overflow-y: scroll">` +
+        // `<table class="transparent_table" id="aborted_table"></table></div></div>`
     );
+    /*
     if (completed_results.length > 1) {
         $("#completed_results").append(
         `<button class="std-button std-button-hover" style="width: 300px; height: 50px" ` +
         `onclick="view_timeline()"><span><i class="fa-solid fa-chart-line" style="margin-right:8px"></i>View Timeline</span></button>`);
-    }
+    }*/
 
 
     if (completed_results.length > 0) {
         for (let result of completed_results) {
-            let result_name = result["results_name"];
-            let start_date = timestamp_to_date(result["start_time"]);
-            let end_date = timestamp_to_date(result["end_time"]);
+            // let result_name = result["results_name"];
+            // let start_date = timestamp_to_date(result["start_time"]);
+            // let end_date = timestamp_to_date(result["end_time"]);
 
-            $("#completed_table").append(
-                `<tr>` +
-                    `<td class="table_entry" style="width: 315px">` + result_name + `</td>` +
-                    `<td style="width: 180px"><div class="std-button std-button-hover" style="width: 100px" ` +
-                        `onclick="view_comment('${result["results_comment"]}')"><i class="fa-solid fa-comment-dots"></i></div></td>` +
-                    `<td class="table_entry" style="width: 220px">` + start_date + `</td>` +
-                    `<td class="table_entry" style="width: 220px">` + end_date + `</td>` +
-                    `<td style="width: 180px"><div class="std-button std-button-hover" style="width: 100px" ` +
-                        `onclick="view_result('${result["end_time"]}')"><i class="fa-solid fa-magnifying-glass-arrow-right"></i></div></td>` +
-                    `<td style="width: 180px"><div class="x-button x-button-hover" style="width: 100px" ` +
-                        `onclick="delete_result_request('completed', '${result["end_time"]}')"><i class="fa-regular fa-circle-xmark"></i></div></td>` +                        
-                `</tr>`
-            );
+
+            create_result_entry(result);
+                //);
+
+            
+
+
+            // $("#completed_table").append(
+            //     `<tr>` +
+            //         `<td class="table_entry" style="width: 315px">` + result_name + `</td>` +
+            //         `<td style="width: 180px"><div class="std-button std-button-hover" style="width: 100px" ` +
+            //             `onclick="view_comment('${result["results_comment"]}')"><i class="fa-solid fa-comment-dots"></i></div></td>` +
+            //         `<td class="table_entry" style="width: 220px">` + start_date + `</td>` +
+            //         `<td class="table_entry" style="width: 220px">` + end_date + `</td>` +
+            //         `<td style="width: 180px"><div class="std-button std-button-hover" style="width: 100px" ` +
+            //             `onclick="view_result('${result["end_time"]}')"><i class="fa-solid fa-magnifying-glass-arrow-right"></i></div></td>` +
+            //         `<td style="width: 180px"><div class="x-button x-button-hover" style="width: 100px" ` +
+            //             `onclick="delete_result_request('completed', '${result["end_time"]}')"><i class="fa-regular fa-circle-xmark"></i></div></td>` +                        
+            //     `</tr>`
+            // );
         }
     }
     else {
@@ -1220,17 +1420,19 @@ function show_results(results) {
     });
     if (pending_results.length > 0) {
         for (let result of pending_results) {
-            let result_name = result["results_name"];
-            let start_date = timestamp_to_date(result["start_time"]);
-            $("#pending_table").append(
-                `<tr>` +
-                    `<td class="table_entry" style="width: 315px">` + result_name + `</td>` +
-                    `<td style="width: 180px"><div class="std-button std-button-hover" style="width: 100px" ` +
-                    `onclick="view_comment('${result["results_comment"]}')"><i class="fa-solid fa-comment-dots"></i></div></td>` +
-                    `<td class="table_entry" style="width: 220px">` + start_date + `</td>` +
-                    `<td style="width: 220px"><div class="loader" style="width: 20px; height: 20px"></div></td>` +
-                `</tr>`
-            );
+            create_result_entry(result);
+
+            // let result_name = result["results_name"];
+            // let start_date = timestamp_to_date(result["start_time"]);
+            // $("#pending_table").append(
+            //     `<tr>` +
+            //         `<td class="table_entry" style="width: 315px">` + result_name + `</td>` +
+            //         `<td style="width: 180px"><div class="std-button std-button-hover" style="width: 100px" ` +
+            //         `onclick="view_comment('${result["results_comment"]}')"><i class="fa-solid fa-comment-dots"></i></div></td>` +
+            //         `<td class="table_entry" style="width: 220px">` + start_date + `</td>` +
+            //         `<td style="width: 220px"><div class="loader" style="width: 20px; height: 20px"></div></td>` +
+            //     `</tr>`
+            // );
         }
     }
     else {
@@ -1243,23 +1445,24 @@ function show_results(results) {
     });
     if (aborted_results.length > 0) {
         for (let result of aborted_results) {
-            let result_name = result["results_name"];
-            let start_date = timestamp_to_date(result["start_time"]);
-            let aborted_date = timestamp_to_date(result["aborted_time"]);
-            $("#aborted_table").append(
-                `<tr>` +
-                    `<td class="table_entry" style="width: 315px">` + result_name + `</td>` +
-                    `<td style="width: 180px"><div class="std-button std-button-hover" style="width: 100px" ` +
-                    `onclick="view_comment('${result["results_comment"]}')"><i class="fa-solid fa-comment-dots"></i></div></td>` +
-                    `<td class="table_entry" style="width: 220px">` + start_date + `</td>` +
-                    `<td class="table_entry" style="width: 220px">` + aborted_date + `</td>` +
-                    `<td style="width: 180px"><div class="std-button std-button-hover" style="width: 100px" ` +
-                        `onclick="show_modal_message('Error Message', \`${result["error_message"]}\`)"><i class="fa-solid fa-circle-info"></i></div></td>` +
-                        //`><i class="fa-solid fa-circle-info"></i></div></td>` +
-                    `<td style="width: 180px"><div class="x-button x-button-hover" style="width: 100px" ` +
-                        `onclick="delete_result_request('aborted', '${result["request_uuid"]}')"><i class="fa-regular fa-circle-xmark"></i></div></td>` +       
-                `</tr>`
-            );
+            create_result_entry(result);
+            // let result_name = result["results_name"];
+            // let start_date = timestamp_to_date(result["start_time"]);
+            // let aborted_date = timestamp_to_date(result["aborted_time"]);
+            // $("#aborted_table").append(
+            //     `<tr>` +
+            //         `<td class="table_entry" style="width: 315px">` + result_name + `</td>` +
+            //         `<td style="width: 180px"><div class="std-button std-button-hover" style="width: 100px" ` +
+            //         `onclick="view_comment('${result["results_comment"]}')"><i class="fa-solid fa-comment-dots"></i></div></td>` +
+            //         `<td class="table_entry" style="width: 220px">` + start_date + `</td>` +
+            //         `<td class="table_entry" style="width: 220px">` + aborted_date + `</td>` +
+            //         `<td style="width: 180px"><div class="std-button std-button-hover" style="width: 100px" ` +
+            //             `onclick="show_modal_message('Error Message', \`${result["error_message"]}\`)"><i class="fa-solid fa-circle-info"></i></div></td>` +
+            //             //`><i class="fa-solid fa-circle-info"></i></div></td>` +
+            //         `<td style="width: 180px"><div class="x-button x-button-hover" style="width: 100px" ` +
+            //             `onclick="delete_result_request('aborted', '${result["request_uuid"]}')"><i class="fa-regular fa-circle-xmark"></i></div></td>` +       
+            //     `</tr>`
+            // );
         }
     }
     else {
@@ -1334,11 +1537,11 @@ function show_image_set_details() {
 
         $("#image_set_tabs").append(
             `<li id="overview_tab_btn" class="nav tab-btn-active" onclick="show_image_set_tab(this.id)">` +
-            `<a class="nav"><span><i class="fa-regular fa-rectangle-list" style="margin-right:3px"></i> Overview</span></a></li>`);
+            `<a class="nav"><span><i class="fa-solid fa-bars" style="margin-right:3px"></i> Overview</span></a></li>`);
     
         $("#image_set_tabs").append(
             `<li id="results_tab_btn" class="nav" onclick="show_image_set_tab(this.id)">` +
-            `<a class="nav"><span><i class="fa-solid fa-chart-bar" style="margin-right:3px"></i> Results</span></a></li>`);
+            `<a class="nav"><span><i class="fa-solid fa-chart-column" style="margin-right:3px"></i> Results</span></a></li>`);
         $("#image_set_container").append(`<div id="tab_details"></div>`);
 
         show_image_set_tab("overview_tab_btn");

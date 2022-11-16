@@ -1,7 +1,7 @@
 
 
 let image_set_info;
-let job_config;
+//let job_config;
 // let overlays;
 let metadata;
 let camera_specs;
@@ -43,7 +43,10 @@ let map_url = null;
 let pred_map_url = null;
 let min_max_rec = null;
 
-
+let voronoi_data = {
+    "annotation": null,
+    "prediction": null
+};
 
 
 function change_image(cur_nav_item) {
@@ -93,6 +96,8 @@ function change_image(cur_nav_item) {
     if (viewer == null) {
         create_viewer("seadragon_viewer");
     }
+
+    compute_voronoi();
 
     let dzi_image_path = image_to_dzi[cur_img_name];
     viewer.open(dzi_image_path);
@@ -314,6 +319,13 @@ function build_map() {
 }
 
 function show_map() {
+
+    cur_bounds = null;
+    overlay.onOpen = function() {};
+    overlay.onRedraw = function() {};
+    viewer = null;
+    $("#seadragon_viewer").empty();
+
     cur_view = "map";
 
     $("#view_button_text").empty();
@@ -330,8 +342,11 @@ function show_map() {
 
     let num_completed = 0;
     for (let image_name of Object.keys(annotations)) {
-        let status = annotations[image_name]["status"];
-        if (status === "completed_for_training" || status === "completed_for_testing") {
+
+        let image_width_px = metadata["images"][image_name]["width_px"];
+        let image_height_px = metadata["images"][image_name]["height_px"];
+
+        if (image_is_fully_annotated(annotations, image_name, image_width_px, image_height_px)) {
             num_completed++;
         }
     }
@@ -443,6 +458,75 @@ function create_viewer() {
 
             overlay.context2d().font = "14px arial";
 
+            //let hide_image = true;
+            if (!($("#image_visible_switch").is(":checked"))) {
+                let viewer_point_1 = viewer.viewport.imageToViewerElementCoordinates(
+                    new OpenSeadragon.Point(0, 0));
+                let viewer_point_2 = viewer.viewport.imageToViewerElementCoordinates(
+                        new OpenSeadragon.Point(overlay.imgWidth, overlay.imgHeight));
+                        
+                overlay.context2d().fillStyle = "#222621";         
+                overlay.context2d().fillRect(
+                    viewer_point_1.x,
+                    viewer_point_1.y,
+                    (viewer_point_2.x - viewer_point_1.x),
+                    (viewer_point_2.y - viewer_point_1.y)
+                );
+            }
+
+
+            let voronoi_keys = [];
+            if ($("#voronoi_annotation").is(":checked")) {
+                voronoi_keys.push("annotation");
+            }
+            if ($("#voronoi_prediction").is(":checked")) {
+                voronoi_keys.push("prediction");
+            }
+
+            for (let key of voronoi_keys) {
+                if (!(cur_img_name in voronoi_data)) {
+                    voronoi_data[cur_img_name] = {};
+                }
+                if (!(key in voronoi_data[cur_img_name])) {
+                    voronoi_data[cur_img_name][key] = compute_voronoi(key);
+                }
+                if (voronoi_data[cur_img_name][key] != null) {
+                    let visible_edges = [];
+                    for (let edge of voronoi_data[cur_img_name][key].edges) {
+
+
+                        let line_box_min_x = Math.min(edge.va.x, edge.vb.x);
+                        let line_box_min_y = Math.min(edge.va.y, edge.vb.y);
+                        let line_box_max_x = Math.max(edge.va.x, edge.vb.x);
+                        let line_box_max_y = Math.max(edge.va.y, edge.vb.y);
+                        if (((line_box_min_x < max_x) && (line_box_max_x > min_x)) && ((line_box_min_y < max_y) && (line_box_max_y > min_y))) {
+                            visible_edges.push(edge);
+                        }
+                
+                    }
+                    if (visible_edges.length < MAX_EDGES_DISPLAYED) {
+                        for (let edge of visible_edges) {
+                            overlay.context2d().strokeStyle = overlay_colors[key];
+                            overlay.context2d().lineWidth = 2;
+                    
+                            let viewer_point_1 = viewer.viewport.imageToViewerElementCoordinates(
+                                new OpenSeadragon.Point(edge.va.x, edge.va.y));
+                            let viewer_point_2 = viewer.viewport.imageToViewerElementCoordinates(
+                                    new OpenSeadragon.Point(edge.vb.x, edge.vb.y));    
+                    
+                            overlay.context2d().beginPath();
+                            overlay.context2d().moveTo(viewer_point_1.x, viewer_point_1.y);
+                            overlay.context2d().lineTo(viewer_point_2.x, viewer_point_2.y);
+                            overlay.context2d().closePath();
+                            overlay.context2d().stroke();
+                        }
+                    }
+                }
+            }
+
+
+
+
 
             let draw_order = ["training_region", "test_region", "annotation", "prediction"];
             for (let key of draw_order) {
@@ -453,7 +537,7 @@ function create_viewer() {
 
                 overlay.context2d().strokeStyle = overlay_colors[key];
                 overlay.context2d().lineWidth = 2;
-
+                let visible_inds = [];
                 for (let i = 0; i < boxes_to_add[key]["boxes"].length; i++) {
 
                     let box = boxes_to_add[key]["boxes"][i];
@@ -464,70 +548,94 @@ function create_viewer() {
                         }
                     }
 
-                    let box_width_pct_of_image = (box[3] - box[1]) / overlay.imgWidth;
-                    let disp_width = (box_width_pct_of_image / viewer_bounds.width) * container_size.x;
-                    let box_height_pct_of_image = (box[3] - box[1]) / overlay.imgHeight;
-                    let disp_height = (box_height_pct_of_image / viewer_bounds.height) * container_size.y;
+                    //let box_width_pct_of_image = (box[3] - box[1]) / overlay.imgWidth;
+                    //let disp_width = (box_width_pct_of_image / viewer_bounds.width) * container_size.x;
+                    //let box_height_pct_of_image = (box[3] - box[1]) / overlay.imgHeight;
+                    //let disp_height = (box_height_pct_of_image / viewer_bounds.height) * container_size.y;
 
-                    if ((disp_width * disp_height) < 0.5) {
-                        continue;
-                    }
+                    // if ((disp_width * disp_height) < 0.5) {
+                    //     continue;
+                    // }
 
                     if (((box[1] < max_x) && (box[3] > min_x)) && ((box[0] < max_y) && (box[2] > min_y))) {
+                        
+                        visible_inds.push(i);
+                        
+                        // let viewer_point = viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(box[1], box[0]));
+                        // let viewer_point_2 = viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(box[3], box[2]));
+
+                        
+                        // overlay.context2d().strokeRect(
+                        //     viewer_point.x,
+                        //     viewer_point.y,
+                        //     (viewer_point_2.x - viewer_point.x),
+                        //     (viewer_point_2.y - viewer_point.y)
+                        // );
+                    }
+                }
+
+                if (visible_inds.length < MAX_BOXES_DISPLAYED) {
+                    for (let ind of visible_inds) {
+                        let box = boxes_to_add[key]["boxes"][ind];
                         let viewer_point = viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(box[1], box[0]));
                         let viewer_point_2 = viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(box[3], box[2]));
 
-                        
                         overlay.context2d().strokeRect(
-                            viewer_point.x,
-                            viewer_point.y,
-                            (viewer_point_2.x - viewer_point.x),
-                            (viewer_point_2.y - viewer_point.y)
+                            viewer_point.x,// * container_size.x,
+                            viewer_point.y,// * container_size.y,
+                            (viewer_point_2.x - viewer_point.x),// * container_size.x,
+                            (viewer_point_2.y - viewer_point.y)// * container_size.y
                         );
                     }
-                }
-            }
 
-            if (("prediction" in boxes_to_add) && ($("#scores_switch").is(":checked"))) {
-                for (let i = 0; i < boxes_to_add["prediction"]["boxes"].length; i++) {
-    
-                    let box = boxes_to_add["prediction"]["boxes"][i];
-                    let score = boxes_to_add["prediction"]["scores"][i];
-                    if (score < slider_val) {
-                        continue;
+
+
+
+
+                    if ((key === "prediction") && ("prediction" in boxes_to_add) && ($("#scores_switch").is(":checked"))) {
+                        for (let ind of visible_inds) {
+
+                            let box = boxes_to_add[key]["boxes"][ind];
+                            let score = boxes_to_add[key]["scores"][ind];
+
+                            if (score < slider_val) {
+                                continue;
+                            }
+                            
+                            let box_width_pct_of_image = (box[3] - box[1]) / overlay.imgWidth;
+                            let disp_width = (box_width_pct_of_image / viewer_bounds.width) * container_size.x;
+                            let box_height_pct_of_image = (box[3] - box[1]) / overlay.imgHeight;
+                            let disp_height = (box_height_pct_of_image / viewer_bounds.height) * container_size.y;
+        
+                            if ((disp_width * disp_height) < 10) {
+                                continue;
+                            }
+        
+                            if (((box[1] < max_x) && (box[3] > min_x)) && ((box[0] < max_y) && (box[2] > min_y))) {
+        
+        
+                                let viewer_point = viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(box[1], box[0]));
+        
+                                let score_text = score.toFixed(2);
+        
+                                overlay.context2d().fillStyle = "white";
+                                overlay.context2d().fillRect(
+                                        viewer_point.x - 1,
+                                        viewer_point.y - 20,
+                                        36,
+                                        20
+                                    );
+        
+                                overlay.context2d().fillStyle = "black";
+                                overlay.context2d().fillText(score_text, 
+        
+                                    viewer_point.x + 3,
+                                    viewer_point.y - 5
+                                );
+                            }
+                        }
                     }
-                    
-                    let box_width_pct_of_image = (box[3] - box[1]) / overlay.imgWidth;
-                    let disp_width = (box_width_pct_of_image / viewer_bounds.width) * container_size.x;
-                    let box_height_pct_of_image = (box[3] - box[1]) / overlay.imgHeight;
-                    let disp_height = (box_height_pct_of_image / viewer_bounds.height) * container_size.y;
 
-                    if ((disp_width * disp_height) < 10) {
-                        continue;
-                    }
-
-                    if (((box[1] < max_x) && (box[3] > min_x)) && ((box[0] < max_y) && (box[2] > min_y))) {
-
-
-                        let viewer_point = viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(box[1], box[0]));
-
-                        let score_text = score.toFixed(2);
-
-                        overlay.context2d().fillStyle = "white";
-                        overlay.context2d().fillRect(
-                                viewer_point.x - 1,
-                                viewer_point.y - 20,
-                                36,
-                                20
-                            );
-
-                        overlay.context2d().fillStyle = "black";
-                        overlay.context2d().fillText(score_text, 
-
-                            viewer_point.x + 3,
-                            viewer_point.y - 5
-                        );
-                    }
                 }
             }
 
@@ -542,10 +650,10 @@ function create_viewer() {
 
 
                 let rects = [
-                    [0 -10 , 0 -10, region[0], image_px_width +10],
-                    [0, region[3], image_px_height +10, image_px_width +10],
-                    [region[2], 0 -10, image_px_height +10, image_px_width +10],
-                    [0 -10, 0 -10, image_px_height +10, region[1]]
+                    [0, 0, region[0], image_px_width],
+                    [0, region[3], image_px_height, image_px_width],
+                    [region[2], 0, image_px_height, image_px_width],
+                    [0, 0, image_px_height, region[1]]
 
                 ];
                 
@@ -560,7 +668,6 @@ function create_viewer() {
                         (viewer_point_2.x - viewer_point.x),
                         (viewer_point_2.y - viewer_point.y)
                     );
-
                 }
 
 
@@ -608,6 +715,78 @@ function create_viewer() {
 }
 
 
+// function switch_to_voronoi() {
+//     voronoi_data["show"] = true;
+//     //overlay.onRedraw = redraw_voronoi;
+//     viewer.raiseEvent("update-viewport");
+// }
+
+// function redraw_voronoi() {
+//     console.log("voronoi_diagram", voronoi_diagram);
+
+//     // let bounds_min_y;
+//     // let bounds_min_x;
+//     // let bounds_max_y;
+//     // let bounds_max_x;
+
+//     // let navigation_type = $("#navigation_dropdown").val();
+//     // if (navigation_type === "training_regions" || navigation_type === "test_regions") {
+//     //     let cur_region = annotations[cur_img_name][navigation_type][cur_region_index];
+//     //     bounds_min_y = cur_region[0];
+//     //     bounds_min_x = cur_region[1];
+//     //     bounds_max_y = cur_region[2];
+//     //     bounds_max_x = cur_region[3];
+//     // }
+//     // else {
+//     //     bounds_min_y = 0;
+//     //     bounds_min_x = 0;
+//     //     bounds_max_y = metadata["images"][cur_img_name]["width_px"];
+//     //     bounds_max_x = metadata["images"][cur_img_name]["height_px"];
+//     // }
+
+//     // let points = [];
+//     // for (let predicted_box of predictions[cur_img_name]["boxes"]) {
+//     //     let centre_y = (predicted_box[0] + predicted_box[2]) / 2;
+//     //     let centre_x = (predicted_box[1] + predicted_box[3]) / 2;
+
+//     //     if ((centre_y > bounds_min_y && centre_y < bounds_max_y) &&
+//     //         (centre_x > bounds_min_x && centre_x < bounds_max_x)) {
+
+//     //             let viewer_point = viewer.viewport.imageToViewerElementCoordinates(
+//     //                 new OpenSeadragon.Point(centre_x, centre_y));
+//     //             points.push(viewer_point);
+//     //     }
+//     // }
+//     // console.log("points", points);
+//     // for (let i = 1; i < points.length; i++) {
+//     //     overlay.context2d().beginPath();
+//     //     overlay.context2d().moveTo(points[i-1].x, points[i-1].y);
+//     //     overlay.context2d().lineTo(points[i].x, points[i].y);
+//     //     overlay.context2d().closePath();
+//     //     overlay.context2d().stroke();
+//     // }
+
+//     for (let edge of voronoi_diagram.edges) {
+//         overlay.context2d().strokeStyle = "red"; //overlay_colors[key];
+//         overlay.context2d().lineWidth = 2;
+
+//         let viewer_point_1 = viewer.viewport.imageToViewerElementCoordinates(
+//             new OpenSeadragon.Point(edge.va.x, edge.va.y));
+//         let viewer_point_2 = viewer.viewport.imageToViewerElementCoordinates(
+//                 new OpenSeadragon.Point(edge.vb.x, edge.vb.y));    
+
+//         overlay.context2d().beginPath();
+//         overlay.context2d().moveTo(viewer_point_1.x, viewer_point_1.y);
+//         overlay.context2d().lineTo(viewer_point_2.x, viewer_point_2.y);
+//         overlay.context2d().closePath();
+//         overlay.context2d().stroke();
+
+//     }
+
+
+// }
+
+
 function set_heights() {
     let max_height = 0;
     for (let image_name of Object.keys(annotations)) {
@@ -620,7 +799,8 @@ function set_heights() {
     }
     console.log("max_height", max_height);
     $("#image_name_table").height(max_height);
-    $("#navigation_table_container").height(553 - max_height);
+    $("#navigation_table_container").height(523 - max_height);
+    //$("#navigation_table_container").height(550 - max_height);
 }
 
 
@@ -629,7 +809,7 @@ function set_heights() {
 $(document).ready(function() {
     
     image_set_info = data["image_set_info"];
-    job_config = data["job_config"];
+    //job_config = data["job_config"];
     //overlays = data["overlays"];
     excess_green_record = data["excess_green_record"];
     annotations = data["annotations"];
@@ -657,9 +837,13 @@ $(document).ready(function() {
         let timestamp = image_set_info["timestamp"];
 
         show_modal_message("Preparing Download", 
-        `<div id="prep_spreadsheet_message">Preparing spreadsheet...</div><div id="prep_spreadsheet_loader" class="loader"></div>` +
-        `<div style="text-align: center; margin-top: 20px"><a class="table_button table_button_hover" id="download_button" hidden>` +
-        `<i class="fa fa-download fa-sm"></i><span style="margin-left: 10px">Download Results</span></a></div>`);
+        `<div style="height: 50px">` +
+            `<div id="prep_spreadsheet_message">Preparing spreadsheet...</div>` +
+            `<div id="prep_spreadsheet_loader" class="loader"></div>` +
+            `<div style="text-align: center; margin-top: 20px"><a class="table_button table_button_hover" id="download_button" style="padding: 10px; border-radius: 30px" hidden>` +
+                `<i class="fa-solid fa-file-arrow-down"></i><span style="margin-left: 10px">Download Results</span></a>` +
+            `</div>` +
+        `</div>`);
 
         $("#modal_close").hide();
 
@@ -711,6 +895,9 @@ $(document).ready(function() {
 
         });
     })
+
+
+    $("#result_name").text(data["request"]["results_name"]);
 
     let farm_name = image_set_info["farm_name"];
     let field_name = image_set_info["field_name"];
@@ -792,6 +979,7 @@ $(document).ready(function() {
 
 
     $("#overlays_table").change(function() {
+        console.log("overlay change");
         viewer.raiseEvent('update-viewport');
     });
 
@@ -799,10 +987,15 @@ $(document).ready(function() {
     $("#confidence_slider").change(function() {
         let slider_val = Number.parseFloat($("#confidence_slider").val()).toFixed(2);
         $("#slider_val").html(slider_val);
+        
+        if (cur_img_name in voronoi_data && "prediction" in voronoi_data[cur_img_name]) {
+            delete voronoi_data[cur_img_name]["prediction"];
+        }
         viewer.raiseEvent('update-viewport');
         set_count_chart_data();
         update_count_chart();
         update_score_chart();
+        
     });
 
     $("#confidence_slider").on("input", function() {
@@ -881,7 +1074,7 @@ $(document).ready(function() {
         let version = $("#annotation_version_combo").val();
 
         show_modal_message("Please Wait", 
-        `<div id="switch_anno_message">Switching annotation versions...</div><div id="switch_anno_loader" class="loader"></div>`);
+        `<div id="switch_anno_message">Switching annotation versions. This may take a few minutes.</div><div style="height: 10px"></div><div id="switch_anno_loader" class="loader"></div>`);
 
         $("#modal_close").hide();
 
@@ -929,15 +1122,19 @@ $(document).ready(function() {
                 //create_overlays_table();
                 set_count_chart_data();
                 set_score_chart_data();
-                update_count_chart();
-                update_score_chart();
+                // update_count_chart();
+                // update_score_chart();
+
+                if (cur_img_name in voronoi_data && "annotation" in voronoi_data[cur_img_name]) {
+                    delete voronoi_data[cur_img_name]["annotation"];
+                }
             
                 // $("#seadragon_viewer").empty();
                 // create_viewer_and_anno();
 
                 let init_image_name = basename(dzi_image_paths[0]);
                 //cur_img_name = init_image_name.substring(0, init_image_name.length - 4);
-                change_image(init_image_name.substring(0, init_image_name.length - 4));
+                change_image(init_image_name.substring(0, init_image_name.length - 4) + "/-1");
 
                 $("#modal_close").click();
             }
@@ -954,6 +1151,10 @@ $(document).ready(function() {
         let navigation_type = $("#navigation_dropdown").val();
         console.log("navigation_type", navigation_type);
         change_image(cur_nav_list[0]);
+    });
+
+    $("#image_visible_switch").change(function() {
+        viewer.raiseEvent('update-viewport');
     });
 
 

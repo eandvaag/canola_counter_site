@@ -45,7 +45,7 @@ function draw_map_chart() {
     //let chart_height = $("#seadragon_viewer").height() + "px";
     //let chart_width = chart_height;
 
-    let chart_width = (($("#chart_container").width() / 2) - 60) + "px";
+    let chart_width = (($("#chart_container").width() / 2) - 64) + "px";
     let chart_height = chart_width;
 
     $("#chart_container").empty();
