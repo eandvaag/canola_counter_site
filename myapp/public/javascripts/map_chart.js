@@ -309,7 +309,22 @@ function draw_map_chart() {
          .attr("stroke-width", 1)
 
          .on("click", function(d) {
+
+            $("#navigation_dropdown").val("images");
+            $("#active_layer_table").css("opacity", 1.0);
+            $("input:radio[name=edit_layer_radio]").prop("disabled", false);
+            $("#show_segmentation_button").show();
+            // if (cur_panel === "segmentation") {
+            //     viewer = null;
+            // }
+            create_navigation_table();
+            update_count_combo(true);
+            // cur_panel = "annotation";
+            cur_region_index = -1;
             show_image(d["image_name"]);
+
+
+            //show_image(d["image_name"]);
             //change_image(d["image_name"]);
          })
          .on("mouseover", tip_mouseover)

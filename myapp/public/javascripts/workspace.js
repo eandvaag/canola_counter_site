@@ -11,7 +11,7 @@ let dzi_image_paths;
 let annotations;
 let image_to_dzi;
 let predictions;
-
+let overlay_colors;
 
 
 let viewer;
@@ -103,7 +103,6 @@ function set_prediction_overlay_color() {
 
 
 let keydown_handler = async function(e) {
-    console.log("keyDown");
 
     if (e.keyCode == 46) {
 
@@ -243,8 +242,7 @@ let keydown_handler = async function(e) {
                     }
                 }
             }
-            // }
-            console.log("illegal?", illegal_intersection);
+
             if (!(illegal_intersection)) {
                 source_box_array.splice(held_annotation_index, 1);
                 target_box_array.push(selected_region);
@@ -339,6 +337,14 @@ function change_image(cur_nav_item) {
             `</div>`
         );
     }
+    update_count_combo(false);
+
+    //if (cur_img_name in predictions) {
+    set_count_chart_data();
+    set_score_chart_data();
+    update_score_chart();
+    update_count_chart();
+    //}
     
     // set_image_status_combo();
 
@@ -718,10 +724,8 @@ function create_anno() {
 
 
     anno.on('createAnnotation', function(annotation) {
-        console.log("createAnnotation");
 
         //annotations[cur_img_name]["annotations"] = anno.getAnnotations();
-        console.log("annotation", annotation);
         //annotation
 
         // annotations[cur_img_name]["update_time"] = parseInt(new Date().getTime() / 1000);
@@ -835,16 +839,15 @@ function create_anno() {
                 }
             }
         }
-        else if (cur_edit_layer === "test_region") {
-            for (let i = 0; i < annotations[cur_img_name]["training_regions"].length; i++) {
-                if (box_intersects_region(box, annotations[cur_img_name]["training_regions"][i])) {
-                    illegal_intersection = true;
-                    break;
-                }
-            }
-        }
-        else if (cur_edit_layer === "training_region") {
-            console.log("checking for intersections with test regions");
+        // else if (cur_edit_layer === "test_region") {
+        //     for (let i = 0; i < annotations[cur_img_name]["training_regions"].length; i++) {
+        //         if (box_intersects_region(box, annotations[cur_img_name]["training_regions"][i])) {
+        //             illegal_intersection = true;
+        //             break;
+        //         }
+        //     }
+        // }
+        else if ((cur_edit_layer === "training_region") || (cur_edit_layer === "test_region")) {
             loop1:
             for (let region_key of ["training_regions", "test_regions"]) {
                 for (let i = 0; i < annotations[cur_img_name][region_key].length; i++) {
@@ -856,7 +859,6 @@ function create_anno() {
             }
         }
         if (!(illegal_intersection)) {
-            console.log("no illegal intersection detected");
             sel_box_array.push(box);
             update_navigation_dropdown();
             if (cur_edit_layer === "training_region") {
@@ -884,10 +886,6 @@ function create_anno() {
             $("#save_icon").css("color", "#ed452b");
         }
 
-        
-
-        
-        console.log("annotations", annotations);
         anno.clearAnnotations();
         viewer.raiseEvent('update-viewport');
 
@@ -904,10 +902,8 @@ function create_anno() {
     });
 
     anno.on('createSelection', async function(selection) {
-        console.log("createSelection");
 
         selection.target.source = window.location.href;
-
         
         selection.body = [{
             type: 'TextualBody',
@@ -945,7 +941,6 @@ function create_anno() {
     });*/
 
     anno.on('updateAnnotation', async function(annotation, previous) {
-        console.log("UPDATE ANNOTATION");
 
         let px_str = annotation.target.selector.value;
         let updated_px_str = resize_px_str(px_str);
@@ -959,8 +954,6 @@ function create_anno() {
         //let box = updated_px_str.split(",");
         updated_px_str = updated_px_str.substring(11);
         let px_lst = updated_px_str.split(",").map(x => parseFloat(x));
-
-        console.log("updating box at index", selected_annotation_index);
 
         //annotations[cur_img_name]["boxes"][selected_annotation_index] 
         let updated_box = [
@@ -1017,19 +1010,19 @@ function create_anno() {
                 }
             }
         }
-        else if (cur_edit_layer === "test_region") {
-            for (let i = 0; i < annotations[cur_img_name]["training_regions"].length; i++) {
-                if ((box_intersects_region(updated_box, annotations[cur_img_name]["training_regions"][i]))) {
-                    illegal_intersection = true;
-                    break;
-                }
-            }
-        }
-        else if (cur_edit_layer === "training_region") {
+        // else if (cur_edit_layer === "test_region") {
+        //     for (let i = 0; i < annotations[cur_img_name]["training_regions"].length; i++) {
+        //         if ((box_intersects_region(updated_box, annotations[cur_img_name]["training_regions"][i]))) {
+        //             illegal_intersection = true;
+        //             break;
+        //         }
+        //     }
+        // }
+        else if ((cur_edit_layer === "training_region") || (cur_edit_layer === "test_region")) {
             loop1:
             for (let region_key of ["training_regions", "test_regions"]) {
                 for (let i = 0; i < annotations[cur_img_name][region_key].length; i++) {
-                    if ((region_key === "training_regions") && (i == selected_annotation_index)) {
+                    if ((region_key === cur_edit_layer + "s") && (i == selected_annotation_index)) {
                         continue;
                     }
                     if (box_intersects_region(updated_box, annotations[cur_img_name][region_key][i])) {
@@ -1096,7 +1089,6 @@ async function add_the_annotation(selection) {
 
 
 function create_viewer(viewer_id) {
-    console.log("create_viewer");
 
     //$("#seadragon_viewer").empty();
 /*
@@ -1191,6 +1183,16 @@ function create_viewer(viewer_id) {
             let max_x = min_x + viewport_w;
             let max_y = min_y + viewport_h;
 
+            //console.log("viewer_bounds", viewer_bounds);
+            if (cur_region_index != -1) {
+                let cur_region = annotations[cur_img_name][navigation_type][cur_region_index];
+                min_y = Math.max(min_y, cur_region[0]);
+                min_x = Math.max(min_x, cur_region[1]);
+                max_y = Math.min(max_y, cur_region[2]);
+                max_x = Math.min(max_x, cur_region[3]);
+            }
+            //console.log(min_y, min_x, max_y, max_x);
+
             overlay.context2d().font = "14px arial";
 
             if ((cur_panel === "prediction") && (!($("#image_visible_switch").is(":checked")))) {
@@ -1201,10 +1203,10 @@ function create_viewer(viewer_id) {
                         
                 overlay.context2d().fillStyle = "#222621";         
                 overlay.context2d().fillRect(
-                    viewer_point_1.x,
-                    viewer_point_1.y,
-                    (viewer_point_2.x - viewer_point_1.x),
-                    (viewer_point_2.y - viewer_point_1.y)
+                    viewer_point_1.x - 1,
+                    viewer_point_1.y - 1,
+                    (viewer_point_2.x - viewer_point_1.x) + 2,
+                    (viewer_point_2.y - viewer_point_1.y) + 2
                 );
             }
 
@@ -1239,7 +1241,7 @@ function create_viewer(viewer_id) {
                             }
                     
                         }
-                        if (visible_edges.length < MAX_EDGES_DISPLAYED) {
+                        if (visible_edges.length <= MAX_EDGES_DISPLAYED) {
                             for (let edge of visible_edges) {
                                 overlay.context2d().strokeStyle = overlay_colors[key];
                                 overlay.context2d().lineWidth = 2;
@@ -1286,6 +1288,7 @@ function create_viewer(viewer_id) {
 
                 //for (let i = 0; i < annotations[cur_img_name]["boxes"].length; i++) {
                 let visible_inds = [];
+                loop1:
                 for (let i = 0; i < boxes_to_add[key]["boxes"].length; i++) {
                     if ((cur_edit_layer === key) && (i == selected_annotation_index)) {
                         continue;
@@ -1299,10 +1302,10 @@ function create_viewer(viewer_id) {
                         }
                     }
 
-                    let box_width_pct_of_image = (box[3] - box[1]) / overlay.imgWidth;
-                    let disp_width = (box_width_pct_of_image / viewer_bounds.width) * container_size.x;
-                    let box_height_pct_of_image = (box[3] - box[1]) / overlay.imgHeight;
-                    let disp_height = (box_height_pct_of_image / viewer_bounds.height) * container_size.y;
+                    //let box_width_pct_of_image = (box[3] - box[1]) / overlay.imgWidth;
+                    //let disp_width = (box_width_pct_of_image / viewer_bounds.width) * container_size.x;
+                    //let box_height_pct_of_image = (box[3] - box[1]) / overlay.imgHeight;
+                    //let disp_height = (box_height_pct_of_image / viewer_bounds.height) * container_size.y;
 
                     // if ((disp_width * disp_height) < 0.5) {
                     //     continue;
@@ -1312,6 +1315,9 @@ function create_viewer(viewer_id) {
 
                         // if (cur_region_index == -1) {
                         visible_inds.push(i);
+                        if (visible_inds.length > MAX_BOXES_DISPLAYED) {
+                            break loop1;
+                        }
                         // }
                         // else {
                         //     let cur_region = annotations[cur_img_name][navigation_type][cur_region_index];
@@ -1346,7 +1352,7 @@ function create_viewer(viewer_id) {
 
 
 
-                if (visible_inds.length < MAX_BOXES_DISPLAYED) {
+                if (visible_inds.length <= MAX_BOXES_DISPLAYED) {
                     for (let ind of visible_inds) {
                         let box = boxes_to_add[key]["boxes"][ind];
                         let viewer_point = viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(box[1], box[0]));
@@ -1864,7 +1870,6 @@ function create_viewer(viewer_id) {
         // The canvas-click event gives us a position in web coordinates.
 
         if (cur_panel === "annotation") {
-            console.log("CANVAS-CLICK", selected_annotation_index);
 
             //console.log("getting selected");
             //let selected = anno.getSelected();
@@ -2002,7 +2007,6 @@ function create_viewer(viewer_id) {
                         }
                     }
 
-                    console.log("ADDING AN ANNOTATION");
                     annotation_uuid = uuidv4();
                     //let box = annotations[cur_img_name]["boxes"][selected_annotation_index];
                     
@@ -2091,7 +2095,6 @@ function create_viewer(viewer_id) {
                 //viewer.raiseEvent('update-viewport');
             }
             else {
-                console.log("NON NULL ANNOTATION");
                 let cur_selected = anno.getSelected();
                 if (cur_selected == null) {
                     let webPoint = event.position;
@@ -2109,14 +2112,12 @@ function create_viewer(viewer_id) {
                     ];
 
                     if ((imagePoint.x >= box[1] && imagePoint.x <= box[3]) && (imagePoint.y >= box[0] && imagePoint.y <= box[2])) {
-                        console.log("WEIRD (1): selecting what should be selected");
                         anno.clearAnnotations();
                         anno.addAnnotation(selected_annotation);
                         delay(10).then(() => anno.selectAnnotation(selected_annotation));
                         //anno.selectAnnotation(selected_annotation);
                     }
                     else {
-                        console.log("WEIRD (2): removing all annotations")
                         selected_annotation_index = -1;
                         selected_annotation = null;
                         anno.clearAnnotations();
@@ -2286,7 +2287,6 @@ function save_annotations() {
         }
     }
 
-    console.log("attempting to save_annotations");
     $.post($(location).attr('href'),
     {
         action: "save_annotations",
@@ -2299,8 +2299,6 @@ function save_annotations() {
     },
     
     function(response, status) {
-
-        console.log("got response");
         
         if (response.error) {
             //create_image_set_table();
@@ -2604,8 +2602,6 @@ function show_annotation(change_image=false) {
     //$("#seadragon_viewer").empty();
 
 
-    console.log("show_annotation");
-
     //create_viewer_and_anno("seadragon_viewer");
     viewer.zoomPerScroll = 1.2;
     anno.readOnly = false; //annotations[cur_img_name]["status"] === "completed_for_training";
@@ -2752,17 +2748,20 @@ async function show_prediction(change_image=false) {
     $("#predictions_unavailable").hide();
     $("#predictions_available").hide();
 
-
+    set_count_chart_data();
+    set_score_chart_data();
+    update_score_chart();
+    update_count_chart();
     
 
 
     if (cur_img_name in predictions) {
         $("#predictions_available").show();
 
-        set_count_chart_data();
-        set_score_chart_data();
-        update_score_chart();
-        update_count_chart();
+        // set_count_chart_data();
+        // set_score_chart_data();
+        // update_score_chart();
+        // update_count_chart();
     }
     else {
         $("#predictions_unavailable").show();
@@ -3160,7 +3159,6 @@ function show_segmentation() {
 
 function pan_viewport() {
 
-    console.log("pan_viewport");
     $("#segmentation_loader").hide();
 
 
@@ -3176,18 +3174,14 @@ function pan_viewport() {
         //viewer.viewport.zoomTo(targetZoom, null, true);
         //viewer.viewport.fitBounds(cur_bounds);
         if (cur_bounds) {
-            console.log("fitting to cur_bounds");
             withFastOSDAnimation(viewer.viewport, function() {
                 viewer.viewport.fitBounds(cur_bounds);
             });
         }
         else {
-            console.log("zooming to correct level");
             let tiledImage = viewer.world.getItemAt(0);
             let viewer_width = $("#seadragon_viewer").width();
             let targetZoom = tiledImage.source.dimensions.x / viewer_width;
-            console.log("tiledImage.source.dimensions.x", tiledImage.source.dimensions.x);
-            console.log("seadragon_viewer_width", viewer_width);
             viewer.viewport.zoomTo(targetZoom, null, true);
         }
     };
@@ -3203,8 +3197,6 @@ function pan_viewport() {
 }
 
 function segment_viewport() {
-
-    console.log("segmenting the viewport");
 
     if (viewer != null) {
         cur_bounds = viewer.viewport.getBounds();
@@ -3245,10 +3237,6 @@ function segment_viewport() {
             let w = rgb_ctx.canvas.width;
             let h = rgb_ctx.canvas.height;
 
-
-            console.log("w, h", w, h);
-
-
             rgb_ctx.drawImage(rgb_image, 0, 0, w, h);      // Set image to Canvas context
             d_rgb = rgb_ctx.getImageData(0, 0, w, h);  // Get image Data from Canvas context
             // console.log("d_rgb.data", d_rgb.data);
@@ -3260,14 +3248,9 @@ function segment_viewport() {
         draw_segmentation();
     }
     container_height = $("#seadragon_viewer").height();
-    console.log("container_height", container_height);
 }
 
 function draw_segmentation() {
-    console.log("draw_segmentation called");
-
-
-
 
     //$("#seadragon_viewer").css("height", "max-content");
     // container_height = $("#seadragon_viewer").height();
@@ -3280,16 +3263,15 @@ function draw_segmentation() {
 
 
     
-    let threshold = excess_green_record[cur_img_name]["sel_val"]; //0.16;
+    let threshold = excess_green_record[cur_img_name]["sel_val"];
     let num_foreground = 0;
     let non_zero = [];
-    console.log("d_rgb.data.length", d_rgb.data.length);
     for (let i = 0; i < d_rgb.data.length; i += 4) {
         r_val = d_rgb.data[i] / 255;
         g_val = d_rgb.data[i+1] / 255;
         b_val = d_rgb.data[i+2] / 255;
         if ((r_val != 0 || g_val != 0) || b_val != 0) {
-            non_zero.push({"r_val": r_val, "g_val": g_val, "b_val": b_val}); //console.log("non zero pixel", r_val, g_val, b_val);
+            non_zero.push({"r_val": r_val, "g_val": g_val, "b_val": b_val});
         }
         let exg_val = (2 * g_val) - r_val - b_val;
 
@@ -3370,521 +3352,6 @@ function draw_segmentation() {
 
 
 }
-  
-
-function my_seg_test() {
-
-    // let img = viewer.drawer.canvas.toDataURL("image/png");
-    // console.log("img", img);
-    // let threshold = 0.2;
-    // for (let i = 0; i < img.data.length; i += 4) {    
-    //     console.log(data[i]);
-    // //     let is_foreground = img.data[i] > threshold;
-    // //     img.data[i+3] = is_foreground ? 255 : 30;
-
-    // //     if (is_foreground) {
-    // //         num_foreground++;
-    // //     }
-    // }
-
-    let tiledImage = viewer.world.getItemAt(0); // Assuming you just have a single image in the viewer
-    let targetZoom = tiledImage.source.dimensions.x / viewer.viewport.getContainerSize().x;
-    viewer.viewport.zoomTo(targetZoom, null, true);
-
-    // var w = rgb_ctx.canvas.width  = rgb_image.width,
-    // h = rgb_ctx.canvas.height = rgb_image.height;
-
-    //let container_size = viewer.viewport.getContainerSize();
-    // rgb_ctx.drawImage(rgb_image, 0, 0, w, h);      // Set image to Canvas context
-    //let img = overlay.context2d().getImageData(0, 0, container_size.x, container_size.y); 
-
-    delay(1000).then(() => {
-    let img = viewer.drawer.canvas.toDataURL("image/png");
-    console.log(img);
-    console.log(typeof(img));
-    
-    let canvas = document.createElement("canvas");
-    canvas.id = "my_canvas";
-    // let image_canvas = document.createElement("canvas");
-    // let exg_ctx = canvas.getContext("2d");
-    let rgb_ctx = canvas.getContext("2d");
-
-
-
-    let rgb_image = new Image();
-    rgb_image.src = img; //"/plant_detection/fake_url/image/png";
-
-    rgb_image.onload = function() {
-
-
-
-        console.log("rgb_image.data (1)", rgb_image.data);
-
-        let container_size = viewer.viewport.getContainerSize();
-
-        rgb_ctx.canvas.width = container_size.x;
-        rgb_ctx.canvas.height = container_size.y;
-
-        let w = rgb_ctx.canvas.width;
-        let h = rgb_ctx.canvas.height;
-
-
-
-        rgb_ctx.drawImage(rgb_image, 0, 0, w, h);      // Set image to Canvas context
-        var d_rgb = rgb_ctx.getImageData(0, 0, w, h);  // Get image Data from Canvas context
-        console.log("d_rgb.data", d_rgb.data);
-
-    
-        let threshold = 0.16;
-        let num_foreground = 0;
-        let non_zero = [];
-        for (let i = 0; i < d_rgb.data.length; i += 4) {
-            r_val = d_rgb.data[i] / 255;
-            g_val = d_rgb.data[i+1] / 255;
-            b_val = d_rgb.data[i+2] / 255;
-            if ((r_val != 0 || g_val != 0) || b_val != 0) {
-                non_zero.push({"r_val": r_val, "g_val": g_val, "b_val": b_val}); //console.log("non zero pixel", r_val, g_val, b_val);
-            }
-            let exg_val = (2 * g_val) - r_val - b_val;
-
-            let is_foreground = exg_val > threshold;
-            d_rgb.data[i+3] = is_foreground ? 255 : 30;
-
-            if (is_foreground) {
-                num_foreground++;
-            }
-            
-        }
-        console.log("non_zero", non_zero);
-        console.log("num_foreground", num_foreground);
-
-        let percent_vegetation = ((num_foreground / (d_rgb.data.length / 4)) * 100).toFixed(2);
-        console.log("percent_vegetation", percent_vegetation);
-        //excess_green_record[cur_img_name]["ground_cover_percentage"] = parseFloat(percent_vegetation);
-
-        rgb_ctx.putImageData(d_rgb, 0, 0);
-
-        $("#seadragon_viewer").hide();
-
-        $("#test_seg_viewer").show();
-        // $("#seadragon_viewer").append(
-        //     `<div id="my_image_container"></div>`
-        //     // class="scrollable_area" style="cursor: grab; height: ${container_height}; width: ${container_width}; border: none">` +
-        //    // `</div>`
-        // );
-
-
-        $("#test_seg_viewer").append(
-            rgb_ctx.canvas
-        );
-
-
-
-        /*
-        let non_zero = [];
-        for (let i = 0; i < rgb_image.data.length; i += 4) {
-            r_val = rgb_image.data[i] / 255;
-            g_val = rgb_image.data[i+1] / 255;
-            b_val = rgb_image.data[i+2] / 255;
-            if ((r_val != 0 || g_val != 0) || b_val != 0) {
-                non_zero.push({"r_val": r_val, "g_val": g_val, "b_val": b_val}); //console.log("non zero pixel", r_val, g_val, b_val);
-            }
-        }
-        console.log("non_zero", non_zero);*/
-
-    };
-
-
-    // img.onload = function() {
-
-
-    //     console.log("started iterating");
-    //     let num_foreground = 0;
-    //     let is_foreground;
-    //     let exg_val;
-    //     let r_val, b_val, g_val;
-
-
-    //     for (let i = 0; i < img.data.length; i += 4) {
-    //         r_val = img.data[i] / 255;
-    //         g_val = img.data[i+1] / 255;
-    //         b_val = img.data[i+2] / 255;
-    //         if ((r_val != 0 || g_val != 0) || b_val != 0) {
-    //             console.log("non zero pixel", r_val, g_val, b_val);
-    //         }
-    //         exg_val = (2 * g_val) - r_val - b_val;
-    //         is_foreground = exg_val > -10000;
-    //         img.data[i+3] = is_foreground ? 255 : 30;
-    //         //console.log(img.data[i]);
-    //     //     let is_foreground = img.data[i] > threshold;
-    //     //     img.data[i+3] = is_foreground ? 255 : 30;
-
-    //         if (is_foreground) {
-    //             num_foreground++;
-    //         }
-    //     }
-
-    //     console.log("num_foreground", num_foreground);
-
-    //     console.log("finished iterating");
-
-
-    //     overlay.context2d().putImageData(img, 0, 0);
-    // }
-
-
-
-});
-
-}
-
-
-function show_segmentation_inner() {
-
-    cur_panel = "segmentation";
-
-    $("#show_annotation_button").removeClass("tab-btn-active");
-    $("#show_prediction_button").removeClass("tab-btn-active");
-    $("#show_segmentation_button").addClass("tab-btn-active");
-
-
-    //$("#seadragon_viewer").hide();
-    $("#annotation_panel").hide();
-    $("#prediction_panel").hide();
-    //$("#segmentation_viewer").show();
-    $("#segmentation_panel").show();
-
-    disable_std_buttons(["request_segment_button"]);
-    $("#image_loader").show();
-
-    //let timestamp = new Date().getTime();
-
-    let exg_src = get_CC_PATH() + "/usr/data/" + username + "/image_sets/" + image_set_info["farm_name"] + "/"
-                    + image_set_info["field_name"] + "/" + image_set_info["mission_date"] + 
-                    "/excess_green/" + cur_img_name + ".png"; //?t=" + timestamp;
-    let rgb_src = get_CC_PATH() + "/usr/data/" + username + "/image_sets/" + image_set_info["farm_name"] + "/"
-                    + image_set_info["field_name"] + "/" + image_set_info["mission_date"] + 
-                    "/images/" + cur_img_name + image_set_info["image_ext"]; // + "?t=" + timestamp; //".JPG"; //?t=" + timestamp;
-
-
-    let min_val = excess_green_record[cur_img_name]["min_val"];
-    let max_val = excess_green_record[cur_img_name]["max_val"];
-    let sel_val = excess_green_record[cur_img_name]["sel_val"].toFixed(2);
-
-    $("#threshold_slider_container").empty();
-    $("#threshold_slider_container").append(
-        `<input type="range" min="${min_val}" max="${max_val}" step="0.01" value="${sel_val}" class="slider" id="threshold_slider">`
-    );
-    $("#threshold_slider_val_container").empty();
-    $("#threshold_slider_val_container").append(
-        `<div id="threshold_slider_val" class="header2">${sel_val}</div>`
-    );
-
-    $("#threshold_slider").on("input", function() {
-        $("#save_icon").css("color", "#ed452b");
-        excess_green_record[cur_img_name]["sel_val"] = parseFloat(parseFloat($("#threshold_slider").val()).toFixed(2));
-        $("#threshold_slider_val").html( excess_green_record[cur_img_name]["sel_val"]);
-    });
-
-    $("#threshold_slider").change(function() {
-        $("#save_icon").css("color", "#ed452b");
-        excess_green_record[cur_img_name]["sel_val"] = parseFloat(parseFloat($("#threshold_slider").val()).toFixed(2));
-        $("#threshold_slider_val").html(excess_green_record[cur_img_name]["sel_val"]);
-    });
-
-
-
-
-    function raise_threshold_slider() {
-        let slider_val = parseFloat($("#threshold_slider").val());
-        if (slider_val < max_val) {
-            slider_val = slider_val + 0.01;
-            $("#threshold_slider").val(slider_val).change();
-        }
-    }
-    function lower_threshold_slider() {
-        let slider_val = parseFloat($("#threshold_slider").val());
-        if (slider_val > min_val) {
-            slider_val = slider_val - 0.01;
-            $("#threshold_slider").val(slider_val).change();
-        }
-    }
-
-
-    let threshold_handler;
-    $("#threshold_score_down").off("mousedown");
-    $("#threshold_score_down").mousedown(function() {
-        lower_threshold_slider();
-        threshold_handler = setInterval(lower_threshold_slider, 300);
-    });
-
-    $("#threshold_score_down").off("mouseup");
-    $("#threshold_score_down").mouseup(function() {
-        clearInterval(threshold_handler);
-    }); 
-
-    $("#threshold_score_up").off("mousedown");
-    $("#threshold_score_up").mousedown(function() {
-        raise_threshold_slider();
-        threshold_handler = setInterval(raise_threshold_slider, 300);
-    });
-
-    $("#threshold_score_up").off("mouseup");
-    $("#threshold_score_up").mouseup(function() {
-        clearInterval(threshold_handler);
-    });
-
-    /*
-    $("#threshold_slider").val(sel_val);
-    $("#threshold_slider").slider("option", "min", min_val);
-    $("#threshold_slider").slider("option", "max", max_val);
-    $("#threshold_slider_val").html(sel_val);*/
-
-
-    //var base64string = "data:image/png;base64,iVBOR..........",
-    //threshold = 155, // 0..255
-
-    let thresh_val = $("#threshold_slider").val();
-    let threshold = range_map(thresh_val, -2, 2, 0, 255);
-
-    let canvas = document.createElement("canvas");
-    let image_canvas = document.createElement("canvas");
-    let exg_ctx = canvas.getContext("2d");
-    let rgb_ctx = canvas.getContext("2d");
-    canvas.id = "my_canvas";
-    let exg_image = new Image();
-    let rgb_image = new Image();
-    //let zoomCtx = $("#my_result").append(`<canvas></canvas>`).getContext("2d");
-
-    let viewer_width = $("#seadragon_viewer").width();
-    let viewer_height = $('#seadragon_viewer').height();
-
-        
-    exg_image.src = exg_src;
-    rgb_image.src = rgb_src;
-
-    let images_loaded = 0;
-
-
-
-    let all_images_loaded = function() {
-
-        let org_height = rgb_image.height;
-        let org_width = rgb_image.width;
-        // let frac_h = viewer_height / org_height;
-        // let frac_w = viewer_width / org_width;
-        // let rescale = Math.min(frac_h, frac_w);
-        
-        // let full_height = rescale * org_height;
-        // let full_width = rescale * org_width;
-        // rgb_image.id = "my_image";
-        // rgb_image.height = full_height;
-        // rgb_image.width = full_width;
-
-        rgb_image.height = org_height;
-        rgb_image.width = org_width;
-
-        exg_image.height = org_height;
-        exg_image.width = org_width;
-
-        var w = rgb_ctx.canvas.width  = rgb_image.width,
-            h = rgb_ctx.canvas.height = rgb_image.height;
-
-
-        //rgb_ctx.globalAlpha = 0.2;
-        //image_ctx.drawImage(org_image, 0, 0, w, h);
-        //ctx.drawImage(image, 0, 0, w, h);      // Set image to Canvas context
-        //var d = ctx.getImageData(0, 0, w, h);  // Get image Data from Canvas context
-        
-        rgb_ctx.drawImage(rgb_image, 0, 0, w, h);      // Set image to Canvas context
-        var d_rgb = rgb_ctx.getImageData(0, 0, w, h);  // Get image Data from Canvas context
-
-        exg_ctx.drawImage(exg_image, 0, 0, w, h);      // Set image to Canvas context
-        var d_exg = exg_ctx.getImageData(0, 0, w, h);  // Get image Data from Canvas context
-
-    /*
-        for (var i=0; i<d.data.length; i+=4) { // 4 is for RGBA channels
-            // R=G=B=R>T?255:0
-            d.data[i] = d.data[i+1] = d.data[i+2] = d.data[i+1] > threshold ? 255 : 0;
-        }*/
-        //for (var i=0; i<d.data.length; i+=1) { // 4 is for RGBA channels
-        
-        //let j = 0;
-
-        let num_foreground = 0;
-        for (let i = 0; i < d_rgb.data.length; i += 4) {    
-            // R=G=B=R>T?255:0
-            /*
-            if (d_exg.data[j] > threshold) {
-                d_rgb.data[i] = 0;
-                d_rgb.data[i+1] = 0;
-                d_rgb.data[i+2] = 0;
-
-            }*/
-            
-            let is_foreground = d_exg.data[i] > threshold;
-            d_rgb.data[i+3] = is_foreground ? 255 : 30;
-
-            if (is_foreground) {
-                num_foreground++;
-            }
-
-            // let is_bg = d_exg.data[i] < threshold;
-            // d_rgb.data[i+3] = is_bg ? 30 : 255;
-            // if (!is_bg) {
-            //     num_foreground++;
-            // }
-            //j++;
-        }
-        let percent_vegetation = ((num_foreground / (d_rgb.data.length / 4)) * 100).toFixed(2);
-        excess_green_record[cur_img_name]["ground_cover_percentage"] = parseFloat(percent_vegetation);
-
-        $("#ground_cover_text").html(percent_vegetation);
-        update_ground_cover_chart();
-
-
-        rgb_ctx.putImageData(d_rgb, 0, 0);             // Apply threshold conversion
-        //document.body.appendChild(ctx.canvas); // Show result
-        //$("#seadragon_viewer").append(ctx.canvas);
-        
-        let container_height = $("#seadragon_viewer").height() + "px";
-        let container_width = $("#seadragon_viewer").width() + "px";
-
-        /*
-        $("#seadragon_viewer").append(
-            `<div id="my_image_container" style="margin: auto auto; height: ${container_height}; width: ${container_width}">` +
-            `</div>`
-        );
-        */
-        //
-
-        $("#image_loader").hide();
-
-        /*
-        $("#my_image_container").css("height", container_height);
-        $("#my_image_container").css("width", container_width);
-        $("#my_image_container").show();*/
-        //}
-        $("#my_image_container").empty();
-        /*
-        $("#my_image_container").append(
-            org_image
-        );*/
-
-        
-        $("#my_image_container").append(
-            rgb_ctx.canvas
-        );
-
-        enable_std_buttons(["request_segment_button"]);
-        
-
-            //$("#right_panel").append(`<div id="my_result" style="border: 1px solid white; height: 280px"></div>`);
-            //imageZoom("my_image", "my_result")
-    //    };
-    };
-
-
-    exg_image.onload = function() {
-        images_loaded++;
-        if (images_loaded == 2) {
-            all_images_loaded();
-        }
-    }
-
-    rgb_image.onload = function() {
-        images_loaded++;
-        if (images_loaded == 2) {
-            all_images_loaded();
-        }
-    }
-    
-
-
-
-}
-
-
-/*
-function add_annotations() {
-    anno.clearAnnotations();
-    if ((cur_panel === "annotation") || (cur_panel === "prediction" && ($("#annotations").is(":checked")))) {
-        for (let annotation of annotations[cur_img_name]["annotations"]) {
-            anno.addAnnotation(annotation);
-        }
-    }
-    let slider_val = Number.parseFloat($("#confidence_slider").val()).toFixed(2);
-    if ((cur_panel == "prediction") && (cur_img_name in predictions)) {
-        if ($("#predictions").is(":checked")) {
-            for (let annotation of predictions[cur_img_name]["annotations"]) {
-
-                let bodies = Array.isArray(annotation.body) ?
-                annotation.body : [ annotation.body ];
-                let scoreTag = bodies.find(b => b.purpose == 'score');
-                if (!scoreTag || scoreTag.value >= slider_val) {
-                    anno.addAnnotation(annotation);
-                }
-                
-            }
-        }
-    }
-}*/
-
-
-
-function show_segmentation_old() {
-
-    let container_height = $("#seadragon_viewer").height() + "px";
-    let container_width = $("#seadragon_viewer").width() + "px";
-    //cur_bounds = viewer.viewport.getBounds();
-    $("#seadragon_viewer").empty();
-    $("#seadragon_viewer").append(
-        `<div id="my_image_container" class="scrollable_area" style="cursor: grab; height: ${container_height}; width: ${container_width}; border: none">` +
-        `</div>`
-    );
-    let pos = { top: 0, left: 0, x: 0, y: 0};
-
-    const ele = document.getElementById('my_image_container');
-    const mouseDownHandler = function(e) {
-
-        ele.style.cursor = 'grabbing';
-        ele.style.userSelect = 'none';
-
-        pos = {
-            left: this.scrollLeft,
-            top: this.scrollTop,
-            x: e.clientX,
-            y: e.clientY
-        };
-
-        document.addEventListener('mousemove', mouseMoveHandler);
-        document.addEventListener('mouseup', mouseUpHandler);
-    };
-
-
-    const mouseMoveHandler = function (e) {
-        // How far the mouse has been moved
-        const dx = e.clientX - pos.x;
-        const dy = e.clientY - pos.y;
-
-        // Scroll the element
-        ele.scrollTop = pos.top - dy;
-        ele.scrollLeft = pos.left - dx;
-    };
-
-    const mouseUpHandler = function () {
-        document.removeEventListener('mousemove', mouseMoveHandler);
-        document.removeEventListener('mouseup', mouseUpHandler);
-    
-        ele.style.cursor = 'grab';
-        ele.style.removeProperty('user-select');
-    };
-
-    ele.addEventListener('mousedown', mouseDownHandler);
-
-    show_segmentation_inner();
-}
-
 
 
 function lower_slider() {
@@ -3938,7 +3405,8 @@ function update_results_comment_input() {
     return true;
 }
 
-function submit_prediction_request(image_names) {
+function submit_prediction_request(image_names_str, regions_str) {
+
 
 
     let left_col_width_px = "160px";
@@ -3974,12 +3442,16 @@ function submit_prediction_request(image_names) {
         `<div style="height: 30px"></div>` +
         `<div id="modal_button_container" style="text-align: center">` +
         `<button id="confirm_results_request_button" class="std-button std-button-hover" `+
-        `style="width: 200px" onclick="submit_prediction_request_confirmed('${image_names}', true)">Submit Request</button></div>`
+        `style="width: 200px">Submit Request</button></div>`
         /*
         `<button id="cancel_delete" class="std-button std-button-hover" ` +
         `style="width: 200px" onclick="cancel_delete_request()">Cancel</button>` +*/
         
         );
+
+    $("#confirm_results_request_button").click(function() {
+        submit_prediction_request_confirmed(image_names_str, regions_str, true);
+    });
 
     
     for (let input_id of ["results_name_input"]) {
@@ -4007,7 +3479,9 @@ function submit_prediction_request(image_names) {
 
 }
 
-function submit_prediction_request_confirmed(image_names_str, save_result) {
+function submit_prediction_request_confirmed(image_names_str, regions_str, save_result) {
+    console.log("image_names_str", image_names_str);
+    console.log("regions_str", regions_str);
 
     disable_std_buttons(["request_result_button", "predict_single_button", "predict_all_button"]);
 
@@ -4015,6 +3489,7 @@ function submit_prediction_request_confirmed(image_names_str, save_result) {
     {
         action: "predict",
         image_names: image_names_str,
+        regions: regions_str,
         save_result: save_result ? "True" : "False",
         results_name: $("#results_name_input").val(),
         results_comment: $("#results_comment_input").val()
@@ -4032,7 +3507,6 @@ function submit_prediction_request_confirmed(image_names_str, save_result) {
 
 function show_model_details(model_creator, model_name) {
 
-    console.log("show_model_details", model_creator, model_name);
     $.post($(location).attr("href"),
     {
         action: "inspect_model",
@@ -4057,7 +3531,6 @@ function show_model_details(model_creator, model_name) {
             //         annotation["body"].push({"value": "COLOR_BRIGHT", "purpose": "highlighting"})
             //     }
             // }
-            console.log("inspected_model_log", switch_model_data["inspected_model_log"]);
         
             $("#model_info").empty();
         /*
@@ -4186,7 +3659,6 @@ function show_model_details(model_creator, model_name) {
                 onOpen: function() {
                 },
                 onRedraw: function() {
-                    console.log("onRedraw"); //, selected_annotation_index, cur_edit_layer);
                     let cur_tiles_url = current_image_set_viewer.source.tilesUrl;
                     let basename_url = basename(cur_tiles_url);
                     let current_image_set_image_name = basename_url.substring(0, basename_url.length-6);
@@ -4236,7 +3708,7 @@ function show_model_details(model_creator, model_name) {
                                 visible_boxes.push(box);
                             }
                         }
-                        if (visible_boxes.length < MAX_BOXES_DISPLAYED) {
+                        if (visible_boxes.length <= MAX_BOXES_DISPLAYED) {
                             for (let box of visible_boxes) {
                                 let viewer_point = current_image_set_viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(box[1], box[0]));
                                 let viewer_point_2 = current_image_set_viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(box[3], box[2]));
@@ -4422,7 +3894,6 @@ function change_image_set(image_set_index) {
 
                 },
                 onRedraw: function() {
-                    console.log("onRedraw"); //, selected_annotation_index, cur_edit_layer);
                     let cur_tiles_url = model_viewer.source.tilesUrl;
                     let basename_url = basename(cur_tiles_url);
                     let model_image_set_image_name = basename_url.substring(0, basename_url.length-6);
@@ -4447,13 +3918,21 @@ function change_image_set(image_set_index) {
                     let max_x = min_x + viewport_w;
                     let max_y = min_y + viewport_h;
 
+                    //if (region != null) {
+                    //let cur_region = annotations[cur_img_name][navigation_type][cur_region_index];
+                    min_y = Math.max(min_y, region[0]);
+                    min_x = Math.max(min_x, region[1]);
+                    max_y = Math.min(max_y, region[2]);
+                    max_x = Math.min(max_x, region[3]);
+                    //}
+
                     let draw_order;
-                    if (region == null) {
-                        draw_order = ["annotation", "training_region", "test_region"];
-                    }
-                    else {
-                        draw_order = ["annotation"];
-                    }
+                    //if (region == null) {
+                    //    draw_order = ["annotation", "training_region", "test_region"];
+                    //}
+                    //else {
+                    draw_order = ["annotation"];
+                    //}
                     for (let key of draw_order) { 
                         
                         model_overlay.context2d().strokeStyle = overlay_colors[key];
@@ -4477,7 +3956,7 @@ function change_image_set(image_set_index) {
                                 visible_boxes.push(box);
                             }
                         }
-                        if (visible_boxes.length < MAX_BOXES_DISPLAYED) {
+                        if (visible_boxes.length <= MAX_BOXES_DISPLAYED) {
                             for (let box of visible_boxes) {
                                 let viewer_point = model_viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(box[1], box[0]));
                                 let viewer_point_2 = model_viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(box[3], box[2]));
@@ -4501,10 +3980,10 @@ function change_image_set(image_set_index) {
                     
                     if (region != null) {
                         let rects = [
-                            [0 -10 , 0 -10, region[0], image_px_width +10],
-                            [0, region[3], image_px_height +10, image_px_width +10],
-                            [region[2], 0 -10, image_px_height +10, image_px_width +10],
-                            [0 -10, 0 -10, image_px_height +10, region[1]]
+                            [0, 0, region[0], image_px_width],
+                            [0, region[3], image_px_height, image_px_width],
+                            [region[2], 0, image_px_height, image_px_width],
+                            [0, 0, image_px_height, region[1]]
 
                         ];
 
@@ -4711,7 +4190,6 @@ function select_model(model_creator, model_name) {
         enable_std_buttons([prev_button_id]);
     }
 
-    console.log("you selected", model_creator, model_name);
     switch_model_data["selected_model"] = {
         "model_creator": model_creator,
         "model_name": model_name
@@ -5078,19 +4556,6 @@ function show_models(show_public_models) {
             $("#submit_model_change").click(function() {
                 let new_model_name = switch_model_data["selected_model"]["model_name"];
                 let new_model_creator = switch_model_data["selected_model"]["model_creator"];
-                //console.log("models", models);
-                // for (let model of models) {
-                //let model_radio = $("input[name=models_radio]");
-                //let sel_id = model_radio.filter(":checked").val();
-                //new_model_creator = sel_id.split(":")[0];
-                //new_model_name = sel_id.split(":")[1];
-
-                    //     new_model_name = model["name"];
-                    //     new_model_creator = model["creator"];
-                    //     break;
-                    // }
-                // }
-                console.log("switching to model", new_model_name);
 
                 $.post($(location).attr("href"),
                 {
@@ -5127,19 +4592,6 @@ function show_models(show_public_models) {
         }
     });
 }
-/*
-function submit_model_change() {
-    //for (let model_name of model_names) {
-    let new_model_name;
-    $("#models_radio").each(function() {
-        if ($("#" + this.id).is(":checked")) {
-            new_model_name = model_name; //console.log(model_name, "is checked");
-            break;
-        }
-    });
-
-    console.log("switching to model", new_model_name);
-}*/
 
 function change_model() {
     show_modal_message(
@@ -5178,14 +4630,104 @@ function set_heights() {
     for (let image_name of Object.keys(annotations)) {
         $("#image_name").html(image_name);
         let table_height = $("#image_name_table").height();
-        console.log("table_height", table_height);
         if (table_height > max_height) {
             max_height = table_height;
         };
     }
-    console.log("max_height", max_height);
     $("#image_name_table").height(max_height);
     $("#navigation_table_container").height(396 - max_height);
+}
+
+function add_prediction_buttons() {
+    let navigation_type = $('#navigation_dropdown').val();
+    let single_text;
+    let all_text;
+    let multiple = false;
+    if (navigation_type === "images") {
+        single_text = "Current Image";
+        all_text = "All Images";
+        multiple = Object.keys(annotations).length > 1;
+    }
+    else {
+        single_text = "Current Region";
+        all_text = "All Regions";
+        let num_regions = 0;
+        for (let image_name of Object.keys(annotations)) {
+            for (let region_key of ["training_regions", "test_regions"]) {
+                num_regions += annotations[image_name][region_key].length;
+            }
+        }
+        multiple = num_regions > 1;
+    }
+
+
+    $("#predict_container").empty();
+    if (multiple) {
+        $("#predict_container").append(
+            `<button id="predict_single_button" class="std-button std-button-hover" style="font-size: 16px; width: 130px; border-radius: 30px 0px 0px 30px">${single_text}</button>` +
+            `<button id="predict_all_button" class="std-button std-button-hover" style="font-size: 16px; width: 130px; border-radius: 0px 30px 30px 0px; border-left: none">${all_text}</button>`
+        );
+    }
+    else {
+        $("#predict_container").append(
+            `<button id="predict_single_button" class="std-button std-button-hover" style="font-size: 16px; width: 260px">${single_text}</button>` 
+        );
+    }
+
+    if (model_unassigned) {
+        disable_std_buttons(["predict_single_button", "predict_all_button"]);
+    }
+
+    $("#predict_single_button").click(function() {
+        console.log("clicked predict_single_button");
+        let navigation_type = $('#navigation_dropdown').val();
+        let image_list;
+        let region_list;
+        if (navigation_type === "images") {
+            let image_width = metadata["images"][cur_img_name]["width_px"];
+            let image_height = metadata["images"][cur_img_name]["height_px"];
+            image_list = [cur_img_name];
+            region_list = [[[0, 0, image_height, image_width]]];
+        }
+        else {
+            image_list = [cur_img_name];
+            let region = annotations[cur_img_name][navigation_type][cur_region_index];
+            region_list = [[region]];
+        }
+
+        submit_prediction_request_confirmed(JSON.stringify(image_list), JSON.stringify(region_list), false);
+    });
+
+    $("#predict_all_button").click(function() {
+        let navigation_type = $('#navigation_dropdown').val();
+        let image_list = [];
+        let region_list = [];
+        if (navigation_type === "images") {
+            for (let image_name of Object.keys(annotations)) {
+                let image_width = metadata["images"][image_name]["width_px"];
+                let image_height = metadata["images"][image_name]["height_px"];
+                image_list.push(image_name);
+                region_list.push([[0, 0, image_height, image_width]]);
+            }
+        }
+        else {
+            for (let image_name of Object.keys(annotations)) {
+                let image_region_list = [];
+                for (let region_key of ["training_regions", "test_regions"]) {
+                    for (let region of annotations[image_name][region_key]) {
+                        image_region_list.push(region);
+                    }
+                }
+                if (image_region_list.length > 0) {
+                    image_list.push(image_name);
+                    region_list.push(image_region_list)
+                }
+            }
+        }
+        
+        submit_prediction_request_confirmed(JSON.stringify(image_list), JSON.stringify(region_list), false);
+    });
+
 }
 
 $(document).ready(function() {
@@ -5205,18 +4747,21 @@ $(document).ready(function() {
     camera_specs = data["camera_specs"];
     excess_green_record = data["excess_green_record"];
     predictions = data["predictions"];
+    overlay_colors = data["overlay_colors"];
+    set_overlay_color_css_rules();
 
-    if (metadata["is_ortho"] === "yes") {
-        $("#predict_container").append(
-            `<button id="predict_single_button" class="std-button std-button-hover" style="font-size: 16px; width: 260px">Predictions Only</button>` 
-        );
-    }
-    else {
-        $("#predict_container").append(
-            `<button id="predict_single_button" class="std-button std-button-hover" style="font-size: 16px; width: 130px; border-radius: 30px 0px 0px 30px">Current Image</button>` +
-            `<button id="predict_all_button" class="std-button std-button-hover" style="font-size: 16px; width: 130px; border-radius: 0px 30px 30px 0px; border-left: none">All Images</button>`
-        );
-    }
+    // if (metadata["is_ortho"] === "yes") {
+    //     $("#predict_container").append(
+    //         `<button id="predict_single_button" class="std-button std-button-hover" style="font-size: 16px; width: 260px">Predictions Only</button>` 
+    //     );
+    // }
+    // else {
+    //     $("#predict_container").append(
+    //         `<button id="predict_single_button" class="std-button std-button-hover" style="font-size: 16px; width: 130px; border-radius: 30px 0px 0px 30px">Current Image</button>` +
+    //         `<button id="predict_all_button" class="std-button std-button-hover" style="font-size: 16px; width: 130px; border-radius: 0px 30px 30px 0px; border-left: none">All Images</button>`
+    //     );
+    // }
+    add_prediction_buttons();
 
     create_overlays_table();
     //set_prediction_overlay_color();
@@ -5325,8 +4870,6 @@ $(document).ready(function() {
     });
 
     socket.on("image_set_status_change", function(update) {
-        console.log("update", update);
-
 
         if (update["switch_request"] === "True") {
             waiting_for_model_switch = true;
@@ -5381,8 +4924,6 @@ $(document).ready(function() {
         // }
         model_unassigned = (!("model_name" in update)) || (update["model_name"] === "---");
 
-        console.log("model_unassigned", model_unassigned);
-
         let model_name;
         if ("model_name" in update) {
             model_name = update["model_name"];
@@ -5401,9 +4942,6 @@ $(document).ready(function() {
             let fully_trained;
             let fine_tuned;
             //if (metadata["is_ortho"] === "yes") {
-            console.log("ANNOTATIONS", annotations);
-            console.log("CUR_IMG_NAME", cur_img_name);
-            console.log("ANNOTATIONS[CUR_IMG_NAME]", annotations[cur_img_name]);
             let num_training_regions = get_num_regions("training_regions");
 
             fully_trained = num_training_regions == num_regions_fully_trained_on;
@@ -5536,8 +5074,6 @@ $(document).ready(function() {
 
 
             if (update_is_for_this_set) {
-
-                console.log("got update for this set", update);
 
                 if ("error_message" in update) {
                     let error_message = `An error occurred during ` + update["error_setting"] + 
@@ -5820,16 +5356,19 @@ $(document).ready(function() {
     })
 
     $("#request_result_button").click(function() {
-        submit_prediction_request(Object.keys(annotations).join(","));
+        let image_list = [];
+        let region_list = [];
+        for (let image_name of Object.keys(annotations)) {
+            image_list.push(image_name);
+            let image_height = metadata["images"][image_name]["height_px"];
+            let image_width = metadata["images"][image_name]["width_px"];
+            region_list.push([[0, 0, image_height, image_width]]);
+        }
+
+
+        submit_prediction_request(JSON.stringify(image_list), JSON.stringify(region_list));
     });
 
-    $("#predict_single_button").click(function() {
-        submit_prediction_request_confirmed([cur_img_name].join(","), false);
-    });
-
-    $("#predict_all_button").click(function() {
-        submit_prediction_request_confirmed(Object.keys(annotations).join(","), false);
-    })
 
     $("#use_predictions_button").click(function() {
         $("#modal_head").empty();
@@ -5923,12 +5462,6 @@ $(document).ready(function() {
         });
     });
 
-
-
-
-    $("#request_segment_button").click(function() {
-        show_segmentation_inner();
-    });
 
 
     $("#confidence_slider").change(function() {
@@ -6037,19 +5570,13 @@ $(document).ready(function() {
             //let status = annotations[image_name]["status"];
             if ((!(fully_annotated)) && (image_name in predictions)) {
                 candidates.push(image_name);
-                //console.log("found candidate", image_name);
             }
         }
-        console.log("candidates", candidates);
         if (candidates.length <= 1) {
             show_modal_message("Error", "An insufficient number of images have predictions available for assessment." +
                                " Please generate predictions for more images and try again.");
         }
         else {
-
-            //set_score_chart_data();
-
-
 
             let qualities = [];
             for (let image_name of candidates) {
@@ -6071,7 +5598,6 @@ $(document).ready(function() {
             });
 
             let sel_image_name = qualities[0]["image_name"];
-            console.log("I choose", sel_image_name);
 
             change_image(sel_image_name + "/-1");
         }
@@ -6098,8 +5624,6 @@ $(document).ready(function() {
     // });
 
     $("#enable_pan_button").click(function() {
-        let container_height = $("#seadragon_viewer").height();
-        console.log("container_height", container_height);
 
         //if ($("#panning_enabled_status").html() !== "Yes") {
         $("#panning_enabled_status").html("Yes");
@@ -6119,7 +5643,6 @@ $(document).ready(function() {
         disable_std_buttons(["segment_button"]);
 
         if ($("#segmentation_loader").hasClass('load-complete')) {
-            console.log("removing load-complete");
             $("#segmentation_loader").toggleClass('load-complete');
             $("#segmentation_checkmark").toggle();
         }
@@ -6131,15 +5654,10 @@ $(document).ready(function() {
         $("#panning_enabled_status").html("No");
         segment_viewport();
 
-        let container_height = $("#seadragon_viewer").height();
-        console.log("container_height", container_height);
-
     });
 
     $("input[name=edit_layer_radio]").change(async function(e) {
         //e.preventDefault();
-
-        console.log("edit layer radio changed");
 
         /*
         if (selected_annotation != null) {
@@ -6159,8 +5677,6 @@ $(document).ready(function() {
             }
         }
 
-
-        console.log("changing edit layer");
         cur_edit_layer = $('input[name=edit_layer_radio]:checked').val();
 /*
         anno.clearAnnotations();
@@ -6202,16 +5718,14 @@ $(document).ready(function() {
     $("#navigation_dropdown").change(function() {
         create_navigation_table();
         update_count_combo(false);
+        add_prediction_buttons();
         // disable_std_buttons(["prev_image_button"]);
         // if (cur_nav_list.length == 0) {
         //     disable_std_buttons(["next_image_button"]);
         // }
-        //console.log("CUR NAV LIST", cur_nav_list);
 
         let navigation_type = $("#navigation_dropdown").val();
-        console.log("navigation_type", navigation_type);
         if (navigation_type === "training_regions" || navigation_type == "test_regions") {
-            console.log("SETTING");
             $("input:radio[name=edit_layer_radio]").filter("[value=annotation]").prop("checked", true);
             $("input:radio[name=edit_layer_radio]").prop("disabled", true);
             // $("#annotation_label").prop("opacity", 0.5);
@@ -6241,7 +5755,20 @@ $(document).ready(function() {
             viewer = null;
             cur_panel = "annotation";
         }
-        change_image(cur_nav_list[0]);
+        let disp_nav_item = null;
+        for (let nav_item of cur_nav_list) {
+            let image_name = nav_item.split("/")[0];
+            if (image_name === cur_img_name) {
+                disp_nav_item = nav_item;
+                break;
+            }
+        }
+        if (disp_nav_item == null) {
+            change_image(cur_nav_list[0]);
+        }
+        else {
+            change_image(disp_nav_item);
+        }
 
     });
 
@@ -6253,7 +5780,6 @@ $(document).ready(function() {
 
 
     $("#threshold_slider").on("input", function() {
-        console.log("threshold slider input");
         //$("#save_icon").css("color", "#ed452b");
         let cur_val = parseFloat($("#threshold_slider").val());
         //excess_green_record[cur_img_name]["sel_val"] = cur_val; //parseFloat(parseFloat($("#threshold_slider").val()).toFixed(2));
@@ -6261,7 +5787,6 @@ $(document).ready(function() {
     });
 
     $("#threshold_slider").change(function() {
-        console.log("threshold slider change");
         $("#save_icon").css("color", "#ed452b");
         let cur_val = parseFloat($("#threshold_slider").val());
         excess_green_record[cur_img_name]["sel_val"] = cur_val; //parseFloat(parseFloat($("#threshold_slider").val()).toFixed(2));
@@ -6410,7 +5935,6 @@ $(document).ready(function() {
         );
 
         disable_std_buttons(["submit_annotations_button"]);
-        console.log("url", $(location).attr('href') + "/annotations_upload");
         annotations_dropzone = new Dropzone("#annotations_dropzone", { 
             url: $(location).attr('href') + "/annotations_upload",
             autoProcessQueue: false,
@@ -6437,8 +5961,6 @@ $(document).ready(function() {
                 annotations_dropzone.removeAllFiles(true);
                 //num_sent = 0;
                 annotations_dropzone.options.autoProcessQueue = false;
-
-                console.log("got success response", response);
 
                 // TODO: 'refresh' page
                 annotations = response.annotations;
@@ -6509,7 +6031,6 @@ $(document).ready(function() {
         });
 
         annotations_dropzone.on('sending', function(file, xhr, formData) {
-            console.log("sending", formData);
 
             let box_format = $("input:radio[name=box_format_radio]:checked").val();
             let coordinates_format = $("input:radio[name=coordinates_format_radio]:checked").val();
@@ -6540,11 +6061,6 @@ $(document).ready(function() {
 
             e.preventDefault();
             e.stopPropagation();
-
-            for (let f of annotations_dropzone.getQueuedFiles()) {
-
-                console.log("DROPZONE HAS THIS IN IT", f.name);
-            }
 
             annotations_dropzone.options.autoProcessQueue = true;
             annotations_dropzone.processQueue();
@@ -6618,7 +6134,6 @@ $(document).ready(function() {
 
 
     $("body").keydown(function(e) {
-        console.log("Body keyDown")
         if (selected_annotation !== null) {
             keydown_handler(e);
         }
@@ -6653,13 +6168,6 @@ function download_annotations() {
             `</div>` +
         `</div>`);
 
-
-
-
-
-
-    console.log("box_format", box_format);
-    console.log("coordinates_format", coordinates_format);
 
     $.post($(location).attr('href'),
     {

@@ -114,7 +114,6 @@ function train_form_is_complete() {
     });*/
 
     let model_object = $("#model_object_input").val();
-    //console.log(objects);
     if (!(objects["object_names"].includes(model_object))) {
         return false;
     }
@@ -635,7 +634,6 @@ function show_available_train() {
         model_state: "available"
     },
     function(response, status) {
-        //console.log("got response", response);
 
         if (response.error) {
             show_modal_message(`Error`, response.message);
@@ -861,9 +859,6 @@ function get_filtered_datasets() {
     let sort_combo_2_val = $("#sort_combo_2").val();
     let sort_combo_3_val = $("#sort_combo_3").val();
 
-    //console.log("sort_combo_1_val", sort_combo_1_val);
-
-
     filtered_datasets.sort(function(a, b) {
         return a[sort_combo_1_val].localeCompare(b[sort_combo_1_val]) || 
                a[sort_combo_2_val].localeCompare(b[sort_combo_2_val]) ||
@@ -1009,7 +1004,6 @@ function create_viewer(id_prefix, dzi_image_paths) {
         onOpen: function() {
 
             //viewers[id_prefix].world.resetItems();
-            console.log(viewers[id_prefix].currentPage());
             let region = regions[id_prefix][viewers[id_prefix].currentPage()];
             if (region != null) {
                 // let image_w = overlays[id_prefix].imgWidth;
@@ -1025,7 +1019,6 @@ function create_viewer(id_prefix, dzi_image_paths) {
                     (region[3] - region[1]) / image_w,
                     ((region[2] - region[0]) / image_h) * hw_ratio
                 ];
-                //console.log("viewport_bounds", viewport_bounds);
             
                 cur_bounds[id_prefix] = new OpenSeadragon.Rect(
                     viewport_bounds[0],
@@ -1042,7 +1035,6 @@ function create_viewer(id_prefix, dzi_image_paths) {
         },
         onRedraw: function() {
             if (id_prefix in viewers) {
-                console.log("onRedraw"); //, selected_annotation_index, cur_edit_layer);
                 let cur_tiles_url = viewers[id_prefix].source.tilesUrl;
                 let basename_url = basename(cur_tiles_url);
                 let cur_img_name = basename_url.substring(0, basename_url.length-6);
@@ -1069,6 +1061,12 @@ function create_viewer(id_prefix, dzi_image_paths) {
 
                 //overlays[id_prefix].context2d().font = "14px arial";
 
+                if (region != null) {
+                    min_y = Math.max(min_y, region[0]);
+                    min_x = Math.max(min_x, region[1]);
+                    max_y = Math.min(max_y, region[2]);
+                    max_x = Math.min(max_x, region[3]);
+                }
                 
 
                 let draw_order;
@@ -1108,7 +1106,7 @@ function create_viewer(id_prefix, dzi_image_paths) {
                             visible_boxes.push(box);
                         }
                     }
-                    if (visible_boxes.length < MAX_BOXES_DISPLAYED) {
+                    if (visible_boxes.length <= MAX_BOXES_DISPLAYED) {
                         for (let box of visible_boxes) {
                             
                             let viewer_point = viewers[id_prefix].viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(box[1], box[0]));
@@ -1133,10 +1131,10 @@ function create_viewer(id_prefix, dzi_image_paths) {
                 
                 if (region != null) {
                     let rects = [
-                        [0 -10 , 0 -10, region[0], image_px_width +10],
-                        [0, region[3], image_px_height +10, image_px_width +10],
-                        [region[2], 0 -10, image_px_height +10, image_px_width +10],
-                        [0 -10, 0 -10, image_px_height +10, region[1]]
+                        [0, 0, region[0], image_px_width],
+                        [0, region[3], image_px_height, image_px_width],
+                        [region[2], 0, image_px_height, image_px_width],
+                        [0, 0, image_px_height, region[1]]
 
                     ];
 
@@ -1285,8 +1283,6 @@ function inspect_image_set(image_set_text_id, for_target) {
                     annotation["body"].push({"value": "COLOR_BRIGHT", "purpose": "highlighting"})
                 }
             }*/
-            console.log(response.annotations);
-            console.log("cur_regions", cur_regions);
             regions[id_prefix] = cur_regions;
 
             if (!(id_prefix in viewers)) {
@@ -1322,8 +1318,6 @@ function remove_image_set(button_id) {
     let mission_date = pieces[3];
 
     let row_id =  username + "\\:" + farm_name + "\\:" + field_name + "\\:" + mission_date;
-
-    //console.log("removing", row_id);
 
     $("#" + row_id).remove();
     enable_std_buttons([button_id.split(".").join("\\.")]);
@@ -1366,8 +1360,6 @@ function remove_image_set(button_id) {
 
 function add_image_set(button_id, image_set_text_id) {
 
-    //console.log("add image set");
-
     disable_std_buttons([button_id.split(".").join("\\.")]);
     let pieces = image_set_text_id.split(":");
     let username = pieces[0];
@@ -1378,7 +1370,6 @@ function add_image_set(button_id, image_set_text_id) {
     let row_id =  username + ":" + farm_name + ":" + field_name + ":" + mission_date;
     let object_name = available_image_sets[username][farm_name][field_name][mission_date]["object_name"];
     let image_set_details = create_image_set_details_table(username, farm_name, field_name, mission_date);
-    //console.log("image_set_details", image_set_details);
 
     added_image_sets.push({
         "username": username,
@@ -1483,19 +1474,6 @@ function update_annotation_stats() {
         //num_annotations += added_image_set["num_annotations"];
         num_useable_boxes += added_image_set["num_useable_boxes"];
     }
-
-
-
-/*
-    $("#added_image_sets tr").each(function() {
-        //console.log(this);
-        console.log(this.id);
-        let pieces = this.id.split(":");
-        console.log("pieces", pieces);
-        let entry = all_datasets[pieces[0]][pieces[1]][pieces[2]][pieces[3]];
-        num_images += entry["annotated_images"].length;
-        num_annotations += entry["num_annotations"];
-    });*/
 
     //$("#added_images").html(num_images);
     $("#added_annotations").html(num_useable_boxes);
@@ -1885,12 +1863,6 @@ function initialize_train() {
         create_image_set_list();
     });
     
-
-
-    // $("#" + "inspect" + "_next").click(function() {
-    //     console.log("ASDFSADF");
-    // });
 }
-//});
 
 

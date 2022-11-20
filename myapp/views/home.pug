@@ -405,7 +405,7 @@ html
                                                                 table
                                                                     tr
                                                                         td
-                                                                            h(class="header2" style="text-align: left; width: 120px; padding-left: 5px") Inspected Set
+                                                                            h(class="header2" style="text-align: left; width: 120px; padding-left: 5px; margin-top: 10px") Inspected Set
 
                                                                         td(style="width: 100%")
                                                                             div(id="inspected_set" style="text-align: center;")
@@ -420,7 +420,7 @@ html
                                                         tr
                                                             td
                                                                 //div(id="inspect_container")
-                                                                div(id="inspect_viewer" class="viewer" style="height: 300px; width: 800px")
+                                                                div(id="inspect_viewer" class="viewer" style="height: 295px; width: 800px")
 
 
                                                     //hr
@@ -450,7 +450,7 @@ html
                                                                             select(id="target_mission_combo" class="dropdown" style="width: 166px")
                                                         tr
                                                             td
-                                                                div(id="target_viewer" class="viewer" style="height: 300px; width: 800px")
+                                                                div(id="target_viewer" class="viewer" style="height: 295px; width: 800px")
 
                                                         tr
                                                             td(style="height: 16px")
@@ -508,7 +508,11 @@ html
 
     script.
         let username = !{JSON.stringify(username)};
-        let image_sets_data = !{JSON.stringify(image_sets_data)};
-        let camera_specs = !{JSON.stringify(camera_specs)};
-        let objects = !{JSON.stringify(objects)};
-        let available_image_sets = !{JSON.stringify(available_image_sets)};
+        let data = !{JSON.stringify(data)};
+
+    //- script.
+    //-     let username = !{JSON.stringify(username)};
+    //-     let image_sets_data = !{JSON.stringify(image_sets_data)};
+    //-     let camera_specs = !{JSON.stringify(camera_specs)};
+    //-     let objects = !{JSON.stringify(objects)};
+    //-     let available_image_sets = !{JSON.stringify(available_image_sets)};

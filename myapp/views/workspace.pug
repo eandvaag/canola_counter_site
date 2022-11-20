@@ -10,7 +10,7 @@ html
         link(href=process.env.CC_PATH + "/annotorious/annotorious.min.css" rel="stylesheet")
         link(href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.2/css/all.min.css" rel="stylesheet")
         link(href="https://unpkg.com/dropzone@6.0.0-beta.1/dist/dropzone.css" rel="stylesheet" type="text/css")
-        link(href=process.env.CC_PATH + '/stylesheets/main.css' rel='stylesheet')
+        link(href=process.env.CC_PATH + '/stylesheets/main.css' rel='stylesheet' id="main-stylesheet")
         link(href=process.env.CC_PATH + '/stylesheets/d3.css' rel='stylesheet')
         
         
@@ -174,7 +174,19 @@ html
                                                     div(class="scrollable_area" style="height: 475px; width: 280px; border: none; overflow-y: scroll")
                                                         table(id="image_set_table")
 
-                                            h(class="header2" style="text-align: left") Active Layer
+
+
+                                            table
+                                                tr
+                                                    td(style="text-align: left")
+                                                        h(class="header2" style="width: 170px") Active Layer
+                                                    td(style="width: 100%")
+                                                    td
+                                                        button(class="std-button std-button-hover" style="padding: 2px; font-size: 14px; width: 90px" onclick="show_color_modal()")
+                                                            i(class="fa-solid fa-palette" style="margin-right: 4px") 
+                                                            |
+                                                            | Colours 
+                                            //h(class="header2" style="text-align: left") Active Layer
                                             table(style="border: 1px solid white; border-radius: 10px; width: 100%" id="active_layer_table")
                                                 tr
                                                     td 
@@ -229,16 +241,16 @@ html
 
 
                                             div(style="height: 10px")
-                                            table
-                                                tr
-                                                    td(style="width: 140px")
-                                                        button(id="prev_image_button" class="std-button std-button-hover" style="font-size: 16px; width: 100%") 
-                                                            i(class="fa-solid fa-circle-chevron-left" style="padding-right: 5px")
-                                                            | 
-                                                            | Previous
-                                                    td(style="width: 140px")
-                                                        button(id="next_image_button" class="std-button std-button-hover" style="font-size: 16px; width: 100%") Next 
-                                                            i(class="fa-solid fa-circle-chevron-right" style="padding-left: 5px")  
+                                            //table
+                                            //    tr
+                                            //        td(style="width: 140px")
+                                            button(id="prev_image_button" class="std-button std-button-hover" style="font-size: 16px; width: 130px; border-radius: 30px 0px 0px 30px") 
+                                                i(class="fa-solid fa-circle-chevron-left" style="padding-right: 5px")
+                                                | 
+                                                | Previous
+                                            //        td(style="width: 140px")
+                                            button(id="next_image_button" class="std-button std-button-hover" style="font-size: 16px; width: 130px; border-radius: 0px 30px 30px 0px; margin-left: -1px") Next 
+                                                i(class="fa-solid fa-circle-chevron-right" style="padding-left: 5px")  
 
                                                 //-
                                                     table
@@ -331,20 +343,20 @@ html
 
                                                                 tr
                                                                     td(style="text-align: right")
-                                                                        div(style="color: #ddccbb; font-weight: 400; width: 115px") Fully Trained? 
+                                                                        div(style="color: #ddccbb; font-weight: 400; width: 140px") Fully Trained? 
                                                                     td(style="text-align: left; padding-left: 15px;")
                                                                         div(id="model_fully_trained")
 
 
                                                                 tr
                                                                     td(style="text-align: right")
-                                                                        div(style="color: #ddccbb; font-weight: 400; width: 115px") Fine-Tuned? 
+                                                                        div(style="color: #ddccbb; font-weight: 400; width: 140px") Fine-Tuned? 
                                                                     td(style="text-align: left; padding-left: 15px;")
                                                                         div(id="model_fine_tuned")
 
                                                                 tr
                                                                     td(style="text-align: right")
-                                                                        div(style="color: #ddccbb; font-weight: 400; width: 115px") Training Blocked?
+                                                                        div(style="color: #ddccbb; font-weight: 400; width: 140px") Fine-Tuning Blocked?
 
                                                                     td(style="text-align: left; padding-left: 15px;")
                                                                         div(style="width: 55px")
@@ -564,7 +576,7 @@ html
                                                                     select(id="chart_combo" class="nonfixed_dropdown")
                                                                         
                                                         div(id="count_chart" style="height: 95px; width: 270px; border:none")
-                                                            div(id="count_chart_tooltip" class="tooltip" style="z-index: 10")
+                                                        //    div(id="count_chart_tooltip" class="tooltip" style="z-index: 10")
 
                                                         hr(class="panel_line")
                                                         
@@ -582,10 +594,12 @@ html
                                                         div(id="score_chart" style="height: 175px; width: 270px; border:none")
                                                         hr(class="panel_line")
 
+                                                        div(style="height: 8px")
+
                                                         table
                                                             tr
                                                                 td(style="width: 155px")
-                                                                    div(style="width: 155px; text-align:left; margin: 3px 0px;" class="header2") Show Image
+                                                                    div(style="width: 155px; text-align:left; margin: 2px 0px;" class="header2") Show Image
                                                                 td(style="width:40px")
                                                                     label(class="switch")
                                                                         input(id="image_visible_switch" type="checkbox" checked)
@@ -593,28 +607,28 @@ html
                                                                 td(style="width: 100%")       
                                                             tr
                                                                 td(style="width: 155px")
-                                                                    div(style="width: 155px; text-align:left; margin: 3px 0px;" class="header2") Show Scores
+                                                                    div(style="width: 155px; text-align:left; margin: 2px 0px;" class="header2") Show Scores
                                                                 td(style="width:40px")
                                                                     label(class="switch")
                                                                         input(id="scores_switch" type="checkbox")
                                                                         span(class="switch_slider round")
                                                                 td(style="width: 100%")
 
-                                                        table           
+                                                        table
                                                             tr
                                                                 td(style="width: 50px")
                                                                     div(style="width: 50px; text-align:left" class="header2") Filter
 
                                                                 td
-                                                                    button(id="score_down" class="table_button table_button_hover" style="margin: 0px; border-radius: 50px; padding-bottom: 4px")
+                                                                    button(id="score_down" class="table_button table_button_hover" style="margin: 0px; border-radius: 50px; padding-bottom: 3px; margin-top: -4px;")
                                                                         i(class="fa-solid fa-circle-chevron-left")
                                                                         
                                                                 td(style="width: 100%")
                                                                     div(class="slidecontainer" style="width: 100%")
-                                                                        input(type="range" min="0.25" max="1" step="0.01" value="0.5" class="slider" id="confidence_slider")
+                                                                        input(type="range" min="0.25" max="1" step="0.01" value="0.5" class="slider" id="confidence_slider" style="margin: 0px")
 
                                                                 td
-                                                                    button(id="score_up" class="table_button table_button_hover" style="margin: 0px; border-radius: 50px; padding-bottom: 4px")
+                                                                    button(id="score_up" class="table_button table_button_hover" style="margin: 0px; border-radius: 50px; padding-bottom: 3px; margin-top: -4px;")
                                                                         i(class="fa-solid fa-circle-chevron-right")
                                                                 
                                                                 td(style="width: 50px")
@@ -641,16 +655,16 @@ html
                                                     table
                                                         tr
                                                             td
-                                                                button(id="threshold_score_down" class="table_button table_button_hover" style="margin: 0px; border-radius: 50px; padding-bottom: 4px")
+                                                                button(id="threshold_score_down" class="table_button table_button_hover" style="margin: 0px; border-radius: 50px; padding-bottom: 3px; margin-top: -4px;")
                                                                     //4.5px")
                                                                     i(class="fa-solid fa-circle-chevron-left")
 
                                                             td(style="width: 100%")
                                                                 div(id="threshold_slider_container" class="slidecontainer" style="width: 100%")
-                                                                    input(type="range" min="-2" max="2" step="0.01" value="0.0" class="slider" id="threshold_slider")
+                                                                    input(type="range" min="-2" max="2" step="0.01" value="0.0" class="slider" id="threshold_slider" style="margin: 0px")
                                                             
                                                             td
-                                                                button(id="threshold_score_up" class="table_button table_button_hover" style="margin: 0px; border-radius: 50px; padding-bottom: 4px")
+                                                                button(id="threshold_score_up" class="table_button table_button_hover" style="margin: 0px; border-radius: 50px; padding-bottom: 3px; margin-top: -4px;")
                                                                     i(class="fa-solid fa-circle-chevron-right")
                                                                     // style="padding-bottom: 4px")
 

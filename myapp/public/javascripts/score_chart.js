@@ -114,8 +114,6 @@ function evaluate_scores(bins, scores) {
 
 function draw_score_chart() {
 
-    console.log("draw_score_chart");
-
     // let scores = [];
     // for (prediction of predictions[cur_img_name]["annotations"]) {
     //     let bodies = Array.isArray(prediction.body) ?
@@ -124,6 +122,7 @@ function draw_score_chart() {
     //     scores.push(parseFloat(scoreTag.value));
     // }
 
+    $("#score_chart").empty();
 
     let chart_width = $("#score_chart").width(); // - 10;
     let chart_height = $("#score_chart").height(); // - 10;
@@ -213,7 +212,7 @@ function draw_score_chart() {
                 return height - y_trans;
             })
             //    return height - (score_yScale(d.length / scores.length)); })
-            .style("fill", "#FF4040")  //function(d){ if(d.x0<140){return "orange"} else {return "#69b3a2"}})
+            .style("fill", overlay_colors["prediction"])  //function(d){ if(d.x0<140){return "orange"} else {return "#69b3a2"}})
             // .attr("stroke", "white")
             // .attr("stroke-width", "0.5");
     
@@ -233,9 +232,6 @@ function draw_score_chart() {
 
 
 function update_score_chart() {
-
-    console.log("update_score_chart");
-
 
     let chart_width = $("#score_chart").width(); // - 5;
     let chart_height = $('#score_chart').height(); // - 5;

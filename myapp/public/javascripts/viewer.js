@@ -13,6 +13,7 @@ let dzi_image_paths;
 let excess_green_record;
 let download_uuid = "";
 let map_download_uuid = "";
+let overlay_colors;
 /*
 let sorted_overlay_names;
 let sorted_overlay_ids;
@@ -52,8 +53,6 @@ let voronoi_data = {
 function change_image(cur_nav_item) {
 
     let navigation_type = $("#navigation_dropdown").val();
-
-    console.log("change_image", cur_nav_item);
 
     let pieces = cur_nav_item.split("/");
     cur_img_name = pieces[0];
@@ -101,6 +100,9 @@ function change_image(cur_nav_item) {
 
     let dzi_image_path = image_to_dzi[cur_img_name];
     viewer.open(dzi_image_path);
+
+    update_count_combo(true);
+    //update_count_combo(true);
 
     set_count_chart_data();
     set_score_chart_data();
@@ -270,7 +272,7 @@ function build_map() {
         interpolation: sel_interpolation,
         //model_uuid: sel_model,
         pred_image_status: sel_pred_image_status,
-        annotation_version: $("#annotation_version_combo").val(),
+        // annotation_version: $("#annotation_version_combo").val(),
         map_download_uuid: map_download_uuid
         //comparison_type: "side_by_side", //comparison_type
         //include_annotated_map: include_annotated_map 
@@ -293,7 +295,7 @@ function build_map() {
             
             let base = get_CC_PATH() + "/usr/data/" + username + "/image_sets/" + image_set_info["farm_name"] + "/" + 
                         image_set_info["field_name"] + "/" + image_set_info["mission_date"] + "/model/results/" +
-                        image_set_info["timestamp"] + "/maps/" + map_download_uuid;
+                        image_set_info["result_uuid"] + "/maps/" + map_download_uuid;
 
             map_url = base + "_annotated_map.svg?t=" + timestamp;
 
@@ -422,8 +424,6 @@ function create_viewer() {
             set_cur_bounds();
         },
         onRedraw: function() {
-            //console.log("onRedraw", selected_annotation_index, cur_edit_layer);
-
         
             let boxes_to_add = {};
             boxes_to_add["training_region"] = {};
@@ -467,10 +467,10 @@ function create_viewer() {
                         
                 overlay.context2d().fillStyle = "#222621";         
                 overlay.context2d().fillRect(
-                    viewer_point_1.x,
-                    viewer_point_1.y,
-                    (viewer_point_2.x - viewer_point_1.x),
-                    (viewer_point_2.y - viewer_point_1.y)
+                    viewer_point_1.x - 1,
+                    viewer_point_1.y - 1,
+                    (viewer_point_2.x - viewer_point_1.x) + 2,
+                    (viewer_point_2.y - viewer_point_1.y) + 2
                 );
             }
 
@@ -504,7 +504,7 @@ function create_viewer() {
                         }
                 
                     }
-                    if (visible_edges.length < MAX_EDGES_DISPLAYED) {
+                    if (visible_edges.length <= MAX_EDGES_DISPLAYED) {
                         for (let edge of visible_edges) {
                             overlay.context2d().strokeStyle = overlay_colors[key];
                             overlay.context2d().lineWidth = 2;
@@ -574,7 +574,7 @@ function create_viewer() {
                     }
                 }
 
-                if (visible_inds.length < MAX_BOXES_DISPLAYED) {
+                if (visible_inds.length <= MAX_BOXES_DISPLAYED) {
                     for (let ind of visible_inds) {
                         let box = boxes_to_add[key]["boxes"][ind];
                         let viewer_point = viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(box[1], box[0]));
@@ -715,89 +715,16 @@ function create_viewer() {
 }
 
 
-// function switch_to_voronoi() {
-//     voronoi_data["show"] = true;
-//     //overlay.onRedraw = redraw_voronoi;
-//     viewer.raiseEvent("update-viewport");
-// }
-
-// function redraw_voronoi() {
-//     console.log("voronoi_diagram", voronoi_diagram);
-
-//     // let bounds_min_y;
-//     // let bounds_min_x;
-//     // let bounds_max_y;
-//     // let bounds_max_x;
-
-//     // let navigation_type = $("#navigation_dropdown").val();
-//     // if (navigation_type === "training_regions" || navigation_type === "test_regions") {
-//     //     let cur_region = annotations[cur_img_name][navigation_type][cur_region_index];
-//     //     bounds_min_y = cur_region[0];
-//     //     bounds_min_x = cur_region[1];
-//     //     bounds_max_y = cur_region[2];
-//     //     bounds_max_x = cur_region[3];
-//     // }
-//     // else {
-//     //     bounds_min_y = 0;
-//     //     bounds_min_x = 0;
-//     //     bounds_max_y = metadata["images"][cur_img_name]["width_px"];
-//     //     bounds_max_x = metadata["images"][cur_img_name]["height_px"];
-//     // }
-
-//     // let points = [];
-//     // for (let predicted_box of predictions[cur_img_name]["boxes"]) {
-//     //     let centre_y = (predicted_box[0] + predicted_box[2]) / 2;
-//     //     let centre_x = (predicted_box[1] + predicted_box[3]) / 2;
-
-//     //     if ((centre_y > bounds_min_y && centre_y < bounds_max_y) &&
-//     //         (centre_x > bounds_min_x && centre_x < bounds_max_x)) {
-
-//     //             let viewer_point = viewer.viewport.imageToViewerElementCoordinates(
-//     //                 new OpenSeadragon.Point(centre_x, centre_y));
-//     //             points.push(viewer_point);
-//     //     }
-//     // }
-//     // console.log("points", points);
-//     // for (let i = 1; i < points.length; i++) {
-//     //     overlay.context2d().beginPath();
-//     //     overlay.context2d().moveTo(points[i-1].x, points[i-1].y);
-//     //     overlay.context2d().lineTo(points[i].x, points[i].y);
-//     //     overlay.context2d().closePath();
-//     //     overlay.context2d().stroke();
-//     // }
-
-//     for (let edge of voronoi_diagram.edges) {
-//         overlay.context2d().strokeStyle = "red"; //overlay_colors[key];
-//         overlay.context2d().lineWidth = 2;
-
-//         let viewer_point_1 = viewer.viewport.imageToViewerElementCoordinates(
-//             new OpenSeadragon.Point(edge.va.x, edge.va.y));
-//         let viewer_point_2 = viewer.viewport.imageToViewerElementCoordinates(
-//                 new OpenSeadragon.Point(edge.vb.x, edge.vb.y));    
-
-//         overlay.context2d().beginPath();
-//         overlay.context2d().moveTo(viewer_point_1.x, viewer_point_1.y);
-//         overlay.context2d().lineTo(viewer_point_2.x, viewer_point_2.y);
-//         overlay.context2d().closePath();
-//         overlay.context2d().stroke();
-
-//     }
-
-
-// }
-
 
 function set_heights() {
     let max_height = 0;
     for (let image_name of Object.keys(annotations)) {
         $("#image_name").html(image_name);
         let table_height = $("#image_name_table").height();
-        console.log("table_height", table_height);
         if (table_height > max_height) {
             max_height = table_height;
         };
     }
-    console.log("max_height", max_height);
     $("#image_name_table").height(max_height);
     $("#navigation_table_container").height(523 - max_height);
     //$("#navigation_table_container").height(550 - max_height);
@@ -819,6 +746,7 @@ $(document).ready(function() {
     metrics = data["metrics"];
     //dzi_dir = data["dzi_dir"];
     dzi_image_paths = data["dzi_image_paths"];
+    overlay_colors = data["overlay_colors"];
 
 
     // for (let image_status of Object.keys(status_color)) {
@@ -834,7 +762,7 @@ $(document).ready(function() {
         let farm_name = image_set_info["farm_name"];
         let field_name = image_set_info["field_name"];
         let mission_date = image_set_info["mission_date"];
-        let timestamp = image_set_info["timestamp"];
+        let result_uuid = image_set_info["result_uuid"];
 
         show_modal_message("Preparing Download", 
         `<div style="height: 50px">` +
@@ -851,7 +779,7 @@ $(document).ready(function() {
         {
             action: "create_spreadsheet",
             download_uuid: download_uuid,
-            annotation_version: $("#annotation_version_combo").val()
+            // annotation_version: $("#annotation_version_combo").val()
         },
         
         function(response, status) {
@@ -875,7 +803,7 @@ $(document).ready(function() {
                                     farm_name + "/" + 
                                     field_name + "/" + 
                                     mission_date + "/" +
-                                    timestamp + "/" + 
+                                    result_uuid + "/" + 
                                     download_uuid;
 
 
@@ -912,7 +840,6 @@ $(document).ready(function() {
     let init_image_name = basename(dzi_image_paths[0]);
     cur_img_name = init_image_name.substring(0, init_image_name.length - 4);
     cur_region_index = -1;
-    console.log("cur_img_name", cur_img_name);
 
     disable_std_buttons(["prev_image_button"]);
     if (dzi_image_paths.length == 1) {
@@ -979,7 +906,6 @@ $(document).ready(function() {
 
 
     $("#overlays_table").change(function() {
-        console.log("overlay change");
         viewer.raiseEvent('update-viewport');
     });
 
@@ -1070,87 +996,100 @@ $(document).ready(function() {
     });
 
 
-    $("#annotation_version_combo").change(function() {
-        let version = $("#annotation_version_combo").val();
+    // $("#annotation_version_combo").change(function() {
+    //     let version = $("#annotation_version_combo").val();
 
-        show_modal_message("Please Wait", 
-        `<div id="switch_anno_message">Switching annotation versions. This may take a few minutes.</div><div style="height: 10px"></div><div id="switch_anno_loader" class="loader"></div>`);
+    //     show_modal_message("Please Wait", 
+    //     `<div id="switch_anno_message">Switching annotation versions. This may take a few minutes.</div><div style="height: 10px"></div><div id="switch_anno_loader" class="loader"></div>`);
 
-        $("#modal_close").hide();
+    //     $("#modal_close").hide();
 
-        // a(class="table_button table_button_hover" style="padding: 5px 10px;" id="download_button" download)
-        //     i(class="fa fa-download fa-sm")
-        //     span(style="margin-left: 10px") Download Results 
+    //     // a(class="table_button table_button_hover" style="padding: 5px 10px;" id="download_button" download)
+    //     //     i(class="fa fa-download fa-sm")
+    //     //     span(style="margin-left: 10px") Download Results 
 
-        download_uuid = "";
-        $.post($(location).attr('href'),
-        {
-            action: "switch_annotation_version",
-            // username: username,
-            // farm_name: farm_name,
-            // field_name: field_name,
-            // mission_date: mission_date,
-            // results_timestamp: timestamp,
-            annotation_version: version
-        },
+    //     download_uuid = "";
+    //     $.post($(location).attr('href'),
+    //     {
+    //         action: "switch_annotation_version",
+    //         // username: username,
+    //         // farm_name: farm_name,
+    //         // field_name: field_name,
+    //         // mission_date: mission_date,
+    //         // results_timestamp: timestamp,
+    //         annotation_version: version
+    //     },
         
-        function(response, status) {
-            if (response.error) {
-                show_modal_message("Error", "An error occurred while switching annotation versions.");
-                if (version === "most_recent") {
-                    $("#annotation_version_combo").val("preserved");
-                }
-                else {
-                    $("#annotation_version_combo").val("most_recent");
-                }
-            }
-            else {
-                annotations = response["annotations"];
-                metrics = response["metrics"];
-                excess_green_record = response["excess_green_record"];
-                download_uuid = response["download_uuid"];
+    //     function(response, status) {
+    //         if (response.error) {
+    //             show_modal_message("Error", "An error occurred while switching annotation versions.");
+    //             if (version === "most_recent") {
+    //                 $("#annotation_version_combo").val("preserved");
+    //             }
+    //             else {
+    //                 $("#annotation_version_combo").val("most_recent");
+    //             }
+    //         }
+    //         else {
+    //             annotations = response["annotations"];
+    //             metrics = response["metrics"];
+    //             excess_green_record = response["excess_green_record"];
+    //             download_uuid = response["download_uuid"];
 
-                //$("#filter_combo").val("all");
+    //             //$("#filter_combo").val("all");
 
-                $("#chart_container").empty();
-                $("#interpolation_linear").prop("checked", true);
-                $("#pred_image_status_all").prop("checked", true);
+    //             $("#chart_container").empty();
+    //             $("#interpolation_linear").prop("checked", true);
+    //             $("#pred_image_status_all").prop("checked", true);
 
 
-                $("#filter_combo").val("all").change();
-                //create_image_set_table();
-                //create_overlays_table();
-                set_count_chart_data();
-                set_score_chart_data();
-                // update_count_chart();
-                // update_score_chart();
+    //             $("#filter_combo").val("all").change();
+    //             //create_image_set_table();
+    //             //create_overlays_table();
+    //             set_count_chart_data();
+    //             set_score_chart_data();
+    //             // update_count_chart();
+    //             // update_score_chart();
 
-                if (cur_img_name in voronoi_data && "annotation" in voronoi_data[cur_img_name]) {
-                    delete voronoi_data[cur_img_name]["annotation"];
-                }
+    //             if (cur_img_name in voronoi_data && "annotation" in voronoi_data[cur_img_name]) {
+    //                 delete voronoi_data[cur_img_name]["annotation"];
+    //             }
             
-                // $("#seadragon_viewer").empty();
-                // create_viewer_and_anno();
+    //             // $("#seadragon_viewer").empty();
+    //             // create_viewer_and_anno();
 
-                let init_image_name = basename(dzi_image_paths[0]);
-                //cur_img_name = init_image_name.substring(0, init_image_name.length - 4);
-                change_image(init_image_name.substring(0, init_image_name.length - 4) + "/-1");
+    //             let init_image_name = basename(dzi_image_paths[0]);
+    //             //cur_img_name = init_image_name.substring(0, init_image_name.length - 4);
+    //             change_image(init_image_name.substring(0, init_image_name.length - 4) + "/-1");
 
-                $("#modal_close").click();
-            }
+    //             $("#modal_close").click();
+    //         }
 
 
-        });
-    });
+    //     });
+    // });
 
 
     $("#navigation_dropdown").change(function() {
         create_navigation_table();
         update_count_combo(true);
 
-        let navigation_type = $("#navigation_dropdown").val();
-        console.log("navigation_type", navigation_type);
-        change_image(cur_nav_list[0]);
+        let disp_nav_item = null;
+        for (let nav_item of cur_nav_list) {
+            let image_name = nav_item.split("/")[0];
+            if (image_name === cur_img_name) {
+                disp_nav_item = nav_item;
+                break;
+            }
+        }
+        if (disp_nav_item == null) {
+            change_image(cur_nav_list[0]);
+        }
+        else {
+            change_image(disp_nav_item);
+        }
+
+        //change_image(cur_nav_list[0]);
     });
 
     $("#image_visible_switch").change(function() {

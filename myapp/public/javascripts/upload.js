@@ -155,7 +155,6 @@ function form_is_complete() {
 
 
     let model_object = $("#object_input").val();
-    console.log(objects);
     if (!(objects["object_names"].includes(model_object))) {
         return false;
     }
@@ -179,7 +178,6 @@ function form_is_complete() {
     }
 
     if (dropzone_handlers[handler_name].files.length == 0) {
-        console.log("dropzone contains no files, disabling submit");
         return false;
     }
     return true;
@@ -250,8 +248,6 @@ function create_orthomosaic_dropzone() {
     });
 
     dropzone_handler.on("error", function(file, response) {
-
-        console.log(response);
 
         if (!upload_error) {
 
@@ -346,8 +342,6 @@ function add_dropzone_listeners() {
         });
 
         dropzone_handlers[key].on("error", function(file, response) {
-
-            console.log(response);
 
             if (!upload_error) {
 

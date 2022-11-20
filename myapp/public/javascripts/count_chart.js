@@ -100,11 +100,14 @@ function set_count_chart_data() {
                             if (predictions[image_name]["scores"][j] >= slider_val && 
                                 box_intersects_region(predictions[image_name]["boxes"][j], annotations[image_name][navigation_type][i])) {
                                     count_chart_data[nav_item]["prediction"]++;
+                                    console.log(i, predictions[image_name]["boxes"][j]);
                             }
                         }
                     }
                 }
             }
+            console.log("navigation_type", navigation_type, annotations[cur_img_name][navigation_type].length);
+            console.log("COUNT CHART DATA", count_chart_data);
         }
 
 
@@ -229,7 +232,51 @@ function set_count_chart_data() {
             // "MS COCO mAP": "Image MS COCO mAP",
             //"PASCAL VOC mAP": "Image PASCAL VOC mAP"
         // }
-        if ((navigation_type === "training_regions") || (navigation_type === "test_regions")) {
+        if (navigation_type === "images") {
+            for (let image_name of Object.keys(annotations)) {
+                let image_w = metadata["images"][cur_img_name]["width_px"];
+                let image_h = metadata["images"][cur_img_name]["height_px"]
+                let fully_annotated_for_training = image_is_fully_annotated_for_training(
+                    annotations, 
+                    cur_img_name, 
+                    image_w,
+                    image_h
+                );
+
+                let fully_annotated_for_testing = image_is_fully_annotated_for_testing(
+                    annotations, 
+                    cur_img_name, 
+                    image_w,
+                    image_h
+                );
+
+                if (fully_annotated_for_training || fully_annotated_for_testing) {
+
+                    let nav_item = image_name + "/-1";
+                    count_chart_data[nav_item] = {"annotation":  0, "prediction": 0};
+                    count_chart_data[nav_item]["annotation"] = 0;
+
+                    let region_key;
+                    if (fully_annotated_for_training) {
+                        region_key = "training_regions";
+                    }
+                    else {
+                        region_key = "test_regions";
+                    }
+
+                    for (let i = 0; i < annotations[image_name][region_key].length; i++) {
+                        let region = annotations[image_name][region_key][i];
+                        if ((region[0] == 0 && region[1] == 0) && 
+                            (region[2] == image_h && region[3] == image_w)) {
+
+                            count_chart_data[nav_item]["prediction"] = metrics[metric][image_name][region_key][i];
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        else {
             for (let image_name of Object.keys(annotations)) {
                 for (let i = 0; i < annotations[image_name][navigation_type].length; i++) {
                     let nav_item = image_name + "/" + i;
@@ -290,6 +337,9 @@ function draw_count_chart() {
     count_margin = 30;
 
     let num_bars = 2; //Object.keys(overlay_colors).length;
+
+    $("#count_chart").empty();
+    $("#count_chart").append(`<div id="count_chart_tooltip" class="tooltip" style="z-index: 10"></div>`);
 
 
     count_svg = d3.select("#count_chart")

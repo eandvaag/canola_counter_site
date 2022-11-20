@@ -26,13 +26,15 @@ router.post('/orthomosaic_upload', upload_files.array('source_file[]'), landing.
 //router.get('/viewer/:job_uuid/:farm_name/:field_name/:mission_date', landing.get_viewer);
 //router.post('/viewer/:job_uuid/:farm_name/:field_name/:mission_date', landing.post_viewer);
 
-router.get('/viewer/:username/:farm_name/:field_name/:mission_date/:timestamp', landing.get_viewer);
-router.post('/viewer/:username/:farm_name/:field_name/:mission_date/:timestamp', landing.post_viewer);
+router.get('/viewer/:username/:farm_name/:field_name/:mission_date/:result_uuid', landing.get_viewer);
+router.post('/viewer/:username/:farm_name/:field_name/:mission_date/:result_uuid', landing.post_viewer);
 
-router.get('/timeline/:username/:farm_name/:field_name/:mission_date', landing.get_timeline);
-router.post('/timeline/:username/:farm_name/:field_name/:mission_date', landing.post_timeline);
 
-router.get('/download/:username/:farm_name/:field_name/:mission_date/:timestamp/:download_uuid', landing.get_download);
+router.post('/color_change/:username', landing.post_color_change);
+// router.get('/timeline/:username/:farm_name/:field_name/:mission_date', landing.get_timeline);
+// router.post('/timeline/:username/:farm_name/:field_name/:mission_date', landing.post_timeline);
+
+router.get('/download/:username/:farm_name/:field_name/:mission_date/:result_uuid/:download_uuid', landing.get_download);
 // router.post('/download/:username/:farm_name/:field_name/:mission_date/:timestamp/:download_uuid', landing.post_download);
 
 //router.get('/transfer', landing.get_transfer);

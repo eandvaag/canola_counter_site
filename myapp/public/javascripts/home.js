@@ -1,4 +1,9 @@
 
+let image_sets_data;
+let camera_specs;
+let objects;
+let available_image_sets;
+let overlay_colors;
 //let viewing_results = false;
 let viewing = {
     "browse": null,
@@ -7,6 +12,8 @@ let viewing = {
 let active_results_tab_btn = "completed_results_tab_btn";
 let proposed_camera_height;
 let metadata;
+
+
 //let cur_results;
 // let fetch_results_interval;
 // let fetch_status_interval;
@@ -681,7 +688,6 @@ function show_overview() {
             show_modal_message(`Error`, response.message);
         }
         else {
-            console.log("response", response);
             let annotation_info = response.annotation_info;
             metadata = response.metadata;
             let is_public = metadata["is_public"] === "yes" ? "Yes": "No";
@@ -1122,14 +1128,11 @@ function view_comment(comment) {
 function create_result_entry(result) {
 
     let result_name = result["results_name"];
-    console.log("result", result);
+
     let start_date = timestamp_to_date(result["start_time"]);
     let end_date, aborted_date;
-    let completed = "end_time" in result;
+    let completed = "end_time" in result && (!("aborted_time" in result));
     let aborted = "aborted_time" in result;
-
-    console.log("completed?", completed);
-    console.log("aborted?", aborted);
     
     let disp_end_date, disp_end_title;
     if (completed) {
@@ -1233,10 +1236,9 @@ function create_result_entry(result) {
     if (completed) {
         $("#completed_results_table").append(template);
 
-        console.log("adding extra stuff", main_result_container_id);
         $("#" + main_result_container_id).append(
             `<button class="std-button std-button-hover" style="font-size: 16px; width: 190px; height: 50px; border-radius: 100px" ` +
-                `onclick="view_result('${result["end_time"]}')">`+
+                `onclick="view_result('${result["request_uuid"]}')">`+
                 `<span>` +
                     `<i class="fa-regular fa-eye" style="margin-right:8px"></i>View Result` +
                 `</span>` +
@@ -1286,6 +1288,7 @@ function show_results(results) {
     viewing["browse"] = "results";
 
 
+    console.log(results.completed_results);
     let completed_results = results.completed_results.sort(function(a, b) {
         return b["start_time"] - a["start_time"];
     });
@@ -1501,13 +1504,15 @@ function view_timeline() {
                             farm_name + "/" + field_name + "/" + mission_date
 }
 
-function view_result(timestamp) {
+function view_result(result_uuid) {
+    console.log("result_uuid is", result_uuid, typeof(result_uuid));
+    
     let farm_name = $("#farm_combo").val();
     let field_name = $("#field_combo").val();
     let mission_date = $("#mission_combo").val();
 
     window.location.href = get_CC_PATH() + "/viewer/" + username + "/" +
-                           farm_name + "/" + field_name + "/" + mission_date + "/" + timestamp;
+                           farm_name + "/" + field_name + "/" + mission_date + "/" + result_uuid;
 
 }
 
@@ -1632,6 +1637,13 @@ function initialize_browse() {
 $(document).ready(function() {
 
     // let socket = io();
+
+    image_sets_data = data["image_sets_data"];
+    camera_specs = data["camera_specs"];
+    objects = data["objects"];
+    available_image_sets = data["available_image_sets"];
+    overlay_colors = data["overlay_colors"];
+
     let socket = io(
     "", {
        path: get_CC_PATH() + "/socket.io"
@@ -1660,18 +1672,14 @@ $(document).ready(function() {
         //if (viewing["train"] === "submit") {
         //    show_submit_train();
         //}
-        console.log("got model_change update");
 
         if (viewing["train"] === "available") {
-            console.log("reshowing available models");
             show_available_train();
         }
         else if (viewing["train"] === "pending") {
-            console.log("reshowing pending models");
             show_pending_train();
         }
         else if (viewing["train"] === "aborted") {
-            console.log("reshowing aborted models");
             show_aborted_train();
         }
     });

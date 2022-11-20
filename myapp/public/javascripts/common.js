@@ -18,11 +18,18 @@ let status_to_text = {
     "completed_for_testing": "Completed for Testing",
 };
 
-let overlay_colors = {
-    "annotation": "#0080ff", // "#0080C0",
-    "prediction": "#FF4040",
-    "training_region": "#ff51eb", //"#f705bb",
-    "test_region": "#ffae00" //"#ffa200"
+// let overlay_colors = {
+//     "annotation": "#0080ff", // "#0080C0",
+//     "prediction": "#FF4040",
+//     "training_region": "#ff51eb", //"#f705bb",
+//     "test_region": "#ffae00" //"#ffa200"
+// };
+
+let default_overlay_colors = {
+    "annotation": "#0080ff",
+    "prediction": "#ff4040",
+    "training_region": "#ff51eb",
+    "test_region": "#ffae00"
 };
 /*
 let backend_color = {
@@ -228,7 +235,6 @@ function disable_std_buttons(button_ids) {
 function enable_std_buttons(button_ids) {
 
     for (let button_id of button_ids) {
-        console.log("enable_std_button", button_id);
         $("#" + button_id).prop("disabled", false);
         $("#" + button_id).addClass("std-button-hover");
         $("#" + button_id).css("opacity", 1);
@@ -451,6 +457,26 @@ function create_overlays_table() {
         "annotation": "Annotations",
         "prediction": "Predictions"
     }
+
+    let show_annotation = true;
+    if ($("#annotation").length) {
+        show_annotation = $("#annotation").is(":checked");
+    }
+    let show_voronoi_annotation = false;
+    if ($("#voronoi_annotation").length) {
+        show_voronoi_annotation = $("#voronoi_annotation").is(":checked");
+    }
+    let show_prediction = true;
+    if ($("#prediction").length) {
+        show_prediction = $("#prediction").is(":checked");
+    }
+    let show_voronoi_prediction = false;
+    if ($("#voronoi_prediction").length) {
+        show_voronoi_prediction = $("#voronoi_prediction").is(":checked");
+    }
+
+
+    $("#overlays_table").empty();
     $("#overlays_table").append(
         `<tr>` +
             `<td>` +
@@ -470,7 +496,7 @@ function create_overlays_table() {
 
 
     for (let overlay_id of ["annotation", "prediction"]) {
-        let overlay_color = overlay_colors[overlay_id] + "ee";
+        let overlay_color = overlay_colors[overlay_id];
         let voronoi_id = "voronoi_" + overlay_id;
         let disp_overlay_text = disp_text[overlay_id]
         $("#overlays_table").append(
@@ -483,7 +509,7 @@ function create_overlays_table() {
                 // `</td>` +
                 `<td style="border-top: 1px solid white; border-bottom: 1px solid white;">` +
                     `<label class="switch">` +
-                        `<input id=${overlay_id} type="checkbox" checked></input>` +
+                        `<input id=${overlay_id} type="checkbox"></input>` +
                         `<span class="switch_slider round"></span>` +
                     `</label>` +
                 `</td>` +
@@ -501,6 +527,21 @@ function create_overlays_table() {
             `</tr>`
         );
     }
+
+    if (show_annotation) {
+        $("#annotation").prop("checked", true);
+    }
+    if (show_voronoi_annotation) {
+        $("#voronoi_annotation").prop("checked", true);
+    }
+    if (show_prediction) {
+        $("#prediction").prop("checked", true);
+    }
+    if (show_voronoi_prediction) {
+        $("#voronoi_prediction").prop("checked", true);
+    }
+
+
 
 /*
     for (let overlay_id of ["annotation", "prediction"]) { //Object.keys(overlay_colors)) {
@@ -536,7 +577,6 @@ function create_overlays_table() {
 function create_navigation_table() {
 
     let navigation_type = $("#navigation_dropdown").val();
-    console.log("create_navigation_table", navigation_type);
 
     $("#navigation_table").empty();
     cur_nav_list = [];
@@ -571,7 +611,6 @@ function create_navigation_table() {
                 else {
                     region_color = overlay_colors["test_region"];
                 }
-                console.log("region_color", region_color);
                 let item = 
                 `<tr>` +
                     `<td>` +
@@ -642,12 +681,22 @@ function image_is_fully_annotated_for_training(annotations, image_name, image_w,
 }
 
 function image_is_fully_annotated_for_testing(annotations, image_name, image_w, image_h) {
-    for (let region of annotations[image_name]["test_regions"]) {
-        if (((region[0] == 0) && (region[1] == 0)) && ((region[2] == image_h) && (region[3] == image_w))) {
-            return true;
-        }
+    if (annotations[image_name]["test_regions"].length == 0) {
+        return false;
+    }
+    let test_region = annotations[image_name]["test_regions"][0];
+    if (((test_region[0] == 0) && (test_region[1] == 0)) && ((test_region[2] == image_h) && (test_region[3] == image_w))) {
+        return true;
     }
     return false;
+
+
+    // for (let region of annotations[image_name]["test_regions"]) {
+    //     if (((region[0] == 0) && (region[1] == 0)) && ((region[2] == image_h) && (region[3] == image_w))) {
+    //         return true;
+    //     }
+    // }
+    // return false;
 }
 
 function image_is_fully_annotated(annotations, image_name, image_w, image_h) {
@@ -676,11 +725,11 @@ function set_cur_bounds() {
     // if (cur_panel === "annotation" || cur_panel === "prediction") {
     if (navigation_type === "training_regions" || navigation_type === "test_regions") {
         console.log("annotations", annotations);
-        console.log("cur_img_name", cur_img_name);
-        console.log("navigation_type", navigation_type);
-        console.log("cur_region_index", cur_region_index);
+        // console.log("cur_img_name", cur_img_name);
+        // console.log("navigation_type", navigation_type);
+        // console.log("cur_region_index", cur_region_index);
         let bounds = annotations[cur_img_name][navigation_type][cur_region_index];
-        console.log("bounds", bounds);
+        // console.log("bounds", bounds);
         //let image_w = metadata["images"][cur_img_name]["width_px"];
         //let image_h = metadata["images"][cur_img_name]["height_px"];
         //let image_w = overlays[id_prefix].imgWidth;
@@ -696,7 +745,7 @@ function set_cur_bounds() {
             (bounds[3] - bounds[1]) / image_w,
             ((bounds[2] - bounds[0]) / image_h) * hw_ratio
         ];
-        console.log("viewport_bounds", viewport_bounds);
+        // console.log("viewport_bounds", viewport_bounds);
 
         cur_bounds = new OpenSeadragon.Rect(
             viewport_bounds[0],
@@ -718,8 +767,15 @@ function set_cur_bounds() {
 
 
 function update_count_combo(include_viewer_metrics) {
-
+    let cur_combo_val;
+    if ($("#chart_combo option").length > 0) {
+        cur_combo_val = $("#chart_combo").val();
+    }
+    else {
+        cur_combo_val = null;
+    }
     $("#chart_combo").empty();
+    
 
     $('#chart_combo').append($('<option>', {
         value: "Count",
@@ -734,8 +790,10 @@ function update_count_combo(include_viewer_metrics) {
     }
 
     let navigation_type = $('#navigation_dropdown').val();
-    if (navigation_type === "training_regions" || navigation_type === "test_regions") {
-
+    if ((navigation_type === "training_regions" || navigation_type === "test_regions") ||
+        (image_is_fully_annotated(annotations, cur_img_name, 
+                                  metadata["images"][cur_img_name]["width_px"],
+                                  metadata["images"][cur_img_name]["height_px"]))) {
 
         $('#chart_combo').append($('<option>', {
             value: "Percent Count Error",
@@ -767,6 +825,13 @@ function update_count_combo(include_viewer_metrics) {
             }));
         }
     }
+
+    if ((cur_combo_val != null) && ($("#chart_combo option[value='" + cur_combo_val + "']").length > 0)) {
+        $("#chart_combo").val(cur_combo_val);
+    }
+    else {
+        $("#chart_combo").val("Count");
+    }
 }
 
 
@@ -778,21 +843,21 @@ function compute_voronoi(target) {
     let bounds_max_y;
     let bounds_max_x;
 
-    let navigation_type = $("#navigation_dropdown").val();
+    // let navigation_type = $("#navigation_dropdown").val();
     let slider_val = Number.parseFloat($("#confidence_slider").val());
-    if (navigation_type === "training_regions" || navigation_type === "test_regions") {
-        let cur_region = annotations[cur_img_name][navigation_type][cur_region_index];
-        bounds_min_y = cur_region[0];
-        bounds_min_x = cur_region[1];
-        bounds_max_y = cur_region[2];
-        bounds_max_x = cur_region[3];
-    }
-    else {
-        bounds_min_y = 0;
-        bounds_min_x = 0;
-        bounds_max_y = metadata["images"][cur_img_name]["height_px"];
-        bounds_max_x = metadata["images"][cur_img_name]["width_px"];
-    }
+    // if (navigation_type === "training_regions" || navigation_type === "test_regions") {
+    //     let cur_region = annotations[cur_img_name][navigation_type][cur_region_index];
+    //     bounds_min_y = cur_region[0];
+    //     bounds_min_x = cur_region[1];
+    //     bounds_max_y = cur_region[2];
+    //     bounds_max_x = cur_region[3];
+    // }
+    // else {
+    bounds_min_y = 0;
+    bounds_min_x = 0;
+    bounds_max_y = metadata["images"][cur_img_name]["height_px"];
+    bounds_max_x = metadata["images"][cur_img_name]["width_px"];
+    // }
 
     let bounds = {xl: bounds_min_x, xr: bounds_max_x, yt: bounds_min_y, yb: bounds_max_y};
     let points = [];
@@ -839,23 +904,209 @@ function compute_voronoi(target) {
         let voronoi = new Voronoi();
         return voronoi.compute(points, bounds);
     }
+}
 
-    /*
-    if (predicted_points.length > 0) {
-        voronoi_data["prediction"] = 
+
+function show_color_modal() {
+
+    show_modal_message(
+        `Set Overlay Colours`,
+        `<table>` +
+            `<tr>` +
+                `<td>` +
+                    `<table style="border: 1px solid white; border-radius: 10px; margin: 10px; padding: 10px">` +
+                        `<tr>` +
+                            `<td>` +
+                                `<div style="width: 160px; text-align: right; margin-right: 10px" class="header2">Annotation</div>` +
+                            `</td>` +
+                            `<td>` +
+                                `<div style="width: 120px; text-align: left">` +
+                                    `<input style="width: 50px; margin: 0px" type="color" id="annotation_color" name="annotation_color" value="${overlay_colors['annotation']}">` +
+                                `</div>` +
+                            `</td>` +
+                        `</tr>` +
+                        `<tr>` +
+                            `<td>` +
+                                `<div style="width: 160px; text-align: right; margin-right: 10px" class="header2">Prediction</div>` +
+                            `</td>` +
+                            `<td>` +
+                                `<div style="width: 120px; text-align: left">` +
+                                    `<input style="width: 50px; margin: 0px" type="color" id="prediction_color" name="prediction_color" value="${overlay_colors['prediction']}">` +
+                                `</div>` +
+                            `</td>` +
+                        `</tr>` +
+                        `<tr>` +
+                            `<td>` +
+                                `<div style="width: 160px; text-align: right; margin-right: 10px" class="header2">Fine-Tuning Region</div>` +
+                            `</td>` +
+                            `<td>` +
+                                `<div style="width: 120px; text-align: left">` +
+                                    `<input style="width: 50px; margin: 0px" type="color" id="training_region_color" name="training_region_color" value="${overlay_colors['training_region']}">` +
+                                `</div>` +
+                            `</td>` +
+                        `</tr>` +
+                        `<tr>` +
+                            `<td>` +
+                                `<div style="width: 160px; text-align: right; margin-right: 10px" class="header2">Test Region</div>` +
+                            `</td>` +
+                            `<td>` +
+                                `<div style="width: 120px; text-align: left">` +
+                                    `<input style="width: 50px; margin: 0px" type="color" id="test_region_color" name="test_region_color" value="${overlay_colors['test_region']}">` +
+                                `</div>` +
+                            `</td>` +
+                        `</tr>` +
+                    `</table>` +
+                `</td>` +
+                `<td>` +
+                    `<div style="width: 15px"></div>`  +
+                `</td>` +
+                `<td>` +
+                    `<button class="std-button std-button-hover" style="width: 130px; font-size: 14px; padding: 5px 10px;" onclick="reset_colors_to_defaults()">Set Colours To System Defaults</button>` +
+                `</td>` +
+            `</tr>` +
+        `</table>` +
+
+        `<table>` +
+            `<tr>` +
+                `<td>` +
+                    `<div class="table_head" style="width: 300px; text-align: right">Save Current Colours As My Defaults</div>` +
+                `</td>` +
+                `<td>` +
+                    `<div style="width: 100px; text-align: left; margin-top: -5px">` +
+                        `<label for="make_colors_default" class="container" style="display: inline; margin-left: 12px">` +
+                            `<input type="checkbox" id="make_colors_default" name="make_colors_default">` +
+                            `<span class="checkmark"></span>` +
+                        `</label>` +
+                    `</div>` +
+                `</td>` +
+            `</tr>` +
+        `</table>` +
+
+        `<table>` +
+            `<tr>` +
+                `<td>` +
+                    `<button class="std-button std-button-hover" onclick="apply_color_change()" style="width: 120px; margin-top: 15px">Apply</button>` +
+                `</td>` +
+            `</tr>` +
+        `</table>`
+        // tr
+        // td 
+        //     div(class="table_head" style="width: 200px; text-align: right") Make Model Public
+        // td
+        //     div(style="width: 250px; text-align: left")
+        //         label(for="model_public" class="container" style="display: inline; margin-botton: 20px; margin-left: 12px")
+        //             input(type="checkbox" id="model_public" name="model_public" checked)
+        //             span(class="checkmark")
+
+    ); 
+}
+
+function front_end_apply_color_change() {
+
+    for (let overlay_name of ["annotation", "prediction", "training_region", "test_region"]) {
+        console.log("getting", overlay_name);
+        overlay_colors[overlay_name] = $("#" + overlay_name + "_color").val();
+    }
+
+    set_overlay_color_css_rules();
+    if (viewer) {
+        viewer.raiseEvent('update-viewport');
+    }
+
+    create_overlays_table();
+    //set_count_chart_data();
+    //set_score_chart_data();
+
+    draw_count_chart();
+    draw_score_chart();
+    close_modal();
+}
+
+function apply_color_change() {
+    let make_default = $("#make_colors_default").is(":checked");
+    console.log("make_default?", make_default);
+
+    let new_overlay_colors = {}
+    for (let overlay_name of ["annotation", "prediction", "training_region", "test_region"]) {
+        console.log("getting", overlay_name);
+        new_overlay_colors[overlay_name] = $("#" + overlay_name + "_color").val();
+    }
+
+    if (make_default) {
+        
+        $.post(get_CC_PATH() + "/color_change/" + username,
+        {
+            overlay_colors: JSON.stringify(new_overlay_colors)
+        },
+        
+        function(response, status) {
+            if (response.error) {
+                show_modal_message(`Error`, response.message);
+            }
+            else {
+                front_end_apply_color_change();
+            }
+        });
     }
     else {
-        voronoi_data["prediction"] = null;
+        front_end_apply_color_change();
     }
-    if (annotated_points.length > 0) {
-        voronoi_data["annotation"] = voronoi.compute(annotated_points, bounds);
+
+
+}
+
+function reset_colors_to_defaults() {
+    for (let overlay_name of ["annotation", "prediction", "training_region", "test_region"]) {
+        console.log("setting", overlay_name);
+        $("#" + overlay_name + "_color").val(default_overlay_colors[overlay_name]);
     }
-    else {
-        voronoi_data["annotation"] = null;
-    }*/
-    //console.log("diagram",  voronoi_diagram);
+}
+
+function set_overlay_color_css_rules() {
+
+    // let overlay_colors = {
+    //     "annotation": "#0080ff", // "#0080C0",
+    //     "prediction": "#FF4040",
+    //     "training_region": "#ff51eb", //"#f705bb",
+    //     "test_region": "#ffae00" //"#ffa200"
+    // };
+
+    let sheet = $("#main-stylesheet").get(0).sheet;
+    let css_rules_num = sheet.cssRules.length;
+    sheet.insertRule(".a9s-annotationlayer .a9s-annotation .a9s-inner { stroke: " + 
+                    overlay_colors["annotation"] +
+                    " !important; }", css_rules_num);
+
+    sheet.insertRule(".a9s-annotationlayer .a9s-annotation .training_region .a9s-inner { stroke: " + 
+                    overlay_colors["training_region"] +
+                    " !important; }", css_rules_num+1);
+    
+    sheet.insertRule(".a9s-annotationlayer .a9s-annotation.training_region .a9s-inner { stroke: " + 
+                    overlay_colors["training_region"] +
+                    " !important; }", css_rules_num+2);
 
 
+    sheet.insertRule(".a9s-annotationlayer .a9s-annotation .test_region .a9s-inner { stroke: " + 
+                    overlay_colors["test_region"] +
+                    " !important; }", css_rules_num+3);    
+                    
+    sheet.insertRule(".a9s-annotationlayer .a9s-annotation.test_region .a9s-inner { stroke: " + 
+                    overlay_colors["test_region"] +
+                    " !important; }", css_rules_num+4);
 
-    //overlay.onRedraw = redraw_voronoi;
+
+    sheet.insertRule(".custom_radio_container input:checked ~ .custom_radio#annotation_radio { background-color: " +
+                    overlay_colors["annotation"] +
+                    "}", css_rules_num+5);
+
+    sheet.insertRule(".custom_radio_container input:checked ~ .custom_radio#training_region_radio { background-color: " +
+                    overlay_colors["training_region"] +
+                    "}", css_rules_num+6);
+
+          
+    sheet.insertRule(".custom_radio_container input:checked ~ .custom_radio#test_region_radio { background-color: " +
+                        overlay_colors["test_region"] +
+                        "}", css_rules_num+7);
+
+    
 }

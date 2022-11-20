@@ -22,6 +22,7 @@ const glob = require("glob");
 
 
 var socket_api = require('../socket_api');
+const { response } = require('express');
 //const { rawListeners } = require('process');
 
 
@@ -38,7 +39,7 @@ const camera_mutex = new Mutex();
 
 
 
-
+const MAX_EXTENSIONLESS_FILENAME_LENGTH = 100;
 const valid_extensions = [".jpg", ".JPG", ".png", ".PNG", ".tif", ".TIF"];
 /*
 exports.sessionChecker = function(req, res, next) {
@@ -167,6 +168,16 @@ exports.get_home = function(req, res, next) {
             return res.redirect(process.env.CC_PATH);
         }
 
+        let overlay_colors;
+        let overlay_colors_path = path.join(USR_DATA_ROOT, req.session.user.username, "overlay_colors.json");
+        try {
+            overlay_colors = JSON.parse(fs.readFileSync(overlay_colors_path, 'utf8'));
+        }
+        catch (error) {
+            console.log(error);
+            return res.redirect(process.env.CC_PATH);
+        }
+
         for (let farm_name of farm_names) {
             
             let farm_root = path.join(image_sets_root, farm_name);
@@ -291,13 +302,23 @@ exports.get_home = function(req, res, next) {
 
 
                 release();
+
+                let data = {};
+                data["username"] = req.session.user.username;
+                data["image_sets_data"] = image_sets_data;
+                data["camera_specs"] = camera_specs;
+                data["objects"] = objects;
+                data["available_image_sets"] = available_image_sets;
+                data["overlay_colors"] = overlay_colors;
                 
                 res.render("home", {
                     username: req.session.user.username, 
-                    image_sets_data: image_sets_data,
-                    camera_specs: camera_specs,
-                    objects: objects,
-                    available_image_sets: available_image_sets
+                    data: data
+                    // image_sets_data: image_sets_data,
+                    // camera_specs: camera_specs,
+                    // objects: objects,
+                    // available_image_sets: available_image_sets,
+                    // overlay_colors: overlay_colors
                 });
 
 
@@ -314,6 +335,69 @@ exports.get_home = function(req, res, next) {
     else {
         res.redirect(process.env.CC_PATH);
     }
+}
+
+function is_hex_color(hex_color) {
+    if (hex_color.length != 7) {
+        return false;
+    }
+    if (hex_color[0] !== "#") {
+        return false;
+    }
+    let valid_chars = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", 
+    "a", "b", "c", "d", "e", "f", "A", "B", "C", "D", "E", "F"];
+    for (let i = 1; i < hex_color.length; i++) {
+        if (!(valid_chars.includes(hex_color[i]))) {
+            return false;
+        }
+    }
+
+    return true;
+
+    // var s = new Option().style;
+    // s.color = strColor;
+    // return s.color == strColor;
+}
+
+exports.post_color_change = function(req, res, next) {
+
+    let overlay_colors = JSON.parse(req.body.overlay_colors);
+    let overlay_colors_path = path.join(USR_DATA_ROOT, req.session.user.username, "overlay_colors.json");
+
+    let response = {};
+    if (Object.keys(overlay_colors).length != 4) {
+        response.error = true;
+        response.message = "Invalid overlay colors object.";
+        return res.json(response);
+    }
+
+    for (let overlay_key of ["annotation", "prediction", "training_region", "test_region"]) {
+        if (!(overlay_key in overlay_colors)) {
+            response.error = true;
+            response.message = "Missing overlay key: '" + overlay_key + "'.";
+            return res.json(response);
+        }
+        if (!(is_hex_color(overlay_colors[overlay_key]))) {
+            response.error = true;
+            response.message = "Invalid overlay color provided.";
+            return res.json(response);
+        }
+
+    }
+
+    try {
+        fs.writeFileSync(overlay_colors_path, JSON.stringify(overlay_colors));
+    }
+    catch (error) {
+        response.error = true;
+        response.message = "Failed to save overlay colors.";
+        return res.json(response);
+    }
+
+    response.error = false;
+    return res.json(response);
+
+
 }
 
 exports.get_workspace = function(req, res, next) {
@@ -367,6 +451,16 @@ exports.get_workspace = function(req, res, next) {
                 console.log(error);
                 return res.redirect(process.env.CC_PATH);
             }*/
+
+            let overlay_colors;
+            let overlay_colors_path = path.join(USR_DATA_ROOT, req.session.user.username, "overlay_colors.json");
+            try {
+                overlay_colors = JSON.parse(fs.readFileSync(overlay_colors_path, 'utf8'));
+            }
+            catch (error) {
+                console.log(error);
+                return res.redirect(process.env.CC_PATH);
+            }
 
             console.log("getting annotations");
             let annotations_dir = path.join(image_set_dir, "annotations");
@@ -466,6 +560,7 @@ exports.get_workspace = function(req, res, next) {
                 data["excess_green_record"] = excess_green_record;
                 data["camera_specs"] = camera_specs;
                 data["predictions"] = predictions;
+                data["overlay_colors"] = overlay_colors;
                 //data["model_status"] = status;
                 res.render("workspace", {username: req.session.user.username, data: data});
 
@@ -2039,13 +2134,15 @@ exports.post_workspace = function(req, res, next) {
 
         console.log("got to predict");
 
-        let image_names = req.body.image_names.split(",");
+        let image_names = JSON.parse(req.body.image_names);
+        let regions = JSON.parse(req.body.regions)
         let save_result = req.body.save_result === "True";
         let request_uuid = uuidv4().toString();
         let request = {
             "request_uuid": request_uuid,
             "start_time": Math.floor(Date.now() / 1000),
             "image_names": image_names,
+            "regions": regions,
             "save_result": save_result
         };
 
@@ -2498,10 +2595,10 @@ exports.post_orthomosaic_upload = function(req, res, next) {
         
 
         let extensionless_fname = filename.substring(0, filename.length-4);
-        if (extensionless_fname.length > 50) {
+        if (extensionless_fname.length > MAX_EXTENSIONLESS_FILENAME_LENGTH) {
             delete active_uploads[upload_uuid];
             return res.status(422).json({
-                error: "The provided filename exceeds the maximum allowed length of 50 characters."
+                error: "The provided filename exceeds the maximum allowed length of " + MAX_EXTENSIONLESS_FILENAME_LENGTH + " characters."
             });
         }
 
@@ -2781,10 +2878,10 @@ exports.post_image_set_upload = async function(req, res, next) {
             }
     
             let extensionless_fname = filename.substring(0, filename.length-4);
-            if (extensionless_fname.length > 50) {
+            if (extensionless_fname.length > MAX_EXTENSIONLESS_FILENAME_LENGTH) {
                 delete active_uploads[upload_uuid];
                 return res.status(422).json({
-                    error: "One or more filenames exceeds maximum allowed length of 50 characters."
+                    error: "One or more filenames exceeds maximum allowed length of " + MAX_EXTENSIONLESS_FILENAME_LENGTH + " characters."
                 });
             }
     
@@ -2899,7 +2996,7 @@ exports.post_image_set_upload = async function(req, res, next) {
         */
 
         let extensionless_fname = file.originalname.substring(0, file.originalname.length-4);
-        if (extensionless_fname.length > 50) {
+        if (extensionless_fname.length > MAX_EXTENSIONLESS_FILENAME_LENGTH) {
             try {
                 remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
             }
@@ -2911,7 +3008,7 @@ exports.post_image_set_upload = async function(req, res, next) {
             //     sent_response = true;
             delete active_uploads[upload_uuid];
             return res.status(422).json({
-                error: "One or more filenames exceeds maximum allowed length of 50 characters."
+                error: "One or more filenames exceeds maximum allowed length of " + MAX_EXTENSIONLESS_FILENAME_LENGTH + " characters."
             });
             // }
         }
@@ -4063,7 +4160,7 @@ exports.post_timeline = function(req, res, next) {
 
                 //let result_path = result_paths[i];
 
-                let timestamp = path.basename(result_path);
+                let result_uuid = path.basename(result_path);
 
         //let results_path = path.join(results_dir, timestamp, "retrieval", download_uuid, "results.csv");
 
@@ -4077,7 +4174,7 @@ exports.post_timeline = function(req, res, next) {
                     farm_name + " " +
                     field_name + " " + 
                     mission_date + " " + 
-                    timestamp + " " +
+                    result_uuid + " " +
                     download_uuid + " " +
                     "most_recent";
 
@@ -4095,7 +4192,7 @@ exports.post_timeline = function(req, res, next) {
 
                     console.log("finished", create_spreadsheet_command);
                     console.log("result_path", result_path);
-                    console.log("timestamp", timestamp);
+                    //console.log("timestamp", timestamp);
                     console.log("download_uuid", download_uuid);
                     //response.error = false;
                     //response.download_uuid = download_uuid;
@@ -4138,18 +4235,33 @@ exports.get_viewer = function(req, res, next) {
         let farm_name = req.params.farm_name;
         let field_name = req.params.field_name;
         let mission_date = req.params.mission_date;
-        let timestamp = req.params.timestamp;
+        let result_uuid = req.params.result_uuid;
+
+        console.log("result_uuid", result_uuid);
 
 
         let image_set_dir = path.join(USR_DATA_ROOT, req.session.user.username, "image_sets",
                                       farm_name, field_name, mission_date);
 
-        let sel_results_dir = path.join(image_set_dir, "model", "results", timestamp);
+        let sel_results_dir = path.join(image_set_dir, "model", "results", result_uuid);
 
 
         if (!(fpath_exists(sel_results_dir))) {
             return res.redirect(process.env.CC_PATH);
         }
+
+
+        let overlay_colors;
+        let overlay_colors_path = path.join(USR_DATA_ROOT, req.session.user.username, "overlay_colors.json");
+        try {
+            overlay_colors = JSON.parse(fs.readFileSync(overlay_colors_path, 'utf8'));
+        }
+        catch (error) {
+            console.log(error);
+            return res.redirect(process.env.CC_PATH);
+        }
+
+
 
         let request_path = path.join(sel_results_dir, "request.json");
         let request;
@@ -4229,7 +4341,7 @@ exports.get_viewer = function(req, res, next) {
             "farm_name": farm_name,
             "field_name": field_name,
             "mission_date": mission_date,
-            "timestamp": timestamp
+            "result_uuid": result_uuid
         };
 
 
@@ -4245,6 +4357,7 @@ exports.get_viewer = function(req, res, next) {
         data["request"] = request;
         //data["dzi_dir"] = path.join(process.env.CC_PATH, dzi_images_dir);
         data["dzi_image_paths"] = nat_orderBy.orderBy(dzi_image_paths);
+        data["overlay_colors"] = overlay_colors;
 
         res.render("viewer", {username: req.session.user.username, "data": data});
     }
@@ -4263,7 +4376,7 @@ exports.post_viewer = function(req, res, next) {
     let farm_name = req.params.farm_name;
     let field_name = req.params.field_name;
     let mission_date = req.params.mission_date;
-    let timestamp = req.params.timestamp;
+    let result_uuid = req.params.result_uuid;
     let action = req.body.action;
 
 
@@ -4273,10 +4386,10 @@ exports.post_viewer = function(req, res, next) {
         console.log(field_name);
         console.log(mission_date);
 
-        let annotation_version = req.body.annotation_version;
+        // let annotation_version = req.body.annotation_version;
         
         let image_set_dir = path.join(USR_DATA_ROOT, req.session.user.username, "image_sets", farm_name, field_name, mission_date);
-        let results_dir = path.join(image_set_dir, "model", "results", timestamp);
+        let results_dir = path.join(image_set_dir, "model", "results", result_uuid);
 
         let map_download_uuid = req.body.map_download_uuid;
         if (map_download_uuid === "") {
@@ -4285,12 +4398,12 @@ exports.post_viewer = function(req, res, next) {
         }
         console.log("map_download_uuid is", map_download_uuid);
         let annotations_path;
-        if (annotation_version === "most_recent") {
-            annotations_path = path.join(image_set_dir, "annotations", "annotations.json");
-        }
-        else {
-            annotations_path = path.join(results_dir, "annotations.json");
-        }
+        // if (annotation_version === "most_recent") {
+        //     annotations_path = path.join(image_set_dir, "annotations", "annotations.json");
+        // }
+        // else {
+        annotations_path = path.join(results_dir, "annotations.json");
+        // }
 
         let pred_path = path.join(results_dir, "predictions.json");
         let out_dir = path.join(results_dir, "maps");
@@ -4331,7 +4444,7 @@ exports.post_viewer = function(req, res, next) {
 
         let results_path = path.join(USR_DATA_ROOT, req.session.user.username,
                                 "image_sets", farm_name, field_name, mission_date,
-                                "model", "results", timestamp, "retrieval", download_uuid, "results.xlsx");
+                                "model", "results", result_uuid, "retrieval", download_uuid, "results.xlsx");
 
         if ((download_uuid === "") || !(fs.existsSync(results_path))) {
 
@@ -4344,9 +4457,9 @@ exports.post_viewer = function(req, res, next) {
                 farm_name + " " +
                 field_name + " " + 
                 mission_date + " " + 
-                timestamp + " " +
-                download_uuid + " " +
-                req.body.annotation_version;
+                result_uuid + " " +
+                download_uuid; //+ " " +
+                // req.body.annotation_version;
             
             let result = exec(create_spreadsheet_command, {shell: "/bin/bash"}, function (error, stdout, stderr) {
                 if (error) {
@@ -4369,87 +4482,87 @@ exports.post_viewer = function(req, res, next) {
         }
 
     }
-    else if (action === "switch_annotation_version") {
+    // else if (action === "switch_annotation_version") {
 
-        let annotation_version = req.body.annotation_version;
-        let image_set_dir = path.join(USR_DATA_ROOT, req.session.user.username,
-                                      "image_sets", farm_name, field_name, mission_date);
-        let results_dir = path.join(image_set_dir, "model", "results", timestamp);
+    //     let annotation_version = req.body.annotation_version;
+    //     let image_set_dir = path.join(USR_DATA_ROOT, req.session.user.username,
+    //                                   "image_sets", farm_name, field_name, mission_date);
+    //     let results_dir = path.join(image_set_dir, "model", "results", timestamp);
         
-        let download_uuid = uuidv4().toString();
-        console.log("switch annotation version, new download_uuid", download_uuid);
+    //     let download_uuid = uuidv4().toString();
+    //     console.log("switch annotation version, new download_uuid", download_uuid);
 
-        let create_spreadsheet_command = "python ../../plant_detection/src/create_spreadsheet.py " +
-                                req.session.user.username + " " +
-                                farm_name + " " +
-                                field_name + " " + 
-                                mission_date + " " + 
-                                timestamp + " " +
-                                download_uuid + " " +
-                                req.body.annotation_version;
+    //     let create_spreadsheet_command = "python ../../plant_detection/src/create_spreadsheet.py " +
+    //                             req.session.user.username + " " +
+    //                             farm_name + " " +
+    //                             field_name + " " + 
+    //                             mission_date + " " + 
+    //                             timestamp + " " +
+    //                             download_uuid + " " +
+    //                             req.body.annotation_version;
 
-        console.log("executing command", create_spreadsheet_command);
+    //     console.log("executing command", create_spreadsheet_command);
                             
-        let result = exec(create_spreadsheet_command, {shell: "/bin/bash"}, function (error, stdout, stderr) {
-            if (error) {
-                console.log(error.stack);
-                console.log('Error code: '+error.code);
-                console.log('Signal received: '+error.signal);
-                response.error = true;
-                return res.json(response);
-            }
+    //     let result = exec(create_spreadsheet_command, {shell: "/bin/bash"}, function (error, stdout, stderr) {
+    //         if (error) {
+    //             console.log(error.stack);
+    //             console.log('Error code: '+error.code);
+    //             console.log('Signal received: '+error.signal);
+    //             response.error = true;
+    //             return res.json(response);
+    //         }
 
 
-            let metrics_path = path.join(results_dir, "retrieval", download_uuid, "metrics.json");
-            let metrics;
-            try {
-                metrics = JSON.parse(fs.readFileSync(metrics_path, 'utf8'));
-            }
-            catch (error) {
-                console.log(error);
-                response.error = true;
-                return res.json(response);
-            }
+    //         let metrics_path = path.join(results_dir, "retrieval", download_uuid, "metrics.json");
+    //         let metrics;
+    //         try {
+    //             metrics = JSON.parse(fs.readFileSync(metrics_path, 'utf8'));
+    //         }
+    //         catch (error) {
+    //             console.log(error);
+    //             response.error = true;
+    //             return res.json(response);
+    //         }
 
-            let annotations_path;
-            let excess_green_record_path;
-            if (annotation_version === "most_recent") {
-                annotations_path = path.join(image_set_dir, "annotations", "annotations.json");
-                excess_green_record_path = path.join(image_set_dir, "excess_green", "record.json");
-            }
-            else {
-                annotations_path = path.join(results_dir, "annotations.json");
-                excess_green_record_path = path.join(results_dir, "excess_green_record.json");
-            }
+    //         let annotations_path;
+    //         let excess_green_record_path;
+    //         if (annotation_version === "most_recent") {
+    //             annotations_path = path.join(image_set_dir, "annotations", "annotations.json");
+    //             excess_green_record_path = path.join(image_set_dir, "excess_green", "record.json");
+    //         }
+    //         else {
+    //             annotations_path = path.join(results_dir, "annotations.json");
+    //             excess_green_record_path = path.join(results_dir, "excess_green_record.json");
+    //         }
 
-            let annotations;
-            try {
-                annotations = JSON.parse(fs.readFileSync(annotations_path, 'utf8'));
-            }
-            catch (error) {
-                console.log(error);
-                response.error = true;
-                return res.json(response);
-            }
+    //         let annotations;
+    //         try {
+    //             annotations = JSON.parse(fs.readFileSync(annotations_path, 'utf8'));
+    //         }
+    //         catch (error) {
+    //             console.log(error);
+    //             response.error = true;
+    //             return res.json(response);
+    //         }
 
-            let excess_green_record;
-            try {
-                excess_green_record = JSON.parse(fs.readFileSync(excess_green_record_path, 'utf8'));
-            }
-            catch (error) {
-                console.log(error);
-                response.error = true;
-                return res.json(response);
-            }
+    //         let excess_green_record;
+    //         try {
+    //             excess_green_record = JSON.parse(fs.readFileSync(excess_green_record_path, 'utf8'));
+    //         }
+    //         catch (error) {
+    //             console.log(error);
+    //             response.error = true;
+    //             return res.json(response);
+    //         }
 
-            response.error = false;
-            response["annotations"] = annotations;
-            response["excess_green_record"] = excess_green_record;
-            response["metrics"] = metrics;
-            response["download_uuid"] = download_uuid;
-            return res.json(response);
-        });
-    }
+    //         response.error = false;
+    //         response["annotations"] = annotations;
+    //         response["excess_green_record"] = excess_green_record;
+    //         response["metrics"] = metrics;
+    //         response["download_uuid"] = download_uuid;
+    //         return res.json(response);
+    //     });
+    // }
 }
 
 
@@ -4460,12 +4573,12 @@ exports.get_download = function(req, res, next) {
         let farm_name = req.params.farm_name;
         let field_name = req.params.field_name;
         let mission_date = req.params.mission_date;
-        let timestamp = req.params.timestamp;
+        let result_uuid = req.params.result_uuid;
         let download_uuid = req.params.download_uuid;
 
         let results_path = path.join(USR_DATA_ROOT, req.session.user.username,
                                 "image_sets", farm_name, field_name, mission_date,
-                                "model", "results", timestamp, "retrieval", download_uuid, "results.xlsx");
+                                "model", "results", result_uuid, "retrieval", download_uuid, "results.xlsx");
 
         res.download(results_path, "results.xlsx");
     }

@@ -87,7 +87,7 @@
 
         this._viewer.addHandler('open', function() {
             self._onOpen();
-            console.log("open");
+            // console.log("open");
             self.resize();
             self._updateCanvas();
 

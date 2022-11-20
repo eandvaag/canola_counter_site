@@ -10,7 +10,7 @@ html
 
         link(href=process.env.CC_PATH + "/annotorious/annotorious.min.css" rel="stylesheet")
         link(rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.2/css/all.min.css")
-        link(href=process.env.CC_PATH + '/stylesheets/main.css' rel='stylesheet')
+        link(href=process.env.CC_PATH + '/stylesheets/main.css' rel='stylesheet' id="main-stylesheet")
         link(href=process.env.CC_PATH + '/stylesheets/d3.css' rel='stylesheet')
         
 
@@ -148,6 +148,16 @@ html
                                                     div(id="image_set_table_container" class="scrollable_area" style="height: 470px; border:none; overflow-y: scroll")
                                                         table(id="image_set_table")
 
+                                                hr(class="panel_line")
+                                                
+                                                div(style="width: 100%; text-align: right")
+                                                    button(class="std-button std-button-hover" style="padding: 2px; font-size: 14px; width: 90px" onclick="show_color_modal()")
+                                                        i(class="fa-solid fa-palette" style="margin-right: 4px") 
+                                                        |
+                                                        | Colours 
+
+                                                div(style="height: 10px")
+
                                                 table
                                                     tr 
                                                         td
@@ -157,29 +167,34 @@ html
                                                                 option(value="images") Images 
 
 
-                                                div(id="navigation_table_container" class="scrollable_area" style="height: 500px; width: 280px; border: none; overflow-y: scroll")
+                                                div(id="navigation_table_container" class="scrollable_area" style="width: 280px; border: none; overflow-y: scroll")
                                                     table(id="navigation_table")
 
                                                 div(style="height: 10px")
-                                                div(style="height: 30px")
-                                                    table(id="image_navigation_buttons")
-                                                        tr
-                                                            td(style="width: 140px")
-                                                                button(id="prev_image_button" class="std-button std-button-hover" style="font-size: 16px; width: 100%") 
-                                                                    i(class="fa-solid fa-circle-chevron-left" style="padding-right: 5px")
-                                                                    | 
-                                                                    | Previous
-                                                            td(style="width: 140px")
-                                                                button(id="next_image_button" class="std-button std-button-hover" style="font-size: 16px; width: 100%;") Next 
-                                                                    i(class="fa-solid fa-circle-chevron-right" style="padding-left: 5px")                                                    
 
-                                                hr(class="panel_line")
-                                                div(style="height: 5px")
+                                                button(id="prev_image_button" class="std-button std-button-hover" style="font-size: 16px; width: 130px; border-radius: 30px 0px 0px 30px") 
+                                                    i(class="fa-solid fa-circle-chevron-left" style="padding-right: 5px")
+                                                    | 
+                                                    | Previous 
+                                                button(id="next_image_button" class="std-button std-button-hover" style="font-size: 16px; width: 130px; border-radius: 0px 30px 30px 0px; margin-left: -1px") Next 
+                                                    i(class="fa-solid fa-circle-chevron-right" style="padding-left: 5px")  
 
-                                                button(id="request_spreadsheet_button" class="std-button std-button-hover")
-                                                    i(class="fa-solid fa-file-arrow-down" style="padding-right: 5px")
-                                                    |
-                                                    | Download Results
+
+
+                                                //- div(style="height: 30px")
+
+                                                //-     table(id="image_navigation_buttons")
+                                                //-         tr
+                                                //-             td(style="width: 140px")
+                                                //-                 button(id="prev_image_button" class="std-button std-button-hover" style="font-size: 16px; width: 100%") 
+                                                //-                     i(class="fa-solid fa-circle-chevron-left" style="padding-right: 5px")
+                                                //-                     | 
+                                                //-                     | Previous
+                                                //-             td(style="width: 140px")
+                                                //-                 button(id="next_image_button" class="std-button std-button-hover" style="font-size: 16px; width: 100%;") Next 
+                                                //-                     i(class="fa-solid fa-circle-chevron-right" style="padding-left: 5px")                                                    
+
+
                                                 
                                                 //- a(class="table_button table_button_hover" style="padding: 5px 10px;" id="download_button" download)
                                                 //-     i(class="fa fa-download fa-sm")
@@ -196,10 +211,10 @@ html
 
                                             div(id="right_panel")
 
-                                                div(class="header2" style="text-align: left") Annotation Version
-                                                select(id="annotation_version_combo" class="nonfixed_dropdown" style="max-width: 100%")
-                                                    option(value="preserved") From Time of Result Creation
-                                                    option(value="most_recent") Most Recent
+                                                //- div(class="header2" style="text-align: left") Annotation Version
+                                                //- select(id="annotation_version_combo" class="nonfixed_dropdown" style="max-width: 100%")
+                                                //-     option(value="preserved") From Time of Result Creation
+                                                //-     option(value="most_recent") Most Recent
                                                 //- table(class="transparent_table" style="border: 1px solid white; width: 260px")
                                                 //-     tr 
                                                 //-         td 
@@ -212,10 +227,20 @@ html
                                                 //-                 span(class="custom_radio")
 
                                                 //div(style="height: 15px")
+                                                //- hr(class="panel_line")
+
+                                                //hr(class="panel_line")
+                                                div(style="height: 5px")
+                                                button(id="request_spreadsheet_button" class="std-button std-button-hover" style="height: 40px")
+                                                    i(class="fa-solid fa-file-arrow-down" style="padding-right: 5px")
+                                                    |
+                                                    | Download Results
+                                                div(style="height: 5px")
+
                                                 hr(class="panel_line")
 
                                                 div(style="height: 40px")
-                                                    div(class="header2" style="text-align: left") Metric Version
+                                                    div(class="header2" style="text-align: left") Metric
                                                     select(id="chart_combo" class="nonfixed_dropdown" style="max-width: 100%")
                                                     //- table
                                                     //-     tr
@@ -262,11 +287,13 @@ html
                                                 
                                                 //div(style="height: 10px")
                                                 hr(class="panel_line")
+
+                                                div(style="height: 8px")
                                                     
                                                 table
                                                     tr
                                                         td(style="width: 155px")
-                                                            div(style="width: 155px; text-align:left; margin: 3px 0px;" class="header2") Show Image
+                                                            div(style="width: 155px; text-align:left; margin: 2px 0px;" class="header2") Show Image
                                                         td(style="width:40px")
                                                             label(class="switch")
                                                                 input(id="image_visible_switch" type="checkbox" checked)
@@ -274,7 +301,7 @@ html
                                                         td(style="width: 100%")       
                                                     tr
                                                         td(style="width: 155px")
-                                                            div(style="width: 155px; text-align:left; margin: 3px 0px;" class="header2") Show Scores
+                                                            div(style="width: 155px; text-align:left; margin: 2px 0px;" class="header2") Show Scores
                                                         td(style="width:40px")
                                                             label(class="switch")
                                                                 input(id="scores_switch" type="checkbox")
@@ -288,15 +315,15 @@ html
                                                             div(style="width: 50px; text-align:left" class="header2") Filter
 
                                                         td
-                                                            button(id="score_down" class="table_button table_button_hover" style="margin: 0px; border-radius: 50px; padding-bottom: 4px")
+                                                            button(id="score_down" class="table_button table_button_hover" style="margin: 0px; border-radius: 50px; padding-bottom: 3px; margin-top: -4px;")
                                                                 i(class="fa-solid fa-circle-chevron-left")
                                                                 
                                                         td(style="width: 100%")
                                                             div(class="slidecontainer" style="width: 100%")
-                                                                input(type="range" min="0.25" max="1" step="0.01" value="0.5" class="slider" id="confidence_slider")
+                                                                input(type="range" min="0.25" max="1" step="0.01" value="0.5" class="slider" id="confidence_slider" style="margin: 0px")
 
                                                         td
-                                                            button(id="score_up" class="table_button table_button_hover" style="margin: 0px; border-radius: 50px; padding-bottom: 4px")
+                                                            button(id="score_up" class="table_button table_button_hover" style="margin: 0px; border-radius: 50px; padding-bottom: 3px; margin-top: -4px;")
                                                                 i(class="fa-solid fa-circle-chevron-right")
                                                         
                                                         td(style="width: 50px")
