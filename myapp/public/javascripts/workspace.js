@@ -11,7 +11,7 @@ let dzi_image_paths;
 let annotations;
 let image_to_dzi;
 let predictions;
-let overlay_colors;
+let overlay_appearance;
 
 
 let viewer;
@@ -68,12 +68,21 @@ let voronoi_data = {};
 
 let format_sample_text = 
 '{\n' + 
-'   "image_1": [\n' +
-'       [2, 4, 10, 9],\n' +
-'       ...\n' +
-'   ]\n' +
-'   "image_2": [\n' +
-'       ...';
+'    "image_1": {\n' +
+'        "annotations": [\n' +
+'            [2, 4, 10, 9],\n' +
+'            ...\n' +
+'        ],\n' +
+'        "fine_tuning_regions": [\n' +
+'            [0, 1, 7, 9],\n' +
+'            ...\n' +
+'        ],\n' +
+'        "test_regions": [\n' +
+'            [11, 14, 23, 25],\n' +
+'            ...\n' +
+'        ],\n' +
+'    "image_2": [\n' +
+'        ...';
 
 
 // let overlay_colors = [
@@ -292,6 +301,7 @@ function change_image(cur_nav_item) {
     //     region_text = pieces[1];
     // }
 
+    document.getElementById(cur_nav_item + "_row").scrollIntoView({behavior: "smooth"});
     
 
     let pieces = cur_nav_item.split("/");
@@ -325,10 +335,10 @@ function change_image(cur_nav_item) {
         let disp_region_index = cur_region_index + 1;
         let region_color;
         if (navigation_type === "training_regions") {
-            region_color = overlay_colors["training_region"];
+            region_color = overlay_appearance["colors"]["training_region"];
         }
         else {
-            region_color = overlay_colors["test_region"];
+            region_color = overlay_appearance["colors"]["test_region"];
         }
 
         $("#region_name").append(
@@ -551,26 +561,26 @@ function resize_px_str(px_str) {
     let box_h = box_max_y - box_min_y;
 
 
-    let min_dim = 4;
+    //let min_dim = 1;
     let max_dim = 800; //1600;
-    if (box_w < min_dim) {
+    // if (box_w < min_dim) {
 
-        let tentative_box_min_x = box_centre_x - Math.floor(min_dim / 2);
-        let tentative_box_max_x = box_centre_x + Math.floor(min_dim / 2);
-        if (tentative_box_min_x < img_min_x) {
-            box_min_x = img_min_x;
-            box_max_x = img_min_x + min_dim;
-        }
-        else if (tentative_box_max_x > img_max_x) {
-            box_min_x = (img_max_x) - min_dim;
-            box_max_x = img_max_x;
-        }
-        else {
-            box_min_x = tentative_box_min_x;
-            box_max_x = tentative_box_max_x;
-        }
+    //     let tentative_box_min_x = box_centre_x - Math.floor(min_dim / 2);
+    //     let tentative_box_max_x = box_centre_x + Math.floor(min_dim / 2);
+    //     if (tentative_box_min_x < img_min_x) {
+    //         box_min_x = img_min_x;
+    //         box_max_x = img_min_x + min_dim;
+    //     }
+    //     else if (tentative_box_max_x > img_max_x) {
+    //         box_min_x = (img_max_x) - min_dim;
+    //         box_max_x = img_max_x;
+    //     }
+    //     else {
+    //         box_min_x = tentative_box_min_x;
+    //         box_max_x = tentative_box_max_x;
+    //     }
         
-    }
+    // }
 
     if (cur_edit_layer === "annotation") { 
         if (box_w > max_dim) {
@@ -597,22 +607,22 @@ function resize_px_str(px_str) {
     }
 
 
-    if (box_h < min_dim) {
-        let tentative_box_min_y = box_centre_y - Math.floor(min_dim / 2);
-        let tentative_box_max_y = box_centre_y + Math.floor(min_dim / 2);
-        if (tentative_box_min_y < img_min_y) {
-            box_min_y = img_min_y;
-            box_max_y = img_min_y + min_dim;
-        }
-        else if (tentative_box_max_y > img_max_y) {
-            box_min_y = (img_max_y) - min_dim;
-            box_max_y = img_max_y;
-        }
-        else {
-            box_min_y = tentative_box_min_y;
-            box_max_y = tentative_box_max_y;
-        }
-    }
+    // if (box_h < min_dim) {
+    //     let tentative_box_min_y = box_centre_y - Math.floor(min_dim / 2);
+    //     let tentative_box_max_y = box_centre_y + Math.floor(min_dim / 2);
+    //     if (tentative_box_min_y < img_min_y) {
+    //         box_min_y = img_min_y;
+    //         box_max_y = img_min_y + min_dim;
+    //     }
+    //     else if (tentative_box_max_y > img_max_y) {
+    //         box_min_y = (img_max_y) - min_dim;
+    //         box_max_y = img_max_y;
+    //     }
+    //     else {
+    //         box_min_y = tentative_box_min_y;
+    //         box_max_y = tentative_box_max_y;
+    //     }
+    // }
 
     if (cur_edit_layer === "annotation") { 
         if (box_h > max_dim) {
@@ -1243,7 +1253,7 @@ function create_viewer(viewer_id) {
                         }
                         if (visible_edges.length <= MAX_EDGES_DISPLAYED) {
                             for (let edge of visible_edges) {
-                                overlay.context2d().strokeStyle = overlay_colors[key];
+                                overlay.context2d().strokeStyle = overlay_appearance["colors"][key];
                                 overlay.context2d().lineWidth = 2;
                         
                                 let viewer_point_1 = viewer.viewport.imageToViewerElementCoordinates(
@@ -1272,7 +1282,7 @@ function create_viewer(viewer_id) {
 
 
 
-            let draw_order = ["training_region", "test_region", "annotation", "prediction"];
+            let draw_order = overlay_appearance["draw_order"]; //["training_region", "test_region", "annotation", "prediction"];
             for (let key of draw_order) { //Object.keys(boxes_to_add)) {
                 //console.log("ADDING", key);
 
@@ -1280,8 +1290,9 @@ function create_viewer(viewer_id) {
                     continue;
                 }
 
-
-                overlay.context2d().strokeStyle = overlay_colors[key]; //"Annotations"]; //"#FF4040";
+                
+                overlay.context2d().strokeStyle = overlay_appearance["colors"][key]; //"Annotations"]; //"#FF4040";
+                overlay.context2d().fillStyle = overlay_appearance["colors"][key] + "55";
                 overlay.context2d().lineWidth = 2;
 
 
@@ -1297,7 +1308,7 @@ function create_viewer(viewer_id) {
                     let box = boxes_to_add[key]["boxes"][i];
                     if (key === "prediction") {
                         let score = boxes_to_add[key]["scores"][i];
-                        if (score < slider_val) {
+                        if (score <= slider_val) {
                             continue;
                         }
                     }
@@ -1364,6 +1375,15 @@ function create_viewer(viewer_id) {
                             (viewer_point_2.x - viewer_point.x),// * container_size.x,
                             (viewer_point_2.y - viewer_point.y)// * container_size.y
                         );
+                        //}
+                        if (overlay_appearance["style"][key] == "fillRect") {
+                            overlay.context2d().fillRect(
+                                viewer_point.x,// * container_size.x,
+                                viewer_point.y,// * container_size.y,
+                                (viewer_point_2.x - viewer_point.x),// * container_size.x,
+                                (viewer_point_2.y - viewer_point.y)// * container_size.y
+                            );
+                        }
                     }
 
                 
@@ -1377,9 +1397,9 @@ function create_viewer(viewer_id) {
             
                             // let box = boxes_to_add["prediction"]["boxes"][i];
                             // let score = boxes_to_add["prediction"]["scores"][i];
-                            if (score < slider_val) {
-                                continue;
-                            }
+                            // if (score < slider_val) {
+                            //     continue;
+                            // }
                         
                             
                             let box_width_pct_of_image = (box[3] - box[1]) / overlay.imgWidth;
@@ -1397,8 +1417,8 @@ function create_viewer(viewer_id) {
                                 let viewer_point = viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(box[1], box[0]));
                                 //let viewer_point_2 = viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(box[3], box[2]));
 
-                                let score_text = score.toFixed(2); //toString().padEnd(4, "0");
-
+                                //let score_text = score.toFixed(2); //toString().padEnd(4, "0");
+                                let score_text = (Math.ceil(score * 100) / 100).toFixed(2);
                                 // overlay.context2d().fillStyle = "white";
                                 // overlay.context2d().fillRect(
                                 //     box[1] / max_dim,// * container_size.x,
@@ -2507,7 +2527,7 @@ function confirmed_use_predictions() {
     /* Add new boxes */
     let slider_val = Number.parseFloat($("#confidence_slider").val()); //.toFixed(2);
     for (let i = 0; i < predictions[cur_img_name]["scores"].length; i++) {
-        if (predictions[cur_img_name]["scores"][i] >= slider_val) {
+        if (predictions[cur_img_name]["scores"][i] > slider_val) {
             let box = predictions[cur_img_name]["boxes"][i];
             if (navigation_type === "images") {
                 annotations[cur_img_name]["boxes"].push(box);
@@ -2747,7 +2767,8 @@ async function show_prediction(change_image=false) {
 
     $("#predictions_unavailable").hide();
     $("#predictions_available").hide();
-
+    
+    update_count_combo(false);
     set_count_chart_data();
     set_score_chart_data();
     update_score_chart();
@@ -3287,7 +3308,7 @@ function draw_segmentation() {
     // console.log("num_foreground", num_foreground);
 
     let percent_vegetation = ((num_foreground / (d_rgb.data.length / 4)) * 100).toFixed(2);
-    console.log("percent_vegetation", percent_vegetation);
+    // console.log("percent_vegetation", percent_vegetation);
 
 
     //excess_green_record[cur_img_name]["ground_cover_percentage"] = parseFloat(percent_vegetation);
@@ -3295,7 +3316,7 @@ function draw_segmentation() {
     let container_width = $("#seadragon_viewer").width();
     let container_height = $("#seadragon_viewer").height();
 
-    console.log("container_width, container_height", container_width, container_height);
+    // console.log("container_width, container_height", container_width, container_height);
     rgb_ctx.putImageData(d_rgb, 0, 0);
 
     // container_height = $("#seadragon_viewer").height();
@@ -3328,7 +3349,7 @@ function draw_segmentation() {
     //$("#seadragon_viewer").css("display", "inline-block");
 
 
-    console.log("Appending canvas", rgb_ctx.canvas);
+    // console.log("Appending canvas", rgb_ctx.canvas);
     $("#seadragon_viewer").append(
         `<div id="canvas_container" style="height: ${canvas_container_height}">`+
         //rgb_ctx.canvas +
@@ -3340,7 +3361,7 @@ function draw_segmentation() {
     container_width = $("#seadragon_viewer").width();
     container_height = $("#seadragon_viewer").height();
 
-    console.log("container_width, container_height", container_width, container_height);
+    // console.log("container_width, container_height", container_width, container_height);
 
 
     delay(1).then(() => {
@@ -3364,7 +3385,7 @@ function lower_slider() {
 
 function raise_slider() {
     let slider_val = parseFloat($("#confidence_slider").val());
-    if (slider_val < 1.0) {
+    if (slider_val < 0.99) {
         slider_val = slider_val + 0.01;
         $("#confidence_slider").val(slider_val).change();
     }
@@ -3480,8 +3501,8 @@ function submit_prediction_request(image_names_str, regions_str) {
 }
 
 function submit_prediction_request_confirmed(image_names_str, regions_str, save_result) {
-    console.log("image_names_str", image_names_str);
-    console.log("regions_str", regions_str);
+    // console.log("image_names_str", image_names_str);
+    // console.log("regions_str", regions_str);
 
     disable_std_buttons(["request_result_button", "predict_single_button", "predict_all_button"]);
 
@@ -3683,11 +3704,12 @@ function show_model_details(model_creator, model_name) {
                     let max_x = min_x + viewport_w;
                     let max_y = min_y + viewport_h;
 
-                    let draw_order = ["annotation", "training_region", "test_region"];
+                    let draw_order = ["training_region", "test_region", "annotation"];
                     
                     for (let key of draw_order) { 
                         
-                        current_image_set_overlay.context2d().strokeStyle = overlay_colors[key];
+                        current_image_set_overlay.context2d().strokeStyle = overlay_appearance["colors"][key];
+                        current_image_set_overlay.context2d().fillStyle = overlay_appearance["colors"][key] + "55";
                         current_image_set_overlay.context2d().lineWidth = 2;
                         //console.log("boxes_to_add", boxes_to_add, key);
                         let visible_boxes = [];
@@ -3719,6 +3741,15 @@ function show_model_details(model_creator, model_name) {
                                     (viewer_point_2.x - viewer_point.x),
                                     (viewer_point_2.y - viewer_point.y)
                                 );
+
+                                if (overlay_appearance["style"][key] == "fillRect") {
+                                    current_image_set_overlay.context2d().fillRect(
+                                        viewer_point.x,
+                                        viewer_point.y,
+                                        (viewer_point_2.x - viewer_point.x),
+                                        (viewer_point_2.y - viewer_point.y)
+                                    );
+                                }
                             }
                         }
                     }
@@ -3935,7 +3966,8 @@ function change_image_set(image_set_index) {
                     //}
                     for (let key of draw_order) { 
                         
-                        model_overlay.context2d().strokeStyle = overlay_colors[key];
+                        model_overlay.context2d().strokeStyle = overlay_appearance["colors"][key];
+                        model_overlay.context2d().fillStyle = overlay_appearance["colors"][key] + "55";
                         model_overlay.context2d().lineWidth = 2;
                         //console.log("boxes_to_add", boxes_to_add, key);
                         let visible_boxes = [];
@@ -3967,6 +3999,15 @@ function change_image_set(image_set_index) {
                                     (viewer_point_2.x - viewer_point.x),
                                     (viewer_point_2.y - viewer_point.y)
                                 );
+
+                                if (overlay_appearance["style"][key] == "fillRect") {
+                                    model_overlay.context2d().fillRect(
+                                        viewer_point.x,
+                                        viewer_point.y,
+                                        (viewer_point_2.x - viewer_point.x),
+                                        (viewer_point_2.y - viewer_point.y)
+                                    );
+                                }
                             }
                         }
                     }
@@ -4091,8 +4132,8 @@ function get_filtered_model_list() {
         let sort_combo_0_val = $("#sort_combo_0").val();
         let sort_combo_1_val = $("#sort_combo_1").val();
         filtered_models.sort(function(a, b) {
-            return a[sort_combo_0_val].localeCompare(b[sort_combo_0_val]) || 
-                   a[sort_combo_1_val].localeCompare(b[sort_combo_1_val]);
+            return a[sort_combo_0_val].localeCompare(b[sort_combo_0_val], undefined, {numeric: true, sensitivity: 'base'}) || 
+                   a[sort_combo_1_val].localeCompare(b[sort_combo_1_val], undefined, {numeric: true, sensitivity: 'base'});
         });
     }
     else {
@@ -4100,9 +4141,9 @@ function get_filtered_model_list() {
         let sort_combo_1_val = $("#sort_combo_1").val();
         let sort_combo_2_val = $("#sort_combo_2").val();
         filtered_models.sort(function(a, b) {
-            return a[sort_combo_0_val].localeCompare(b[sort_combo_0_val]) || 
-                   a[sort_combo_1_val].localeCompare(b[sort_combo_1_val]) ||
-                   a[sort_combo_2_val].localeCompare(b[sort_combo_2_val]);
+            return a[sort_combo_0_val].localeCompare(b[sort_combo_0_val], undefined, {numeric: true, sensitivity: 'base'}) || 
+                   a[sort_combo_1_val].localeCompare(b[sort_combo_1_val], undefined, {numeric: true, sensitivity: 'base'}) ||
+                   a[sort_combo_2_val].localeCompare(b[sort_combo_2_val], undefined, {numeric: true, sensitivity: 'base'});
         });
     }
 
@@ -4664,22 +4705,28 @@ function add_prediction_buttons() {
     $("#predict_container").empty();
     if (multiple) {
         $("#predict_container").append(
-            `<button id="predict_single_button" class="std-button std-button-hover" style="font-size: 16px; width: 130px; border-radius: 30px 0px 0px 30px">${single_text}</button>` +
-            `<button id="predict_all_button" class="std-button std-button-hover" style="font-size: 16px; width: 130px; border-radius: 0px 30px 30px 0px; border-left: none">${all_text}</button>`
+            `<button id="predict_single_button" class="std-button" style="opacity: 0.5; cursor: default; font-size: 16px; width: 130px; border-radius: 30px 0px 0px 30px" disabled>${single_text}</button>` +
+            `<button id="predict_all_button" class="std-button" style="opacity: 0.5; cursor: default; font-size: 16px; width: 130px; border-radius: 0px 30px 30px 0px; border-left: none" disabled>${all_text}</button>`
         );
     }
     else {
         $("#predict_container").append(
-            `<button id="predict_single_button" class="std-button std-button-hover" style="font-size: 16px; width: 260px">${single_text}</button>` 
+            `<button id="predict_single_button" class="std-button" style="opacity: 0.5; cursor: default; font-size: 16px; width: 260px" disabled>${single_text}</button>` 
         );
     }
+    let cur_backend_status = $("#backend_status").html();
+    let predicting = cur_backend_status.substring(0, "Predicting".length) == "Predicting";
 
-    if (model_unassigned) {
+
+    if (model_unassigned || predicting) {
         disable_std_buttons(["predict_single_button", "predict_all_button"]);
+    }
+    else {
+        enable_std_buttons(["predict_single_button", "predict_all_button"]);
     }
 
     $("#predict_single_button").click(function() {
-        console.log("clicked predict_single_button");
+        // console.log("clicked predict_single_button");
         let navigation_type = $('#navigation_dropdown').val();
         let image_list;
         let region_list;
@@ -4742,12 +4789,17 @@ $(document).ready(function() {
 
     image_set_info = data["image_set_info"];
     dzi_image_paths = data["dzi_image_paths"];
+
+    //dzi_image_paths.sort();
+    /*(function(a, b) {
+        return a.localeCompare(b, undefined, {numeric: true, sensitivity: 'base'});
+    });*/
     annotations = data["annotations"];
     metadata = data["metadata"];
     camera_specs = data["camera_specs"];
     excess_green_record = data["excess_green_record"];
     predictions = data["predictions"];
-    overlay_colors = data["overlay_colors"];
+    overlay_appearance = data["overlay_appearance"];
     set_overlay_color_css_rules();
 
     // if (metadata["is_ortho"] === "yes") {
@@ -5035,7 +5087,7 @@ $(document).ready(function() {
             (update_field_name === image_set_info["field_name"] && update_mission_date === image_set_info["mission_date"]));
 
             if (display_statuses.includes(status)) {
-                $("#backend_status").empty();
+                //$("#backend_status").empty();
                 if (status === "Predicting") {
                     //let num_processed = parseInt(update["num_processed"]);
                     //let num_images = parseInt(update["num_images"]);
@@ -5049,12 +5101,13 @@ $(document).ready(function() {
                     else if (percent_complete_length == 2) {
                         percent_complete = " " + percent_complete;
                     }*/
-                    status = status + ":"; // + percent_complete + "%"; //": " + num_processed + " / " + num_images;
-                    $("#backend_status").append(`<table><tr><td>${status}</td><td style="text-align: right; width: 45px">${percent_complete}</td></tr></table>`);
+                    // status = status + ":"; // + percent_complete + "%"; //": " + num_processed + " / " + num_images;
+                    // $("#backend_status").append(`<table><tr><td>${status}</td><td style="text-align: right; width: 45px">${percent_complete}</td></tr></table>`);
                     //<div style="text-align: center">${status}<span style="float: right; color: yellow">${percent_complete}</span></div>`);
+                    $("#backend_status").html(`Predicting: <span style="text-align: right; display: inline-block; width: 45px;">${percent_complete}</span>`);
                 }
                 else {
-                    $("#backend_status").append(`<div>${status}</div>`);
+                    $("#backend_status").html(status);
                 }
                 $("#backend_update_time").html(date);
 
@@ -5466,7 +5519,7 @@ $(document).ready(function() {
 
     $("#confidence_slider").change(function() {
         let slider_val = Number.parseFloat($("#confidence_slider").val()).toFixed(2);
-        $("#confidence_slider_val").html(slider_val);
+        $("#confidence_slider_val").html("> " + slider_val);
 
         if (cur_img_name in voronoi_data && "prediction" in voronoi_data[cur_img_name]) {
             delete voronoi_data[cur_img_name]["prediction"];
@@ -5485,7 +5538,7 @@ $(document).ready(function() {
 
     $("#confidence_slider").on("input", function() {
         let slider_val = Number.parseFloat($("#confidence_slider").val()).toFixed(2);
-        $("#confidence_slider_val").html(slider_val);
+        $("#confidence_slider_val").html("> " + slider_val);
     });
 
 
@@ -5566,15 +5619,21 @@ $(document).ready(function() {
             let image_width_px = metadata["images"][image_name]["width_px"];
             let image_height_px = metadata["images"][image_name]["height_px"];
 
-            let fully_annotated = image_is_fully_annotated(annotations, image_name, image_width_px, image_height_px);
+            let fully_annotated_for_training = image_is_fully_annotated_for_training(annotations, image_name, image_width_px, image_height_px);
             //let status = annotations[image_name]["status"];
-            if ((!(fully_annotated)) && (image_name in predictions)) {
+
+            if ((!(fully_annotated_for_training)) && (image_name in predictions)) {
                 candidates.push(image_name);
             }
         }
         if (candidates.length <= 1) {
-            show_modal_message("Error", "An insufficient number of images have predictions available for assessment." +
+            if (num_training_images == Object.keys(annotations).length) {
+                show_modal_message("Error", "Unable to recommend an image for fine-tuning -- all images have already been used for fine-tuning!");
+            }
+            else {
+                show_modal_message("Error", "An insufficient number of images have predictions available for assessment." +
                                " Please generate predictions for more images and try again.");
+            }
         }
         else {
 
@@ -5599,6 +5658,13 @@ $(document).ready(function() {
 
             let sel_image_name = qualities[0]["image_name"];
 
+            $("#navigation_dropdown").val("images");
+            $("#active_layer_table").css("opacity", 1.0);
+            $("input:radio[name=edit_layer_radio]").prop("disabled", false);
+            $("#show_segmentation_button").show();
+            create_navigation_table();
+            update_count_combo(false);
+            add_prediction_buttons();
             change_image(sel_image_name + "/-1");
         }
     });
@@ -5856,20 +5922,53 @@ $(document).ready(function() {
 
 
         show_modal_message(`Upload Annotations`, 
-            `<div>Annotations must be provided as a single JSON file. The file must follow this format:</div>` +
+            `<div>Annotations must be provided as a single JSON file. The file must follow the format below:</div>` +
             `<div style="height: 10px"></div>` +
-            `<div style="text-align: center">` +
-                `<textarea class="json_text_area" style="width: 300px; margin: 0 auto; height: 120px">${format_sample_text}</textarea>` +
-            `</div>` +
+            `<table>` +
+                `<tr>` +
+                    `<td>` +
+                        `<div style="text-align: center; width: 350px;">` +
+                            `<textarea class="json_text_area" style="width: 300px; margin: 0 auto; height: 255px">${format_sample_text}</textarea>` +
+                        `</div>` +
+                    `</td>` +
+                    `<td>` +
+                        `<ul style="font-size: 14px">` +
+                        `<li>Annotations will be replaced for each image name that appears in the uploaded file. Image names that` +
+                        ` are present in the image set but not found in the uploaded file will be unaffected by the upload process.` +
+                        `</li>` +
+                        `<br>` +
+                        `<br>` +
+                        `<li>The internal keys for each image (` +
+                            `<span style="font-family: 'Lucida Console', Monaco, monospace;">annotations</span>, ` +
+                            `<span style="font-family: 'Lucida Console', Monaco, monospace;">fine_tuning_regions</span>, ` +
+                            `<span style="font-family: 'Lucida Console', Monaco, monospace;">test_regions</span>) ` +
+                            `are all ` +
+                        `optional. For example, if an image contains no objects, the ` +
+                        `<span style="font-family: 'Lucida Console', Monaco, monospace;">annotations</span> ` +
+                        `key can be omitted. (Alternatively, ` +
+                        `the key can be included, with an empty list as the value.)` +
+                        `</li>` +
+                        `</ul>` +
+                    `</td>` +
+                    `<td>` +
+                        `<div style="width: 10px"></div>` +
+                    `</td>` +
+                `</tr>` +
+            `</table>` +
+
             `<div style="height: 10px"></div>` +
+            
             `<form id="annotations_upload_form" action="">` +
             `<table>` + 
                 `<tr>` + 
                     `<td>` +
+                        `<div style="width: 50px"></div>` +
+                    `</td>` +
+                    `<td>` +
                         `<table>` +
                             `<tr>` +
                                 `<td>` +
-                                    `<h class="header2" style="width: 350px">Box Format</h>` +
+                                    `<h class="header2" style="width: 400px">Box Format</h>` +
                                 `</td>` +
                             `</tr>` +
                             `<tr>` +
@@ -5895,7 +5994,7 @@ $(document).ready(function() {
                         `<table>` +
                             `<tr>` +
                                 `<td>` +
-                                    `<h class="header2" style="width: 350px">Coordinates Format</h>` +
+                                    `<h class="header2" style="width: 400px">Coordinates Format</h>` +
                                 `</td>` +
                             `</tr>` +
                             `<tr>` +
@@ -5916,7 +6015,7 @@ $(document).ready(function() {
                     `</td>` +
                     `<td>` +
                         `<div style="text-align: center">` +
-                            `<div style="border: 1px solid white; border-radius: 8px; width: 275px; margin: 0 auto">` +
+                            `<div style="border: 1px solid white; border-radius: 8px; width: 325px; margin: 0 auto">` +
                                 `<div id="annotations_dropzone" class="dropzone" style="height: 195px">` +
                                     `<div class="dz-message data-dz-message">` +
                                         `<span>Drop Annotations File Here</span>` +
@@ -5925,13 +6024,16 @@ $(document).ready(function() {
                             `</div>` +
                         `</div>` +
                     `</td>` +
+                    `<td>` +
+                        `<div style="width: 50px"></div>` +
+                    `</td>` +
                 `</tr>` +
             `</table>` +
             `</form>` +
             `<div style="height: 10px"></div>` +
             `<div style="text-align: center">` +
                 `<button style="width: 250px;" class="std-button std-button-hover" id="submit_annotations_button">Upload Annotations</button>` +
-            `</div>`
+            `</div>`, 850
         );
 
         disable_std_buttons(["submit_annotations_button"]);
@@ -6083,47 +6185,108 @@ $(document).ready(function() {
             `<div>Annotations will be downloaded as a single JSON file of the following format:</div>` +
             `<div style="height: 10px"></div>` +
             `<div style="text-align: center">` +
-                `<textarea class="json_text_area" style="width: 300px; margin: 0 auto; height: 120px">${format_sample_text}</textarea>` +
+                `<textarea class="json_text_area" style="width: 300px; margin: 0 auto; height: 255px">${format_sample_text}</textarea>` +
             `</div>` +
             `<div style="height: 10px"></div>` +
-            `<h class="header2">Box Format</h>` +
-            `<table>` +
-                `<tr>` +
-                    `<td>` +
-                        `<div style="width: 375px">` +
-                            `<label class="custom_radio_container">[ x_min, y_min, x_max, y_max ]` +
-                                `<input type="radio" name="box_format_radio" value="[ x_min, y_min, x_max, y_max ]" checked>` +
-                                `<span class="custom_radio"></span>` +
-                            `</label>` +
-                            `<label class="custom_radio_container">[ x_min, y_min, width, height ]` +
-                                `<input type="radio" name="box_format_radio" value="[ x_min, y_min, width, height ]">` +
-                                `<span class="custom_radio"></span>` +
-                            `</label>` +
-                            `<label class="custom_radio_container">[ x_centre, y_centre, width, height ]` +
-                                `<input type="radio" name="box_format_radio" value="[ x_centre, y_centre, width, height ]">` +
-                                `<span class="custom_radio"></span>` +
-                            `</label>` +
-                        `</div>` +
-                    `</td>` +
-                `</tr>` +
-            `</table>` +
-            `<h class="header2">Coordinates Format</h>` +
-            `<table>` +
-                `<tr>` +
-                    `<td>` +
-                        `<div  style="width: 375px">` +
-                            `<label class="custom_radio_container">Pixel Coordinates` +
-                                `<input type="radio" name="coordinates_format_radio" value="pixel_coordinates" checked>` +
-                                `<span class="custom_radio"></span>` +
-                            `</label>` +
-                            `<label class="custom_radio_container">Normalized Coordinates` +
-                                `<input type="radio" name="coordinates_format_radio" value="normalized_coordinates">` +
-                                `<span class="custom_radio"></span>` +
-                            `</label>` +
-                        `</div>` +
-                    `</td>` +
-                `</tr>` +
-            `</table>` +
+            // `<table>` + 
+            //     `<tr>` + 
+            //         `<td>` +
+            //             `<div style="width: 50%"></div>` +
+            //         `</td>` +
+                    // `<td>` +
+                    `<div style="margin: 0 auto">` +
+                        `<table>` +
+                            `<tr>` +
+                                `<td>` +
+                                    `<h class="header2" style="width: 300px">Box Format</h>` +
+                                `</td>` +
+                            `</tr>` +
+                            `<tr>` +
+                                `<td>` +
+                                    `<div style="margin-left: 20px">` +
+                                        `<label class="custom_radio_container">[ x_min, y_min, x_max, y_max ]` +
+                                            `<input type="radio" name="box_format_radio" value="[ x_min, y_min, x_max, y_max ]" checked>` +
+                                            `<span class="custom_radio"></span>` +
+                                        `</label>` +
+                                        `<label class="custom_radio_container">[ x_min, y_min, width, height ]` +
+                                            `<input type="radio" name="box_format_radio" value="[ x_min, y_min, width, height ]">` +
+                                            `<span class="custom_radio"></span>` +
+                                        `</label>` +
+                                        `<label class="custom_radio_container">[ x_centre, y_centre, width, height ]` +
+                                            `<input type="radio" name="box_format_radio" value="[ x_centre, y_centre, width, height ]">` +
+                                            `<span class="custom_radio"></span>` +
+                                        `</label>` +
+                                    `</div>` +
+                                `</td>` +
+                            `</tr>` +
+                        `</table>` +
+                        //`<h class="header2">Coordinates Format</h>` +
+                        `<table>` +
+                            `<tr>` +
+                                `<td>` +
+                                    `<h class="header2" style="width: 300px">Coordinates Format</h>` +
+                                `</td>` +
+                            `</tr>` +
+                            `<tr>` +
+                                `<td>` +
+                                    `<div style="margin-left: 20px">` +
+                                        `<label class="custom_radio_container">Pixel Coordinates` +
+                                            `<input type="radio" name="coordinates_format_radio" value="pixel_coordinates" checked>` +
+                                            `<span class="custom_radio"></span>` +
+                                        `</label>` +
+                                        `<label class="custom_radio_container">Normalized Coordinates` +
+                                            `<input type="radio" name="coordinates_format_radio" value="normalized_coordinates">` +
+                                            `<span class="custom_radio"></span>` +
+                                        `</label>` +
+                                    `</div>` +
+                                `</td>` +
+                            `</tr>` +
+                        `</table>` +
+                    `</div>` +
+                    // `</td>` +
+            //         `<td>` +
+            //             `<div style="width: 50%"></div>` +
+            //         `</td>` +
+            //     `</tr>` +
+            // `</table>` +
+            // `<h class="header2">Box Format</h>` +
+            // `<table>` +
+            //     `<tr>` +
+            //         `<td>` +
+            //             `<div style="width: 375px">` +
+            //                 `<label class="custom_radio_container">[ x_min, y_min, x_max, y_max ]` +
+            //                     `<input type="radio" name="box_format_radio" value="[ x_min, y_min, x_max, y_max ]" checked>` +
+            //                     `<span class="custom_radio"></span>` +
+            //                 `</label>` +
+            //                 `<label class="custom_radio_container">[ x_min, y_min, width, height ]` +
+            //                     `<input type="radio" name="box_format_radio" value="[ x_min, y_min, width, height ]">` +
+            //                     `<span class="custom_radio"></span>` +
+            //                 `</label>` +
+            //                 `<label class="custom_radio_container">[ x_centre, y_centre, width, height ]` +
+            //                     `<input type="radio" name="box_format_radio" value="[ x_centre, y_centre, width, height ]">` +
+            //                     `<span class="custom_radio"></span>` +
+            //                 `</label>` +
+            //             `</div>` +
+            //         `</td>` +
+            //     `</tr>` +
+            // `</table>` +
+            // `<h class="header2">Coordinates Format</h>` +
+            // `<table>` +
+            //     `<tr>` +
+            //         `<td>` +
+            //             `<div  style="width: 375px">` +
+            //                 `<label class="custom_radio_container">Pixel Coordinates` +
+            //                     `<input type="radio" name="coordinates_format_radio" value="pixel_coordinates" checked>` +
+            //                     `<span class="custom_radio"></span>` +
+            //                 `</label>` +
+            //                 `<label class="custom_radio_container">Normalized Coordinates` +
+            //                     `<input type="radio" name="coordinates_format_radio" value="normalized_coordinates">` +
+            //                     `<span class="custom_radio"></span>` +
+            //                 `</label>` +
+            //             `</div>` +
+            //         `</td>` +
+            //     `</tr>` +
+            // `</table>` +
             `<div style="height: 10px"></div>` +
             `<div style="text-align: center">` +
                 `<button style="width: 250px;" class="std-button std-button-hover" onclick="download_annotations()" id="prepare_download_button">Prepare Download</button>` +

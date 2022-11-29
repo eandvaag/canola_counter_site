@@ -1,3 +1,5 @@
+
+
 const MAX_EDGES_DISPLAYED = 30000;
 const MAX_BOXES_DISPLAYED = 30000;
 
@@ -25,12 +27,31 @@ let status_to_text = {
 //     "test_region": "#ffae00" //"#ffa200"
 // };
 
-let default_overlay_colors = {
-    "annotation": "#0080ff",
-    "prediction": "#ff4040",
-    "training_region": "#ff51eb",
-    "test_region": "#ffae00"
+// let default_overlay_colors = {
+//     "annotation": "#0080ff",
+//     "prediction": "#ff4040",
+//     "training_region": "#ff51eb",
+//     "test_region": "#ffae00"
+// };
+
+
+let default_overlay_appearance = {
+    "draw_order": ["training_region", "test_region", "annotation", "prediction"],
+    "style": {
+        "annotation": "strokeRect",
+        "prediction": "strokeRect",
+        "training_region": "strokeRect",
+        "test_region": "strokeRect"
+    },
+    "colors": {
+        "annotation": "#0080ff",
+        "prediction": "#ff4040",
+        "training_region": "#ff51eb",
+        "test_region": "#ffae00"
+    }
 };
+
+let new_overlay_appearance;
 /*
 let backend_color = {
     "Idle": "#222621",
@@ -496,16 +517,16 @@ function create_overlays_table() {
 
 
     for (let overlay_id of ["annotation", "prediction"]) {
-        let overlay_color = overlay_colors[overlay_id];
+        let overlay_color = overlay_appearance["colors"][overlay_id];
         let voronoi_id = "voronoi_" + overlay_id;
         let disp_overlay_text = disp_text[overlay_id]
         $("#overlays_table").append(
             `<tr style="background-color: ${overlay_color}">` +
                 `<td style="border-radius: 30px 0px 0px 30px; border: 1px solid white; border-right: none">` +
-                    `<div style="padding: 8px 32px;">${disp_overlay_text}</div>` +
+                    `<div style="padding: 8px 34px;">${disp_overlay_text}</div>` +
                 `</td>` +
                 // `<td style="border-top: 1px solid white; border-bottom: 1px solid white;">` +
-                //     `<div style="width: 15px"></div>` +
+                //     `<div style="width: 5px"></div>` +
                 // `</td>` +
                 `<td style="border-top: 1px solid white; border-bottom: 1px solid white;">` +
                     `<label class="switch">` +
@@ -572,7 +593,10 @@ function create_overlays_table() {
 }
 
 
-
+// function is_uuid(str) {
+//     let regexExp = /^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$/gi;
+//     return regexExp.test(str);
+// }
 
 function create_navigation_table() {
 
@@ -582,11 +606,27 @@ function create_navigation_table() {
     cur_nav_list = [];
 
     if (navigation_type === "images") {
+        let image_names = Object.keys(annotations); //.sort();
+        // all_uuid = true;
+        // for (let image_name of image_names) {
+        //     if (!(is_uuid(image_name))) {
+        //         all_uuid = false;
+        //         break;
+        //     }
+        // }
+        // if (all_uuid) {
+        //     image_names = image_names.sort();
+        // }
+        // else {
+        image_names = natsort(image_names);
+        //}
 
-        for (let image_name of natsort(Object.keys(annotations))) {
+        //for (let image_name of natsort(Object.keys(annotations))) {
+        for (let image_name of image_names) {
             let nav_item = image_name + "/" + -1;
+            let row_id = nav_item + "_row";
             let item = 
-            `<tr>` +
+            `<tr id="${row_id}">` +
                 `<td>`+
                     `<div class="table_button table_button_hover" style="width: 245px;" ` +
                             `onclick="change_image('${nav_item}')">${image_name}</div>` +
@@ -603,16 +643,17 @@ function create_navigation_table() {
 
             for (let i = 0; i < annotations[image_name][navigation_type].length; i++) {
                 let nav_item = image_name + "/" + i;
+                let row_id = nav_item + "_row";
                 let disp_region_index = i + 1;
                 let region_color;
                 if (navigation_type === "training_regions") {
-                    region_color = overlay_colors["training_region"];
+                    region_color = overlay_appearance["colors"]["training_region"];
                 }
                 else {
-                    region_color = overlay_colors["test_region"];
+                    region_color = overlay_appearance["colors"]["test_region"];
                 }
                 let item = 
-                `<tr>` +
+                `<tr id="${row_id}">` +
                     `<td>` +
                         `<div class="table_button table_button_hover" style="width: 245px" ` +
                             `onclick="change_image('${nav_item}')">` +
@@ -801,28 +842,64 @@ function update_count_combo(include_viewer_metrics) {
         }));
 
         if (include_viewer_metrics) {
+            let metric_names = [
+                "True Positives (IoU=.50, conf>.50)",
+                "False Positives (IoU=.50, conf>.50)",
+                "False Negatives (IoU=.50, conf>.50)",
+                "Precision (IoU=.50, conf>.50)",
+                "Recall (IoU=.50, conf>.50)",
+                "Accuracy (IoU=.50, conf>.50)",
+                "F1 Score (IoU=.50, conf>.50)",
+                "AP (IoU=.50:.05:.95)",
+                "AP (IoU=.50)",
+                "AP (IoU=.75)"
+            ];
+            for (let metric_name of metric_names) {
+                $('#chart_combo').append($('<option>', {
+                    value: metric_name,
+                    text: metric_name
+                }));
+            }
 
-            $('#chart_combo').append($('<option>', {
-                value: "AP (IoU=.50:.05:.95)",
-                text: "AP (IoU=.50:.05:.95)"
-            }));
-            $('#chart_combo').append($('<option>', {
-                value: "AP (IoU=.50)",
-                text: "AP (IoU=.50)"
-            }));
-            $('#chart_combo').append($('<option>', {
-                value: "AP (IoU=.75)",
-                text: "AP (IoU=.75)"
-            }));
 
-            $('#chart_combo').append($('<option>', {
-                value: "F1 Score (IoU=.50, conf>=.50)",
-                text: "F1 Score (IoU=.50, conf>=.50)"
-            }));
-            $('#chart_combo').append($('<option>', {
-                value: "F1 Score (IoU=.75, conf>=.50)",
-                text: "F1 Score (IoU=.75, conf>=.50)"
-            }));
+            // $('#chart_combo').append($('<option>', {
+            //     value: "Precision (IoU=.50, conf>.50)",
+            //     text: "Precision (IoU=.50, conf>.50)"
+            // }));
+
+            // $('#chart_combo').append($('<option>', {
+            //     value: "Recall (IoU=.50, conf>.50)",
+            //     text: "Recall (IoU=.50, conf>.50)"
+            // }));
+
+            // $('#chart_combo').append($('<option>', {
+            //     value: "Accuracy (IoU=.50, conf>.50)",
+            //     text: "Accuracy (IoU=.50, conf>.50)"
+            // }));
+
+
+            // $('#chart_combo').append($('<option>', {
+            //     value: "F1 Score (IoU=.50, conf>.50)",
+            //     text: "F1 Score (IoU=.50, conf>.50)"
+            // }));
+            // // $('#chart_combo').append($('<option>', {
+            // //     value: "F1 Score (IoU=.75, conf>.50)",
+            // //     text: "F1 Score (IoU=.75, conf>.50)"
+            // // }));
+
+
+            // $('#chart_combo').append($('<option>', {
+            //     value: "AP (IoU=.50:.05:.95)",
+            //     text: "AP (IoU=.50:.05:.95)"
+            // }));
+            // $('#chart_combo').append($('<option>', {
+            //     value: "AP (IoU=.50)",
+            //     text: "AP (IoU=.50)"
+            // }));
+            // $('#chart_combo').append($('<option>', {
+            //     value: "AP (IoU=.75)",
+            //     text: "AP (IoU=.75)"
+            // }));
         }
     }
 
@@ -864,7 +941,7 @@ function compute_voronoi(target) {
     //for (let predicted_box of predictions[cur_img_name]["boxes"]) {
     if (target === "prediction") {
         for (let i = 0; i < predictions[cur_img_name]["scores"].length; i++) {
-            if (predictions[cur_img_name]["scores"][i] < slider_val) {
+            if (predictions[cur_img_name]["scores"][i] <= slider_val) {
                 continue;
             }
             let box = predictions[cur_img_name]["boxes"][i];
@@ -906,107 +983,419 @@ function compute_voronoi(target) {
     }
 }
 
+function update_draw_order(button_id) {
 
-function show_color_modal() {
+    let pieces = button_id.split("-");
+    let sel_overlay_name = pieces[0];
+    let sel_direction = pieces[1];
 
-    show_modal_message(
-        `Set Overlay Colours`,
-        `<table>` +
-            `<tr>` +
-                `<td>` +
-                    `<table style="border: 1px solid white; border-radius: 10px; margin: 10px; padding: 10px">` +
-                        `<tr>` +
-                            `<td>` +
-                                `<div style="width: 160px; text-align: right; margin-right: 10px" class="header2">Annotation</div>` +
-                            `</td>` +
-                            `<td>` +
-                                `<div style="width: 120px; text-align: left">` +
-                                    `<input style="width: 50px; margin: 0px" type="color" id="annotation_color" name="annotation_color" value="${overlay_colors['annotation']}">` +
-                                `</div>` +
-                            `</td>` +
-                        `</tr>` +
-                        `<tr>` +
-                            `<td>` +
-                                `<div style="width: 160px; text-align: right; margin-right: 10px" class="header2">Prediction</div>` +
-                            `</td>` +
-                            `<td>` +
-                                `<div style="width: 120px; text-align: left">` +
-                                    `<input style="width: 50px; margin: 0px" type="color" id="prediction_color" name="prediction_color" value="${overlay_colors['prediction']}">` +
-                                `</div>` +
-                            `</td>` +
-                        `</tr>` +
-                        `<tr>` +
-                            `<td>` +
-                                `<div style="width: 160px; text-align: right; margin-right: 10px" class="header2">Fine-Tuning Region</div>` +
-                            `</td>` +
-                            `<td>` +
-                                `<div style="width: 120px; text-align: left">` +
-                                    `<input style="width: 50px; margin: 0px" type="color" id="training_region_color" name="training_region_color" value="${overlay_colors['training_region']}">` +
-                                `</div>` +
-                            `</td>` +
-                        `</tr>` +
-                        `<tr>` +
-                            `<td>` +
-                                `<div style="width: 160px; text-align: right; margin-right: 10px" class="header2">Test Region</div>` +
-                            `</td>` +
-                            `<td>` +
-                                `<div style="width: 120px; text-align: left">` +
-                                    `<input style="width: 50px; margin: 0px" type="color" id="test_region_color" name="test_region_color" value="${overlay_colors['test_region']}">` +
-                                `</div>` +
-                            `</td>` +
-                        `</tr>` +
-                    `</table>` +
-                `</td>` +
-                `<td>` +
-                    `<div style="width: 15px"></div>`  +
-                `</td>` +
-                `<td>` +
-                    `<button class="std-button std-button-hover" style="width: 130px; font-size: 14px; padding: 5px 10px;" onclick="reset_colors_to_defaults()">Set Colours To System Defaults</button>` +
-                `</td>` +
-            `</tr>` +
-        `</table>` +
+    console.log("overlay_name", sel_overlay_name);
+    console.log("direction", sel_direction);
 
-        `<table>` +
-            `<tr>` +
-                `<td>` +
-                    `<div class="table_head" style="width: 300px; text-align: right">Save Current Colours As My Defaults</div>` +
-                `</td>` +
-                `<td>` +
-                    `<div style="width: 100px; text-align: left; margin-top: -5px">` +
-                        `<label for="make_colors_default" class="container" style="display: inline; margin-left: 12px">` +
-                            `<input type="checkbox" id="make_colors_default" name="make_colors_default">` +
-                            `<span class="checkmark"></span>` +
-                        `</label>` +
-                    `</div>` +
-                `</td>` +
-            `</tr>` +
-        `</table>` +
+    console.log(new_overlay_appearance["draw_order"]);
 
-        `<table>` +
-            `<tr>` +
-                `<td>` +
-                    `<button class="std-button std-button-hover" onclick="apply_color_change()" style="width: 120px; margin-top: 15px">Apply</button>` +
-                `</td>` +
-            `</tr>` +
-        `</table>`
-        // tr
-        // td 
-        //     div(class="table_head" style="width: 200px; text-align: right") Make Model Public
-        // td
-        //     div(style="width: 250px; text-align: left")
-        //         label(for="model_public" class="container" style="display: inline; margin-botton: 20px; margin-left: 12px")
-        //             input(type="checkbox" id="model_public" name="model_public" checked)
-        //             span(class="checkmark")
+    let i = 0;
+    for (let overlay_name of new_overlay_appearance["draw_order"]) {
+        if (overlay_name === sel_overlay_name) {
+            //delete overlay_appearance["draw_order"][i];
+            new_overlay_appearance["draw_order"].splice(i, 1);
+            if (sel_direction === "up") {
+                new_overlay_appearance["draw_order"].splice(i+1, 0, sel_overlay_name);
+            }
+            else {
+                new_overlay_appearance["draw_order"].splice(i-1, 0, sel_overlay_name);
+            }
 
-    ); 
+
+            break;
+
+        }
+        i++;
+    }
+    // let index;
+    // if (sel_direction === "up") {
+    //     index = i + 1;        
+    // }
+    // else {
+    //     index = i - 1;
+    // }
+
+    // overlay_appearance["draw_order"].splice(index, 0, sel_overlay_name);
+
+    console.log(new_overlay_appearance["draw_order"]);
+
+    draw_customize_overlays_table(true);
+
+
 }
 
-function front_end_apply_color_change() {
 
-    for (let overlay_name of ["annotation", "prediction", "training_region", "test_region"]) {
-        console.log("getting", overlay_name);
-        overlay_colors[overlay_name] = $("#" + overlay_name + "_color").val();
+
+function create_customize_overlay_row(overlay_name) {
+
+    let overlay_name_to_display_name = {
+        "prediction": "Predictions",
+        "annotation": "Annotations",
+        "training_region": "Fine-Tuning Regions",
+        "test_region": "Test Regions"
+    };
+    let disp_name = overlay_name_to_display_name[overlay_name];
+    let up_button_id = overlay_name + "-up";
+    let down_button_id = overlay_name + "-down";
+    let color_id = overlay_name + "-color";
+    let checkbox_id = overlay_name + "-fillRect-checkbox";
+    let overlay_color = new_overlay_appearance['colors'][overlay_name];
+
+
+    let row = `<tr>` +//border-bottom: 1px solid #4c6645; height: 50px">` +
+        // `<td>` +
+    
+        //     `<table>` +
+        //         `<tr>` +
+                //`<div style="border: 1px solid white">` +
+
+
+
+                    `<td style="padding: 0px">` +
+                        `<div style="height: 60px;">` +
+                            `<table style="margin-top: 16px">` +
+                                `<tr>` +
+                                    `<td>` +
+                                        `<button id="${up_button_id}" onclick="update_draw_order('${up_button_id}')" class="std-button std-button-hover" style="padding: 0px; margin: 0px; height: 20px; font-size: 14px; width: 40px">` +
+                                            `<i class="fa-solid fa-caret-up"></i>` +
+                                        `</button>` +
+                                    `</td>` +
+                                `</tr>` +
+                                `<tr>` +
+                                    `<td>` +
+                                        `<button id="${down_button_id}" onclick="update_draw_order('${down_button_id}')" class="std-button std-button-hover" style="padding: 0px; margin: 0px; height: 20px; font-size: 14px; width: 40px">` +
+                                            `<i class="fa-solid fa-caret-down"></i>` +
+                                        `</button>` +
+                                    `</td>` +
+                                `</tr>` +
+                            `</table>` +
+                        `</div>` +
+                    `</td>` +
+
+                    `<td style="padding: 0px">` +
+                        `<div style="height: 60px; width: 15px; border: 1px solid white; border-right: none; border-radius: 10px 0px 0px 10px"></div>` +
+                    `</td>` +
+                    // `<td>` +
+                    //     `<div style="width: 15px;"></div>` +
+                    // `</td>` +
+                    `<td style="padding: 0px">` +
+                        `<div style="height: 60px; width: 15px; border: 1px solid white; border-left: none; border-right: none"></div>` +
+                    `</td>` +
+                    `<td style="padding: 0px">` +
+                        `<div style="height: 60px; width: 150px; border: 1px solid white; border-left: none; border-right: none">` +
+                            `<div style="margin-top: 20px">${disp_name}</div>` +
+                        `</div>` +
+                    `</td>` +
+                    `<td style="padding: 0px">` +
+                        `<div style="height: 60px; width: 35px; border: 1px solid white; border-left: none; border-right: none"></div>` +
+                    `</td>` +
+                    `<td style="padding: 0px">` +
+                        `<div style="width: 120px; text-align: left; height: 60px; border: 1px solid white; border-left: none; border-right: none">` +
+                            `<input style="width: 50px; margin: 0px; margin-top: 18px" type="color" id="${color_id}" name="${color_id}" value="${overlay_color}">` +
+                        `</div>` +
+                    `</td>` +
+
+                    `<td style="padding: 0px">` +
+                        `<div style="height: 60px; border: 1px solid white; border-left: none; border-right: none">` +
+                            `<table>` +
+                                `<tr>` +
+                                    `<td>` +
+                                        `<div class="header2" style="padding: 0px; margin: 0px; font-size: 14px; width: 70px">Fill Rects?</div>` +
+                                    `</td>` +
+                                `</tr>` +
+                                `<tr>` +
+                                    `<td>` +
+                                        `<div style="width: 70px;">` +
+                                            `<label for="${checkbox_id}" class="container" style="display: inline; margin-left: 20px">` +
+                                                `<input type="checkbox" id="${checkbox_id}" name="${checkbox_id}">` +
+                                                `<span class="checkmark"></span>` +
+                                            `</label>` +
+                                        `</div>` +
+                                    `</td>` +
+                                `</tr>` +
+                            `</table>` +
+                        `</div>` +
+                    `</td>` +
+                
+
+                    // `<td style="text-align: right">` +
+                    //     `<div style="color: #ddccbb; font-weight: 400; width: 90px">Owner</div>` +
+                    // `</td>` + 
+                    // `<td style="text-align: left; padding-left: 15px; width: 100%;">` +
+                    //     `<div>${username}</div>` +
+                    // `</td>` +
+
+
+
+                    // `<td style="width: 100%; padding: 0px">` +
+                    //     // `<div></div>` +
+                    // `</td>` +
+
+                    `<td style="padding: 0px">` +
+                        `<div style="height: 60px; width: 35px; border: 1px solid white; border-left: none; border-radius: 0px 10px 10px 0px"></div>` +
+                    `</td>` +
+
+                //`</div>` +
+        //         `</tr>` +
+        //     `</table>` +
+        // `</td>` +
+    `</tr>`;
+
+
+    return row;
+
+
+
+}
+
+function draw_customize_overlays_table(redraw=true) {
+
+    let checked = {};
+    let colors = {};
+    if (redraw) {
+        for (let overlay_name of new_overlay_appearance["draw_order"]) {
+            checked[overlay_name] = $("#" + overlay_name + "-fillRect-checkbox").is(":checked");
+            colors[overlay_name] = $("#" + overlay_name + "-color").val();
+        }
     }
+    else {
+        for (let overlay_name of new_overlay_appearance["draw_order"]) {
+            checked[overlay_name] = new_overlay_appearance["style"][overlay_name] === "fillRect";
+            colors[overlay_name] = new_overlay_appearance["colors"][overlay_name];
+        }
+    }
+    console.log("checked", checked);
+
+    console.log("redraw_customize");
+    $("#customize_overlays_table").empty();
+
+    for (let overlay_name of new_overlay_appearance["draw_order"].slice().reverse()) {
+
+        let row = create_customize_overlay_row(overlay_name);
+        $("#customize_overlays_table").append(row);
+
+        //if (overlay_appearance["style"][overlay_name] === "fillRect") {
+        //console.log("setting", overlay_name)
+        $("#" + overlay_name + "-fillRect-checkbox").prop("checked", checked[overlay_name]);
+        $("#" + overlay_name + "-color").val(colors[overlay_name]);
+        //}
+    }
+    //console.log("disabling", overlay_appearance["draw_order"][0] + "_down");
+
+
+
+    disable_std_buttons([new_overlay_appearance["draw_order"][0] + "-down"]);
+    disable_std_buttons([new_overlay_appearance["draw_order"][new_overlay_appearance["draw_order"].length-1] + "-up"]);
+
+
+}
+
+
+function show_customize_overlays_modal() {
+
+    new_overlay_appearance = overlay_appearance;
+    let content = 
+
+    `<table>` +
+        `<tr>` +
+            `<td style="width: 100%"></td>` +
+            `<td>` +
+                //`<div style="padding: 10px; border: 1px solid white">` +
+                    `<button class="std-button std-button-hover" style="font-size: 14px; padding: 2px; width: 125px" onclick="reset_overlay_appearance_to_default()">Reset Settings To System Defaults</button>` +
+                //`</div>` +
+            `</td>` +
+        `</tr>` +
+    `</table>`+
+    `<div style="height: 10px"></div>` +
+    `<hr class="panel_line" style="width: 90%; margin: auto"></hr>` +
+    `<div style="height: 10px"></div>` +
+
+    `<table>` +
+        `<tr>` +
+            `<td>` +
+                `<div class="header2" style="transform: rotate(-90deg); width: 100px">` +
+                    `Draw Order` +
+                `</div>` +
+                // `<table style="width: 100px">` +
+                //     `<tr>` +
+                //         `<td>` +
+                //             `<div class="header2" style="height: 15px; font-size: 14px; text-align: center">Top Layer</div>` +
+                //         `</td>` +
+                //     `</tr>` +
+                //     `<tr>` +
+                //         `<td>` +
+                //             `<div style="height: 150px"></div>` +
+                //         `</td>` +
+                //     `</tr>` +
+                //     `<tr>` +
+                //         `<td>` +
+                //             `<div class="header2" style="height: 15px; font-size: 14px; text-align: center">Bottom Layer</div>` +
+                //         `</td>` +
+                //     `</tr>` +
+                // `</table>` +
+
+            `</td>` +
+
+            `<td>` +
+                `<div style="width: 550px;">` +
+                    `<table id="customize_overlays_table" style="border-collapse: separate; border-spacing: 0px 0px">`;
+
+    // for (let overlay_name of overlay_appearance["draw_order"].slice().reverse()) {
+
+    //     let row = create_customize_overlay_row(overlay_name);
+    //     content = content + row;
+    // }
+
+    content = content + 
+                    `</table>` +
+                `</div>` +
+            `</td>` +
+
+        `</tr>` +
+    `</table>` +
+    `<div style="height: 10px"></div>` +
+    `<hr class="panel_line" style="width: 90%; margin: auto"></hr>` +
+    `<div style="height: 10px"></div>` +
+
+    `<table>` +
+        `<tr>` +
+            `<td>` +
+                `<div class="table_head" style="width: 300px; text-align: right">Save Current Settings As My Defaults</div>` +
+            `</td>` +
+            `<td>` +
+                `<div style="width: 100px; text-align: left; margin-top: -5px">` +
+                    `<label for="make_colors_default" class="container" style="display: inline; margin-left: 12px">` +
+                        `<input type="checkbox" id="make_colors_default" name="make_colors_default">` +
+                        `<span class="checkmark"></span>` +
+                    `</label>` +
+                `</div>` +
+            `</td>` +
+        `</tr>` +
+    `</table>` +
+
+    `<table>` +
+        `<tr>` +
+            `<td>` +
+                `<button class="std-button std-button-hover" onclick="apply_overlay_appearance_change()" style="width: 120px; margin-top: 15px">Apply</button>` +
+            `</td>` +
+        `</tr>` +
+    `</table>`;
+
+
+
+
+    
+    show_modal_message(`Customize Overlay Appearance`, content);
+    draw_customize_overlays_table(false);
+}
+
+// function show_color_modal() {
+
+//     show_modal_message(
+//         `Set Overlay Colours`,
+//         `<table>` +
+//             `<tr>` +
+//                 `<td>` +
+//                     `<table style="border: 1px solid white; border-radius: 10px; margin: 10px; padding: 10px">` +
+//                         `<tr>` +
+//                             `<td>` +
+//                                 `<div style="width: 160px; text-align: right; margin-right: 10px" class="header2">Annotation</div>` +
+//                             `</td>` +
+//                             `<td>` +
+//                                 `<div style="width: 120px; text-align: left">` +
+//                                     `<input style="width: 50px; margin: 0px" type="color" id="annotation_color" name="annotation_color" value="${overlay_appearance['colors']['annotation']}">` +
+//                                 `</div>` +
+//                             `</td>` +
+//                         `</tr>` +
+//                         `<tr>` +
+//                             `<td>` +
+//                                 `<div style="width: 160px; text-align: right; margin-right: 10px" class="header2">Prediction</div>` +
+//                             `</td>` +
+//                             `<td>` +
+//                                 `<div style="width: 120px; text-align: left">` +
+//                                     `<input style="width: 50px; margin: 0px" type="color" id="prediction_color" name="prediction_color" value="${overlay_appearance['colors']['prediction']}">` +
+//                                 `</div>` +
+//                             `</td>` +
+//                         `</tr>` +
+//                         `<tr>` +
+//                             `<td>` +
+//                                 `<div style="width: 160px; text-align: right; margin-right: 10px" class="header2">Fine-Tuning Region</div>` +
+//                             `</td>` +
+//                             `<td>` +
+//                                 `<div style="width: 120px; text-align: left">` +
+//                                     `<input style="width: 50px; margin: 0px" type="color" id="training_region_color" name="training_region_color" value="${overlay_appearance['colors']['training_region']}">` +
+//                                 `</div>` +
+//                             `</td>` +
+//                         `</tr>` +
+//                         `<tr>` +
+//                             `<td>` +
+//                                 `<div style="width: 160px; text-align: right; margin-right: 10px" class="header2">Test Region</div>` +
+//                             `</td>` +
+//                             `<td>` +
+//                                 `<div style="width: 120px; text-align: left">` +
+//                                     `<input style="width: 50px; margin: 0px" type="color" id="test_region_color" name="test_region_color" value="${overlay_appearance['colors']['test_region']}">` +
+//                                 `</div>` +
+//                             `</td>` +
+//                         `</tr>` +
+//                     `</table>` +
+//                 `</td>` +
+//                 `<td>` +
+//                     `<div style="width: 15px"></div>`  +
+//                 `</td>` +
+//                 `<td>` +
+//                     `<button class="std-button std-button-hover" style="width: 130px; font-size: 14px; padding: 5px 10px;" onclick="reset_colors_to_defaults()">Set Colours To System Defaults</button>` +
+//                 `</td>` +
+//             `</tr>` +
+//         `</table>` +
+
+//         `<table>` +
+//             `<tr>` +
+//                 `<td>` +
+//                     `<div class="table_head" style="width: 300px; text-align: right">Save Current Colours As My Defaults</div>` +
+//                 `</td>` +
+//                 `<td>` +
+//                     `<div style="width: 100px; text-align: left; margin-top: -5px">` +
+//                         `<label for="make_colors_default" class="container" style="display: inline; margin-left: 12px">` +
+//                             `<input type="checkbox" id="make_colors_default" name="make_colors_default">` +
+//                             `<span class="checkmark"></span>` +
+//                         `</label>` +
+//                     `</div>` +
+//                 `</td>` +
+//             `</tr>` +
+//         `</table>` +
+
+//         `<table>` +
+//             `<tr>` +
+//                 `<td>` +
+//                     `<button class="std-button std-button-hover" onclick="apply_overlay_appearance_change()" style="width: 120px; margin-top: 15px">Apply</button>` +
+//                 `</td>` +
+//             `</tr>` +
+//         `</table>`
+//         // tr
+//         // td 
+//         //     div(class="table_head" style="width: 200px; text-align: right") Make Model Public
+//         // td
+//         //     div(style="width: 250px; text-align: left")
+//         //         label(for="model_public" class="container" style="display: inline; margin-botton: 20px; margin-left: 12px")
+//         //             input(type="checkbox" id="model_public" name="model_public" checked)
+//         //             span(class="checkmark")
+
+//     ); 
+// }
+
+function apply_front_end_appearance_change() {
+
+    // for (let overlay_name of ["annotation", "prediction", "training_region", "test_region"]) {
+    //     console.log("getting", overlay_name);
+    //     overlay_appearance["colors"][overlay_name] = $("#" + overlay_name + "_color").val();
+    // }
+
+    overlay_appearance = new_overlay_appearance;
 
     set_overlay_color_css_rules();
     if (viewer) {
@@ -1017,26 +1406,52 @@ function front_end_apply_color_change() {
     //set_count_chart_data();
     //set_score_chart_data();
 
+    create_navigation_table();
+    let navigation_type = $("#navigation_dropdown").val();
+    $("#region_name").empty();
+    if (navigation_type === "training_regions" || navigation_type === "test_regions") {
+
+        let disp_region_index = cur_region_index + 1;
+        let region_color;
+        if (navigation_type === "training_regions") {
+            region_color = overlay_appearance["colors"]["training_region"];
+        }
+        else {
+            region_color = overlay_appearance["colors"]["test_region"];
+        }
+
+        $("#region_name").append(
+            `<div style="width: 75px; background-color: ${region_color}; margin: 0px 2px; color: black; border: none" class="object_entry">` +
+            `Region ` + disp_region_index +
+            `</div>`
+        );
+    }
     draw_count_chart();
     draw_score_chart();
     close_modal();
 }
 
-function apply_color_change() {
+function apply_overlay_appearance_change() {
     let make_default = $("#make_colors_default").is(":checked");
     console.log("make_default?", make_default);
 
-    let new_overlay_colors = {}
-    for (let overlay_name of ["annotation", "prediction", "training_region", "test_region"]) {
+    //let new_overlay_appearance = default_overlay_appearance;
+    for (let overlay_name of new_overlay_appearance["draw_order"]) {
         console.log("getting", overlay_name);
-        new_overlay_colors[overlay_name] = $("#" + overlay_name + "_color").val();
+        new_overlay_appearance["colors"][overlay_name] = $("#" + overlay_name + "-color").val();
+        if ($("#" + overlay_name + "-fillRect-checkbox").is(":checked")) {
+            new_overlay_appearance["style"][overlay_name] = "fillRect";
+        }
+        else {
+            new_overlay_appearance["style"][overlay_name] = "strokeRect";
+        }
     }
 
     if (make_default) {
         
-        $.post(get_CC_PATH() + "/color_change/" + username,
+        $.post(get_CC_PATH() + "/overlay_appearance_change/" + username,
         {
-            overlay_colors: JSON.stringify(new_overlay_colors)
+            overlay_appearance: JSON.stringify(new_overlay_appearance)
         },
         
         function(response, status) {
@@ -1044,22 +1459,33 @@ function apply_color_change() {
                 show_modal_message(`Error`, response.message);
             }
             else {
-                front_end_apply_color_change();
+                apply_front_end_appearance_change();
             }
         });
     }
     else {
-        front_end_apply_color_change();
+        apply_front_end_appearance_change();
     }
 
 
 }
 
-function reset_colors_to_defaults() {
-    for (let overlay_name of ["annotation", "prediction", "training_region", "test_region"]) {
-        console.log("setting", overlay_name);
-        $("#" + overlay_name + "_color").val(default_overlay_colors[overlay_name]);
-    }
+function reset_overlay_appearance_to_default() {
+    new_overlay_appearance = default_overlay_appearance;
+    // for (let overlay_name of ["annotation", "prediction", "training_region", "test_region"]) {
+    //      console.log("setting", overlay_name);
+    //      $("#" + overlay_name + "-fillRect-checkboxcolor").prop("checked", false);
+    //      $("#" + overlay_name + "-color").val(default_overlay_appearance["colors"][overlay_name]);
+    // }
+    draw_customize_overlays_table(false);
+}
+
+
+function add_css_rule(rule) {
+    let sheet = $("#main-stylesheet").get(0).sheet;
+    let css_rules_num = sheet.cssRules.length;
+
+    sheet.insertRule(rule, css_rules_num);
 }
 
 function set_overlay_color_css_rules() {
@@ -1071,42 +1497,80 @@ function set_overlay_color_css_rules() {
     //     "test_region": "#ffae00" //"#ffa200"
     // };
 
-    let sheet = $("#main-stylesheet").get(0).sheet;
-    let css_rules_num = sheet.cssRules.length;
-    sheet.insertRule(".a9s-annotationlayer .a9s-annotation .a9s-inner { stroke: " + 
-                    overlay_colors["annotation"] +
-                    " !important; }", css_rules_num);
+    // let sheet = $("#main-stylesheet").get(0).sheet;
+    // let css_rules_num = sheet.cssRules.length;
+    let fill_rule;
+    if (overlay_appearance["style"]["annotation"] === "fillRect") {
+        fill_rule = "fill: " + overlay_appearance["colors"]["annotation"] + "55; ";
+        add_css_rule(".a9s-annotationlayer .a9s-annotation.editable:hover .a9s-inner { " + 
+        fill_rule + " }");
+    }
+    else {
+        fill_rule = "";
+    }
+    add_css_rule(".a9s-annotationlayer .a9s-annotation .a9s-inner { " +
+        "stroke: " + overlay_appearance["colors"]["annotation"] + " !important; " +
+        fill_rule + 
+    "}");
 
-    sheet.insertRule(".a9s-annotationlayer .a9s-annotation .training_region .a9s-inner { stroke: " + 
-                    overlay_colors["training_region"] +
-                    " !important; }", css_rules_num+1);
+    if (overlay_appearance["style"]["training_region"] === "fillRect") {
+        fill_rule = "fill: " + overlay_appearance["colors"]["training_region"] + "55; ";
+        add_css_rule(".a9s-annotationlayer .a9s-annotation.editable .training_region:hover .a9s-inner { " + 
+        fill_rule + " }");
+    }
+    else {
+        fill_rule = "";
+    }
+    add_css_rule(".a9s-annotationlayer .a9s-annotation .training_region .a9s-inner { " + 
+        "stroke: " + overlay_appearance["colors"]["training_region"] + " !important; " +
+        fill_rule + 
+    "}");
     
-    sheet.insertRule(".a9s-annotationlayer .a9s-annotation.training_region .a9s-inner { stroke: " + 
-                    overlay_colors["training_region"] +
-                    " !important; }", css_rules_num+2);
+    add_css_rule(".a9s-annotationlayer .a9s-annotation.training_region .a9s-inner { " + 
+        "stroke: " + overlay_appearance["colors"]["training_region"] + " !important; " +
+        fill_rule + 
+    "}");
 
+    if (overlay_appearance["style"]["test_region"] === "fillRect") {
+        fill_rule = "fill: " + overlay_appearance["colors"]["test_region"] + "55; ";
+        add_css_rule(".a9s-annotationlayer .a9s-annotation.editable .test_region:hover .a9s-inner { " + 
+        fill_rule + " }");
 
-    sheet.insertRule(".a9s-annotationlayer .a9s-annotation .test_region .a9s-inner { stroke: " + 
-                    overlay_colors["test_region"] +
-                    " !important; }", css_rules_num+3);    
+    }
+    else {
+        fill_rule = "";
+    }
+    add_css_rule(".a9s-annotationlayer .a9s-annotation .test_region .a9s-inner { " + 
+        "stroke: " + overlay_appearance["colors"]["test_region"] + " !important; " +
+        fill_rule + 
+    "}");
                     
-    sheet.insertRule(".a9s-annotationlayer .a9s-annotation.test_region .a9s-inner { stroke: " + 
-                    overlay_colors["test_region"] +
-                    " !important; }", css_rules_num+4);
+    add_css_rule(".a9s-annotationlayer .a9s-annotation.test_region .a9s-inner { " + 
+        "stroke: " + overlay_appearance["colors"]["test_region"] + " !important; " +
+        fill_rule + 
+    "}");
 
 
-    sheet.insertRule(".custom_radio_container input:checked ~ .custom_radio#annotation_radio { background-color: " +
-                    overlay_colors["annotation"] +
-                    "}", css_rules_num+5);
 
-    sheet.insertRule(".custom_radio_container input:checked ~ .custom_radio#training_region_radio { background-color: " +
-                    overlay_colors["training_region"] +
-                    "}", css_rules_num+6);
+
+
+
+
+
+    add_css_rule(".custom_radio_container input:checked ~ .custom_radio#annotation_radio { background-color: " +
+        overlay_appearance["colors"]["annotation"] +
+                    "}");
+
+    add_css_rule(".custom_radio_container input:checked ~ .custom_radio#training_region_radio { background-color: " +
+        overlay_appearance["colors"]["training_region"] +
+                    "}");
 
           
-    sheet.insertRule(".custom_radio_container input:checked ~ .custom_radio#test_region_radio { background-color: " +
-                        overlay_colors["test_region"] +
-                        "}", css_rules_num+7);
+    add_css_rule(".custom_radio_container input:checked ~ .custom_radio#test_region_radio { background-color: " +
+        overlay_appearance["colors"]["test_region"] +
+                        "}");
 
-    
+
+
+
 }

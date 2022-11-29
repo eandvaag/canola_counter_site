@@ -13,7 +13,7 @@ let dzi_image_paths;
 let excess_green_record;
 let download_uuid = "";
 let map_download_uuid = "";
-let overlay_colors;
+let overlay_appearance;
 /*
 let sorted_overlay_names;
 let sorted_overlay_ids;
@@ -50,9 +50,32 @@ let voronoi_data = {
 };
 
 
+
+
+
+function show_metrics_modal() {
+
+
+    show_modal_message(`Metrics`, 
+    `<table>` +
+        `<tr>` +
+            `<td>` +
+                `<div style="width: 220px">Percent Count Error</div>` +
+            `</td>` +
+            `<td>` +
+                `<div>$a \ne 0$</div>` +
+                //`<div><math>( ( | (Predicted Count) - (Annotated Count) | ) / (Annotated Count) ) * 100</math></div>` + //( ( | (Predicted Count) - (Annotated Count) | ) / (Annotated Count) ) * 100`);
+            `</td>` +
+        `</tr>` +
+    `</table>`);
+}
+
+
 function change_image(cur_nav_item) {
 
     let navigation_type = $("#navigation_dropdown").val();
+
+    document.getElementById(cur_nav_item + "_row").scrollIntoView({behavior: "smooth"});
 
     let pieces = cur_nav_item.split("/");
     cur_img_name = pieces[0];
@@ -79,10 +102,10 @@ function change_image(cur_nav_item) {
         let disp_region_index = cur_region_index + 1;
         let region_color;
         if (navigation_type === "training_regions") {
-            region_color = overlay_colors["training_region"];
+            region_color = overlay_appearance["colors"]["training_region"];
         }
         else {
-            region_color = overlay_colors["test_region"];
+            region_color = overlay_appearance["colors"]["test_region"];
         }
 
         $("#region_name").append(
@@ -96,7 +119,7 @@ function change_image(cur_nav_item) {
         create_viewer("seadragon_viewer");
     }
 
-    compute_voronoi();
+    //compute_voronoi();
 
     let dzi_image_path = image_to_dzi[cur_img_name];
     viewer.open(dzi_image_path);
@@ -394,7 +417,7 @@ function lower_slider() {
 
 function raise_slider() {
     let slider_val = parseFloat($("#confidence_slider").val());
-    if (slider_val < 1.0) {
+    if (slider_val < 0.99) {
         slider_val = slider_val + 0.01;
         $("#confidence_slider").val(slider_val).change();
     }
@@ -409,7 +432,7 @@ function create_viewer() {
         prefixUrl: get_CC_PATH() + "/osd/images/",
         tileSources: dzi_image_paths,
         showNavigator: false,
-        maxZoomLevel: 100,
+        maxZoomLevel: 1000,
         zoomPerClick: 1,
         nextButton: "next-button",
         previousButton: "prev-button",
@@ -506,7 +529,7 @@ function create_viewer() {
                     }
                     if (visible_edges.length <= MAX_EDGES_DISPLAYED) {
                         for (let edge of visible_edges) {
-                            overlay.context2d().strokeStyle = overlay_colors[key];
+                            overlay.context2d().strokeStyle = overlay_appearance["colors"][key];
                             overlay.context2d().lineWidth = 2;
                     
                             let viewer_point_1 = viewer.viewport.imageToViewerElementCoordinates(
@@ -528,22 +551,24 @@ function create_viewer() {
 
 
 
-            let draw_order = ["training_region", "test_region", "annotation", "prediction"];
+            let draw_order = overlay_appearance["draw_order"]; // ["training_region", "test_region", "prediction", "annotation"]; //, "prediction"];
             for (let key of draw_order) {
 
                 if (!(key in boxes_to_add)) {
                     continue;
                 }
 
-                overlay.context2d().strokeStyle = overlay_colors[key];
+                overlay.context2d().strokeStyle = overlay_appearance["colors"][key];
+                overlay.context2d().fillStyle = overlay_appearance["colors"][key] + "55";
                 overlay.context2d().lineWidth = 2;
                 let visible_inds = [];
+
                 for (let i = 0; i < boxes_to_add[key]["boxes"].length; i++) {
 
                     let box = boxes_to_add[key]["boxes"][i];
                     if (key === "prediction") {
                         let score = boxes_to_add[key]["scores"][i];
-                        if (score < slider_val) {
+                        if (score <= slider_val) {
                             continue;
                         }
                     }
@@ -580,12 +605,30 @@ function create_viewer() {
                         let viewer_point = viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(box[1], box[0]));
                         let viewer_point_2 = viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(box[3], box[2]));
 
+                        
+                        //if (overlay_appearance["style"][key] == "strokeRect") {
                         overlay.context2d().strokeRect(
                             viewer_point.x,// * container_size.x,
                             viewer_point.y,// * container_size.y,
                             (viewer_point_2.x - viewer_point.x),// * container_size.x,
                             (viewer_point_2.y - viewer_point.y)// * container_size.y
                         );
+                        //}
+                        if (overlay_appearance["style"][key] == "fillRect") {
+                            overlay.context2d().fillRect(
+                                viewer_point.x,// * container_size.x,
+                                viewer_point.y,// * container_size.y,
+                                (viewer_point_2.x - viewer_point.x),// * container_size.x,
+                                (viewer_point_2.y - viewer_point.y)// * container_size.y
+                            );
+                        }
+                        //overlay.context2d().strokeRect(
+                        // draw_func(
+                        //     viewer_point.x,// * container_size.x,
+                        //     viewer_point.y,// * container_size.y,
+                        //     (viewer_point_2.x - viewer_point.x),// * container_size.x,
+                        //     (viewer_point_2.y - viewer_point.y)// * container_size.y
+                        // );
                     }
 
 
@@ -598,9 +641,9 @@ function create_viewer() {
                             let box = boxes_to_add[key]["boxes"][ind];
                             let score = boxes_to_add[key]["scores"][ind];
 
-                            if (score < slider_val) {
-                                continue;
-                            }
+                            // if (score < slider_val) {
+                            //     continue;
+                            // }
                             
                             let box_width_pct_of_image = (box[3] - box[1]) / overlay.imgWidth;
                             let disp_width = (box_width_pct_of_image / viewer_bounds.width) * container_size.x;
@@ -616,7 +659,8 @@ function create_viewer() {
         
                                 let viewer_point = viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(box[1], box[0]));
         
-                                let score_text = score.toFixed(2);
+                                //let score_text = score.toFixed(2);
+                                let score_text = (Math.ceil(score * 100) / 100).toFixed(2);
         
                                 overlay.context2d().fillStyle = "white";
                                 overlay.context2d().fillRect(
@@ -746,7 +790,7 @@ $(document).ready(function() {
     metrics = data["metrics"];
     //dzi_dir = data["dzi_dir"];
     dzi_image_paths = data["dzi_image_paths"];
-    overlay_colors = data["overlay_colors"];
+    overlay_appearance = data["overlay_appearance"];
 
 
     // for (let image_status of Object.keys(status_color)) {
@@ -912,7 +956,7 @@ $(document).ready(function() {
 
     $("#confidence_slider").change(function() {
         let slider_val = Number.parseFloat($("#confidence_slider").val()).toFixed(2);
-        $("#slider_val").html(slider_val);
+        $("#confidence_slider_val").html("> " + slider_val);
         
         if (cur_img_name in voronoi_data && "prediction" in voronoi_data[cur_img_name]) {
             delete voronoi_data[cur_img_name]["prediction"];
@@ -926,7 +970,7 @@ $(document).ready(function() {
 
     $("#confidence_slider").on("input", function() {
         let slider_val = Number.parseFloat($("#confidence_slider").val()).toFixed(2);
-        $("#slider_val").html(slider_val);
+        $("#confidence_slider_val").html("> " + slider_val);
     });
 
     $("#scores_switch").change(function() {

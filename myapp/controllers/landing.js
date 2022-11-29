@@ -168,10 +168,10 @@ exports.get_home = function(req, res, next) {
             return res.redirect(process.env.CC_PATH);
         }
 
-        let overlay_colors;
-        let overlay_colors_path = path.join(USR_DATA_ROOT, req.session.user.username, "overlay_colors.json");
+        let overlay_appearance;
+        let overlay_appearance_path = path.join(USR_DATA_ROOT, req.session.user.username, "overlay_appearance.json");
         try {
-            overlay_colors = JSON.parse(fs.readFileSync(overlay_colors_path, 'utf8'));
+            overlay_appearance = JSON.parse(fs.readFileSync(overlay_appearance_path, 'utf8'));
         }
         catch (error) {
             console.log(error);
@@ -309,8 +309,8 @@ exports.get_home = function(req, res, next) {
                 data["camera_specs"] = camera_specs;
                 data["objects"] = objects;
                 data["available_image_sets"] = available_image_sets;
-                data["overlay_colors"] = overlay_colors;
-                
+                data["overlay_appearance"] = overlay_appearance;
+            
                 res.render("home", {
                     username: req.session.user.username, 
                     data: data
@@ -359,25 +359,25 @@ function is_hex_color(hex_color) {
     // return s.color == strColor;
 }
 
-exports.post_color_change = function(req, res, next) {
+exports.post_overlay_appearance_change = function(req, res, next) {
 
-    let overlay_colors = JSON.parse(req.body.overlay_colors);
-    let overlay_colors_path = path.join(USR_DATA_ROOT, req.session.user.username, "overlay_colors.json");
+    let overlay_appearance = JSON.parse(req.body.overlay_appearance);
+    let overlay_appearance_path = path.join(USR_DATA_ROOT, req.session.user.username, "overlay_appearance.json");
 
     let response = {};
-    if (Object.keys(overlay_colors).length != 4) {
+    if (Object.keys(overlay_appearance["colors"]).length != 4) {
         response.error = true;
         response.message = "Invalid overlay colors object.";
         return res.json(response);
     }
 
     for (let overlay_key of ["annotation", "prediction", "training_region", "test_region"]) {
-        if (!(overlay_key in overlay_colors)) {
+        if (!(overlay_key in overlay_appearance["colors"])) {
             response.error = true;
             response.message = "Missing overlay key: '" + overlay_key + "'.";
             return res.json(response);
         }
-        if (!(is_hex_color(overlay_colors[overlay_key]))) {
+        if (!(is_hex_color(overlay_appearance["colors"][overlay_key]))) {
             response.error = true;
             response.message = "Invalid overlay color provided.";
             return res.json(response);
@@ -386,7 +386,7 @@ exports.post_color_change = function(req, res, next) {
     }
 
     try {
-        fs.writeFileSync(overlay_colors_path, JSON.stringify(overlay_colors));
+        fs.writeFileSync(overlay_appearance_path, JSON.stringify(overlay_appearance));
     }
     catch (error) {
         response.error = true;
@@ -452,10 +452,10 @@ exports.get_workspace = function(req, res, next) {
                 return res.redirect(process.env.CC_PATH);
             }*/
 
-            let overlay_colors;
-            let overlay_colors_path = path.join(USR_DATA_ROOT, req.session.user.username, "overlay_colors.json");
+            let overlay_appearance;
+            let overlay_appearance_path = path.join(USR_DATA_ROOT, req.session.user.username, "overlay_appearance.json");
             try {
-                overlay_colors = JSON.parse(fs.readFileSync(overlay_colors_path, 'utf8'));
+                overlay_appearance = JSON.parse(fs.readFileSync(overlay_appearance_path, 'utf8'));
             }
             catch (error) {
                 console.log(error);
@@ -560,7 +560,7 @@ exports.get_workspace = function(req, res, next) {
                 data["excess_green_record"] = excess_green_record;
                 data["camera_specs"] = camera_specs;
                 data["predictions"] = predictions;
-                data["overlay_colors"] = overlay_colors;
+                data["overlay_appearance"] = overlay_appearance;
                 //data["model_status"] = status;
                 res.render("workspace", {username: req.session.user.username, data: data});
 
@@ -1171,21 +1171,22 @@ exports.post_annotations_upload = function(req, res, next) {
 
 
 
-    let min_box_dim = 4;
+    let min_box_dim = 1;
     let max_box_dim = 800;
-    let new_annotations = {};
+    let new_annotations; // = {};
 
 
-    for (let image_name of Object.keys(metadata["images"])) {
-        new_annotations[image_name] = {
-            "boxes": [],
-            "test_regions": existing_annotations[image_name]["test_regions"],
-            "training_regions": existing_annotations[image_name]["training_regions"],
-            "source": "uploaded"
-        };
-    }
+    new_annotations = existing_annotations;
+    // for (let image_name of Object.keys(metadata["images"])) {
+    //     new_annotations[image_name] = {
+    //         "boxes": [],
+    //         "test_regions": existing_annotations[image_name]["test_regions"],
+    //         "training_regions": existing_annotations[image_name]["training_regions"],
+    //         "source": "uploaded"
+    //     };
+    // }
 
-
+    let num_training_regions_increased = false;
     for (let entry_name of Object.keys(annotations)) {
         //let image_path = path.join(image_set_dir, "images", image_name + ".*");
 
@@ -1248,171 +1249,194 @@ exports.post_annotations_upload = function(req, res, next) {
 
         new_annotations[image_name] = {
             "boxes": [],
-            "test_regions": [],
             "training_regions": [],
-            "predictions_used_as_annotations": false
+            "test_regions": [],
+            "source": "uploaded"
         };
 
-        if (!(Array.isArray(annotations[image_name]))) {
-            return res.status(422).json({
-                error: "The uploaded annotations file contains an invalid value (not an array)."
-            });
-            // response.message = "The uploaded annotations file contains an invalid box array.";
-            // response.error = true;
-            // return res.json(response);
-        }
-
-        for (let i = 0; i < annotations[image_name].length; i++) {
-            let box = annotations[image_name][i];
-            if (!(Array.isArray(box))) {
+        for (let annotation_key of ["annotations", "fine_tuning_regions", "test_regions"]) {
+            if (!(annotation_key in annotations[entry_name])) {
+                continue;
+            }
+            if (!(Array.isArray(annotations[entry_name][annotation_key]))) {
                 return res.status(422).json({
-                    error: "The uploaded annotations file contains an invalid box (not an array)."
+                    error: "The uploaded annotations file contains an invalid value (not an array). Problematic key: " + entry_name + "."
                 });
                 // response.message = "The uploaded annotations file contains an invalid box array.";
                 // response.error = true;
                 // return res.json(response);
             }
-            if (box.length != 4) {
-                return res.status(422).json({
-                    error: "The uploaded annotations file contains a malformed box (number of elements is not equal to 4)."
-                });
-                // response.message = "The uploaded annotations file contains a malformed box (number of elements is not equal to 4).";
-                // response.error = true;
-                // return res.json(response);
-            }
 
-            let all_numbers = box.every(element => { return typeof element === "number"; });
-            if (!(all_numbers)) {
-                return res.status(422).json({
-                    error: "The uploaded annotations file contains a box with non-numeric values."
-                });
-                // response.message = "The uploaded annotations file contains a box with non-numeric values.";
-                // response.error = true;
-                // return res.json(response);
-            }
+            for (let i = 0; i < annotations[entry_name][annotation_key].length; i++) {
+                let box = annotations[entry_name][annotation_key][i];
+                if (!(Array.isArray(box))) {
+                    return res.status(422).json({
+                        error: "The uploaded annotations file contains an invalid box (not an array). Problematic key: " + entry_name + "."
+                    });
+                    // response.message = "The uploaded annotations file contains an invalid box array.";
+                    // response.error = true;
+                    // return res.json(response);
+                }
+                if (box.length != 4) {
+                    return res.status(422).json({
+                        error: "The uploaded annotations file contains a malformed box (number of elements is not equal to 4). Problematic key: " + entry_name + "."
+                    });
+                    // response.message = "The uploaded annotations file contains a malformed box (number of elements is not equal to 4).";
+                    // response.error = true;
+                    // return res.json(response);
+                }
 
-            let y_min, x_min, y_max, x_max;
-            if (box_format === "[ x_min, y_min, x_max, y_max ]") {
-                y_min = box[1];
-                x_min = box[0];
-                y_max = box[3];
-                x_max = box[2];
-            }
-            else if (box_format === "[ x_min, y_min, width, height ]") {
-                y_min = box[1];
-                x_min = box[0];
-                y_max = box[1] + box[3];
-                x_max = box[0] + box[2];
-            }
-            else {
-                let half_width = box[2] / 2;
-                let half_height = box[3] / 2;
-                y_min = box[1] - half_height;
-                x_min = box[0] - half_width;
-                y_max = box[1] + half_height;
-                x_max = box[0] + half_width;
-            }
+                let all_numbers = box.every(element => { return typeof element === "number"; });
+                if (!(all_numbers)) {
+                    return res.status(422).json({
+                        error: "The uploaded annotations file contains a box with non-numeric values. Problematic key: " + entry_name + "."
+                    });
+                    // response.message = "The uploaded annotations file contains a box with non-numeric values.";
+                    // response.error = true;
+                    // return res.json(response);
+                }
 
-            let image_w = metadata["images"][image_name]["width_px"];
-            let image_h = metadata["images"][image_name]["height_px"];
+                let y_min, x_min, y_max, x_max;
+                if (box_format === "[ x_min, y_min, x_max, y_max ]") {
+                    y_min = box[1];
+                    x_min = box[0];
+                    y_max = box[3];
+                    x_max = box[2];
+                }
+                else if (box_format === "[ x_min, y_min, width, height ]") {
+                    y_min = box[1];
+                    x_min = box[0];
+                    y_max = box[1] + box[3];
+                    x_max = box[0] + box[2];
+                }
+                else {
+                    let half_width = box[2] / 2;
+                    let half_height = box[3] / 2;
+                    y_min = box[1] - half_height;
+                    x_min = box[0] - half_width;
+                    y_max = box[1] + half_height;
+                    x_max = box[0] + half_width;
+                }
 
-            if (coordinates_format === "normalized_coordinates") {
-                console.log("applying multiplication");
-                y_min = y_min * image_h;
-                x_min = x_min * image_w;
-                y_max = y_max * image_h;
-                x_max = x_max * image_w;
-            }
+                let image_w = metadata["images"][image_name]["width_px"];
+                let image_h = metadata["images"][image_name]["height_px"];
 
-            y_min = Math.round(y_min);
-            x_min = Math.round(x_min);
-            y_max = Math.round(y_max);
-            x_max = Math.round(x_max);
+                if (coordinates_format === "normalized_coordinates") {
+                    // console.log("applying multiplication");
+                    y_min = y_min * image_h;
+                    x_min = x_min * image_w;
+                    y_max = y_max * image_h;
+                    x_max = x_max * image_w;
+                }
 
-
-            if (((y_min < 0) || (x_min < 0)) || ((y_max > image_h) || (x_max > image_w))) {
-                return res.status(422).json({
-                    error: "The uploaded annotations file contains a box with coordinates outside of the image area."
-                });
-                // response.message = "The uploaded annotations file contains a box with coordinates outside of the image area.";
-                // response.error = true;
-                // return res.json(response);
-            }
-
-            let box_height = y_max - y_min;
-            let box_width = x_max - x_min;
-            if (box_height < min_box_dim) {
-                console.log("org_box", box);
-                let half_width = box[2] / 2;
-                let half_height = box[3] / 2;
-
-                console.log("half_width", half_width);
-                console.log("half_height", half_height);
-
-                y_min = box[1] - half_height;
-                x_min = box[0] - half_width;
-                y_max = box[1] + half_height;
-                x_max = box[0] + half_width;
-                console.log("normalized", y_min, x_min, y_max, x_max);
-                y_min = y_min * image_h;
-                x_min = x_min * image_w;
-                y_max = y_max * image_h;
-                x_max = x_max * image_w;
-                console.log("multiplied", y_min, x_min, y_max, x_max);
                 y_min = Math.round(y_min);
                 x_min = Math.round(x_min);
                 y_max = Math.round(y_max);
                 x_max = Math.round(x_max);
-                console.log("rounded", y_min, x_min, y_max, x_max);
+
+
+                if (((y_min < 0) || (x_min < 0)) || ((y_max > image_h) || (x_max > image_w))) {
+                    return res.status(422).json({
+                        error: "The uploaded annotations file contains a box with coordinates outside of the image area. Problematic key: " + entry_name + "."
+                    });
+                    // response.message = "The uploaded annotations file contains a box with coordinates outside of the image area.";
+                    // response.error = true;
+                    // return res.json(response);
+                }
+
+                let box_height = y_max - y_min;
+                let box_width = x_max - x_min;
+                if (box_height < min_box_dim) {
+                    // console.log("org_box", box);
+                    // let half_width = box[2] / 2;
+                    // let half_height = box[3] / 2;
+
+                    // console.log("half_width", half_width);
+                    // console.log("half_height", half_height);
+
+                    // y_min = box[1] - half_height;
+                    // x_min = box[0] - half_width;
+                    // y_max = box[1] + half_height;
+                    // x_max = box[0] + half_width;
+                    // console.log("normalized", y_min, x_min, y_max, x_max);
+                    // y_min = y_min * image_h;
+                    // x_min = x_min * image_w;
+                    // y_max = y_max * image_h;
+                    // x_max = x_max * image_w;
+                    // console.log("multiplied", y_min, x_min, y_max, x_max);
+                    // y_min = Math.round(y_min);
+                    // x_min = Math.round(x_min);
+                    // y_max = Math.round(y_max);
+                    // x_max = Math.round(x_max);
+                    // console.log("rounded", y_min, x_min, y_max, x_max);
 
 
 
-                //console.log(y_min, x_min, y_max, x_max);
-                console.log(image_w, image_h);
-                console.log("box_height", box_height);
-                return res.status(422).json({
-                    error: "At least one uploaded box has a height that is smaller than the minimum allowed height. " +
-                            "(Box height: " + box_height + ". Minimum allowed height: " + min_box_dim + ".)"
-                });
-                // response.message = "At least one uploaded box has a height that is smaller than the minimum allowed height. " +
-                //                     "(Box height: " + box_height + ". Minimum allowed height: " + min_box_dim + ".)";
-                // response.error = true;
-                // return res.json(response);
-            }
-            if (box_width < min_box_dim) {
-                return res.status(422).json({
-                    error: "At least one uploaded box has a width that is smaller than the minimum allowed width. " +
-                           "(Box width: " + box_width + ". Minimum allowed width: " + min_box_dim + ".)"
-                });
-                // response.message = "At least one uploaded box has a width that is smaller than the minimum allowed width. " +
-                //                     "(Box width: " + box_width + ". Minimum allowed width: " + min_box_dim + ".)";
-                // response.error = true;
-                // return res.json(response);
-            }
-            if (box_height > max_box_dim) {
-                return res.status(422).json({
-                    error: "At least one uploaded box has a height that is larger than the maximum allowed height. " +
-                            "(Box height: " + box_height + ". Maximum allowed height: " + max_box_dim + ".)"
-                });
-                // response.message = "At least one uploaded box has a height that is larger than the maximum allowed height. " +
-                //                     "(Box height: " + box_height + ". Maximum allowed height: " + max_box_dim + ".)";
-                // response.error = true;
-                // return res.json(response);
-            }
-            if (box_width > max_box_dim) {
-                return res.status(422).json({
-                    error: "At least one uploaded box has a width that is larger than the maximum allowed width. " +
-                           "(Box width: " + box_width + ". Maximum allowed width: " + max_box_dim + ".)"
-                });
-                // response.message = "At least one uploaded box has a width that is larger than the maximum allowed width. " +
-                //                     "(Box width: " + box_width + ". Maximum allowed width: " + max_box_dim + ".)";
-                // response.error = true;
-                // return res.json(response);
-            }
+                    //console.log(y_min, x_min, y_max, x_max);
+                    // console.log(image_w, image_h);
+                    // console.log("box_height", box_height);
+                    return res.status(422).json({
+                        error: "At least one uploaded box has a height that is smaller than the minimum allowed height. " +
+                                "(Box height: " + box_height + ". Minimum allowed height: " + min_box_dim + 
+                                " pixel. Problematic key: " + entry_name + " pixel.)"
+                    });
+                    // response.message = "At least one uploaded box has a height that is smaller than the minimum allowed height. " +
+                    //                     "(Box height: " + box_height + ". Minimum allowed height: " + min_box_dim + ".)";
+                    // response.error = true;
+                    // return res.json(response);
+                }
+                if (annotation_key == "annotations") {
+                    if (box_width < min_box_dim) {
+                        return res.status(422).json({
+                            error: "At least one uploaded box has a width that is smaller than the minimum allowed width. " +
+                                "(Box width: " + box_width + " pixel. Minimum allowed width: " + min_box_dim + 
+                                " pixel. Problematic key: " + entry_name + ".)"
+                        });
+                        // response.message = "At least one uploaded box has a width that is smaller than the minimum allowed width. " +
+                        //                     "(Box width: " + box_width + ". Minimum allowed width: " + min_box_dim + ".)";
+                        // response.error = true;
+                        // return res.json(response);
+                    }
+                    if (box_height > max_box_dim) {
+                        return res.status(422).json({
+                            error: "At least one uploaded box has a height that is larger than the maximum allowed height. " +
+                                    "(Box height: " + box_height + " pixels. Maximum allowed height: " + max_box_dim + 
+                                    " pixels. Problematic key: " + entry_name + ".)"
+                        });
+                        // response.message = "At least one uploaded box has a height that is larger than the maximum allowed height. " +
+                        //                     "(Box height: " + box_height + ". Maximum allowed height: " + max_box_dim + ".)";
+                        // response.error = true;
+                        // return res.json(response);
+                    }
+                    if (box_width > max_box_dim) {
+                        return res.status(422).json({
+                            error: "At least one uploaded box has a width that is larger than the maximum allowed width. " +
+                                "(Box width: " + box_width + " pixels. Maximum allowed width: " + max_box_dim + 
+                                " pixels. Problematic key: " + entry_name + ".)"
+                        });
+                        // response.message = "At least one uploaded box has a width that is larger than the maximum allowed width. " +
+                        //                     "(Box width: " + box_width + ". Maximum allowed width: " + max_box_dim + ".)";
+                        // response.error = true;
+                        // return res.json(response);
+                    }
+                }
 
-            new_annotations[image_name]["boxes"].push([
-                y_min, x_min, y_max, x_max
-            ]);
+                let internal_annotation_key;
+                if (annotation_key === "annotations") {
+                    internal_annotation_key = "boxes";
+                }
+                else if (annotation_key === "fine_tuning_regions") {
+                    internal_annotation_key = "training_regions";
+                    num_training_regions_increased = true;
+                }
+                else {
+                    internal_annotation_key = "test_regions"
+                }
+
+                new_annotations[image_name][internal_annotation_key].push([
+                    y_min, x_min, y_max, x_max
+                ]);
+            }
         }
     }
 
@@ -1424,62 +1448,319 @@ exports.post_annotations_upload = function(req, res, next) {
 
 
 
-    let annotations_prior_to_upload_path = path.join(image_set_dir, "annotations", "annotations_prior_to_upload.json");
-    let annotations_prior_to_upload_exists;
+    // let annotations_prior_to_upload_path = path.join(image_set_dir, "annotations", "annotations_prior_to_upload.json");
+    // let annotations_prior_to_upload_exists;
+    // try {
+    //     annotations_prior_to_upload_exists = fs.existsSync(annotations_prior_to_upload_path);
+    // }
+    // catch (error) {
+    //     response.message = "Error occurred while saving uploaded annotations.";
+    //     response.error = true;
+    //     return res.json(response);
+    // }
+    // if (annotations_prior_to_upload_exists) {
     try {
-        annotations_prior_to_upload_exists = fs.existsSync(annotations_prior_to_upload_path);
+        fs.writeFileSync(annotations_path, JSON.stringify(new_annotations));
     }
     catch (error) {
-        response.message = "Error occurred while saving uploaded annotations.";
-        response.error = true;
-        return res.json(response);
+        return res.status(422).json({
+            error: "Failed to save uploaded annotations."
+        });
     }
-    if (annotations_prior_to_upload_exists) {
+
+    //response.error = false;
+    //response.annotations = new_annotations;
+    //return res.json(response);
+    if (num_training_regions_increased) {
+        let scheduler_request = {
+            "username": req.session.user.username,
+            "farm_name": farm_name,
+            "field_name": field_name,
+            "mission_date": mission_date,
+            "request_type": "training"
+        };
+        notify_scheduler(scheduler_request);
+    }
+
+
+    let empty = true;
+            
+    for (let image_name of Object.keys(new_annotations)) {
+        if (new_annotations[image_name]["training_regions"].length > 0) {
+            empty = false;
+            break;
+        }
+        if (new_annotations[image_name]["test_regions"].length > 0) {
+            empty = false;
+            break;
+        }
+    }
+
+    let num_useable_boxes = get_num_useable_boxes(new_annotations);
+
+
+    // let metadata_path = path.join(image_set_dir, "metadata", "metadata.json");
+    // let metadata;
+    // try {
+    //     metadata = JSON.parse(fs.readFileSync(metadata_path, 'utf8'));
+    // }
+    // catch (error) {
+    //     response.error = true;
+    //     response.message = "Failed to read metadata file.";
+    //     return res.json(response);
+    // }
+
+    let image_sets_path;
+    if (metadata["is_public"] === "yes") {
+        image_sets_path = path.join(USR_SHARED_ROOT, "public_image_sets.json");
+    }
+    else {
+        image_sets_path = path.join(USR_DATA_ROOT, req.session.user.username, "private_image_sets.json");
+    }
+    image_sets_mutex.acquire()
+    .then(function(release) {
+        let image_sets;
         try {
-            fs.writeFileSync(annotations_path, JSON.stringify(new_annotations));
+            image_sets = JSON.parse(fs.readFileSync(image_sets_path, 'utf8'));
         }
         catch (error) {
-            return res.status(422).json({
-                error: "Failed to save uploaded annotations."
-            });
+            release();
+            response.error = true;
+            response.message = "Failed to read image sets file.";
+            return res.json(response);
         }
+
+        if (empty) {
+            if (req.session.user.username in image_sets) {
+                if (farm_name in image_sets[req.session.user.username]) {
+                    if (field_name in image_sets[req.session.user.username][farm_name]) {
+                        if (mission_date in image_sets[req.session.user.username][farm_name][field_name]) {
+                            delete image_sets[req.session.user.username][farm_name][field_name][mission_date];
+
+                            if (Object.keys(image_sets[req.session.user.username][farm_name][field_name]).length == 0) {
+                                delete image_sets[req.session.user.username][farm_name][field_name];
+                            }
+
+                            if (Object.keys(image_sets[req.session.user.username][farm_name]).length == 0) {
+                                delete image_sets[req.session.user.username][farm_name];
+                            }
+
+                            if (Object.keys(image_sets[req.session.user.username]).length == 0) {
+                                delete image_sets[req.session.user.username];
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        else {
+
+            if (!(req.session.user.username in image_sets)) {
+                image_sets[req.session.user.username] = {};
+            }
+            if (!(farm_name in image_sets[req.session.user.username])) {
+                image_sets[req.session.user.username][farm_name] = {};
+            }
+            if (!(field_name in image_sets[req.session.user.username][farm_name])) {
+                image_sets[req.session.user.username][farm_name][field_name] = {};
+            }
+            image_sets[req.session.user.username][farm_name][field_name][mission_date] = {
+                "object_name": metadata["object_name"],
+                "num_useable_boxes": num_useable_boxes
+            }
+        }
+
+        try {
+            fs.writeFileSync(image_sets_path, JSON.stringify(image_sets));
+        }
+        catch (error) {
+            release();
+            response.message = "Failed to write image sets file.";
+            response.error = true;
+            return res.json(response);
+        }
+
+
+        release();
 
         response.error = false;
         response.annotations = new_annotations;
+    
         return res.json(response);
 
+    }).catch(function(error) {
+        console.log(error);
+        response.error = true;
+        response.message = "Failed to acquire image sets mutex.";
+        return res.json(response);
+    });
 
-    }
-    else {
-        fs.rename(annotations_path, annotations_prior_to_upload_path, (error) => {
-            if (error) {
-                return res.status(422).json({
-                    error: "Failed to write backup annotations file."
-                });
-                // response.message = "Failed to write backup annotations file.";
-                // response.error = true;
-                // return res.json(response);
-            }
 
-            try {
-                fs.writeFileSync(annotations_path, JSON.stringify(new_annotations));
-            }
-            catch (error) {
-                return res.status(422).json({
-                    error: "Failed to write uploaded annotations."
-                });
-                // response.message = "Failed to write uploaded annotations.";
-                // response.error = true;
-                // return res.json(response);
-            }
 
-            response.error = false;
-            response.annotations = new_annotations;
-            return res.json(response);
-        });
-    }
+    // }
+    // else {
+    //     fs.rename(annotations_path, annotations_prior_to_upload_path, (error) => {
+    //         if (error) {
+    //             return res.status(422).json({
+    //                 error: "Failed to write backup annotations file."
+    //             });
+    //             // response.message = "Failed to write backup annotations file.";
+    //             // response.error = true;
+    //             // return res.json(response);
+    //         }
+
+    //         try {
+    //             fs.writeFileSync(annotations_path, JSON.stringify(new_annotations));
+    //         }
+    //         catch (error) {
+    //             return res.status(422).json({
+    //                 error: "Failed to write uploaded annotations."
+    //             });
+    //             // response.message = "Failed to write uploaded annotations.";
+    //             // response.error = true;
+    //             // return res.json(response);
+    //         }
+
+    //         // response.error = false;
+    //         // response.annotations = new_annotations;
+    //         // return res.json(response);
+
+    //         if (num_training_regions_increased) {
+    //             let scheduler_request = {
+    //                 "username": req.session.user.username,
+    //                 "farm_name": farm_name,
+    //                 "field_name": field_name,
+    //                 "mission_date": mission_date,
+    //                 "request_type": "training"
+    //             };
+    //             notify_scheduler(scheduler_request);
+    //         }
+
+    //         response = update_image_sets_file(image_set_dir, new_annotations);
+    //         response.annotations = new_annotations;
+    
+    //         return res.json(response);
+    //     });
+    // }
 }
 
+
+function update_image_sets_file(image_set_dir, annotations) {
+
+    let response = {};
+
+    let empty = true;
+            
+    for (let image_name of Object.keys(annotations)) {
+        if (annotations[image_name]["training_regions"].length > 0) {
+            empty = false;
+            break;
+        }
+        if (annotations[image_name]["test_regions"].length > 0) {
+            empty = false;
+            break;
+        }
+    }
+
+    let num_useable_boxes = get_num_useable_boxes(annotations);
+
+
+    let metadata_path = path.join(image_set_dir, "metadata", "metadata.json");
+    let metadata;
+    try {
+        metadata = JSON.parse(fs.readFileSync(metadata_path, 'utf8'));
+    }
+    catch (error) {
+        response.error = true;
+        response.message = "Failed to read metadata file.";
+        return response; //res.json(response);
+    }
+
+    let image_sets_path;
+    if (metadata["is_public"] === "yes") {
+        image_sets_path = path.join(USR_SHARED_ROOT, "public_image_sets.json");
+    }
+    else {
+        image_sets_path = path.join(USR_DATA_ROOT, req.session.user.username, "private_image_sets.json");
+    }
+    image_sets_mutex.acquire()
+    .then(function(release) {
+        let image_sets;
+        try {
+            image_sets = JSON.parse(fs.readFileSync(image_sets_path, 'utf8'));
+        }
+        catch (error) {
+            release();
+            response.error = true;
+            response.message = "Failed to read image sets file.";
+            return response; //res.json(response);
+        }
+
+        if (empty) {
+            if (req.session.user.username in image_sets) {
+                if (farm_name in image_sets[req.session.user.username]) {
+                    if (field_name in image_sets[req.session.user.username][farm_name]) {
+                        if (mission_date in image_sets[req.session.user.username][farm_name][field_name]) {
+                            delete image_sets[req.session.user.username][farm_name][field_name][mission_date];
+
+                            if (Object.keys(image_sets[req.session.user.username][farm_name][field_name]).length == 0) {
+                                delete image_sets[req.session.user.username][farm_name][field_name];
+                            }
+
+                            if (Object.keys(image_sets[req.session.user.username][farm_name]).length == 0) {
+                                delete image_sets[req.session.user.username][farm_name];
+                            }
+
+                            if (Object.keys(image_sets[req.session.user.username]).length == 0) {
+                                delete image_sets[req.session.user.username];
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        else {
+
+            if (!(req.session.user.username in image_sets)) {
+                image_sets[req.session.user.username] = {};
+            }
+            if (!(farm_name in image_sets[req.session.user.username])) {
+                image_sets[req.session.user.username][farm_name] = {};
+            }
+            if (!(field_name in image_sets[req.session.user.username][farm_name])) {
+                image_sets[req.session.user.username][farm_name][field_name] = {};
+            }
+            image_sets[req.session.user.username][farm_name][field_name][mission_date] = {
+                "object_name": req.body.object_name,
+                "num_useable_boxes": num_useable_boxes
+            }
+        }
+
+        try {
+            fs.writeFileSync(image_sets_path, JSON.stringify(image_sets));
+        }
+        catch (error) {
+            release();
+            response.message = "Failed to write image sets file.";
+            response.error = true;
+            return response; //res.json(response);
+        }
+
+
+        release();
+
+        response.error = false;
+        return response; //res.json(response);
+
+    }).catch(function(error) {
+        console.log(error);
+        response.error = true;
+        response.message = "Failed to acquire image sets mutex.";
+        return response; //res.json(response);
+    });
+
+
+}
 
 exports.post_workspace = function(req, res, next) {
 
@@ -1579,6 +1860,10 @@ exports.post_workspace = function(req, res, next) {
                 };
                 notify_scheduler(scheduler_request);
             }
+
+
+            // let response = update_image_sets_file(image_set_dir, annotations);
+            // return res.json(response);
     
             
     
@@ -1772,40 +2057,56 @@ exports.post_workspace = function(req, res, next) {
 
 
         let download_annotations = {};
-        for (image_name of Object.keys(annotations)) {
-            download_annotations[image_name] = [];
-            for (let i = 0; i < annotations[image_name]["boxes"].length; i++) {
-                let box = annotations[image_name]["boxes"][i];
-                let download_box;
+        for (let image_name of Object.keys(annotations)) {
+            download_annotations[image_name] = {};
+            for (let annotation_key of ["boxes", "training_regions", "test_regions"]) {
 
-                if (box_format === "[ x_min, y_min, x_max, y_max ]") {
-                    download_box = [
-                        box[1], box[0], box[3], box[2]
-                    ];
+                let external_annotation_key;
+                if (annotation_key === "boxes") {
+                    external_annotation_key = "annotations";
                 }
-                else if (box_format === "[ x_min, y_min, width, height ]") {
-                    download_box = [
-                        box[1], box[0], (box[3] - box[1]), (box[2] - box[0])
-                    ];
+                else if (annotation_key === "training_regions") {
+                    external_annotation_key = "fine_tuning_regions";
                 }
                 else {
-                    download_box = [
-                        (box[1] + box[3]) / 2, (box[0] + box[2]) / 2, (box[3] - box[1]), (box[2] - box[0])
-                    ];
+                    external_annotation_key = "test_regions";
                 }
 
-                if (coordinates_format === "normalized_coordinates") {
-                    let image_width_px = metadata["images"][image_name]["width_px"];
-                    let image_height_px = metadata["images"][image_name]["height_px"];
-                    download_box = [
-                        download_box[0] / image_width_px,
-                        download_box[1] / image_height_px,
-                        download_box[2] / image_width_px,
-                        download_box[3] / image_height_px
-                    ];
+                download_annotations[image_name][external_annotation_key] = []
 
+                for (let i = 0; i < annotations[image_name][annotation_key].length; i++) {
+                    let box = annotations[image_name][annotation_key][i];
+                    let download_box;
+
+                    if (box_format === "[ x_min, y_min, x_max, y_max ]") {
+                        download_box = [
+                            box[1], box[0], box[3], box[2]
+                        ];
+                    }
+                    else if (box_format === "[ x_min, y_min, width, height ]") {
+                        download_box = [
+                            box[1], box[0], (box[3] - box[1]), (box[2] - box[0])
+                        ];
+                    }
+                    else {
+                        download_box = [
+                            (box[1] + box[3]) / 2, (box[0] + box[2]) / 2, (box[3] - box[1]), (box[2] - box[0])
+                        ];
+                    }
+
+                    if (coordinates_format === "normalized_coordinates") {
+                        let image_width_px = metadata["images"][image_name]["width_px"];
+                        let image_height_px = metadata["images"][image_name]["height_px"];
+                        download_box = [
+                            download_box[0] / image_width_px,
+                            download_box[1] / image_height_px,
+                            download_box[2] / image_width_px,
+                            download_box[3] / image_height_px
+                        ];
+
+                    }
+                    download_annotations[image_name][external_annotation_key].push(download_box);
                 }
-                download_annotations[image_name].push(download_box);
             }
         }
 
@@ -3397,7 +3698,7 @@ exports.post_home = function(req, res, next) {
 
         let empty = true;
         for (let image_name of Object.keys(annotations)) {
-            if (annotations[image_name]["annotations"].length > 0) {
+            if (annotations[image_name]["boxes"].length > 0) {
                 empty = false;
                 break;
             }
@@ -4251,10 +4552,10 @@ exports.get_viewer = function(req, res, next) {
         }
 
 
-        let overlay_colors;
-        let overlay_colors_path = path.join(USR_DATA_ROOT, req.session.user.username, "overlay_colors.json");
+        let overlay_appearance;
+        let overlay_appearance_path = path.join(USR_DATA_ROOT, req.session.user.username, "overlay_appearance.json");
         try {
-            overlay_colors = JSON.parse(fs.readFileSync(overlay_colors_path, 'utf8'));
+            overlay_appearance = JSON.parse(fs.readFileSync(overlay_appearance_path, 'utf8'));
         }
         catch (error) {
             console.log(error);
@@ -4357,7 +4658,7 @@ exports.get_viewer = function(req, res, next) {
         data["request"] = request;
         //data["dzi_dir"] = path.join(process.env.CC_PATH, dzi_images_dir);
         data["dzi_image_paths"] = nat_orderBy.orderBy(dzi_image_paths);
-        data["overlay_colors"] = overlay_colors;
+        data["overlay_appearance"] = overlay_appearance;
 
         res.render("viewer", {username: req.session.user.username, "data": data});
     }

@@ -10,13 +10,13 @@ let score_histogram;
 function set_score_chart_data() {
 
     score_thresholds = [];
-    for (let i = 0; i <= 100; i++) {
+    for (let i = 0; i < 100; i++) {
         score_thresholds.push(i / 100);
     }
 
     score_histogram = d3.histogram()
                         .value(function(d) { return d; })
-                        .domain([0, 1])
+                        .domain([0, 1.0]) //1.0]) //1])
                         .thresholds(score_thresholds);
     /*
     let scores = [];
@@ -66,7 +66,7 @@ function set_score_chart_data() {
         // if (image_name in predictions) {
 
         let bins = score_histogram(score_chart_data[cur_img_name]["scores"]);
-        bins[bins.length-1].x1 = 1.01;
+        bins[bins.length-1].x1 = 1.00; //1;
         //bins = bins.slice(0, bins.length-1);
 
         // score_chart_data[cur_img_name] = {};
@@ -94,7 +94,7 @@ function evaluate_scores(bins, scores) {
         }
 
         //quality_score = range_map(quality_score, 0.25, 1.0, 0.0, 1.0);
-        quality_score = range_map(quality_score, 0.0156, 1.0, 0.0, 1.0);
+        //quality_score = range_map(quality_score, 0.0156, 1.0, 0.0, 1.0);
     }
 
     let certainty;
@@ -128,7 +128,7 @@ function draw_score_chart() {
     let chart_height = $("#score_chart").height(); // - 10;
 
     let margin_top = 10;
-    let margin_right = 0;
+    let margin_right = 4;
     let margin_bottom = 20;
     let margin_left = 45;
 
@@ -148,7 +148,7 @@ function draw_score_chart() {
     // let height = chart_height - 2 * margin;
 
     score_xScale = d3.scaleLinear()
-                        .domain([0.25, 1.01])
+                        .domain([0.25, 1.0]) //1.0]) //1.01])
                         .range([0, width]);
 
     score_chart_x_axis = score_svg.append("g")
@@ -212,7 +212,7 @@ function draw_score_chart() {
                 return height - y_trans;
             })
             //    return height - (score_yScale(d.length / scores.length)); })
-            .style("fill", overlay_colors["prediction"])  //function(d){ if(d.x0<140){return "orange"} else {return "#69b3a2"}})
+            .style("fill", overlay_appearance["colors"]["prediction"])  //function(d){ if(d.x0<140){return "orange"} else {return "#69b3a2"}})
             // .attr("stroke", "white")
             // .attr("stroke-width", "0.5");
     
@@ -237,7 +237,7 @@ function update_score_chart() {
     let chart_height = $('#score_chart').height(); // - 5;
 
     let margin_top = 10;
-    let margin_right = 10;
+    let margin_right = 4;
     let margin_bottom = 20;
     let margin_left = 35;
 

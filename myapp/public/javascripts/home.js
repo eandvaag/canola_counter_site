@@ -3,7 +3,7 @@ let image_sets_data;
 let camera_specs;
 let objects;
 let available_image_sets;
-let overlay_colors;
+let overlay_appearance;
 //let viewing_results = false;
 let viewing = {
     "browse": null,
@@ -924,11 +924,11 @@ function show_overview() {
                     `<td><div class="table_text" style="width: ${value_width};">${annotation_info["num_images"]}</div></td>` +
                     `</tr>`); 
         
-            $("#bottom_left").append(`<div style="text-decoration: underline; font-weight: bold;">Annotations</div><br>`);
+            $("#bottom_left").append(`<div style="text-decoration: underline; font-weight: bold;">Annotation Totals</div><br>`);
             $("#bottom_left").append(`<table class="transparent_table" id="annotation_stats_table"></table>`);
         
             $("#annotation_stats_table").append(`<tr>` +
-                    `<td><div class="table_head" style="width: ${label_width};">Boxes</div></td>` +
+                    `<td><div class="table_head" style="width: ${label_width};">Annotations</div></td>` +
                     `<td><div class="table_text" style="width: ${value_width};">${annotation_info["num_annotations"]}</div></td>` +
                     `</tr>`);
 
@@ -1109,11 +1109,11 @@ function confirmed_delete_result_request(result_type, result_id) {
     },
     function(response, status) {
         close_modal();
+        //fetch_and_show_results();
 
         if (response.error) {
             show_modal_message(`Error`, `An error occurred while deleting the result.`);
         }
-        //fetch_and_show_results();
         //show_results();
     });
 }
@@ -1246,7 +1246,7 @@ function create_result_entry(result) {
         );
         $("#" + destroy_button_container_id).append(
             `<button class="x-button x-button-hover" style="width: 160px; font-size: 14px; padding: 3px;" ` +
-                    `onclick="delete_result_request('completed', '${result["end_time"]}')">` +
+                    `onclick="delete_result_request('completed', '${result["request_uuid"]}')">` +
                 `<i class="fa-regular fa-circle-xmark" style="margin-right: 14px"></i><div style="display: inline-block; text-align: left; width: 100px">Destroy Result</div>` +
             `</button>`
         );
@@ -1264,7 +1264,7 @@ function create_result_entry(result) {
         );
         $("#" + destroy_button_container_id).append(
             `<button class="x-button x-button-hover" style="width: 160px; font-size: 14px; padding: 3px;" ` +
-                    `onclick="delete_result_request('completed', '${result["end_time"]}')">` +
+                    `onclick="delete_result_request('completed', '${result["request_uuid"]}')">` +
                 `<i class="fa-regular fa-circle-xmark" style="margin-right: 14px"></i><div style="display: inline-block; text-align: left; width: 100px">Destroy Result</div>` +
             `</button>`
         );
@@ -1642,7 +1642,7 @@ $(document).ready(function() {
     camera_specs = data["camera_specs"];
     objects = data["objects"];
     available_image_sets = data["available_image_sets"];
-    overlay_colors = data["overlay_colors"];
+    overlay_appearance = data["overlay_appearance"];
 
     let socket = io(
     "", {

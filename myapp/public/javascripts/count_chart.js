@@ -78,7 +78,7 @@ function set_count_chart_data() {
 
                 if (image_name in predictions) {
                     for (let i = 0; i < predictions[image_name]["scores"].length; i++) {
-                        if (predictions[image_name]["scores"][i] >= slider_val) {
+                        if (predictions[image_name]["scores"][i] > slider_val) {
                             count_chart_data[nav_item]["prediction"]++;
                         }
                     }
@@ -97,17 +97,17 @@ function set_count_chart_data() {
                     }
                     if (image_name in predictions) {
                         for (let j = 0; j < predictions[image_name]["boxes"].length; j++) {
-                            if (predictions[image_name]["scores"][j] >= slider_val && 
+                            if (predictions[image_name]["scores"][j] > slider_val && 
                                 box_intersects_region(predictions[image_name]["boxes"][j], annotations[image_name][navigation_type][i])) {
                                     count_chart_data[nav_item]["prediction"]++;
-                                    console.log(i, predictions[image_name]["boxes"][j]);
+                                    // console.log(i, predictions[image_name]["boxes"][j]);
                             }
                         }
                     }
                 }
             }
-            console.log("navigation_type", navigation_type, annotations[cur_img_name][navigation_type].length);
-            console.log("COUNT CHART DATA", count_chart_data);
+            // console.log("navigation_type", navigation_type, annotations[cur_img_name][navigation_type].length);
+            // console.log("COUNT CHART DATA", count_chart_data);
         }
 
 
@@ -170,7 +170,7 @@ function set_count_chart_data() {
                 if (image_name in predictions) {
                     let predicted_count = 0;
                     for (let i = 0; i < predictions[image_name]["scores"].length; i++) {
-                        if (predictions[image_name]["scores"][i] >= slider_val) {
+                        if (predictions[image_name]["scores"][i] > slider_val) {
                             predicted_count++;
                         }
                     }
@@ -200,7 +200,7 @@ function set_count_chart_data() {
                     if (image_name in predictions) {
                         let predicted_count = 0;
                         for (let j = 0; j < predictions[image_name]["boxes"].length; j++) {
-                            if (predictions[image_name]["scores"][j] >= slider_val && 
+                            if (predictions[image_name]["scores"][j] > slider_val && 
                                 box_intersects_region(predictions[image_name]["boxes"][j], annotations[image_name][navigation_type][i])) {
                                     predicted_count++;
                             }
@@ -307,14 +307,38 @@ function set_count_chart_data() {
                 }
             }
         }*/
-        let AP_metrics = ["AP (IoU=.50:.05:.95)", "AP (IoU=.50)", "AP (IoU=.75)"];
-        let f1_metrics = ["F1 Score (IoU=.50, conf>=.50)", "F1 Score (IoU=.75, conf>=.50)"];
-        if (AP_metrics.includes(metric)) {
+
+        let max_100_metrics = [
+            "AP (IoU=.50:.05:.95)", 
+            "AP (IoU=.50)", 
+            "AP (IoU=.75)"
+        ];
+        let max_1_metrics = [
+            "Precision (IoU=.50, conf>.50)",
+            "Recall (IoU=.50, conf>.50)",
+            "Accuracy (IoU=.50, conf>.50)",
+            "F1 Score (IoU=.50, conf>.50)"
+        ];
+        // let AP_metrics = ["AP (IoU=.50:.05:.95)", "AP (IoU=.50)", "AP (IoU=.75)"];
+        // let f1_metrics = ["F1 Score (IoU=.50, conf>.50)", "F1 Score (IoU=.75, conf>.50)"];
+        // let accuracy_metrics = ["Accuracy (IoU=.50, conf>.50)"];
+        if (max_100_metrics.includes(metric)) {
             max_count = 100;
         }
-        else if (f1_metrics.includes(metric)) {
+        else if (max_1_metrics.includes(metric)) {
             max_count = 1;
         }
+        else {
+            max_count = 0;
+            for (let nav_item of Object.keys(count_chart_data)) {
+                if (count_chart_data[nav_item]["prediction"] > max_count) {
+                    max_count = count_chart_data[nav_item]["prediction"];
+                }
+            }
+        }
+        // else if (accuracy_metrics.includes(metric)) {
+        //     max_count = 1;
+        // }
 
 
     }
@@ -374,7 +398,7 @@ function draw_count_chart() {
         let cur_nav_item = cur_img_name + "/" + cur_region_index;
         let metric = $("#chart_combo").val();
         let disp_val = count_chart_data[cur_nav_item][d];
-        if (metric !== "Count") {
+        if (!(Number.isInteger(disp_val))) { //metric !== "Count") {
             disp_val = disp_val.toFixed(2);
         }
         let html = numberWithCommas(disp_val);
@@ -435,7 +459,7 @@ function draw_count_chart() {
             return 25; //chart_height / (1.65 * num_bars);
          })
          .attr("fill", function(d) {
-            return overlay_colors[d]; //d.color;
+            return overlay_appearance["colors"][d]; //d.color;
          })
          .on("mouseover", tip_mouseover)
          .on("mousemove", tip_mousemove)

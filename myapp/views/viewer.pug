@@ -21,6 +21,25 @@ html
         script(src="https://d3js.org/d3.v4.js")
 
 
+        //- script(type="text/x-mathjax-config").
+        //- MathJax.Hub.Config({
+        //-     tex2jax: {
+        //-     inlineMath: [['$','$'], ['\\(','\\)']],
+        //-     skipTags: ["script","noscript","style","textarea","code"]
+        //-     }
+        //- });
+
+        //- script(src="https://polyfill.io/v3/polyfill.min.js?features=es6")
+        //- script(id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js")
+
+        //- script(type='text/x-mathjax-config').
+        //- MathJax.Hub.Config({
+        //-     tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}
+        //-     });
+
+        //- script(type='text/javascript', src='https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-MML-AM_CHTML', async)
+
+
         script(type='text/javascript' src=process.env.CC_PATH + '/javascripts/viewer.js')
         script(type='text/javascript' src=process.env.CC_PATH + '/javascripts/count_chart.js')
         script(type='text/javascript' src=process.env.CC_PATH + '/javascripts/score_chart.js')
@@ -49,8 +68,6 @@ html
                 //hr
                 br
                 br
-
-
 
                 div(class="grid-container-1")
 
@@ -151,10 +168,8 @@ html
                                                 hr(class="panel_line")
                                                 
                                                 div(style="width: 100%; text-align: right")
-                                                    button(class="std-button std-button-hover" style="padding: 2px; font-size: 14px; width: 90px" onclick="show_color_modal()")
-                                                        i(class="fa-solid fa-palette" style="margin-right: 4px") 
-                                                        |
-                                                        | Colours 
+                                                    button(class="std-button std-button-hover" style="padding: 2px; font-size: 14px; width: 40px" onclick="show_customize_overlays_modal()")
+                                                        i(class="fa-solid fa-palette") 
 
                                                 div(style="height: 10px")
 
@@ -240,7 +255,16 @@ html
                                                 hr(class="panel_line")
 
                                                 div(style="height: 40px")
-                                                    div(class="header2" style="text-align: left") Metric
+                                                    //div(class="header2" style="text-align: left") Metric
+                                                    table
+                                                        tr
+                                                            td(style="text-align: left")
+                                                                h(class="header2" style="width: 170px") Metric
+                                                            td(style="width: 100%")
+                                                            td
+                                                                button(class="std-button std-button-hover" onclick="show_metrics_modal()" style="padding: 2px; font-size: 14px; width: 40px")
+                                                                    i(class="fa-regular fa-circle-question") 
+
                                                     select(id="chart_combo" class="nonfixed_dropdown" style="max-width: 100%")
                                                     //- table
                                                     //-     tr
@@ -259,7 +283,15 @@ html
 
                                                 hr(class="panel_line")
                                                 
-
+                                                //- div(style="height: 40px")
+                                                //-     table
+                                                //-         tr
+                                                //-             td(style="text-align: left")
+                                                //-                 h(class="header2" style="width: 170px") Overlays
+                                                //-             td(style="width: 100%")
+                                                //-             td
+                                                //-                 button(class="std-button std-button-hover" onclick="show_overlays_modal()" style="padding: 2px; font-size: 14px; width: 40px")
+                                                //-                     i(class="fa-regular fa-clone") 
                                                 h(class="header2" style="text-align:left") Overlays
 
                                                 //div(class="scrollable_area" style="height: 90px; border:none")
@@ -292,26 +324,25 @@ html
                                                     
                                                 table
                                                     tr
-                                                        td(style="width: 155px")
-                                                            div(style="width: 155px; text-align:left; margin: 2px 0px;" class="header2") Show Image
-                                                        td(style="width:40px")
+                                                        td
+                                                            div(style="width: 147px; text-align:left; margin: 2px 0px;" class="header2") Show Image
+                                                        td
                                                             label(class="switch")
                                                                 input(id="image_visible_switch" type="checkbox" checked)
                                                                 span(class="switch_slider round")
                                                         td(style="width: 100%")       
                                                     tr
-                                                        td(style="width: 155px")
-                                                            div(style="width: 155px; text-align:left; margin: 2px 0px;" class="header2") Show Scores
-                                                        td(style="width:40px")
+                                                        td
+                                                            div(style="width: 147px; text-align:left; margin: 2px 0px;" class="header2") Show Scores
+                                                        td
                                                             label(class="switch")
                                                                 input(id="scores_switch" type="checkbox")
                                                                 span(class="switch_slider round")
                                                         td(style="width: 100%")
 
                                                 table
-                                                        
                                                     tr
-                                                        td(style="width: 50px")
+                                                        td
                                                             div(style="width: 50px; text-align:left" class="header2") Filter
 
                                                         td
@@ -320,14 +351,15 @@ html
                                                                 
                                                         td(style="width: 100%")
                                                             div(class="slidecontainer" style="width: 100%")
-                                                                input(type="range" min="0.25" max="1" step="0.01" value="0.5" class="slider" id="confidence_slider" style="margin: 0px")
+                                                                input(type="range" min="0.25" max="0.99" step="0.01" value="0.5" class="slider" id="confidence_slider" style="margin: 0px")
 
                                                         td
                                                             button(id="score_up" class="table_button table_button_hover" style="margin: 0px; border-radius: 50px; padding-bottom: 3px; margin-top: -4px;")
                                                                 i(class="fa-solid fa-circle-chevron-right")
                                                         
-                                                        td(style="width: 50px")
-                                                            div(id="slider_val" style="margin-left: 12px" class="header2") 0.50
+                                                        td
+                                                            div(id="confidence_slider_val" style="margin-left: 2px; padding: 4px 2px; margin-top: -4px; border-radius: 5px; border: 1px solid white; width: 55px") > 0.50
+
 
 
                         div(id="map_view_container" hidden)

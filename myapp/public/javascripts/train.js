@@ -94,7 +94,7 @@ function train_form_is_complete() {
     for (let input of inputs_to_check) {
         let input_val = $("#" + input).val();
         let input_length = input_val.length;
-        if ((input_length < 3) || (input_length > 20)) {
+        if ((input_length < 3) || (input_length > 50)) {
             return false;
         }
 
@@ -860,9 +860,9 @@ function get_filtered_datasets() {
     let sort_combo_3_val = $("#sort_combo_3").val();
 
     filtered_datasets.sort(function(a, b) {
-        return a[sort_combo_1_val].localeCompare(b[sort_combo_1_val]) || 
-               a[sort_combo_2_val].localeCompare(b[sort_combo_2_val]) ||
-               a[sort_combo_3_val].localeCompare(b[sort_combo_3_val]);
+        return a[sort_combo_1_val].localeCompare(b[sort_combo_1_val], undefined, {numeric: true, sensitivity: 'base'}) || 
+               a[sort_combo_2_val].localeCompare(b[sort_combo_2_val], undefined, {numeric: true, sensitivity: 'base'}) ||
+               a[sort_combo_3_val].localeCompare(b[sort_combo_3_val], undefined, {numeric: true, sensitivity: 'base'});
                /* ||
                a.field_name.localeCompare(b.field_name) ||
                a.mission_date.localeCompare(b.mission_date);*/
@@ -879,6 +879,7 @@ function create_image_set_list() {
     $("#available_image_sets").empty();
 
     let filtered_datasets = get_filtered_datasets();
+    console.log("filtered_datasets", filtered_datasets);
 
     for (let filtered_dataset of filtered_datasets) {
         let username = filtered_dataset["username"];
@@ -1071,7 +1072,7 @@ function create_viewer(id_prefix, dzi_image_paths) {
 
                 let draw_order;
                 if (region == null) {
-                    draw_order = ["annotation", "training_region", "test_region"];
+                    draw_order = ["training_region", "test_region", "annotation"];
                 }
                 else {
                     draw_order = ["annotation"];
@@ -1085,7 +1086,8 @@ function create_viewer(id_prefix, dzi_image_paths) {
                     //     strokeStyle = "#22f222";
                     // }
                     
-                    overlays[id_prefix].context2d().strokeStyle = overlay_colors[key];
+                    overlays[id_prefix].context2d().strokeStyle = overlay_appearance["colors"][key];
+                    overlays[id_prefix].context2d().fillStyle = overlay_appearance["colors"][key] + "55";
                     overlays[id_prefix].context2d().lineWidth = 2;
 
                     let visible_boxes = [];
@@ -1113,11 +1115,20 @@ function create_viewer(id_prefix, dzi_image_paths) {
                             let viewer_point_2 = viewers[id_prefix].viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(box[3], box[2]));
                             
                             overlays[id_prefix].context2d().strokeRect(
-                                viewer_point.x,
-                                viewer_point.y,
-                                (viewer_point_2.x - viewer_point.x),
-                                (viewer_point_2.y - viewer_point.y)
+                                viewer_point.x,// * container_size.x,
+                                viewer_point.y,// * container_size.y,
+                                (viewer_point_2.x - viewer_point.x),// * container_size.x,
+                                (viewer_point_2.y - viewer_point.y)// * container_size.y
                             );
+                            //}
+                            if (overlay_appearance["style"][key] == "fillRect") {
+                                overlays[id_prefix].context2d().fillRect(
+                                    viewer_point.x,// * container_size.x,
+                                    viewer_point.y,// * container_size.y,
+                                    (viewer_point_2.x - viewer_point.x),// * container_size.x,
+                                    (viewer_point_2.y - viewer_point.y)// * container_size.y
+                                );
+                            }
                         }
                     }
                 }
