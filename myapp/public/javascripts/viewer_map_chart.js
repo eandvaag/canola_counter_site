@@ -138,15 +138,21 @@ function draw_map_chart() {
             //let status = annotations[image_name]["status"];
 
             let color;
-            if (image_is_fully_annotated(annotations, image_name, image_width_px, image_height_px)) {
-                color = "#0080C0";
-                // if (include_annotated_map) {
-                //     let density = overlays["annotations"][image_name]["annotations"].length / metadata["images"][image_name]["area_m2"];
-                //     if (Math.ceil(density) > max_density) {
-                //         max_density = Math.ceil(density);
-                //     }
-                // }
+            // if (image_is_fully_annotated(annotations, image_name, image_width_px, image_height_px)) {
+            //     color = "#0080C0";
+            //     // if (include_annotated_map) {
+            //     //     let density = overlays["annotations"][image_name]["annotations"].length / metadata["images"][image_name]["area_m2"];
+            //     //     if (Math.ceil(density) > max_density) {
+            //     //         max_density = Math.ceil(density);
+            //     //     }
+            //     // }
 
+            // }
+            if (image_is_fully_annotated_for_training(annotations, image_name, image_width_px, image_height_px)) {
+                color = overlay_appearance["colors"]["training_region"];
+            }
+            else if (image_is_fully_annotated_for_testing(annotations, image_name, image_width_px, image_height_px)) {
+                color = overlay_appearance["colors"]["test_region"];
             }
             else {
                 color = "white";

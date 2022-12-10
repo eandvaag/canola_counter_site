@@ -22,15 +22,16 @@ global_disabled = false;
 
 function delete_request() {
 
-    show_modal_message(`Are you sure?`, `<div style="height: 30px">Are you sure you want to delete this image set?</div>` +
+    show_modal_message(`Are you sure?`, 
+        `<div style="height: 30px">Are you sure you want to delete this image set?</div>` +
         `<div style="height: 20px"></div>` +
         `<div id="modal_button_container" style="text-align: center">` +
-        `<button id="confirm_delete" class="x-button x-button-hover" `+
-        `style="width: 150px" onclick="confirmed_delete_request()">Delete</button>` +
-        `<div style="display: inline-block; width: 10px"></div>` +
-        `<button id="cancel_delete" class="std-button std-button-hover" ` +
-        `style="width: 150px" onclick="cancel_delete_request()">Cancel</button>` +
-        `<div style="height: 20px" id="loader_container"></div>` +
+            `<button id="confirm_delete" class="x-button x-button-hover" `+
+                                    `style="width: 150px" onclick="confirmed_delete_request()">Delete</button>` +
+            `<div style="display: inline-block; width: 10px"></div>` +
+            `<button id="cancel_delete" class="std-button std-button-hover" ` +
+                                    `style="width: 150px" onclick="cancel_delete_request()">Cancel</button>` +
+            `<div style="height: 20px" id="loader_container"></div>` +
         `</div>`
     );
 /*
@@ -256,7 +257,7 @@ function update_make_model() {
 
 function update_sensor() {
 
-    let inputs_to_check = ["sensor_width_input", "sensor_height_input", "focal_length_input"];
+    let inputs_to_check = ["sensor_width_input", "sensor_height_input", "focal_length_input", "image_width_px_input", "image_height_px_input"];
     for (let input of inputs_to_check) {
         let input_length = ($("#" + input).val()).length;
         if ((input_length < 1) || (input_length > 10)) {
@@ -270,7 +271,13 @@ function update_sensor() {
         if (input_val <= 0) {
             return false;
         }
+        if ((input === "image_width_px_input") || (input === "image_height_px_input")) {
+            if (!(Number.isInteger(input_val))) {
+                return false;
+            }
+        }
     }
+
     return true;
 }
 function delay(time) {
@@ -292,22 +299,20 @@ function edit_metadata(make, model) {
                   `Changing a camera's metadata will affect all of the image sets that have been assigned to that camera.</div>` +
                   `<div style="height: 20px"></div>`;
 
-    message = message + add_make_model_fields("160px");
-    message = message + add_sensor_fields("160px");
+    message = message + add_make_model_fields("200px");
+    message = message + add_sensor_fields("200px");
     
 
     let sensor_width = camera_specs[make][model]["sensor_width"];
     let sensor_height = camera_specs[make][model]["sensor_height"];
     let focal_length = camera_specs[make][model]["focal_length"];
+    let image_width_px = camera_specs[make][model]["image_width_px"];
+    let image_height_px = camera_specs[make][model]["image_height_px"];
     // let sensor_width = parseFloat(sensor_width_str.substring(0, sensor_width_str.length - 3));
     // let sensor_height = parseFloat(sensor_height_str.substring(0, sensor_height_str.length - 3));
     // let focal_length = parseFloat(focal_length_str.substring(0, focal_length_str.length - 3));
 
-    $("#make_input").val(make);
-    $("#model_input").val(model);
-    $("#sensor_width_input").val(sensor_width);
-    $("#sensor_height_input").val(sensor_height);
-    $("#focal_length_input").val(focal_length);
+
 
  
     message = message + `<div style="height: 20px"></div>` +
@@ -340,8 +345,25 @@ function edit_metadata(make, model) {
 
         
     
-    for (let input_id of ["make_input", "model_input", "sensor_width_input", "sensor_height_input", "focal_length_input"]) {
+
+
+    //disable_buttons(["camera_update_button"]);
+
+    //$("#result_modal").css("display", "block");
+
+    show_modal_message(`Edit Camera Metadata`, message);
+    //disable_buttons(["camera_update_button"]);
+    $("#make_input").val(make);
+    $("#model_input").val(model);
+    $("#sensor_width_input").val(sensor_width);
+    $("#sensor_height_input").val(sensor_height);
+    $("#focal_length_input").val(focal_length);
+    $("#image_width_px_input").val(image_width_px);
+    $("#image_height_px_input").val(image_height_px);
+
+    for (let input_id of ["make_input", "model_input", "sensor_width_input", "sensor_height_input", "focal_length_input", "image_width_px_input", "image_height_px_input"]) {
         $("#" + input_id).on("input", function(e) {
+            console.log("update input");
             if (update_make_model() && update_sensor()) {
                 enable_buttons(["camera_update_button"]);
             }
@@ -350,12 +372,6 @@ function edit_metadata(make, model) {
             }
         });
     }
-
-    //$("#result_modal").css("display", "block");
-
-    show_modal_message(`Edit Camera Metadata`, message);
-
-
 }
 
 function add_sensor_fields(left_col_width_px) {
@@ -393,6 +409,28 @@ function add_sensor_fields(left_col_width_px) {
                 `</div>` +
             `</td>` +
         `</tr>` +
+        `<tr>` +
+            `<td>` + 
+                `<div class="table_head" style="width: ${left_col_width_px}; padding-right: 10px">Raw Image Width (pixels)</div>` +
+            `</td>` +
+            `<td>` +
+                `<div style="width: 250px">` +
+                    `<input id="image_width_px_input" class="nonfixed_input">` +
+                `</div>` +
+            `</td>` +
+        `</tr>` +
+        `<tr>` +
+            `<td>` + 
+                `<div class="table_head" style="width: ${left_col_width_px}; padding-right: 10px">Raw Image Height (pixels)</div>` +
+            `</td>` +
+            `<td>` +
+                `<div style="width: 250px">` +
+                    `<input id="image_height_px_input" class="nonfixed_input">` +
+                `</div>` +
+            `</td>` +
+        `</tr>` +
+
+
         `</table>`;
     //);
     return message;
@@ -414,7 +452,7 @@ function add_sensor_metadata(make, model) {
     message = message + `<div style="height: 20px"></div>`;
 
 
-    message = message + add_sensor_fields("160px");
+    message = message + add_sensor_fields("200px");
 
     message = message + `<div style="height: 20px"></div>`;
 
@@ -438,7 +476,15 @@ function add_sensor_metadata(make, model) {
         `</tr></table>`);*/
 
     
-    for (let input_id of ["sensor_width_input", "sensor_height_input", "focal_length_input"]) {
+
+
+
+
+    //$("#result_modal").css("display", "block");
+    show_modal_message(`Add Camera Metadata`, message);
+    disable_buttons(["camera_add_button"]);
+
+    for (let input_id of ["sensor_width_input", "sensor_height_input", "focal_length_input", "image_width_px_input", "image_height_px_input"]) {
         $("#" + input_id).on("input", function(e) {
             if (update_sensor()) {
                 enable_buttons(["camera_add_button"]);
@@ -448,12 +494,6 @@ function add_sensor_metadata(make, model) {
             }
         });
     }
-    disable_buttons(["camera_add_button"]);
-
-
-    //$("#result_modal").css("display", "block");
-    show_modal_message(`Add Camera Metadata`, message);
-
 }
 
 function add_make_model_fields(left_col_width_px) {
@@ -512,6 +552,13 @@ function add_make_model_metadata() {
         `</tr></table>`);*/
 
 
+
+
+
+
+    //$("#result_modal").css("display", "block");
+    show_modal_message(`Add Camera Metadata`, message);
+    disable_buttons(["camera_search_button"]);
     for (let input of ["make_input", "model_input"]) {
         $("#" + input).on("input", function(e) {
             if (update_make_model()) {
@@ -522,12 +569,6 @@ function add_make_model_metadata() {
             }
         });
     }
-
-    disable_buttons(["camera_search_button"]);
-
-    //$("#result_modal").css("display", "block");
-    show_modal_message(`Add Camera Metadata`, message);
-
 }
 
 
@@ -544,6 +585,8 @@ function add_camera(make, model) {
     let sensor_width = $("#sensor_width_input").val();
     let sensor_height = $("#sensor_height_input").val();
     let focal_length = $("#focal_length_input").val();
+    let image_width_px = $("#image_width_px_input").val();
+    let image_height_px = $("#image_height_px_input").val();
 
     let farm_name = $("#farm_combo").val();
     let field_name = $("#field_combo").val();
@@ -557,6 +600,8 @@ function add_camera(make, model) {
         sensor_width: sensor_width,
         sensor_height: sensor_height,
         focal_length: focal_length,
+        image_width_px: image_width_px,
+        image_height_px: image_height_px,
         farm_name: farm_name,
         field_name: field_name,
         mission_date: mission_date
@@ -589,13 +634,15 @@ function search_for_camera() {
 
     if (make in camera_specs && model in camera_specs[make]) {
 
-        let sensor_width_str = camera_specs[make][model]["sensor_width"];
-        let sensor_height_str = camera_specs[make][model]["sensor_height"];
-        let focal_length_str = camera_specs[make][model]["focal_length"];
+        let sensor_width = camera_specs[make][model]["sensor_width"];
+        let sensor_height = camera_specs[make][model]["sensor_height"];
+        let focal_length = camera_specs[make][model]["focal_length"];
+        let image_width_px = camera_specs[make][model]["image_width_px"];
+        let image_height_px = camera_specs[make][model]["image_height_px"];
 
-        let sensor_width = parseFloat(sensor_width_str.substring(0, sensor_width_str.length - 3));
-        let sensor_height = parseFloat(sensor_height_str.substring(0, sensor_height_str.length - 3));
-        let focal_length = parseFloat(focal_length_str.substring(0, focal_length_str.length - 3));
+        // let sensor_width = parseFloat(sensor_width_str.substring(0, sensor_width_str.length - 3));
+        // let sensor_height = parseFloat(sensor_height_str.substring(0, sensor_height_str.length - 3));
+        // let focal_length = parseFloat(focal_length_str.substring(0, focal_length_str.length - 3));
 
         let farm_name = $("#farm_combo").val();
         let field_name = $("#field_combo").val();
@@ -609,6 +656,8 @@ function search_for_camera() {
             sensor_width: sensor_width,
             sensor_height: sensor_height,
             focal_length: focal_length,
+            image_width_px: image_width_px,
+            image_height_px: image_height_px,
             farm_name: farm_name,
             field_name: field_name,
             mission_date: mission_date
@@ -657,9 +706,10 @@ function submit_camera_height_change() {
         }
         else {
             metadata["camera_height"] = proposed_camera_height;
-            $("#update_camera_height_input").val(proposed_camera_height).trigger("input");
+            $("#update_camera_height_input").val(metadata["camera_height"]);
+            disable_std_buttons(["update_camera_height_button"]);
+            show_modal_message(`Success`, `The camera height has been successfully updated.`);
         }
-        //proposed_camera_height);
     });
 }
 
@@ -706,7 +756,7 @@ function show_overview() {
                 //`<div style="height: 70px"></div>` +
                 `<table id="right_table">` +
                     `<tr style="height: 70px"></tr>` +
-                    `<tr id="top_row" style="height: 160px">` +
+                    `<tr id="top_row" style="height: 130px">` +
                         `<td id="top_left" style="vertical-align: top;"></td>` +
                         `<td id="top_right" style="vertical-align: top"></td>` +
                     `</tr>` +
@@ -732,7 +782,7 @@ function show_overview() {
                 is_georeferenced = "Yes";
             }
             $("#top_right").append(`<div style="text-decoration: underline; font-weight: bold;">Image Set Metadata</div><br>`);
-            $("#top_right").append(`<table class="transparent_table" id="image_set_metadata_table"></table>`);
+            $("#top_right").append(`<table id="image_set_metadata_table"></table>`);
         
             // $("#image_set_metadata_table").append(`<tr>` +
             //         `<td><div class="table_head" style="width: ${label_width};">Camera Height</div></td>` +
@@ -756,7 +806,7 @@ function show_overview() {
             $("#image_set_metadata_table").append(`<tr>` +
                     `<td><div class="table_head" style="width: ${label_width};">Camera Height (m)</div></td>` +
                     `<td><input id="update_camera_height_input" class="nonfixed_input" style="width: 80px" value="${camera_height}">` 
-                    +`<button id="update_camera_height_button" class="std-button std-button-hover" style="width: 80px; font-size: 16px">Update</button></td>` +
+                    +`<button id="update_camera_height_button" class="std-button std-button-hover" style="width: 75px; padding: 2px; font-size: 14px; margin-left: 8px">Update</button></td>` +
                     `</tr>`);
         
             disable_std_buttons(["update_camera_height_button"]);
@@ -765,11 +815,15 @@ function show_overview() {
             $("#update_camera_height_input").on("input", function(e) {
         
                 let new_camera_height = $("#update_camera_height_input").val();
+                //console.log("new camera height", new_camera_height);
+                //console.log("isNumeric", isNumeric(new_camera_height));
                 if (new_camera_height.length == 0) {
+                    //console.log("DISABLE! (0)")
                     enable_std_buttons(["update_camera_height_button"]);
                     proposed_camera_height = new_camera_height;
                 }
                 else if (!(isNumeric(new_camera_height))) {
+                    //console.log("DISABLE! (1)");
                     disable_std_buttons(["update_camera_height_button"]);
                 }
                 else {
@@ -777,7 +831,7 @@ function show_overview() {
                     if (new_camera_height_val < 0.01 || new_camera_height_val > 1000) {
                         disable_std_buttons(["update_camera_height_button"]);
                     }
-                    else if (new_camera_height_val == metadata["camera_height"]) {
+                    else if (new_camera_height_val === "" || new_camera_height_val === metadata["camera_height"]) {
                         disable_std_buttons(["update_camera_height_button"]);
                     }
                     else {
@@ -796,7 +850,15 @@ function show_overview() {
                 }
                 else {
                     //proposed_camera_height = $("#update_camera_height_input").val();
-                    $("#update_camera_height_input").val(metadata["camera_height"]).trigger("input");
+                    $("#update_camera_height_input").val(metadata["camera_height"]);
+                    disable_std_buttons(["update_camera_height_button"]);
+                    // if (metadata["camera_height"] == "") {
+                    //     $("#update_camera_height_input").val("");
+                    //     disable_std_buttons(["update_camera_height_button"]);
+                    // }
+                    // else {
+                    //     $("#update_camera_height_input").val(metadata["camera_height"]).trigger("input");
+                    // }
                 }
             });
                     
@@ -845,7 +907,9 @@ function show_overview() {
         
                     let sensor_height = camera_specs[make][model]["sensor_height"].toString();
                     let sensor_width = camera_specs[make][model]["sensor_width"].toString();
-                    let focal_length = camera_specs[make][model]["focal_length"].toString() ;
+                    let focal_length = camera_specs[make][model]["focal_length"].toString();
+                    let image_width_px = camera_specs[make][model]["image_width_px"].toString();
+                    let image_height_px = camera_specs[make][model]["image_height_px"].toString();
         
                     $("#camera_specs_table").append(`<tr>` +
                             `<td><div class="table_head" style="width: ${label_width};">Sensor Width (mm)</div></td>` +
@@ -858,6 +922,14 @@ function show_overview() {
                     $("#camera_specs_table").append(`<tr>` +
                             `<td><div class="table_head" style="width: ${label_width};">Focal Length (mm)</div></td>` +
                             `<td><div class="table_text" style="width: ${value_width};">${focal_length}</div></td>` +
+                            `</tr>`);
+                    $("#camera_specs_table").append(`<tr>` +
+                            `<td><div class="table_head" style="width: ${label_width};">Raw Image Width (pixels)</div></td>` +
+                            `<td><div class="table_text" style="width: ${value_width};">${image_width_px}</div></td>` +
+                            `</tr>`);
+                    $("#camera_specs_table").append(`<tr>` +
+                            `<td><div class="table_head" style="width: ${label_width};">Raw Image Height (pixels)</div></td>` +
+                            `<td><div class="table_text" style="width: ${value_width};">${image_height_px}</div></td>` +
                             `</tr>`);
         
                     $("#bottom_right").append(`<table class="transparent_table" id="missing_specs_table"></table>`);
@@ -1236,13 +1308,23 @@ function create_result_entry(result) {
     if (completed) {
         $("#completed_results_table").append(template);
 
+        let farm_name = $("#farm_combo").val();
+        let field_name = $("#field_combo").val();
+        let mission_date = $("#mission_combo").val();
+
+        let href = get_CC_PATH() + "/viewer/" + username + "/" +
+                           farm_name + "/" + field_name + "/" + mission_date + "/" + result["request_uuid"];
+
         $("#" + main_result_container_id).append(
-            `<button class="std-button std-button-hover" style="font-size: 16px; width: 190px; height: 50px; border-radius: 100px" ` +
-                `onclick="view_result('${result["request_uuid"]}')">`+
-                `<span>` +
-                    `<i class="fa-regular fa-eye" style="margin-right:8px"></i>View Result` +
-                `</span>` +
-            `</button>`
+            `<a href="${href}">` +
+                `<button class="std-button std-button-hover" style="font-size: 16px; width: 190px; height: 50px; border-radius: 100px">` + //`onclick="view_result('${result["request_uuid"]}')">`+
+                    //`<div style="margin: auto">` +
+                    `<span>` +
+                        `<i class="fa-regular fa-eye" style="margin-right:8px"></i>View Result` +
+                    `</span>` +
+                    //`</div>` +
+                `</button>` +
+            `</a>`
         );
         $("#" + destroy_button_container_id).append(
             `<button class="x-button x-button-hover" style="width: 160px; font-size: 14px; padding: 3px;" ` +
@@ -1288,7 +1370,7 @@ function show_results(results) {
     viewing["browse"] = "results";
 
 
-    console.log(results.completed_results);
+    //console.log(results.completed_results);
     let completed_results = results.completed_results.sort(function(a, b) {
         return b["start_time"] - a["start_time"];
     });
@@ -1495,26 +1577,26 @@ function show_results(results) {
 
 }
 
-function view_timeline() {
-    let farm_name = $("#farm_combo").val();
-    let field_name = $("#field_combo").val();
-    let mission_date = $("#mission_combo").val();
+// function view_timeline() {
+//     let farm_name = $("#farm_combo").val();
+//     let field_name = $("#field_combo").val();
+//     let mission_date = $("#mission_combo").val();
 
-    window.location.href = get_CC_PATH() + "/timeline/" + username + "/" +
-                            farm_name + "/" + field_name + "/" + mission_date
-}
+//     window.location.href = get_CC_PATH() + "/timeline/" + username + "/" +
+//                             farm_name + "/" + field_name + "/" + mission_date
+// }
 
-function view_result(result_uuid) {
-    console.log("result_uuid is", result_uuid, typeof(result_uuid));
+// function view_result(result_uuid) {
+//     console.log("result_uuid is", result_uuid, typeof(result_uuid));
     
-    let farm_name = $("#farm_combo").val();
-    let field_name = $("#field_combo").val();
-    let mission_date = $("#mission_combo").val();
+//     let farm_name = $("#farm_combo").val();
+//     let field_name = $("#field_combo").val();
+//     let mission_date = $("#mission_combo").val();
 
-    window.location.href = get_CC_PATH() + "/viewer/" + username + "/" +
-                           farm_name + "/" + field_name + "/" + mission_date + "/" + result_uuid;
+//     window.location.href = get_CC_PATH() + "/viewer/" + username + "/" +
+//                            farm_name + "/" + field_name + "/" + mission_date + "/" + result_uuid;
 
-}
+// }
 
 function show_image_set_details() {
 

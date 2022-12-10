@@ -90,7 +90,15 @@ function evaluate_scores(bins, scores) {
             
             bin_i_prob = bins[i].length / scores.length;
             bin_i_score = score_thresholds[i];
-            quality_score = quality_score + (bin_i_prob * (bin_i_score * bin_i_score));
+            //quality_score = quality_score + (bin_i_prob) * (bin_i_score * bin_i_score); // * bin_i_score));
+            // if (bin_i_score > 0.5) {
+            //     quality_score = quality_score + bin_i_prob * (Math.pow(2, 8) * Math.pow((bin_i_score - 0.5), 8));
+            // }
+
+
+            quality_score += bin_i_prob * (1 / (1 + Math.pow(Math.E, -30 * (bin_i_score - 0.80))));
+            //quality_score = quality_score + (bin_i_prob * Math.pow(2, (10 * (bin_i_score-1))));
+            
         }
 
         //quality_score = range_map(quality_score, 0.25, 1.0, 0.0, 1.0);
@@ -163,7 +171,8 @@ function draw_score_chart() {
     let scores = score_chart_data[cur_img_name]["scores"];
 
     let ret = evaluate_scores(bins, scores);
-    let quality_score =  Math.round((ret[0] + Number.EPSILON) * 100);
+    let quality_score = Math.round((ret[0] + Number.EPSILON) * 100); //(Math.ceil(ret[0] * 100) / 100).toFixed(2); 
+    //Math.round((ret[0] + Number.EPSILON) * 100);
     let certainty = ret[1];
 
     $("#quality_score").html(quality_score + "% (" + certainty + " Certainty)");
@@ -212,7 +221,7 @@ function draw_score_chart() {
                 return height - y_trans;
             })
             //    return height - (score_yScale(d.length / scores.length)); })
-            .style("fill", overlay_appearance["colors"]["prediction"])  //function(d){ if(d.x0<140){return "orange"} else {return "#69b3a2"}})
+            .style("fill", overlay_appearance["colors"]["prediction"]);  //function(d){ if(d.x0<140){return "orange"} else {return "#69b3a2"}})
             // .attr("stroke", "white")
             // .attr("stroke-width", "0.5");
     

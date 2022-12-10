@@ -1,7 +1,5 @@
 
 
-// import { bilinearInterpolation } from "simple-bilinear-interpolation";
-
 //let update_time = 0;
 
 let image_set_info;
@@ -27,8 +25,8 @@ let ask_to_continue_handle;
 let cur_update_num = -1;
 //let pending_predictions;
  // = {};
-let map_download_uuid = "";
 // let metrics = {};
+let show_bookmarks = true;
 
 let cur_panel;
 let cur_bounds = null;
@@ -66,23 +64,7 @@ let annotations_dropzone;
 let voronoi_data = {};
 
 
-let format_sample_text = 
-'{\n' + 
-'    "image_1": {\n' +
-'        "annotations": [\n' +
-'            [2, 4, 10, 9],\n' +
-'            ...\n' +
-'        ],\n' +
-'        "fine_tuning_regions": [\n' +
-'            [0, 1, 7, 9],\n' +
-'            ...\n' +
-'        ],\n' +
-'        "test_regions": [\n' +
-'            [11, 14, 23, 25],\n' +
-'            ...\n' +
-'        ],\n' +
-'    "image_2": [\n' +
-'        ...';
+
 
 
 // let overlay_colors = [
@@ -288,7 +270,7 @@ let keydown_handler = async function(e) {
 function change_image(cur_nav_item) {
 
     //let region_text;
-    let navigation_type = $("#navigation_dropdown").val();
+    
     // if (navigation_type === "images") {
     //     cur_img_name = cur_nav_item;
     //     cur_region_index = -1;
@@ -300,6 +282,7 @@ function change_image(cur_nav_item) {
     //     cur_region_index = parseInt(pieces[1]);
     //     region_text = pieces[1];
     // }
+    //console.log("cur_nav_item", cur_nav_item);
 
     document.getElementById(cur_nav_item + "_row").scrollIntoView({behavior: "smooth"});
     
@@ -329,24 +312,7 @@ function change_image(cur_nav_item) {
     $("#image_name").text(cur_img_name);
     //$("#region_name").text(region_text);
 
-    $("#region_name").empty();
-    if (navigation_type === "training_regions" || navigation_type === "test_regions") {
-
-        let disp_region_index = cur_region_index + 1;
-        let region_color;
-        if (navigation_type === "training_regions") {
-            region_color = overlay_appearance["colors"]["training_region"];
-        }
-        else {
-            region_color = overlay_appearance["colors"]["test_region"];
-        }
-
-        $("#region_name").append(
-            `<div style="width: 75px; background-color: ${region_color}; margin: 0px 2px; color: black; border: none" class="object_entry">` +
-            `Region ` + disp_region_index +
-            `</div>`
-        );
-    }
+    update_region_name();
     update_count_combo(false);
 
     //if (cur_img_name in predictions) {
@@ -858,21 +824,29 @@ function create_anno() {
         //     }
         // }
         else if ((cur_edit_layer === "training_region") || (cur_edit_layer === "test_region")) {
-            loop1:
-            for (let region_key of ["training_regions", "test_regions"]) {
-                for (let i = 0; i < annotations[cur_img_name][region_key].length; i++) {
-                    if (box_intersects_region(box, annotations[cur_img_name][region_key][i])) {
+
+                loop1:
+                for (let region_key of ["training_regions", "test_regions"]) {
+                    
+                    if (annotations[cur_img_name][region_key].length >= 99) {
                         illegal_intersection = true;
-                        break loop1;
+                    }
+
+                    for (let i = 0; i < annotations[cur_img_name][region_key].length; i++) {
+                        if (box_intersects_region(box, annotations[cur_img_name][region_key][i])) {
+                            illegal_intersection = true;
+                            break loop1;
+                        }
                     }
                 }
-            }
         }
         if (!(illegal_intersection)) {
             sel_box_array.push(box);
             update_navigation_dropdown();
             if (cur_edit_layer === "training_region") {
                 locked_training_regions[cur_img_name].push(false);
+                update_region_name();
+                create_navigation_table();
             }
             else if (cur_edit_layer === "annotation") {
                 if (annotations[cur_img_name]["source"] === "NA") {
@@ -887,6 +861,10 @@ function create_anno() {
                 if (cur_img_name in voronoi_data && "annotation" in voronoi_data[cur_img_name]) {
                     delete voronoi_data[cur_img_name]["annotation"];
                 }
+            }
+            else {
+                update_region_name();
+                create_navigation_table();
             }
             
 
@@ -2156,7 +2134,11 @@ function create_viewer(viewer_id) {
     });
 }
 
-
+// function function1(callback) {
+//     show_modal_message("Confidence Distributions",
+//     `<div id="ridgeline_loader" class="loader"></div>`)
+//     callback();
+// }
 
 
   
@@ -2173,8 +2155,7 @@ function build_map() {
     $.post($(location).attr('href'),
     {
         action: "build_map",
-        interpolation: sel_interpolation,
-        map_download_uuid: map_download_uuid
+        interpolation: sel_interpolation
     },
     
     function(response, status) {
@@ -2187,14 +2168,14 @@ function build_map() {
             // draw_map_chart();
         }
         else {
-            map_download_uuid = response.map_download_uuid;
 
             let timestamp = new Date().getTime();   
             
             let base = get_CC_PATH() + "/usr/data/" + username + "/image_sets/" + image_set_info["farm_name"] + "/" + 
-                    image_set_info["field_name"] + "/" + image_set_info["mission_date"] + "/maps/" + map_download_uuid;
+                    image_set_info["field_name"] + "/" + image_set_info["mission_date"] + "/maps/" + sel_interpolation;
 
-            map_url = base + "_annotated_map.svg?t=" + timestamp;
+            //map_url = base + "_annotated_map.svg?t=" + timestamp;
+            map_url = base + "_predicted_map.svg?t=" + timestamp;
 
 
 
@@ -2227,24 +2208,36 @@ function show_map() {
     $("#image_view_container").hide();
     $("#map_view_container").show();
 
+    let map_can_be_built = (Object.keys(predictions).length == Object.keys(annotations).length);
+    // if (Object.keys(predictions).length == Object.keys(annotations).length) {
+    //     if (metadata["is_ortho"] === "yes") {
+    //         map_can_be_built = true;
+    //     }
+    //     else {
+    //         if (Object.keys(annotations).length >= 3) {
+    //             map_can_be_built = true;
+    //         }
+    //     }
+    // }
 
-    let num_completed = 0;
-    for (let image_name of Object.keys(annotations)) {
 
-        let image_width_px = metadata["images"][image_name]["width_px"];
-        let image_height_px = metadata["images"][image_name]["height_px"];
+    // let num_completed = 0;
+    // for (let image_name of Object.keys(annotations)) {
 
-        if (image_is_fully_annotated(annotations, image_name, image_width_px, image_height_px)) {
-            num_completed++;
-        }
+    //     let image_width_px = metadata["images"][image_name]["width_px"];
+    //     let image_height_px = metadata["images"][image_name]["height_px"];
+
+    //     if (image_is_fully_annotated(annotations, image_name, image_width_px, image_height_px)) {
+    //         num_completed++;
+    //     }
         
-        // if (annotations[image_name]["status"] == "completed_for_training" ||
-        //     annotations[image_name]["status"] == "completed_for_testing") {
-        //     num_completed++;
-        // }
-    }
+    //     // if (annotations[image_name]["status"] == "completed_for_training" ||
+    //     //     annotations[image_name]["status"] == "completed_for_testing") {
+    //     //     num_completed++;
+    //     // }
+    // }
 
-    if (num_completed >= 3) {
+    if (map_can_be_built) {
         $("#insufficient_annotation_container").hide();
         $("#map_builder_controls_container").show();
     }
@@ -3398,7 +3391,7 @@ function update_results_name_input() {
     let inputs_to_check = ["results_name_input"];
     for (let input of inputs_to_check) {
         let input_length = ($("#" + input).val()).length;
-        if ((input_length < 1) || (input_length > 20)) {
+        if ((input_length < 1) || (input_length > 50)) {
             return false;
         }
 
@@ -3431,7 +3424,7 @@ function submit_prediction_request(image_names_str, regions_str) {
 
 
     let left_col_width_px = "160px";
-    show_modal_message("Confirm Request", 
+    show_modal_message("Submit Result Request", 
         `<div>Please confirm your request.` +
         ` Upon completion, your results will be preserved under this image set's` +
         ` <em>Results</em> tab (accessible from the home page).</div>` +
@@ -4325,7 +4318,12 @@ function show_models(show_public_models) {
                             `</td>` +
 
                             `<td>` +
-                                `<table id="navigate_table">` + 
+                                `<table>` + 
+                                    // `<tr>` +
+                                    //     `<td>` +
+                                    //         `<button class="std-button std-button-hover">Auto-Select Model</button>` +
+                                    //     `</td>` +
+                                    // `</tr>` +
                                     `<tr>` +
                                         `<td>` +
                                             `<h class="header2" style="width: 150px; padding-left: 10px">Filter</h>` +
@@ -4520,6 +4518,9 @@ function show_models(show_public_models) {
                 create_models_selection_table();
 
 
+                $("#modal").css("display", "block");
+
+
 
                 /*
                 table 
@@ -4595,43 +4596,67 @@ function show_models(show_public_models) {
             }
 
             $("#submit_model_change").click(function() {
+
+                
                 let new_model_name = switch_model_data["selected_model"]["model_name"];
                 let new_model_creator = switch_model_data["selected_model"]["model_creator"];
+                switch_model(new_model_creator, new_model_name);
 
-                $.post($(location).attr("href"),
-                {
-                    action: "switch_model",
-                    model_name: new_model_name,
-                    model_creator: new_model_creator
-                },
-                function(response, status) {
-
-                    if (response.error) {
-                        show_modal_message(`Error`, response.message);
-                    }
-                    else {
-                        waiting_for_model_switch = true;
-                        //num_training_images = 0;
-                        show_modal_message(`Please Wait`, 
-                        `<div id="switch_anno_message">Switching models...</div><div id="switch_anno_loader" class="loader"></div>`);
-                        $("#modal_close").hide();
-                        /*
-                        $("#modal_close").hide();
-                        $("#model_name").html(new_model_name);
-                        $("#model_fully_trained").html("Yes");
-                        $("#model_fine_tuned").html("No");
-                        $("#train_block_text").html("No");
-                        $("#train_block_switch").prop('disabled', false);
-                        $("#train_block_label").css("opacity", 1);
-                        $("#train_block_slider").css("cursor", "pointer");
-                        $("#train_block_switch").prop("checked", false);*/
-
-                        //close_modal();
-                    }
-                });
             });
         }
     });
+}
+
+function auto_select_model() {
+    show_modal_message(`Model Auto-Select`,
+    `<div>Auto-selection relies on annotations to pick the best model for the image set.` +
+    ` A minimum of 10 annotations is required. More annotations will improve the system's ability to select the best model.</div>` +
+    `<div style="height: 20px"></div>` +
+    `<div id="modal_button_container" style="text-align: center">` +
+        `<button class="std-button std-button-hover" `+
+            `style="width: 150px" onclick="confirmed_auto_select_model()">Continue</button>` +
+        `<div style="display: inline-block; width: 10px"></div>` +
+        `<button class="std-button std-button-hover" ` +
+                                `style="width: 150px" onclick="close_modal()">Cancel</button>` +
+    `</div>`
+    );
+}
+function confirmed_auto_select_model() {
+    let num_annotations = 0;
+    for (let image_name of Object.keys(annotations)) {
+        num_annotations += annotations[image_name]["boxes"].length;
+    }
+    if (num_annotations < 10) {
+        show_modal_message(`Error`, `A minimum of 10 objects must be annotated before auto-selection can be performed.`);
+    }
+    else {
+
+        $.post($(location).attr('href'),
+        {
+            action: "auto_select_model",
+            annotations: JSON.stringify(annotations),
+            //excess_green_record: JSON.stringify(excess_green_record),
+            is_public: metadata["is_public"],
+            //train_num_increased: train_num_increased ? "True" : "False"
+            //num_training_regions_increased: new_training_regions > 0 ? "yes" : "no",
+            object_name: metadata["object_name"]
+        },
+        
+        function(response, status) {
+            
+            if (response.error) {
+                //create_image_set_table();
+                show_modal_message("Error", "An error while submitting the auto-select request: " + response.message);
+            }
+            else {
+                close_modal();
+
+            //     show_modal_message("Submitted", "Your auto-select request was successfully submitted.");
+            }
+
+        });
+    }
+
 }
 
 function change_model() {
@@ -4661,7 +4686,7 @@ function change_model() {
             `</div>` +
         `</div>`
 
-    , modal_width=1200);
+    , modal_width=1200, display=false);
 
     show_models(false);
 }
@@ -4777,6 +4802,42 @@ function add_prediction_buttons() {
 
 }
 
+
+function switch_model(model_creator, model_name) {
+
+    $.post($(location).attr("href"),
+    {
+        action: "switch_model",
+        model_name: model_name,
+        model_creator: model_creator
+    },
+    function(response, status) {
+
+        if (response.error) {
+            show_modal_message(`Error`, response.message);
+        }
+        else {
+            waiting_for_model_switch = true;
+            //num_training_images = 0;
+            show_modal_message(`Please Wait`, 
+            `<div id="switch_anno_message">Switching models...</div><div id="switch_anno_loader" class="loader"></div>`);
+            $("#modal_close").hide();
+            /*
+            $("#modal_close").hide();
+            $("#model_name").html(new_model_name);
+            $("#model_fully_trained").html("Yes");
+            $("#model_fine_tuned").html("No");
+            $("#train_block_text").html("No");
+            $("#train_block_switch").prop('disabled', false);
+            $("#train_block_label").css("opacity", 1);
+            $("#train_block_slider").css("cursor", "pointer");
+            $("#train_block_switch").prop("checked", false);*/
+
+            //close_modal();
+        }
+    });
+}
+
 $(document).ready(function() {
     //window.setInterval(refresh, 90000); // 1.5 minutes
     ask_to_continue_handle = window.setTimeout(ask_to_continue, 7200000); // 2 hours
@@ -4848,6 +4909,9 @@ $(document).ready(function() {
     cur_panel = "annotation";
 
 
+    if (metadata["is_ortho"] === "yes") {
+        $("#apply_threshold_to_all_button").hide();
+    }
 
     
     //create_viewer("seadragon_viewer");
@@ -4923,6 +4987,13 @@ $(document).ready(function() {
 
     socket.on("image_set_status_change", function(update) {
 
+        if (update["auto_select_request"] === "True") {
+            disable_std_buttons(["auto_select_button"]);
+        }
+        else {
+            enable_std_buttons(["auto_select_button"]);
+        }
+
         if (update["switch_request"] === "True") {
             waiting_for_model_switch = true;
 
@@ -4932,6 +5003,7 @@ $(document).ready(function() {
         }
         else if (waiting_for_model_switch) {
             waiting_for_model_switch = false;
+            //enable_std_buttons(["auto_select_button"]);
             //if (metadata["is_ortho"] === "yes") {
                 //num_training_regions = 0;
             for (let image_name of Object.keys(annotations)) {
@@ -5070,6 +5142,7 @@ $(document).ready(function() {
     });
 
     socket.on("scheduler_status_change", function(update) {
+        //console.log("update", update);
 
         let update_timestamp = parseInt(update["timestamp"]);
         let update_num = parseInt(update["update_num"]);
@@ -5082,10 +5155,11 @@ $(document).ready(function() {
             let update_field_name = update["field_name"];
             let update_mission_date = update["mission_date"];
             let date = timestamp_to_date(update_timestamp);
-            let display_statuses = ["Fine-Tuning", "Predicting", "Collecting Metrics", "Switching Model", "Idle", "Training"];
+            let display_statuses = ["Fine-Tuning", "Predicting", "Collecting Metrics", "Switching Models", "Selecting Model", "Idle", "Training"];
             let update_is_for_this_set = ((update_username === username && update_farm_name === image_set_info["farm_name"]) &&
             (update_field_name === image_set_info["field_name"] && update_mission_date === image_set_info["mission_date"]));
 
+            //console.log("status", status);
             if (display_statuses.includes(status)) {
                 //$("#backend_status").empty();
                 if (status === "Predicting") {
@@ -5139,11 +5213,10 @@ $(document).ready(function() {
                     else if (update["error_setting"] === "training") {
                         error_message = error_message + `<br><br>The model will be prevented from training until the error is resolved. Please contact the site administrator.`;
                     }
-
                     show_modal_message("Error", error_message);
 
                 }
-                if ("prediction_image_names" in update) {
+                else if ("prediction_image_names" in update) {
 
                     /*
                     let prediction_image_names = update["prediction_image_names"].split(",");
@@ -5183,8 +5256,8 @@ $(document).ready(function() {
                                     annotation["body"].push({"value": "COLOR_1", "purpose": "highlighting"});
                                 }*/
 
-                                if (cur_img_name in voronoi_data && "prediction" in voronoi_data[cur_img_name]) {
-                                    delete voronoi_data[cur_img_name]["prediction"];
+                                if (prediction_image_name in voronoi_data && "prediction" in voronoi_data[prediction_image_name]) {
+                                    delete voronoi_data[prediction_image_name]["prediction"];
                                 }
                             }
 
@@ -5207,7 +5280,68 @@ $(document).ready(function() {
                     });
                     
                 }
+
+                // else if (status === "Selecting Model") {
+                //     disable_std_buttons(["auto_select_button"]);
+
+                // }
+
+                else if (status === "Finished Selecting Model") {
+                    // enable_std_buttons(["auto_select_button"]);
+                    let model_creator = update["model_creator"];
+                    let model_name = update["model_name"];
+                    let server_message = update["message"];
+                    show_modal_message("Finished Auto-Selecting Model",
+                    `<div>` +
+                        `<div>The following model has been auto-selected:</div>` +
+                        `<div style="height: 10px"></div>` +
+                        `<table style="border: 1px solid white; border-radius: 10px">` +
+                            `<tr>` +
+                                `<td>` + 
+                                    `<div class="header2" style="font-size: 14px; width: 100px; text-align: right">Model Creator</div>` +
+                                `</td>` +
+                                `<td>` +
+                                    `<div style="font-size: 14px; width: 200px; text-align: left; margin-left: 10px">${model_creator}</div>` +
+                                `</td>` +
+                            `</tr>` +
+                            `<tr>` +
+                                `<td>` + 
+                                    `<div class="header2" style="font-size: 14px; width: 100px; text-align: right">Model Name</div>` +
+                                `</td>` +
+                                `<td>` +
+                                    `<div style="font-size: 14px; width: 200px; text-align: left; margin-left: 10px">${model_name}</div>` +
+                                `</td>` +
+                            `</tr>` +
+                        `</table>` +
+                        `<div style="height: 20px"></div>` +
+                        `<div style="border: 1px solid white; width: 95%; margin: 0 auto; padding: 2px 8px; border-radius: 10px">` +
+                            `<table>` +
+                                `<tr>` +
+                                    `<td>` +
+                                        `<div class="header2" style="font-size: 14px; width: 120px">Server Message:</div>` +
+                                    `</td>` +
+                                    `<td>` +
+                                        `<div style="font-size: 14px; margin-left: 10px">${server_message}</div>` +
+                                    `</td>` +
+                                `</tr>` +
+                            `</table>` +
+                        `</div>` +
+                        `<div style="height: 20px"></div>` +
+                        `<div id="modal_button_container" style="text-align: center">` +
+                            `<button class="std-button std-button-hover" `+
+                                    `style="width: 240px" onclick="switch_model('${model_creator}', '${model_name}')">Switch to Selected Model</button>` +
+                            `<div style="display: inline-block; width: 10px"></div>` +
+                            `<button class="std-button std-button-hover" ` +
+                                    `style="width: 150px" onclick="close_modal()">Cancel</button>` +
+                        `</div>` +
+
+
+                    `</div>`
+
+                    );
+                }
             }
+
 
 
 
@@ -5269,18 +5403,20 @@ $(document).ready(function() {
 
     //show_image();
     if (can_calculate_density(metadata, camera_specs)) {
+        if (metadata["is_ortho"] === "yes" || Object.keys(annotations).length >= 3) {
 
-        $("#view_button_container").show();
+            $("#view_button_container").show();
 
 
-        $("#view_button").click(function() {
-            if (cur_view == "image") {
-                show_map();
-            }
-            else {
-                show_image(cur_img_name);
-            }
-        });
+            $("#view_button").click(function() {
+                if (cur_view == "image") {
+                    show_map();
+                }
+                else {
+                    show_image(cur_img_name);
+                }
+            });
+        }
     }
     
     show_image(cur_img_name);
@@ -5612,62 +5748,62 @@ $(document).ready(function() {
     });
 
 
-    $("#suggest_image_button").click(function() {
+    // $("#suggest_image_button").click(function() {
 
-        let candidates = [];
-        for (let image_name of Object.keys(annotations)) {
-            let image_width_px = metadata["images"][image_name]["width_px"];
-            let image_height_px = metadata["images"][image_name]["height_px"];
+    //     let candidates = [];
+    //     for (let image_name of Object.keys(annotations)) {
+    //         let image_width_px = metadata["images"][image_name]["width_px"];
+    //         let image_height_px = metadata["images"][image_name]["height_px"];
 
-            let fully_annotated_for_training = image_is_fully_annotated_for_training(annotations, image_name, image_width_px, image_height_px);
-            //let status = annotations[image_name]["status"];
+    //         let fully_annotated_for_training = image_is_fully_annotated_for_training(annotations, image_name, image_width_px, image_height_px);
+    //         //let status = annotations[image_name]["status"];
 
-            if ((!(fully_annotated_for_training)) && (image_name in predictions)) {
-                candidates.push(image_name);
-            }
-        }
-        if (candidates.length <= 1) {
-            if (num_training_images == Object.keys(annotations).length) {
-                show_modal_message("Error", "Unable to recommend an image for fine-tuning -- all images have already been used for fine-tuning!");
-            }
-            else {
-                show_modal_message("Error", "An insufficient number of images have predictions available for assessment." +
-                               " Please generate predictions for more images and try again.");
-            }
-        }
-        else {
+    //         if ((!(fully_annotated_for_training)) && (image_name in predictions)) {
+    //             candidates.push(image_name);
+    //         }
+    //     }
+    //     if (candidates.length <= 1) {
+    //         if (num_training_images == Object.keys(annotations).length) {
+    //             show_modal_message("Error", "Unable to recommend an image for fine-tuning -- all images have already been used for fine-tuning!");
+    //         }
+    //         else {
+    //             show_modal_message("Error", "An insufficient number of images have predictions available for assessment." +
+    //                            " Please generate predictions for more images and try again.");
+    //         }
+    //     }
+    //     else {
 
-            let qualities = [];
-            for (let image_name of candidates) {
-                let scores = predictions[image_name]["scores"];
-                let bins = score_histogram(scores);
-                bins[bins.length-1].x1 = 1.01;
+    //         let qualities = [];
+    //         for (let image_name of candidates) {
+    //             let scores = predictions[image_name]["scores"];
+    //             let bins = score_histogram(scores);
+    //             bins[bins.length-1].x1 = 1.01;
 
-                let r = evaluate_scores(bins, scores);
-                let quality = r[0];
-                qualities.push({
-                    "quality": quality,
-                    "image_name": image_name
-                });
-            }
-            qualities.sort(function(a, b) {
-                if (a.quality < b.quality) return -1;
-                if (a.quality > b.quality) return 1;
-                return 0;
-            });
+    //             let r = evaluate_scores(bins, scores);
+    //             let quality = r[0];
+    //             qualities.push({
+    //                 "quality": quality,
+    //                 "image_name": image_name
+    //             });
+    //         }
+    //         qualities.sort(function(a, b) {
+    //             if (a.quality < b.quality) return -1;
+    //             if (a.quality > b.quality) return 1;
+    //             return 0;
+    //         });
 
-            let sel_image_name = qualities[0]["image_name"];
+    //         let sel_image_name = qualities[0]["image_name"];
 
-            $("#navigation_dropdown").val("images");
-            $("#active_layer_table").css("opacity", 1.0);
-            $("input:radio[name=edit_layer_radio]").prop("disabled", false);
-            $("#show_segmentation_button").show();
-            create_navigation_table();
-            update_count_combo(false);
-            add_prediction_buttons();
-            change_image(sel_image_name + "/-1");
-        }
-    });
+    //         $("#navigation_dropdown").val("images");
+    //         $("#active_layer_table").css("opacity", 1.0);
+    //         $("input:radio[name=edit_layer_radio]").prop("disabled", false);
+    //         $("#show_segmentation_button").show();
+    //         create_navigation_table();
+    //         update_count_combo(false);
+    //         add_prediction_buttons();
+    //         change_image(sel_image_name + "/-1");
+    //     }
+    // });
 
     // $("input[name=segmentation_radio]").change(function(e) {
 
@@ -5922,33 +6058,33 @@ $(document).ready(function() {
 
 
         show_modal_message(`Upload Annotations`, 
-            `<div>Annotations must be provided as a single JSON file. The file must follow the format below:</div>` +
+            `<div>Annotations must be provided as a single JSON file. The file must follow the format below.</div>` +
             `<div style="height: 10px"></div>` +
             `<table>` +
                 `<tr>` +
                     `<td>` +
                         `<div style="text-align: center; width: 350px;">` +
-                            `<textarea class="json_text_area" style="width: 300px; margin: 0 auto; height: 255px">${format_sample_text}</textarea>` +
+                            `<textarea class="json_text_area" style="width: 300px; margin: 0 auto; height: 270px">${annotations_format_sample_text}</textarea>` +
                         `</div>` +
                     `</td>` +
                     `<td>` +
-                        `<ul style="font-size: 14px">` +
-                        `<li>Annotations will be replaced for each image name that appears in the uploaded file. Image names that` +
-                        ` are present in the image set but not found in the uploaded file will be unaffected by the upload process.` +
+
+                        `<ul>` +
+
+                        `<li>All boxes must be encoded with four values (in <span style="font-weight: bold">pixel coordinates</span>):` +
+                        `<br>` +
+                        `<span style="margin-left: 75px; font-family: 'Lucida Console', Monaco, monospace;">[ x_min, y_min, x_max, y_max ]</span> ` + 
                         `</li>` +
                         `<br>` +
                         `<br>` +
-                        `<li>The internal keys for each image (` +
-                            `<span style="font-family: 'Lucida Console', Monaco, monospace;">annotations</span>, ` +
-                            `<span style="font-family: 'Lucida Console', Monaco, monospace;">fine_tuning_regions</span>, ` +
-                            `<span style="font-family: 'Lucida Console', Monaco, monospace;">test_regions</span>) ` +
-                            `are all ` +
-                        `optional. For example, if an image contains no objects, the ` +
-                        `<span style="font-family: 'Lucida Console', Monaco, monospace;">annotations</span> ` +
-                        `key can be omitted. (Alternatively, ` +
-                        `the key can be included, with an empty list as the value.)` +
+                        `<li>Images that are present in the image set but not found in the uploaded file will be unaffected by the upload process.` +
                         `</li>` +
+                        `<br>` +
+                        `<br>` +
+                        `</li>` +
+
                         `</ul>` +
+
                     `</td>` +
                     `<td>` +
                         `<div style="width: 10px"></div>` +
@@ -5961,61 +6097,61 @@ $(document).ready(function() {
             `<form id="annotations_upload_form" action="">` +
             `<table>` + 
                 `<tr>` + 
-                    `<td>` +
-                        `<div style="width: 50px"></div>` +
-                    `</td>` +
-                    `<td>` +
-                        `<table>` +
-                            `<tr>` +
-                                `<td>` +
-                                    `<h class="header2" style="width: 400px">Box Format</h>` +
-                                `</td>` +
-                            `</tr>` +
-                            `<tr>` +
-                                `<td>` +
-                                    `<div style="margin-left: 20px">` +
-                                        `<label class="custom_radio_container">[ x_min, y_min, x_max, y_max ]` +
-                                            `<input type="radio" name="box_format_radio" value="[ x_min, y_min, x_max, y_max ]" checked>` +
-                                            `<span class="custom_radio"></span>` +
-                                        `</label>` +
-                                        `<label class="custom_radio_container">[ x_min, y_min, width, height ]` +
-                                            `<input type="radio" name="box_format_radio" value="[ x_min, y_min, width, height ]">` +
-                                            `<span class="custom_radio"></span>` +
-                                        `</label>` +
-                                        `<label class="custom_radio_container">[ x_centre, y_centre, width, height ]` +
-                                            `<input type="radio" name="box_format_radio" value="[ x_centre, y_centre, width, height ]">` +
-                                            `<span class="custom_radio"></span>` +
-                                        `</label>` +
-                                    `</div>` +
-                                `</td>` +
-                            `</tr>` +
-                        `</table>` +
-                        //`<h class="header2">Coordinates Format</h>` +
-                        `<table>` +
-                            `<tr>` +
-                                `<td>` +
-                                    `<h class="header2" style="width: 400px">Coordinates Format</h>` +
-                                `</td>` +
-                            `</tr>` +
-                            `<tr>` +
-                                `<td>` +
-                                    `<div style="margin-left: 20px">` +
-                                        `<label class="custom_radio_container">Pixel Coordinates` +
-                                            `<input type="radio" name="coordinates_format_radio" value="pixel_coordinates" checked>` +
-                                            `<span class="custom_radio"></span>` +
-                                        `</label>` +
-                                        `<label class="custom_radio_container">Normalized Coordinates` +
-                                            `<input type="radio" name="coordinates_format_radio" value="normalized_coordinates">` +
-                                            `<span class="custom_radio"></span>` +
-                                        `</label>` +
-                                    `</div>` +
-                                `</td>` +
-                            `</tr>` +
-                        `</table>` +
-                    `</td>` +
+                    // `<td>` +
+                    //     `<div style="width: 50px"></div>` +
+                    // `</td>` +
+                    // `<td>` +
+                    //     `<table>` +
+                    //         `<tr>` +
+                    //             `<td>` +
+                    //                 `<h class="header2" style="width: 400px">Box Format</h>` +
+                    //             `</td>` +
+                    //         `</tr>` +
+                    //         `<tr>` +
+                    //             `<td>` +
+                    //                 `<div style="margin-left: 20px">` +
+                    //                     `<label class="custom_radio_container">[ x_min, y_min, x_max, y_max ]` +
+                    //                         `<input type="radio" name="box_format_radio" value="[ x_min, y_min, x_max, y_max ]" checked>` +
+                    //                         `<span class="custom_radio"></span>` +
+                    //                     `</label>` +
+                    //                     `<label class="custom_radio_container">[ x_min, y_min, width, height ]` +
+                    //                         `<input type="radio" name="box_format_radio" value="[ x_min, y_min, width, height ]">` +
+                    //                         `<span class="custom_radio"></span>` +
+                    //                     `</label>` +
+                    //                     `<label class="custom_radio_container">[ x_centre, y_centre, width, height ]` +
+                    //                         `<input type="radio" name="box_format_radio" value="[ x_centre, y_centre, width, height ]">` +
+                    //                         `<span class="custom_radio"></span>` +
+                    //                     `</label>` +
+                    //                 `</div>` +
+                    //             `</td>` +
+                    //         `</tr>` +
+                    //     `</table>` +
+                    //     //`<h class="header2">Coordinates Format</h>` +
+                    //     `<table>` +
+                    //         `<tr>` +
+                    //             `<td>` +
+                    //                 `<h class="header2" style="width: 400px">Coordinates Format</h>` +
+                    //             `</td>` +
+                    //         `</tr>` +
+                    //         `<tr>` +
+                    //             `<td>` +
+                    //                 `<div style="margin-left: 20px">` +
+                    //                     `<label class="custom_radio_container">Pixel Coordinates` +
+                    //                         `<input type="radio" name="coordinates_format_radio" value="pixel_coordinates" checked>` +
+                    //                         `<span class="custom_radio"></span>` +
+                    //                     `</label>` +
+                    //                     `<label class="custom_radio_container">Normalized Coordinates` +
+                    //                         `<input type="radio" name="coordinates_format_radio" value="normalized_coordinates">` +
+                    //                         `<span class="custom_radio"></span>` +
+                    //                     `</label>` +
+                    //                 `</div>` +
+                    //             `</td>` +
+                    //         `</tr>` +
+                    //     `</table>` +
+                    // `</td>` +
                     `<td>` +
                         `<div style="text-align: center">` +
-                            `<div style="border: 1px solid white; border-radius: 8px; width: 325px; margin: 0 auto">` +
+                            `<div style="border: 1px solid white; border-radius: 8px; width: 425px; margin: 0 auto">` +
                                 `<div id="annotations_dropzone" class="dropzone" style="height: 195px">` +
                                     `<div class="dz-message data-dz-message">` +
                                         `<span>Drop Annotations File Here</span>` +
@@ -6024,9 +6160,9 @@ $(document).ready(function() {
                             `</div>` +
                         `</div>` +
                     `</td>` +
-                    `<td>` +
-                        `<div style="width: 50px"></div>` +
-                    `</td>` +
+                    // `<td>` +
+                    //     `<div style="width: 50px"></div>` +
+                    // `</td>` +
                 `</tr>` +
             `</table>` +
             `</form>` +
@@ -6080,7 +6216,7 @@ $(document).ready(function() {
 
 
 
-
+                update_navigation_dropdown();
                 $("#navigation_dropdown").val("images").change();
                 show_modal_message(`Success!`, `The annotation file you uploaded has been successfully processed.`);
 
@@ -6132,29 +6268,29 @@ $(document).ready(function() {
             enable_std_buttons(["submit_annotations_button"]);
         });
 
-        annotations_dropzone.on('sending', function(file, xhr, formData) {
+        // annotations_dropzone.on('sending', function(file, xhr, formData) {
 
-            let box_format = $("input:radio[name=box_format_radio]:checked").val();
-            let coordinates_format = $("input:radio[name=coordinates_format_radio]:checked").val();
+        //     // let box_format = $("input:radio[name=box_format_radio]:checked").val();
+        //     // let coordinates_format = $("input:radio[name=coordinates_format_radio]:checked").val();
 
-            formData.append('box_format', box_format);
-            formData.append('coordinates_format', coordinates_format);
-            /*
-            formData.append('farm_name', $("#farm_input").val());
-            formData.append('field_name', $("#field_input").val());
-            formData.append('mission_date', $("#mission_input").val());
-            formData.append("object_name", $("#object_input").val());
-            formData.append("is_public", ($("#upload_set_public").is(':checked')) ? "yes" : "no");
-            formData.append("queued_filenames", queued_filenames.join(","));
-            formData.append('camera_height', $("#camera_height_input").val());
-            if (num_sent == 0) {
-                upload_uuid = uuidv4();
-            }
-            formData.append('upload_uuid', upload_uuid);*/
-            //num_sent++;
-            //formData.append("num_sent", num_sent.toString());
+        //     // formData.append('box_format', box_format);
+        //     // formData.append('coordinates_format', coordinates_format);
+        //     /*
+        //     formData.append('farm_name', $("#farm_input").val());
+        //     formData.append('field_name', $("#field_input").val());
+        //     formData.append('mission_date', $("#mission_input").val());
+        //     formData.append("object_name", $("#object_input").val());
+        //     formData.append("is_public", ($("#upload_set_public").is(':checked')) ? "yes" : "no");
+        //     formData.append("queued_filenames", queued_filenames.join(","));
+        //     formData.append('camera_height', $("#camera_height_input").val());
+        //     if (num_sent == 0) {
+        //         upload_uuid = uuidv4();
+        //     }
+        //     formData.append('upload_uuid', upload_uuid);*/
+        //     //num_sent++;
+        //     //formData.append("num_sent", num_sent.toString());
 
-        });
+        // });
 
 
 
@@ -6184,65 +6320,100 @@ $(document).ready(function() {
         show_modal_message(`Download Annotations`, 
             `<div>Annotations will be downloaded as a single JSON file of the following format:</div>` +
             `<div style="height: 10px"></div>` +
-            `<div style="text-align: center">` +
-                `<textarea class="json_text_area" style="width: 300px; margin: 0 auto; height: 255px">${format_sample_text}</textarea>` +
-            `</div>` +
-            `<div style="height: 10px"></div>` +
+
+            `<table>` +
+                `<tr>` +
+                    `<td>` +
+                        `<div style="text-align: center; width: 300px;">` +
+                            `<textarea class="json_text_area" style="width: 300px; margin: 0 auto; height: 270px">${annotations_format_sample_text}</textarea>` +
+                        `</div>` +
+                    `</td>` +
+                    `<td>` +
+
+                        `<ul>` +
+
+                        `<li>All boxes will be encoded with four values (in <span style="font-weight: bold">pixel coordinates</span>):` +
+                        `<br>` +
+                        `<br>` +
+                        `<div style="text-align: center">` +
+                            `<div style="font-family: 'Lucida Console', Monaco, monospace;">[ x_min, y_min, x_max, y_max ]</div> ` + 
+                        `</div>` +
+                        `</li>` +
+                        `</ul>` +
+                    `</td>` +
+                `</tr>` +
+            `</table>` +
+
+
+            // `<div style="text-align: center">` +
+            //     `<textarea class="json_text_area" style="width: 300px; margin: 0 auto; height: 255px">${format_sample_text}</textarea>` +
+            // `</div>` +
+            // `<div style="height: 10px"></div>` +
+
+
+            // `<ul style="font-size: 14px">` +
+
+            //     `<li>All boxes will be encoded with four values (in <span style="font-weight: bold">pixel coordinates</span>):` +
+            //     `<br>` +
+            //     `<span style="margin-left: 75px; font-family: 'Lucida Console', Monaco, monospace;">[ x_min, y_min, x_max, y_max ]</span> ` + 
+            //     `</li>` +
+
+            // `</ul>` +
             // `<table>` + 
             //     `<tr>` + 
             //         `<td>` +
             //             `<div style="width: 50%"></div>` +
             //         `</td>` +
                     // `<td>` +
-                    `<div style="margin: 0 auto">` +
-                        `<table>` +
-                            `<tr>` +
-                                `<td>` +
-                                    `<h class="header2" style="width: 300px">Box Format</h>` +
-                                `</td>` +
-                            `</tr>` +
-                            `<tr>` +
-                                `<td>` +
-                                    `<div style="margin-left: 20px">` +
-                                        `<label class="custom_radio_container">[ x_min, y_min, x_max, y_max ]` +
-                                            `<input type="radio" name="box_format_radio" value="[ x_min, y_min, x_max, y_max ]" checked>` +
-                                            `<span class="custom_radio"></span>` +
-                                        `</label>` +
-                                        `<label class="custom_radio_container">[ x_min, y_min, width, height ]` +
-                                            `<input type="radio" name="box_format_radio" value="[ x_min, y_min, width, height ]">` +
-                                            `<span class="custom_radio"></span>` +
-                                        `</label>` +
-                                        `<label class="custom_radio_container">[ x_centre, y_centre, width, height ]` +
-                                            `<input type="radio" name="box_format_radio" value="[ x_centre, y_centre, width, height ]">` +
-                                            `<span class="custom_radio"></span>` +
-                                        `</label>` +
-                                    `</div>` +
-                                `</td>` +
-                            `</tr>` +
-                        `</table>` +
-                        //`<h class="header2">Coordinates Format</h>` +
-                        `<table>` +
-                            `<tr>` +
-                                `<td>` +
-                                    `<h class="header2" style="width: 300px">Coordinates Format</h>` +
-                                `</td>` +
-                            `</tr>` +
-                            `<tr>` +
-                                `<td>` +
-                                    `<div style="margin-left: 20px">` +
-                                        `<label class="custom_radio_container">Pixel Coordinates` +
-                                            `<input type="radio" name="coordinates_format_radio" value="pixel_coordinates" checked>` +
-                                            `<span class="custom_radio"></span>` +
-                                        `</label>` +
-                                        `<label class="custom_radio_container">Normalized Coordinates` +
-                                            `<input type="radio" name="coordinates_format_radio" value="normalized_coordinates">` +
-                                            `<span class="custom_radio"></span>` +
-                                        `</label>` +
-                                    `</div>` +
-                                `</td>` +
-                            `</tr>` +
-                        `</table>` +
-                    `</div>` +
+                    // `<div style="margin: 0 auto">` +
+                    //     `<table>` +
+                    //         `<tr>` +
+                    //             `<td>` +
+                    //                 `<h class="header2" style="width: 300px">Box Format</h>` +
+                    //             `</td>` +
+                    //         `</tr>` +
+                    //         `<tr>` +
+                    //             `<td>` +
+                    //                 `<div style="margin-left: 20px">` +
+                    //                     `<label class="custom_radio_container">[ x_min, y_min, x_max, y_max ]` +
+                    //                         `<input type="radio" name="box_format_radio" value="[ x_min, y_min, x_max, y_max ]" checked>` +
+                    //                         `<span class="custom_radio"></span>` +
+                    //                     `</label>` +
+                    //                     `<label class="custom_radio_container">[ x_min, y_min, width, height ]` +
+                    //                         `<input type="radio" name="box_format_radio" value="[ x_min, y_min, width, height ]">` +
+                    //                         `<span class="custom_radio"></span>` +
+                    //                     `</label>` +
+                    //                     `<label class="custom_radio_container">[ x_centre, y_centre, width, height ]` +
+                    //                         `<input type="radio" name="box_format_radio" value="[ x_centre, y_centre, width, height ]">` +
+                    //                         `<span class="custom_radio"></span>` +
+                    //                     `</label>` +
+                    //                 `</div>` +
+                    //             `</td>` +
+                    //         `</tr>` +
+                    //     `</table>` +
+                    //     //`<h class="header2">Coordinates Format</h>` +
+                    //     `<table>` +
+                    //         `<tr>` +
+                    //             `<td>` +
+                    //                 `<h class="header2" style="width: 300px">Coordinates Format</h>` +
+                    //             `</td>` +
+                    //         `</tr>` +
+                    //         `<tr>` +
+                    //             `<td>` +
+                    //                 `<div style="margin-left: 20px">` +
+                    //                     `<label class="custom_radio_container">Pixel Coordinates` +
+                    //                         `<input type="radio" name="coordinates_format_radio" value="pixel_coordinates" checked>` +
+                    //                         `<span class="custom_radio"></span>` +
+                    //                     `</label>` +
+                    //                     `<label class="custom_radio_container">Normalized Coordinates` +
+                    //                         `<input type="radio" name="coordinates_format_radio" value="normalized_coordinates">` +
+                    //                         `<span class="custom_radio"></span>` +
+                    //                     `</label>` +
+                    //                 `</div>` +
+                    //             `</td>` +
+                    //         `</tr>` +
+                    //     `</table>` +
+                    // `</div>` +
                     // `</td>` +
             //         `<td>` +
             //             `<div style="width: 50%"></div>` +
@@ -6291,6 +6462,7 @@ $(document).ready(function() {
             `<div style="text-align: center">` +
                 `<button style="width: 250px;" class="std-button std-button-hover" onclick="download_annotations()" id="prepare_download_button">Prepare Download</button>` +
             `</div>`
+            , 680
         );
 
     });
@@ -6314,8 +6486,8 @@ $(document).ready(function() {
 
 function download_annotations() {
 
-    let box_format = $("input:radio[name=box_format_radio]:checked").val();
-    let coordinates_format = $("input:radio[name=coordinates_format_radio]:checked").val();
+    // let box_format = $("input:radio[name=box_format_radio]:checked").val();
+    // let coordinates_format = $("input:radio[name=coordinates_format_radio]:checked").val();
 
     // show_modal_message("Preparing Download", 
     //     `<div id="prep_download_message">Preparing download...</div><div id="prep_download_loader" class="loader"></div>` +
@@ -6335,8 +6507,8 @@ function download_annotations() {
     $.post($(location).attr('href'),
     {
         action: "download_annotations",
-        box_format: box_format,
-        coordinates_format: coordinates_format
+        // box_format: box_format,
+        // coordinates_format: coordinates_format
     },
     
     function(response, status) {

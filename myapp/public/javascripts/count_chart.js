@@ -360,6 +360,7 @@ function draw_count_chart() {
 
     count_margin = 30;
 
+
     let num_bars = 2; //Object.keys(overlay_colors).length;
 
     $("#count_chart").empty();
@@ -438,6 +439,7 @@ function draw_count_chart() {
          .text(function(d) { return d; })
          .style("cursor", "default");
 
+    
 
 
     chart.selectAll(".bar")

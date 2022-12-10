@@ -22,6 +22,10 @@ $(document).ready(function(){
                 $("#error_message").html("Your username/password combination is incorrect.");
                 $("#error_message").show();
             }
+            else if (response.maintenance) {
+                $("#error_message").html("Sorry, the site is currently under maintenance.");
+                $("#error_message").show();
+            }
             else {
                 window.location.href = response.redirect;
             }

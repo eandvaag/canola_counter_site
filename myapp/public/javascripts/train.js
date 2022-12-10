@@ -879,7 +879,7 @@ function create_image_set_list() {
     $("#available_image_sets").empty();
 
     let filtered_datasets = get_filtered_datasets();
-    console.log("filtered_datasets", filtered_datasets);
+    //console.log("filtered_datasets", filtered_datasets);
 
     for (let filtered_dataset of filtered_datasets) {
         let username = filtered_dataset["username"];

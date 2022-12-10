@@ -43,7 +43,8 @@ html
         script(type='text/javascript' src=process.env.CC_PATH + '/javascripts/viewer.js')
         script(type='text/javascript' src=process.env.CC_PATH + '/javascripts/count_chart.js')
         script(type='text/javascript' src=process.env.CC_PATH + '/javascripts/score_chart.js')
-        script(type='text/javascript' src=process.env.CC_PATH + '/javascripts/viewer_map_chart.js')
+        script(type='text/javascript' src=process.env.CC_PATH + '/javascripts/ridgeline_chart.js')
+        script(type='text/javascript' src=process.env.CC_PATH + '/javascripts/map_chart.js')
         script(type='text/javascript' src=process.env.CC_PATH + '/javascripts/common.js')
         script(type='text/javascript' src=process.env.CC_PATH + '/javascripts/modal.js')
         script(type='text/javascript' src=process.env.CC_PATH + '/javascripts/canvas_overlay.js')
@@ -126,7 +127,7 @@ html
                                                             h(id="image_name" style="word-break: break-all;")
 
                                                         td
-                                                            div(style="width: 75px;" id="region_name")
+                                                            div(style="width: 106px;" id="region_name")
                                                     //-
                                                         tr
                                                             td(style="text-align: left")
@@ -245,12 +246,34 @@ html
                                                 //- hr(class="panel_line")
 
                                                 //hr(class="panel_line")
-                                                div(style="height: 5px")
-                                                button(id="request_spreadsheet_button" class="std-button std-button-hover" style="height: 40px")
-                                                    i(class="fa-solid fa-file-arrow-down" style="padding-right: 5px")
-                                                    |
-                                                    | Download Results
-                                                div(style="height: 5px")
+                                                //div(style="height: 5px")
+
+                                                h(class="header2" style="width: 170px; text-align: left; margin-top: -2px") Download
+                                                table
+                                                    tr
+                                                        td
+                                                            a(id="request_metrics_button" class="std-button std-button-hover" style="font-size: 16px; width: 135px") 
+                                                                i(class="fa-solid fa-file-arrow-down" style="padding-right: 5px")
+                                                                |
+                                                                | Metrics
+                                                        td 
+                                                            div(style="width: 5px")
+                                                        td
+                                                            button(id="request_raw_outputs_button" class="std-button std-button-hover" style="font-size: 16px; width: 135px")
+                                                                i(class="fa-solid fa-file-zipper" style="padding-right: 5px")
+                                                                |
+                                                                | Raw Outputs
+
+                                                    //- i(class="fa-solid fa-file-arrow-down" style="padding-right: 5px")
+                                                    //- |
+                                                    //- | Predictions
+                                                
+                                                    //- i(class="fa-solid fa-file-arrow-down" style="padding-right: 5px")
+                                                    //- |
+                                                    //- | Metrics
+
+
+                                                //div(style="height: 5px")
 
                                                 hr(class="panel_line")
 
@@ -259,7 +282,7 @@ html
                                                     table
                                                         tr
                                                             td(style="text-align: left")
-                                                                h(class="header2" style="width: 170px") Metric
+                                                                h(class="header2" style="width: 170px; margin: 0px") Metric
                                                             td(style="width: 100%")
                                                             td
                                                                 button(class="std-button std-button-hover" onclick="show_metrics_modal()" style="padding: 2px; font-size: 14px; width: 40px")
@@ -312,15 +335,29 @@ html
 
                                                 hr(class="panel_line")
 
-                                                h(class="header2" style="text-align:left") Score Distribution
-                                                h(class="header2" style="text-align: left; font-size: 16px") Est. Quality: 
+                                                //- h(class="header2" style="text-align:left") Score Distribution
+                                                //- h(class="header2" style="text-align: left; font-size: 16px") Est. Quality: 
+                                                //-     span(id="quality_score" style="color: white; text-align: left")
+
+                                                //div
+                                                table
+                                                    td(style="text-align: left")
+                                                        h(class="header2" style="width: 170px; margin: 0px") Score Distribution
+                                                    td(style="width: 100%")
+                                                    td
+                                                        button(class="std-button std-button-hover" onclick="show_ridgeline_modal()" style="padding: 2px; font-size: 14px; width: 40px")
+                                                            i(class="fa-regular fa-rectangle-list")
+
+                                                h(class="header2" style="text-align: left; font-size: 14px; margin-top: 2px; margin-left: 1px") Quality Score: 
                                                     span(id="quality_score" style="color: white; text-align: left")
-                                                div(id="score_chart" style="height: 175px; border:none")
+
+
+                                                div(id="score_chart" style="height: 175px; width: 275px; border:none")
                                                 
                                                 //div(style="height: 10px")
                                                 hr(class="panel_line")
 
-                                                div(style="height: 8px")
+                                                //div(style="height: 8px")
                                                     
                                                 table
                                                     tr
@@ -391,21 +428,21 @@ html
 
                                                 
 
-                                                div(id="sufficient_annotation_options" hidden)
-                                                    br
-                                                    div(class="header2" style="text-align: left; padding-left: 10px") Images Used for Predicted Map
-                                                    table(style="border: 1px solid white; width: 260px; padding-top: 15px; padding-left: 25px")
-                                                        tr 
-                                                            td 
-                                                                label(class="custom_radio_container") All 
-                                                                    input(type="radio" id="pred_image_status_all" name="pred_image_status" value="all" checked)
-                                                                    span(class="custom_radio")
-                                                            td 
-                                                                div(style="width: 20px")
-                                                            td 
-                                                                label(class="custom_radio_container") Annotated 
-                                                                    input(type="radio" id="pred_image_status_completed" name="pred_image_status" value="completed")
-                                                                    span(class="custom_radio")
+                                                //- div(id="sufficient_annotation_options" hidden)
+                                                //-     br
+                                                //-     div(class="header2" style="text-align: left; padding-left: 10px") Images Used for Predicted Map
+                                                //-     table(style="border: 1px solid white; width: 260px; padding-top: 15px; padding-left: 25px")
+                                                //-         tr 
+                                                //-             td 
+                                                //-                 label(class="custom_radio_container") All 
+                                                //-                     input(type="radio" id="pred_image_status_all" name="pred_image_status" value="all" checked)
+                                                //-                     span(class="custom_radio")
+                                                //-             td 
+                                                //-                 div(style="width: 20px")
+                                                //-             td 
+                                                //-                 label(class="custom_radio_container") Annotated 
+                                                //-                     input(type="radio" id="pred_image_status_completed" name="pred_image_status" value="completed")
+                                                //-                     span(class="custom_radio")
 
                                                 //-
                                                     br
@@ -424,9 +461,9 @@ html
                                                 hr(class="panel_line")
                                                 br
                                                 button(style="width: 140px; margin: 0px" id="build_map_button" class="table_button table_button_hover" onclick="build_map()")
-                                                    i(class="fa-solid fa-gears" style="padding-right: 10px; color: white")
+                                                    i(class="fa-regular fa-map" style="padding-right: 10px; color: white")
                                                     |
-                                                    | Build Map 
+                                                    | Fetch Map 
                                                 br
                                                 br
                                                 div(id="build_loader" class="loader" hidden)

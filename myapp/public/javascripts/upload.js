@@ -1,8 +1,10 @@
+
+
 let upload_uuid;
 let dropzone_handlers = {};
 let num_sent = 0;
 let queued_filenames;
-let upload_error = null;
+//let upload_error = null;
 // let errors = [];
 let upload_input_format = /[\s `!@#$%^&*()+\=\[\]{};':"\\|,<>\/?~]/;
 
@@ -28,14 +30,16 @@ function disable_input() {
 
     global_disabled = true;
 
-    let buttons = ["upload_button"];
+    // let buttons = ["upload_button"];
 
-    for (let button of buttons) {
-        $("#" + button).prop('disabled', true);
-        $("#" + button).removeClass("std-button-hover");
-        $("#" + button).css("opacity", 0.5);
-        $("#" + button).css("cursor", "default");
-    }
+    // for (let button of buttons) {
+    //     $("#" + button).prop('disabled', true);
+    //     $("#" + button).removeClass("std-button-hover");
+    //     $("#" + button).css("opacity", 0.5);
+    //     $("#" + button).css("cursor", "default");
+    // }
+
+    disable_std_buttons(["upload_button"]);
 
 
     let inputs = ["farm_input", "field_input", "mission_input", "object_input", "camera_height_input"];
@@ -75,28 +79,32 @@ function disable_submit() {
 
     global_disabled = false;
 
-    let buttons = ["upload_button"];
+    // let buttons = ["upload_button"];
 
-    for (let button of buttons) {
-        $("#" + button).prop('disabled', true);
-        $("#" + button).removeClass("std-button-hover");
-        $("#" + button).css("opacity", 0.5);
-        $("#" + button).css("cursor", "default");
-    }
+    disable_std_buttons(["upload_button"]);
+
+    // for (let button of buttons) {
+    //     $("#" + button).prop('disabled', true);
+    //     $("#" + button).removeClass("std-button-hover");
+    //     $("#" + button).css("opacity", 0.5);
+    //     $("#" + button).css("cursor", "default");
+    // }
 }
 
 
 
 function enable_input() {
 
-    let buttons = ["upload_button"];
+    // let buttons = ["upload_button"];
 
-    for (let button of buttons) {
-        $("#" + button).prop('disabled', false);
-        $("#" + button).addClass("std-button-hover");
-        $("#" + button).css("opacity", 1);
-        $("#" + button).css("cursor", "pointer");
-    }
+    // for (let button of buttons) {
+    //     $("#" + button).prop('disabled', false);
+    //     $("#" + button).addClass("std-button-hover");
+    //     $("#" + button).css("opacity", 1);
+    //     $("#" + button).css("cursor", "pointer");
+    // }
+
+    enable_std_buttons(["upload_button"]);
 
     let inputs = ["farm_input", "field_input", "mission_input", "object_input", "camera_height_input"];
 
@@ -130,14 +138,15 @@ function enable_input() {
 
 function enable_submit() {
 
-    let buttons = ["upload_button"];
+    // let buttons = ["upload_button"];
 
-    for (let button of buttons) {
-        $("#" + button).prop('disabled', false);
-        $("#" + button).addClass("std-button-hover");
-        $("#" + button).css("opacity", 1);
-        $("#" + button).css("cursor", "pointer");
-    }
+    // for (let button of buttons) {
+    //     $("#" + button).prop('disabled', false);
+    //     $("#" + button).addClass("std-button-hover");
+    //     $("#" + button).css("opacity", 1);
+    //     $("#" + button).css("cursor", "pointer");
+    // }
+    enable_std_buttons(["upload_button"]);
 }
 
 function form_is_complete() {
@@ -192,7 +201,28 @@ function update_submit() {
     }
 }
 
+
+
+
 function create_orthomosaic_dropzone() {
+
+
+    if (dropzone_handlers["orthomosaic"]) {
+        dropzone_handlers["orthomosaic"].destroy();
+    }
+
+    $("#orthomosaic_tab").empty();
+
+    $("#orthomosaic_tab").append(
+        `<div id="orthomosaic_dropzone" class="dropzone" style="height: 375px">` +
+            `<div class="dz-message data-dz-message">` +
+                `<span>Drop Orthomosaic Here</span>` +
+            `</div>` +
+            `<div id="orthomosaic_upload_loader" class="loader" hidden></div>` +
+        `</div>`
+    );
+
+
     dropzone_handlers["orthomosaic"] = new Dropzone("#orthomosaic_dropzone", { 
         url: get_CC_PATH() + "/orthomosaic_upload",
         autoProcessQueue: false,
@@ -288,6 +318,33 @@ function create_orthomosaic_dropzone() {
 
 function create_image_set_dropzone() {
 
+
+    // div(id="image_set_dropzone" class="dropzone" style="height: 375px")
+    //                                                 div(class="dz-message data-dz-message")
+    //                                                     span Drop Images Here 
+    //                                                 div(id="image_set_upload_loader" class="loader" hidden)
+
+
+
+
+    if (dropzone_handlers["image_set"]) {
+        dropzone_handlers["image_set"].destroy();
+    }
+
+    $("#image_set_tab").empty();
+
+    $("#image_set_tab").append(
+        `<div id="image_set_dropzone" class="dropzone" style="height: 375px">` +
+            `<div class="dz-message data-dz-message">` +
+                `<span>Drop Images Here</span>` +
+            `</div>` +
+            `<div id="image_set_upload_loader" class="loader" hidden></div>` +
+        `</div>`
+    );
+    // div(id="image_set_dropzone" class="dropzone" style="height: 375px")
+    //                                                 div(class="dz-message data-dz-message")
+    //                                                     span Drop Images Here 
+    //                                                 div(id="image_set_upload_loader" class="loader" hidden)
     dropzone_handlers["image_set"] = new Dropzone("#image_set_dropzone", { 
         url: get_CC_PATH() + "/image_set_upload",
         autoProcessQueue: false,
@@ -317,7 +374,7 @@ function add_dropzone_listeners() {
                 num_sent = 0;
                 dropzone_handlers[key].options.autoProcessQueue = false;
 
-                show_modal_message(`Success!`, `<div align="center">Your images have been successfully uploaded.<br>Additional processing is now being performed.` +
+                show_modal_message(`Success!`, `<div align="center">Your image set has been successfully uploaded.<br>Additional processing is now being performed.` +
                 `<br><br>The image set can now be viewed in the <i>Browse</i> tab.</div>`);
 
                 let uploaded_farm = $("#farm_input").val();
@@ -343,27 +400,85 @@ function add_dropzone_listeners() {
 
         dropzone_handlers[key].on("error", function(file, response) {
 
-            if (!upload_error) {
+            // if (!upload_error) {
+            let upload_error;
 
-                if (typeof(response) == "object" && "error" in response) {
-                    upload_error = response.error;
-                }
-                else {
-                    upload_error = response;
-                }
-                dropzone_handlers[key].removeAllFiles(true);
-
-                display_upload_error();
+            if (typeof(response) == "object" && "error" in response) {
+                upload_error = response.error;
             }
+            else {
+                upload_error = response;
+            }
+            dropzone_handlers[key].removeAllFiles(true);
+            if (upload_error !== "Upload is no longer active.") {
+                display_upload_error(upload_error);
+            }
+            // }
 
         });
 
+        // dropzone_handlers[key].on("processing", function() {
+        //     console.log("processing");
 
+        // });
+
+
+        // dropzone_handlers[key].on("drop", function(f) {
+        //     console.log("drop", f);
+        // });
 
 
         dropzone_handlers[key].on("addedfile", function() {
-            $("form").change();
+            // console.log("addedFile");
+            // console.log("getAcceptedFiles()", dropzone_handlers["image_set"].getAcceptedFiles());
+            // console.log("getRejectedFiles()", dropzone_handlers["image_set"].getRejectedFiles());
+            // console.log("getQueuedFiles()", dropzone_handlers["image_set"].getQueuedFiles());
+            // console.log("getUploadingFiles()", dropzone_handlers["image_set"].getUploadingFiles());
+            // console.log(dropzone_handlers[key].files.length);
+            // console.log(dropzone_handlers[key].files);
+            if (dropzone_handlers[key].options.autoProcessQueue) {
+                let upload_error = "A file was added after the upload was initiated. Please ensure that all files have been added to the queue before pressing the 'Upload' button."
+                dropzone_handlers[key].removeAllFiles(true);
+
+
+                if ($("#image_set_tab").is(":visible")) {
+                    create_image_set_dropzone();
+                }
+                else {
+                    create_orthomosaic_dropzone();
+                }
+
+                // let handler_name;
+                // if ($("#image_set_tab").is(":visible")) {
+                //     handler_name = "image_set";
+                // }
+                // else {
+                //     handler_name = "orthomosaic";
+                // }
+            
+                num_sent = 0;
+                dropzone_handlers[key].options.autoProcessQueue = false;
+            
+                show_modal_message(`Error`, 
+                    `<div>${upload_error}</div>` +
+                    `<div style="height: 10px"></div>` +
+                    `<div style="text-align: center">` +
+                        `<button class="std-button std-button-hover" onclick="window.location.reload()" style="width: 150px">Reload Page</button>` +
+                    `</div>`
+                );
+                $("#modal_close").hide();
+                clear_form();
+                enable_input();
+                disable_submit();
+                $("#" + key + "_upload_loader").hide();
+
+                //display_upload_error(upload_error);
+            }
+            else {
+                $("form").change();
+            }
         });
+
 
         dropzone_handlers[key].on('sending', function(file, xhr, formData) {
             formData.append('farm_name', $("#farm_input").val());
@@ -371,7 +486,9 @@ function add_dropzone_listeners() {
             formData.append('mission_date', $("#mission_input").val());
             formData.append("object_name", $("#object_input").val());
             formData.append("is_public", ($("#upload_set_public").is(':checked')) ? "yes" : "no");
-            formData.append("queued_filenames", queued_filenames.join(","));
+
+            formData.append("queued_filenames",  queued_filenames.join(","));
+            //formData.append("num_remaining", dropzone_handlers[handler_name].getQueuedFiles().length - 1);
             formData.append('camera_height', $("#camera_height_input").val());
             if (num_sent == 0) {
                 upload_uuid = uuidv4();
@@ -389,7 +506,7 @@ function add_dropzone_listeners() {
 }
 
 
-function display_upload_error() {
+function display_upload_error(upload_error) {
 
     let handler_name;
     if ($("#image_set_tab").is(":visible")) {
@@ -459,6 +576,7 @@ function initialize_upload() {
 
     create_image_set_dropzone();
     create_orthomosaic_dropzone();
+    // $("#orthomosaic_tab").hide();
 
     add_dropzone_listeners();
 
@@ -525,7 +643,7 @@ function initialize_upload() {
             return;
         }
 
-        upload_error = null;
+        //upload_error = null;
         dropzone_handlers[handler_name].options.autoProcessQueue = true;
         dropzone_handlers[handler_name].processQueue();
 

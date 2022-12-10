@@ -214,6 +214,16 @@ function emit_image_set_status(username, farm_name, field_name, mission_date) {
                 catch (e) {
                     status["switch_request"] = "False";
                 }
+
+                status["auto_select_request"] = "True";
+                let auto_select_path = path.join(model_dir, "auto_select_request.json");
+                try {
+                    fs.accessSync(auto_select_path, fs.constants.F_OK);
+                }
+                catch (e) {
+                    status["auto_select_request"] = "False";
+                }
+
                     
                 io.to(sel_socket_id).emit("image_set_status_change", status);
 

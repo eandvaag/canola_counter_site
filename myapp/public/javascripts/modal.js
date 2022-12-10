@@ -1,4 +1,6 @@
-function show_modal_message(head, message, modal_width=650) {
+function show_modal_message(head, message, modal_width=650, display=true) {
+
+    //console.log("show_modal_message");
 
     $("#modal_head").empty();
     $("#modal_body").empty();
@@ -15,9 +17,11 @@ function show_modal_message(head, message, modal_width=650) {
     });
 
      //modal_width); //css("max-width", "850px");
-     $(".modal-content").width(modal_width);
+    $(".modal-content").width(modal_width);
 
-    $("#modal").css("display", "block");
+    if (display) {
+        $("#modal").css("display", "block");
+    }
 
     
 }

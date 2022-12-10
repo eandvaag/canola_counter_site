@@ -20,6 +20,42 @@ let status_to_text = {
     "completed_for_testing": "Completed for Testing",
 };
 
+let annotations_format_sample_text = 
+'{\n' + 
+'    "image_1": {\n' +
+'        "annotations": [\n' +
+'            [2, 4, 10, 9],\n' +
+'            ...\n' +
+'        ],\n' +
+'        "fine_tuning_regions": [\n' +
+'            [0, 1, 7, 9],\n' +
+'            ...\n' +
+'        ],\n' +
+'        "test_regions": [\n' +
+'            [11, 14, 23, 25],\n' +
+'            ...\n' +
+'        ]\n' +
+'    },\n' +
+'    "image_2": {\n' +
+'        ...';
+
+
+let predictions_format_sample_text = 
+'{\n' + 
+'    "image_1": {\n' +
+'        "predictions": [\n' +
+'            [2, 4, 10, 9],\n' +
+'            ...\n' +
+'        ],\n' +
+'        "confidence_scores": [\n' +
+'            0.83,\n' +
+'            ...\n' +
+'        ]\n' +
+'    },\n' +
+'    "image_2": {\n' +
+'        ...';
+
+
 // let overlay_colors = {
 //     "annotation": "#0080ff", // "#0080C0",
 //     "prediction": "#FF4040",
@@ -310,14 +346,30 @@ function can_calculate_density(metadata, camera_specs) {
     let make = metadata["camera_info"]["make"];
     let model = metadata["camera_info"]["model"];
 
-
     if (metadata["is_ortho"] === "yes") {
-        return false;
+        if (metadata["camera_height"] === "") {
+            return false;
+        }
+    }
+    else {
+        if (metadata["missing"]["latitude"]) {
+            return false;
+        }
+        if (metadata["missing"]["longitude"]) {
+            return false;
+        }
+        if (metadata["camera_height"] === "") {
+            return false;
+        }
     }
 
-    if (((metadata["missing"]["latitude"]) || metadata["missing"]["longitude"]) || (metadata["camera_height"] === "")) {
-        return false;
-    }
+    // if (metadata["is_ortho"] === "yes") {
+    //     return false;
+    // }
+
+    // if (((metadata["missing"]["latitude"]) || metadata["missing"]["longitude"]) || (metadata["camera_height"] === "")) {
+    //     return false;
+    // }
 
     if (!(make in camera_specs)) {
         return false;
@@ -598,6 +650,150 @@ function create_overlays_table() {
 //     return regexExp.test(str);
 // }
 
+function update_region_name() {
+    let navigation_type = $("#navigation_dropdown").val();
+    $("#region_name").empty();
+    let region_element;
+    if (navigation_type === "training_regions" || navigation_type === "test_regions") {
+
+        let disp_region_index = cur_region_index + 1;
+        let region_color;
+        if (navigation_type === "training_regions") {
+            region_color = overlay_appearance["colors"]["training_region"];
+        }
+        else {
+            region_color = overlay_appearance["colors"]["test_region"];
+        }
+
+
+        region_element = create_region_element(region_color, disp_region_index);
+
+        
+    }
+    else {
+        let training_region_count = annotations[cur_img_name]["training_regions"].length;
+        let test_region_count = annotations[cur_img_name]["test_regions"].length;
+        region_element = create_regions_summary_element(cur_img_name, training_region_count, test_region_count, bookmark_button=true);
+    }
+
+    $("#region_name").append(
+        region_element
+    );
+
+}
+
+function bookmark() {
+    let bookmark_status = ("bookmarked" in annotations[cur_img_name] && annotations[cur_img_name]["bookmarked"]);
+
+    annotations[cur_img_name]["bookmarked"] = !(bookmark_status);
+
+    $("#save_icon").css("color", "#ed452b");
+    update_region_name();
+    create_navigation_table();
+}
+
+function create_regions_summary_element(image_name, training_region_count, test_region_count, bookmark_button=false) {
+    //console.log("bookmark_button?", bookmark_button)
+    if (training_region_count > 0) {
+        training_region_element = `<div style="width: 27px; height: 27px; background-color: ${overlay_appearance["colors"]["training_region"]}; color: black; border: none" class="object_entry"><div style="padding-left: 1px">${training_region_count}</div></div>`;
+    }
+    else {
+        training_region_element =  `<div style="width: 27px; height: 27px; border: 1px solid white; border-radius: 50px"></div>`;
+    }
+    if (test_region_count > 0) {
+        test_region_element = `<div style="width: 27px; height: 27px; background-color: ${overlay_appearance["colors"]["test_region"]}; color: black; border: none" class="object_entry"><div style="padding-left: 1px">${test_region_count}</div></div>`;
+    }
+    else {
+        test_region_element =  `<div style="width: 27px; height: 27px; border: 1px solid white; border-radius: 50px"></div>`;
+    }
+    let bookmark_element;
+
+    if (show_bookmarks) {
+
+        if ("bookmarked" in annotations[image_name] && annotations[image_name]["bookmarked"]) {
+            if (bookmark_button) {
+                bookmark_element = `<div class="table_button table_button_hover" style="padding: 0px; margin: 0px; width: 20px; height: 27px; border: 1px solid white; background-color: #4c6645; cursor: pointer; border-radius: 3px;" ` +
+                    `onclick="bookmark()">` +
+                    `<i style="color: white; font-size: 12px; margin-top: 7px" class="fa-regular fa-bookmark"></i>` +
+                `</div>`;
+            }
+            else {
+                bookmark_element = `<div style="width: 20px; height: 27px; border: 1px solid white; background-color: #4c6645; border-radius: 3px;">` +
+                    `<i style="color: white; font-size: 12px; margin-top: 7px" class="fa-regular fa-bookmark"></i>` +
+                `</div>`;
+            }
+
+        }
+        else {
+            if (bookmark_button) {
+                bookmark_element = `<div class="table_button table_button_hover" style="border-radius: 3px; padding: 0px; margin: 0px; border: none; cursor: pointer">` +
+                    `<div style="opacity: 0.7; border: 1px solid white; border-radius: 3px; padding: 0px; margin: 0px; width: 20px; height: 27px;" ` +
+                    `onclick="bookmark()">` +
+                    `<i style="color: white; font-size: 12px; margin-top: 7px" class="fa-regular fa-bookmark"></i>` +
+                    
+                    
+                    `</div></div>`;
+            }
+            else {
+                bookmark_element = `<div style="width: 20px; height: 27px; border: 1px solid white; background-color: none; border-radius: 3px;">` +
+                `</div>`;
+            }
+        }
+    }
+
+    //console.log(bookmark_element);
+
+
+    let region_element =
+    `<div style="width: 106px; margin: 0px 2px">` +
+            `<table>` +
+
+                `<tr>` +
+
+                    `<td>` +
+                        training_region_element +
+                    `</td>` +
+                    `<td>` +
+                        `<div style="width: 2px"></div>` +
+                    `</td>` +
+                    `<td>` +
+                        test_region_element +
+                    `</td>`;
+
+    if (show_bookmarks) {
+        region_element = region_element +  
+                    `<td>` +
+                        `<div style="width: 2px"></div>` +
+                    `</td>` +
+                    `<td>` +
+                        bookmark_element +
+                    `</td>`
+
+    }
+    region_element = region_element +
+                `</tr>` +
+            `</table>` +
+        `</div>`;
+    
+    return region_element;
+}
+
+function create_region_element(region_color, region_index) {
+
+    let region_element = 
+    `<div style="width: 106px">` +
+        `<table>` +
+            `<tr>` +
+                `<td>` +
+                    `<div style="width: 75px; height: 27px; background-color: ${region_color}; color: black; border: none" class="object_entry">Region ${region_index}</div>` +
+                `</td>` +
+            `</tr>` +
+        `</table>` +
+    `</div>`;
+    return region_element;
+
+}
+
 function create_navigation_table() {
 
     let navigation_type = $("#navigation_dropdown").val();
@@ -625,13 +821,46 @@ function create_navigation_table() {
         for (let image_name of image_names) {
             let nav_item = image_name + "/" + -1;
             let row_id = nav_item + "_row";
+            let training_region_count = annotations[image_name]["training_regions"].length;
+            let test_region_count = annotations[image_name]["test_regions"].length;
+            //let training_region_element;
+            //if (training_region_count > 0) {
+                // training_region_element = `<div style="width: 30px; background-color: ${overlay_appearance["colors"]["training_region"]}; margin: 0px 4px; color: black; border: none" class="object_entry">${training_region_count}</div>`;
+            //}
+            //else {
+            //    training_region_element =  `<div style="width: 30px; margin: 0px 2px;"></div>`;
+            //}
+            let regions_summary_element = create_regions_summary_element(image_name, training_region_count, test_region_count, bookmark_button=false);
             let item = 
             `<tr id="${row_id}">` +
-                `<td>`+
-                    `<div class="table_button table_button_hover" style="width: 245px;" ` +
-                            `onclick="change_image('${nav_item}')">${image_name}</div>` +
+                `<td>` +
+                    `<div class="table_button table_button_hover" style="width: 245px" ` +
+                        `onclick="change_image('${nav_item}')">` +
+                        `<table>` +
+                            `<tr>` +
+                                `<td>` +
+                                    `<div style="width: 120px; text-align: left; margin-left: 10px">${image_name}</div>` +
+                                `</td>` +
+                                `<td>` +
+                                    regions_summary_element +
+                                `</td>` +
+                                // `<td>` +
+                                //     `<div style="width: 5px;</div>` +
+                                // `</td>` +                                
+                                // `<td>` +
+                                //     `<div style="width: 30px; background-color: ${overlay_appearance["colors"]["test_region"]}; margin: 0px 4px; color: black; border: none" class="object_entry">${test_region_count}</div>` +
+                                // `</td>` +
+                            `</tr>` +
+                        `</table>` +
+                    `</div>` +
                 `</td>` +
             `</tr>`;
+            // `<tr id="${row_id}">` +
+            //     `<td>`+
+            //         `<div class="table_button table_button_hover" style="width: 245px;" ` +
+            //                 `onclick="change_image('${nav_item}')">${image_name}</div>` +
+            //     `</td>` +
+            // `</tr>`;
             $("#navigation_table").append(item);
             cur_nav_list.push(nav_item);
 
@@ -652,6 +881,8 @@ function create_navigation_table() {
                 else {
                     region_color = overlay_appearance["colors"]["test_region"];
                 }
+
+                let region_element = create_region_element(region_color, disp_region_index);
                 let item = 
                 `<tr id="${row_id}">` +
                     `<td>` +
@@ -660,10 +891,10 @@ function create_navigation_table() {
                             `<table>` +
                                 `<tr>` +
                                     `<td>` +
-                                        `<div style="width: 156px;">${image_name}</div>` +
+                                        `<div style="width: 120px; text-align: left; margin-left: 10px">${image_name}</div>` +
                                     `</td>` +
                                     `<td>` +
-                                        `<div style="width: 75px; background-color: ${region_color}; margin: 0px 2px; color: black; border: none" class="object_entry">Region ${disp_region_index}</div>` +
+                                        region_element + //`<div style="width: 75px; background-color: ${region_color}; margin: 0px 2px; color: black; border: none" class="object_entry">Region ${disp_region_index}</div>` +
                                     `</td>` +
                                 `</tr>` +
                             `</table>` +
@@ -765,7 +996,7 @@ function set_cur_bounds() {
 
     // if (cur_panel === "annotation" || cur_panel === "prediction") {
     if (navigation_type === "training_regions" || navigation_type === "test_regions") {
-        console.log("annotations", annotations);
+        //console.log("annotations", annotations);
         // console.log("cur_img_name", cur_img_name);
         // console.log("navigation_type", navigation_type);
         // console.log("cur_region_index", cur_region_index);
@@ -989,10 +1220,10 @@ function update_draw_order(button_id) {
     let sel_overlay_name = pieces[0];
     let sel_direction = pieces[1];
 
-    console.log("overlay_name", sel_overlay_name);
-    console.log("direction", sel_direction);
+    //console.log("overlay_name", sel_overlay_name);
+    //console.log("direction", sel_direction);
 
-    console.log(new_overlay_appearance["draw_order"]);
+    //console.log(new_overlay_appearance["draw_order"]);
 
     let i = 0;
     for (let overlay_name of new_overlay_appearance["draw_order"]) {
@@ -1022,7 +1253,7 @@ function update_draw_order(button_id) {
 
     // overlay_appearance["draw_order"].splice(index, 0, sel_overlay_name);
 
-    console.log(new_overlay_appearance["draw_order"]);
+    //console.log(new_overlay_appearance["draw_order"]);
 
     draw_customize_overlays_table(true);
 
@@ -1169,9 +1400,9 @@ function draw_customize_overlays_table(redraw=true) {
             colors[overlay_name] = new_overlay_appearance["colors"][overlay_name];
         }
     }
-    console.log("checked", checked);
+    //console.log("checked", checked);
 
-    console.log("redraw_customize");
+    //console.log("redraw_customize");
     $("#customize_overlays_table").empty();
 
     for (let overlay_name of new_overlay_appearance["draw_order"].slice().reverse()) {
@@ -1265,7 +1496,7 @@ function show_customize_overlays_modal() {
     `<table>` +
         `<tr>` +
             `<td>` +
-                `<div class="table_head" style="width: 300px; text-align: right">Save Current Settings As My Defaults</div>` +
+                `<div class="header2" style="width: 300px; text-align: right; font-size: 14px">Save Current Settings As My Defaults</div>` +
             `</td>` +
             `<td>` +
                 `<div style="width: 100px; text-align: left; margin-top: -5px">` +
@@ -1428,16 +1659,17 @@ function apply_front_end_appearance_change() {
     }
     draw_count_chart();
     draw_score_chart();
+    draw_map_chart();
     close_modal();
 }
 
 function apply_overlay_appearance_change() {
     let make_default = $("#make_colors_default").is(":checked");
-    console.log("make_default?", make_default);
+    //console.log("make_default?", make_default);
 
     //let new_overlay_appearance = default_overlay_appearance;
     for (let overlay_name of new_overlay_appearance["draw_order"]) {
-        console.log("getting", overlay_name);
+        //console.log("getting", overlay_name);
         new_overlay_appearance["colors"][overlay_name] = $("#" + overlay_name + "-color").val();
         if ($("#" + overlay_name + "-fillRect-checkbox").is(":checked")) {
             new_overlay_appearance["style"][overlay_name] = "fillRect";

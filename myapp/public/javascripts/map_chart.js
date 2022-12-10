@@ -15,13 +15,111 @@ function color_map(num, min_num, max_num, c1, c2) {
 
 function draw_map_chart() {
 
-    let chart_height = ($("#seadragon_viewer").height() - 4) + "px";
-    let chart_width = chart_height;
+    let margin = 110;
+    let circle_data = [];
+    let max_latitude = -10000;
+    let min_latitude = 10000;
+    let max_longitude = -10000;
+    let min_longitude = 10000;
+
+    if (metadata["is_ortho"] !== "yes") {
+
+
+        // let max_density = 0;
+        for (let dzi_image_path of dzi_image_paths) {
+            let image_name = basename(dzi_image_path)
+            image_name = image_name.substring(0, image_name.length - 4);
+
+            let latitude = metadata["images"][image_name]["latitude"];
+            let longitude = metadata["images"][image_name]["longitude"];
+            let image_width_px = metadata["images"][image_name]["width_px"];
+            let image_height_px = metadata["images"][image_name]["height_px"];
+            // let status = annotations[image_name]["status"];
+
+
+            let color;
+            //if (image_is_fully_annotated(annotations, image_name, image_width_px, image_height_px)) { //((status === "completed_for_training") || (status === "completed_for_testing")) {
+            //    color = "#0080C0";
+
+                // let gsd_h = (camera_height * sensor_height) / (focal_length * metadata["images"][image_name]["height_px"]);
+                // let gsd_w = (camera_height * sensor_width) / (focal_length * metadata["images"][image_name]["width_px"]);     
+                
+                // let gsd = Math.min(gsd_h, gsd_w);
+
+                // let image_height_m = metadata["images"][image_name]["height_px"] * gsd;
+                // let image_width_m = metadata["images"][image_name]["width_px"] * gsd;
+
+                // let area_m2 = image_width_m * image_height_m;
+
+
+                // let density = annotations[image_name]["annotations"].length / area_m2;
+                // if (Math.ceil(density) > max_density) {
+                //     max_density = density;
+                // }
+            //}
+            if (image_is_fully_annotated_for_training(annotations, image_name, image_width_px, image_height_px)) {
+                color = overlay_appearance["colors"]["training_region"];
+            }
+            else if (image_is_fully_annotated_for_testing(annotations, image_name, image_width_px, image_height_px)) {
+                color = overlay_appearance["colors"]["test_region"];
+            }
+            else {
+                color = "white";
+            }
+
+            circle_data.push({
+                "latitude": latitude,
+                "longitude": longitude,
+                "color": color,
+                "image_name": image_name,
+                "dzi_image_path": dzi_image_path
+            });
+
+            if (latitude < min_latitude) {
+                min_latitude = latitude;
+            }
+            if (latitude > max_latitude) {
+                max_latitude = latitude;
+            }
+            if (longitude < min_longitude) {
+                min_longitude = longitude;
+            }
+            if (longitude > max_longitude) {
+                max_longitude = longitude;
+            }
+        }
+    }
+
+    let ratio;
+    if (metadata["is_ortho"] === "yes") {
+        ratio = (metadata["images"][Object.keys(annotations)[0]]["width_px"] / metadata["images"][Object.keys(annotations)[0]]["height_px"]);
+    }
+    else {
+        ratio = ((max_longitude - min_longitude) / (max_latitude - min_latitude));
+    }
+
+    let max_image_height = ($("#seadragon_viewer").height() - 4) - (2 * margin);
+    let max_image_width = ($("#map_view_container").width() - (2 * $("#map_builder_controls_container").width())) - (2 * margin); //($("#seadragon_viewer").width() - 4) - (2 * margin);
+
+    let image_height = max_image_height;
+    let image_width = image_height * ratio;
+    if (image_width > max_image_width) {
+        image_width = max_image_width;
+        image_height = image_width * (1 / ratio);
+    }
+
+    chart_height = image_height + (2 * margin);
+    chart_width = image_width + (2 * margin);
+ 
+
+    chart_height = chart_height + "px";
+    chart_width = chart_width + "px";
+
 
 
     $("#chart_container").empty();
     $("#chart_container").append(
-        `<table class="transparent_table">` +
+        `<table>` +
             `<tr>` +
                 `<td>` +
                     `<div id="map_container" style="height: ${chart_height}; width: ${chart_width};">` +
@@ -59,116 +157,124 @@ function draw_map_chart() {
 
     let chart = d3.select("#map_container").select("svg").append("g");
         
-    let margin = 110;
 
-    let circle_data = [];
-    let max_latitude = -10000;
-    let min_latitude = 10000;
-    let max_longitude = -10000;
-    let min_longitude = 10000;
-    // let max_density = 0;
-    for (let dzi_image_path of dzi_image_paths) {
-        let image_name = basename(dzi_image_path)
-        image_name = image_name.substring(0, image_name.length - 4);
-
-        let latitude = metadata["images"][image_name]["latitude"];
-        let longitude = metadata["images"][image_name]["longitude"];
-        let image_width_px = metadata["images"][image_name]["width_px"];
-        let image_height_px = metadata["images"][image_name]["height_px"];
-        // let status = annotations[image_name]["status"];
+    if (metadata["is_ortho"] !== "yes") {
 
 
-        let color;
-        if (image_is_fully_annotated(annotations, image_name, image_width_px, image_height_px)) { //((status === "completed_for_training") || (status === "completed_for_testing")) {
-            color = "#0080C0";
+        // let max_latitude = -10000;
+        // let min_latitude = 10000;
+        // let max_longitude = -10000;
+        // let min_longitude = 10000;
+        // // let max_density = 0;
+        // for (let dzi_image_path of dzi_image_paths) {
+        //     let image_name = basename(dzi_image_path)
+        //     image_name = image_name.substring(0, image_name.length - 4);
 
-            // let gsd_h = (camera_height * sensor_height) / (focal_length * metadata["images"][image_name]["height_px"]);
-            // let gsd_w = (camera_height * sensor_width) / (focal_length * metadata["images"][image_name]["width_px"]);     
+        //     let latitude = metadata["images"][image_name]["latitude"];
+        //     let longitude = metadata["images"][image_name]["longitude"];
+        //     let image_width_px = metadata["images"][image_name]["width_px"];
+        //     let image_height_px = metadata["images"][image_name]["height_px"];
+        //     // let status = annotations[image_name]["status"];
+
+
+        //     let color;
+        //     //if (image_is_fully_annotated(annotations, image_name, image_width_px, image_height_px)) { //((status === "completed_for_training") || (status === "completed_for_testing")) {
+        //     //    color = "#0080C0";
+
+        //         // let gsd_h = (camera_height * sensor_height) / (focal_length * metadata["images"][image_name]["height_px"]);
+        //         // let gsd_w = (camera_height * sensor_width) / (focal_length * metadata["images"][image_name]["width_px"]);     
+                
+        //         // let gsd = Math.min(gsd_h, gsd_w);
+
+        //         // let image_height_m = metadata["images"][image_name]["height_px"] * gsd;
+        //         // let image_width_m = metadata["images"][image_name]["width_px"] * gsd;
+
+        //         // let area_m2 = image_width_m * image_height_m;
+
+
+        //         // let density = annotations[image_name]["annotations"].length / area_m2;
+        //         // if (Math.ceil(density) > max_density) {
+        //         //     max_density = density;
+        //         // }
+        //     //}
+        //     if (image_is_fully_annotated_for_training(annotations, image_name, image_width_px, image_height_px)) {
+        //         color = overlay_appearance["colors"]["training_region"];
+        //     }
+        //     else if (image_is_fully_annotated_for_testing(annotations, image_name, image_width_px, image_height_px)) {
+        //         color = overlay_appearance["colors"]["test_region"];
+        //     }
+        //     else {
+        //         color = "white";
+        //     }
+
+        //     circle_data.push({
+        //         "latitude": latitude,
+        //         "longitude": longitude,
+        //         "color": color,
+        //         "image_name": image_name,
+        //         "dzi_image_path": dzi_image_path
+        //     });
+
+        //     if (latitude < min_latitude) {
+        //         min_latitude = latitude;
+        //     }
+        //     if (latitude > max_latitude) {
+        //         max_latitude = latitude;
+        //     }
+        //     if (longitude < min_longitude) {
+        //         min_longitude = longitude;
+        //     }
+        //     if (longitude > max_longitude) {
+        //         max_longitude = longitude;
+        //     }
+        // }
+
             
-            // let gsd = Math.min(gsd_h, gsd_w);
+        chart_x_axis = svg.append("g")
+            .attr("class", "x axis")
+            .attr("transform", "translate(0," + (chart_height - (margin / 2)) + ")");
 
-            // let image_height_m = metadata["images"][image_name]["height_px"] * gsd;
-            // let image_width_m = metadata["images"][image_name]["width_px"] * gsd;
+        chart_y_axis = svg.append("g")
+                .attr("class", "y axis")
+                .attr("transform", "translate(" + (margin / 2) + ", 0)");
 
-            // let area_m2 = image_width_m * image_height_m;
 
 
-            // let density = annotations[image_name]["annotations"].length / area_m2;
-            // if (Math.ceil(density) > max_density) {
-            //     max_density = density;
-            // }
-        }
-        else {
-            color = "white";
-        }
 
-        circle_data.push({
-            "latitude": latitude,
-            "longitude": longitude,
-            "color": color,
-            "image_name": image_name,
-            "dzi_image_path": dzi_image_path
-        });
+        xScale = d3.scaleLinear()
+            .domain([min_longitude, max_longitude])
+            .range([margin, chart_width - margin]);
 
-        if (latitude < min_latitude) {
-            min_latitude = latitude;
-        }
-        if (latitude > max_latitude) {
-            max_latitude = latitude;
-        }
-        if (longitude < min_longitude) {
-            min_longitude = longitude;
-        }
-        if (longitude > max_longitude) {
-            max_longitude = longitude;
-        }
+        yScale = d3.scaleLinear()
+            .domain([min_latitude, max_latitude])
+            .range([chart_height - margin, margin]);
+
+
+        chart_x_axis.call(d3.axisBottom(xScale).tickValues([min_longitude, max_longitude]).tickFormat(x => `${x.toFixed(4)}`));
+        chart_y_axis.call(d3.axisLeft(yScale).tickValues([min_latitude, max_latitude]).tickFormat(x => `${x.toFixed(4)}`));
+
+
+
+        svg.append("text")
+            .attr("text-anchor", "middle")
+            .attr("x", - (chart_height / 2))
+            .attr("y", (margin / 2) - 30)
+            .attr("dy", ".75em")
+            .attr("transform", "rotate(-90)")
+            .text("Latitude");
+
+        svg.append("text")
+            .attr("text-anchor", "middle")
+            .attr("x", ((chart_width / 2)))
+            .attr("y", chart_height - (margin / 2) + 30)
+            .text("Longitude");
     }
-
-        
-    chart_x_axis = svg.append("g")
-        .attr("class", "x axis")
-        .attr("transform", "translate(0," + (chart_height - (margin / 2)) + ")");
-
-    chart_y_axis = svg.append("g")
-            .attr("class", "y axis")
-            .attr("transform", "translate(" + (margin / 2) + ", 0)");
-
-
-
-
-    xScale = d3.scaleLinear()
-        .domain([min_longitude, max_longitude])
-        .range([margin, chart_width - margin]);
-
-    yScale = d3.scaleLinear()
-        .domain([min_latitude, max_latitude])
-        .range([chart_height - margin, margin]);
-
-
-    chart_x_axis.call(d3.axisBottom(xScale).tickValues([min_longitude, max_longitude]).tickFormat(x => `${x.toFixed(4)}`));
-    chart_y_axis.call(d3.axisLeft(yScale).tickValues([min_latitude, max_latitude]).tickFormat(x => `${x.toFixed(4)}`));
-
-
-
-    svg.append("text")
-        .attr("text-anchor", "middle")
-        .attr("x", - (chart_height / 2))
-        .attr("y", (margin / 2) - 30)
-        .attr("dy", ".75em")
-        .attr("transform", "rotate(-90)")
-        .text("Latitude");
-
-    svg.append("text")
-        .attr("text-anchor", "middle")
-        .attr("x", ((chart_width / 2)))
-        .attr("y", chart_height - (margin / 2) + 30)
-        .text("Longitude");
     
 
     if (map_url !== null) {
 
         chart.selectAll("text")
-             .data(["Number of Seedlings Per Square Metre"])
+             .data(["Number of Predicted Seedlings Per Square Metre"])
              .enter()
              .append("text")
              .attr("x", chart_width / 2)
@@ -183,8 +289,9 @@ function draw_map_chart() {
         chart.append("svg:image")
             .attr("x", margin)
             .attr("y", margin)
-            .attr("width", (chart_width - 2 * margin))
+            .attr("width", chart_width- 2 * margin)
             .attr("height", chart_height - 2 * margin)
+            .attr("preserveAspectRatio", "none")
             .attr("xlink:href", map_url);
 
         let vmin;
@@ -268,67 +375,68 @@ function draw_map_chart() {
 
 
 
+    if (metadata["is_ortho"] !== "yes") {
+
+        let tooltip = d3.select("#map_chart_tooltip");
+
+        let tip_mouseover = function(d) {
+
+            $("#map_chart_tooltip").show();
+            let html = "Image: " + d.image_name;
+
+            tooltip.html(html);
+            let tooltip_width = $("#map_chart_tooltip").width();
+            tooltip.style("opacity", 1.0)
+                .style("left", (d3.event.pageX - (tooltip_width / 2)) + "px")
+                .style("top", (d3.event.pageY - 40) + "px");
+            d3.select(this).style("cursor", "pointer"); 
+        }
+
+        let tip_mouseleave = function(d) {
+            tooltip.style("opacity", 0);
+            $("#map_chart_tooltip").hide();
+            d3.select(this).style("cursor", "default"); 
+        }
+
+        chart.selectAll("circle")
+            .data(circle_data)
+            .enter()
+            .append("circle")
+            .attr("cx", function(d) {
+                return xScale(d["longitude"]);
+            })
+            .attr("cy", function(d) {
+                return yScale(d["latitude"]);
+            })
+            .attr("r", 5)
+            .attr("fill", function(d) {
+                return d["color"];
+            })
+            .attr("stroke", "black")
+            .attr("stroke-width", 1)
+
+            .on("click", function(d) {
+
+                $("#navigation_dropdown").val("images");
+                $("#active_layer_table").css("opacity", 1.0);
+                $("input:radio[name=edit_layer_radio]").prop("disabled", false);
+                $("#show_segmentation_button").show();
+                // if (cur_panel === "segmentation") {
+                //     viewer = null;
+                // }
+                create_navigation_table();
+                update_count_combo(true);
+                // cur_panel = "annotation";
+                cur_region_index = -1;
+                show_image(d["image_name"]);
 
 
-    let tooltip = d3.select("#map_chart_tooltip");
-
-    let tip_mouseover = function(d) {
-
-        $("#map_chart_tooltip").show();
-        let html = "Image: " + d.image_name;
-
-        tooltip.html(html);
-        let tooltip_width = $("#map_chart_tooltip").width();
-        tooltip.style("opacity", 1.0)
-            .style("left", (d3.event.pageX - (tooltip_width / 2)) + "px")
-            .style("top", (d3.event.pageY - 40) + "px");
-        d3.select(this).style("cursor", "pointer"); 
+                //show_image(d["image_name"]);
+                //change_image(d["image_name"]);
+            })
+            .on("mouseover", tip_mouseover)
+            .on("mouseleave", tip_mouseleave);
     }
-
-    let tip_mouseleave = function(d) {
-        tooltip.style("opacity", 0);
-        $("#map_chart_tooltip").hide();
-        d3.select(this).style("cursor", "default"); 
-    }
-
-    chart.selectAll("circle")
-         .data(circle_data)
-         .enter()
-         .append("circle")
-         .attr("cx", function(d) {
-            return xScale(d["longitude"]);
-         })
-         .attr("cy", function(d) {
-            return yScale(d["latitude"]);
-         })
-         .attr("r", 5)
-         .attr("fill", function(d) {
-            return d["color"];
-         })
-         .attr("stroke", "black")
-         .attr("stroke-width", 1)
-
-         .on("click", function(d) {
-
-            $("#navigation_dropdown").val("images");
-            $("#active_layer_table").css("opacity", 1.0);
-            $("input:radio[name=edit_layer_radio]").prop("disabled", false);
-            $("#show_segmentation_button").show();
-            // if (cur_panel === "segmentation") {
-            //     viewer = null;
-            // }
-            create_navigation_table();
-            update_count_combo(true);
-            // cur_panel = "annotation";
-            cur_region_index = -1;
-            show_image(d["image_name"]);
-
-
-            //show_image(d["image_name"]);
-            //change_image(d["image_name"]);
-         })
-         .on("mouseover", tip_mouseover)
-         .on("mouseleave", tip_mouseleave);
 
 }
 

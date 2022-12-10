@@ -11,8 +11,7 @@ let metrics;
 //let dzi_dir;
 let dzi_image_paths;
 let excess_green_record;
-let download_uuid = "";
-let map_download_uuid = "";
+//let download_uuid = "";
 let overlay_appearance;
 /*
 let sorted_overlay_names;
@@ -22,6 +21,7 @@ let dataset_images;
 //let used_for = {};
 let image_to_dzi;
 
+let show_bookmarks = false;
 /*
 let image_names = {
     "all": [],
@@ -41,7 +41,7 @@ let cur_view;
 let cur_map_model_uuid;
 
 let map_url = null;
-let pred_map_url = null;
+// let pred_map_url = null;
 let min_max_rec = null;
 
 let voronoi_data = {
@@ -55,19 +55,24 @@ let voronoi_data = {
 
 function show_metrics_modal() {
 
+    let metric_definitions_url = get_CC_PATH() + "/usr/shared/metric_definitions.svg";
+    show_modal_message(`Metric Definitions`, 
+    `<div class="scrollable_area" style="height: 400px">` +
+        `<img src="${metric_definitions_url}"></img>` +
+    `</div>`
 
-    show_modal_message(`Metrics`, 
-    `<table>` +
-        `<tr>` +
-            `<td>` +
-                `<div style="width: 220px">Percent Count Error</div>` +
-            `</td>` +
-            `<td>` +
-                `<div>$a \ne 0$</div>` +
-                //`<div><math>( ( | (Predicted Count) - (Annotated Count) | ) / (Annotated Count) ) * 100</math></div>` + //( ( | (Predicted Count) - (Annotated Count) | ) / (Annotated Count) ) * 100`);
-            `</td>` +
-        `</tr>` +
-    `</table>`);
+    // `<table>` +
+    //     `<tr>` +
+    //         `<td>` +
+    //             `<div style="width: 220px">Percent Count Error</div>` +
+    //         `</td>` +
+    //         `<td>` +
+    //             `<div>$a \ne 0$</div>` +
+    //             //`<div><math>( ( | (Predicted Count) - (Annotated Count) | ) / (Annotated Count) ) * 100</math></div>` + //( ( | (Predicted Count) - (Annotated Count) | ) / (Annotated Count) ) * 100`);
+    //         `</td>` +
+    //     `</tr>` +
+    // `</table>`
+    , 707);
 }
 
 
@@ -96,24 +101,26 @@ function change_image(cur_nav_item) {
     }
 
     $("#image_name").text(cur_img_name);
-    $("#region_name").empty();
-    if (navigation_type === "training_regions" || navigation_type === "test_regions") {
 
-        let disp_region_index = cur_region_index + 1;
-        let region_color;
-        if (navigation_type === "training_regions") {
-            region_color = overlay_appearance["colors"]["training_region"];
-        }
-        else {
-            region_color = overlay_appearance["colors"]["test_region"];
-        }
+    update_region_name();
+    // $("#region_name").empty();
+    // if (navigation_type === "training_regions" || navigation_type === "test_regions") {
 
-        $("#region_name").append(
-            `<div style="width: 75px; background-color: ${region_color}; margin: 0px 2px; color: black; border: none" class="object_entry">` +
-            `Region ` + disp_region_index +
-            `</div>`
-        );
-    }
+    //     let disp_region_index = cur_region_index + 1;
+    //     let region_color;
+    //     if (navigation_type === "training_regions") {
+    //         region_color = overlay_appearance["colors"]["training_region"];
+    //     }
+    //     else {
+    //         region_color = overlay_appearance["colors"]["test_region"];
+    //     }
+
+    //     $("#region_name").append(
+    //         `<div style="width: 75px; background-color: ${region_color}; margin: 0px 2px; color: black; border: none" class="object_entry">` +
+    //         `Region ` + disp_region_index +
+    //         `</div>`
+    //     );
+    // }
 
     if (viewer == null) {
         create_viewer("seadragon_viewer");
@@ -276,72 +283,94 @@ function create_overlays_table() {
 
 
 function build_map() {
-    disable_buttons(["build_map_button"]);
-    $("#build_loader").show();
-    //let sel_metric = $("input[type='radio'][name='metric']:checked").val();
+
     let sel_interpolation = $("input[type='radio'][name='interpolation']:checked").val();
-    //let sel_model = $("input[type='radio'][name='map_model']:checked").val();
-    let sel_pred_image_status = $("input[type='radio'][name='pred_image_status']:checked").val();
-    //let comparison_type = $("input[type='radio'][name='comparison_type']:checked").val();
 
-    //let include_annotated_map = $("input[type='radio'][name='include_annotated_map']:checked").val() === "yes";
-    
-    
-
-    $.post($(location).attr('href'),
-    {
-        action: "build_map",
-        //metric: sel_metric,
-        interpolation: sel_interpolation,
-        //model_uuid: sel_model,
-        pred_image_status: sel_pred_image_status,
-        // annotation_version: $("#annotation_version_combo").val(),
-        map_download_uuid: map_download_uuid
-        //comparison_type: "side_by_side", //comparison_type
-        //include_annotated_map: include_annotated_map 
-        //image_set_data: JSON.stringify(image_set_data)
-    },
-    
-    function(response, status) {
-        $("#build_loader").hide();
-        enable_buttons(["build_map_button"]);
-
-        if (response.error) {
-            show_modal_message("Error", "An error occurred while creating the density map.");
-        }
-        else {
-
-            let map_download_uuid = response.map_download_uuid;
-            //cur_map_model_uuid = sel_model;
-
-            let timestamp = new Date().getTime();
+    let timestamp = new Date().getTime();
             
-            let base = get_CC_PATH() + "/usr/data/" + username + "/image_sets/" + image_set_info["farm_name"] + "/" + 
-                        image_set_info["field_name"] + "/" + image_set_info["mission_date"] + "/model/results/" +
-                        image_set_info["result_uuid"] + "/maps/" + map_download_uuid;
+    let base = get_CC_PATH() + "/usr/data/" + username + "/image_sets/" + image_set_info["farm_name"] + "/" + 
+                image_set_info["field_name"] + "/" + image_set_info["mission_date"] + "/model/results/" +
+                image_set_info["result_uuid"] + "/maps/" + sel_interpolation;
 
-            map_url = base + "_annotated_map.svg?t=" + timestamp;
+    map_url = base + "_predicted_map.svg?t=" + timestamp;
 
+    let min_max_rec_url = base + "_min_max_rec.json?t=" + timestamp;
+    min_max_rec = get_json(min_max_rec_url);
 
-            // if (comparison_type === "diff") {
-            //     pred_map_url = base + "difference_map.svg?t=" + timestamp;
-            //     diff_map = true;
-            // }
-            // else {
-            pred_map_url = base + "_predicted_map.svg?t=" + timestamp;
-                // diff_map = false;
-            // }
-
-
-            let min_max_rec_url = base + "_min_max_rec.json?t=" + timestamp;
-            min_max_rec = get_json(min_max_rec_url);
-
-            draw_map_chart();
-        }
-    });
-
+    draw_map_chart();
 
 }
+
+
+
+
+
+
+
+
+
+//     $("#build_loader").show();
+//     //let sel_metric = $("input[type='radio'][name='metric']:checked").val();
+//     let sel_interpolation = $("input[type='radio'][name='interpolation']:checked").val();
+//     //let sel_model = $("input[type='radio'][name='map_model']:checked").val();
+//     let sel_pred_image_status = $("input[type='radio'][name='pred_image_status']:checked").val();
+//     //let comparison_type = $("input[type='radio'][name='comparison_type']:checked").val();
+
+//     //let include_annotated_map = $("input[type='radio'][name='include_annotated_map']:checked").val() === "yes";
+    
+    
+
+//     $.post($(location).attr('href'),
+//     {
+//         action: "build_map",
+//         //metric: sel_metric,
+//         interpolation: sel_interpolation,
+//         //model_uuid: sel_model,
+//         //pred_image_status: sel_pred_image_status,
+//         // annotation_version: $("#annotation_version_combo").val(),
+//         //comparison_type: "side_by_side", //comparison_type
+//         //include_annotated_map: include_annotated_map 
+//         //image_set_data: JSON.stringify(image_set_data)
+//     },
+    
+//     function(response, status) {
+//         $("#build_loader").hide();
+//         enable_buttons(["build_map_button"]);
+
+//         if (response.error) {
+//             show_modal_message("Error", "An error occurred while creating the density map.");
+//         }
+//         else {
+//             //cur_map_model_uuid = sel_model;
+
+//             let timestamp = new Date().getTime();
+            
+//             let base = get_CC_PATH() + "/usr/data/" + username + "/image_sets/" + image_set_info["farm_name"] + "/" + 
+//                         image_set_info["field_name"] + "/" + image_set_info["mission_date"] + "/model/results/" +
+//                         image_set_info["result_uuid"] + "/maps/";
+
+//             // map_url = base + "_annotated_map.svg?t=" + timestamp;
+
+
+//             // if (comparison_type === "diff") {
+//             //     pred_map_url = base + "difference_map.svg?t=" + timestamp;
+//             //     diff_map = true;
+//             // }
+//             // else {
+//             map_url = base + "predicted_map.svg?t=" + timestamp;
+//                 // diff_map = false;
+//             // }
+
+
+//             let min_max_rec_url = base + "min_max_rec.json?t=" + timestamp;
+//             min_max_rec = get_json(min_max_rec_url);
+
+//             draw_map_chart();
+//         }
+//     });
+
+
+// }
 
 function show_map() {
 
@@ -365,19 +394,19 @@ function show_map() {
     $("#map_builder_controls_container").show();
 
 
-    let num_completed = 0;
-    for (let image_name of Object.keys(annotations)) {
+    // let num_completed = 0;
+    // for (let image_name of Object.keys(annotations)) {
 
-        let image_width_px = metadata["images"][image_name]["width_px"];
-        let image_height_px = metadata["images"][image_name]["height_px"];
+    //     let image_width_px = metadata["images"][image_name]["width_px"];
+    //     let image_height_px = metadata["images"][image_name]["height_px"];
 
-        if (image_is_fully_annotated(annotations, image_name, image_width_px, image_height_px)) {
-            num_completed++;
-        }
-    }
-    if (num_completed >= 3) {
-        $("#sufficient_annotation_options").show();
-    }
+    //     if (image_is_fully_annotated(annotations, image_name, image_width_px, image_height_px)) {
+    //         num_completed++;
+    //     }
+    // }
+    // if (num_completed >= 3) {
+    //     $("#sufficient_annotation_options").show();
+    // }
     //else {
         //$("#map_builder_controls_container").hide();
         //$("#insufficient_annotation_container").show();
@@ -799,74 +828,232 @@ $(document).ready(function() {
     //     $("#filter_combo").append(`<option style="background-color: ${color}" value="${image_status}">${text}</option>`);
     // }
 
+    $("#request_raw_outputs_button").click(function() {
+        let raw_outputs_download_path = get_CC_PATH() + 
+            "/usr/data/" + 
+            username + 
+            "/image_sets/" + 
+            image_set_info["farm_name"] + "/" + 
+            image_set_info["field_name"] + "/" + 
+            image_set_info["mission_date"] + 
+            "/model/results/" + 
+            image_set_info["result_uuid"] + 
+            "/raw_outputs.zip";
 
+        show_modal_message(`Download Raw Outputs`,
 
-    $("#request_spreadsheet_button").click(function() {
+        `<div>A <em>.zip</em> file containing the raw annotations and predictions (two JSON files) is available for download.` +
+        `</div>` +
+        `<div style="height: 10px"></div>` +
 
-        let farm_name = image_set_info["farm_name"];
-        let field_name = image_set_info["field_name"];
-        let mission_date = image_set_info["mission_date"];
-        let result_uuid = image_set_info["result_uuid"];
+        `<table>` +
+            `<tr>` +
+                `<td>` +
+                    `<h class="header2" style="font-size: 16px">Annotations format:</h>` +
+                `</td>` +
+                `<td>` +
+                    `<div style="width: 35px"></div>` +
+                `</td>` +
+                `<td>` +
+                    `<h class="header2" style="font-size: 16px">Predictions format:</h>` +
+                `</td>` +
+            `</tr>` +
+            
+            `<tr>` +
+                `<td>` +
+                    `<div style="text-align: center; width: 300px;">` +
+                        `<textarea class="json_text_area" style="width: 300px; margin: 0 auto; height: 270px">${annotations_format_sample_text}</textarea>` +
+                    `</div>` +
+                `</td>` +
+                `<td>` +
+                    `<div style="width: 35px"></div>` +
+                `</td>` +
+                `<td>` +
+                    `<div style="text-align: center; width: 300px;">` +
+                        `<textarea class="json_text_area" style="width: 300px; margin: 0 auto; height: 270px">${predictions_format_sample_text}</textarea>` +
+                    `</div>` +
 
-        show_modal_message("Preparing Download", 
-        `<div style="height: 50px">` +
-            `<div id="prep_spreadsheet_message">Preparing spreadsheet...</div>` +
-            `<div id="prep_spreadsheet_loader" class="loader"></div>` +
-            `<div style="text-align: center; margin-top: 20px"><a class="table_button table_button_hover" id="download_button" style="padding: 10px; border-radius: 30px" hidden>` +
-                `<i class="fa-solid fa-file-arrow-down"></i><span style="margin-left: 10px">Download Results</span></a>` +
-            `</div>` +
-        `</div>`);
+                `</td>` +
+            `</tr>` +
+        `</table>` +
 
-        $("#modal_close").hide();
+        `<ul>` +
+        `<li>All boxes will be encoded with four values (in <span style="font-weight: bold">pixel coordinates</span>): ` +
+        `<br>` +
+        `<div style="text-align: center">` +
+        `<div style="font-family: 'Lucida Console', Monaco, monospace;">[ x_min, y_min, x_max, y_max ]</div> ` + 
+        `</div>` +
+        `</li>` +
+        `</ul>` +
+        `<div style="height: 10px"></div>` +
+        `<div style="text-align: center">` +
+            `<a class="std-button std-button-hover" style="width: 250px;" href="${raw_outputs_download_path}" download>Download Raw Outputs</a>` +
+        `</div>`
 
-        $.post($(location).attr('href'),
-        {
-            action: "create_spreadsheet",
-            download_uuid: download_uuid,
-            // annotation_version: $("#annotation_version_combo").val()
-        },
+            // `<table style="margin: auto; width: 500px">` +
+            //     `<tr>` +
+
+            //         `<td>` +
+            //             `<h class="header2" style="text-align: right; width: 200px; margin-right: 10px">File Format</h>` +
+            //         `</td>` +
+            //         `<td style="width: 100%">` +
+            //             `<select id="file_format_dropdown" class="nonfixed_dropdown" style="display: inline-block; width: 200px">` +
+            //                 `<option value="json">JSON</option>` +
+            //                 `<option value="shapefile">Shapefile</option>` +
+            //             `</select>` +
+            //         `</td>` +
+            //     `</tr>` +
+            // `</table>` +
+            // `<div id="file_download_content"></div>` +
+            // `<button id="prepare_download">Prepare Download</button>`
         
-        function(response, status) {
-            $("#prep_spreadsheet_loader").hide();
-            $("#modal_close").show();
+        , 750);
 
-            if (response.error) {
-                $("#modal_head_text").html("Error");
-                $("#prep_spreadsheet_message").html("An error occurred while generating the results file.");
+        // $("#file_format_dropdown").change(function() {
+        //     $("#file_download_content").empty();
+        //     let file_format = $("#file_format_dropdown").val();
+        //     if (file_format === "json") {
+        //         $("#file_download_content").html("JSON!");
+        //     }
+        //     else {
+        //         $("#file_download_content").html("SHAPEFILE!");
+        //     }
+        // });
 
-            }
-            else {
-                $("#modal_head_text").html("Ready For Download");
-                $("#prep_spreadsheet_message").html("Your results file has been created. Click the button to download the results.");
-                $("#download_button").show();
+        // $("#file_format_dropdown").val("json").change();
+
+        // $("#prepare_download").click(function() {
+        //     $.post($(location).attr('href'),
+        //     {
+        //         action: "prepare_raw_outputs_download",
+        //         file_format: $("#file_format_dropdown").val()
+        //     },
+        //     function(response, status) {
+
+        //         if (response.error) {
+        //             show_modal_message(`Error`, response.message);
+        //         }
+        // });
+
+    });
+
+    // let base = get_CC_PATH() + "/usr/data/" + username + "/image_sets/" + image_set_info["farm_name"] + "/" + 
+    // image_set_info["field_name"] + "/" + image_set_info["mission_date"] + "/model/results/" +
+
+
+    $("#request_metrics_button").click(function() {
+        let metrics_download_path = get_CC_PATH() + 
+            "/usr/data/" + 
+            username + 
+            "/image_sets/" + 
+            image_set_info["farm_name"] + "/" + 
+            image_set_info["field_name"] + "/" + 
+            image_set_info["mission_date"] + 
+            "/model/results/" + 
+            image_set_info["result_uuid"] + 
+            "/metrics.xlsx";
+
+        show_modal_message(`Download Metrics`,
+        `<div>An <em>.xlsx</em> file containing metrics is available for download. This file contains three sheets:` +
+        `</div>` +
+        `<div style="height: 10px"></div>` +
+        `<ul>` +
+        `<li><div style="display: inline-block; width: 80px"><em>Images:</em></div>Metrics for images. Each row contains metrics for one image in the image set.</li>` +
+        `<br>` +
+        `<li><div style="display: inline-block; width: 80px"><em>Regions:</em></div>Metrics for regions. Each row contains metrics for one region in the image set.</li>` +
+        `<br>` +
+        `<li><div style="display: inline-block; width: 80px"><em>Stats:</em></div>Summary statistics for the entire image set.</li>` +
+        `</ul>` +
+
+        `<div style="height: 10px"></div>` +
+        `<div style="text-align: center">` +
+            `<a class="std-button std-button-hover" style="width: 250px;" href="${metrics_download_path}" download="metrics.xlsx">Download Metrics</a>` +
+        `</div>`
+
+        , 750);
+    });
+
+
+
+    // let download_path = get_CC_PATH() + "/download/" + 
+    //                                 username + "/" +
+    //                                 farm_name + "/" + 
+    //                                 field_name + "/" + 
+    //                                 mission_date + "/" +
+    //                                 result_uuid + "/" + 
+    //                                 download_uuid;
+
+
+    //$("#download_metrics_button").attr("href", metrics_download_path);
+
+
+
+    // $("#request_metrics_button").click(function() {
+
+    //     let farm_name = image_set_info["farm_name"];
+    //     let field_name = image_set_info["field_name"];
+    //     let mission_date = image_set_info["mission_date"];
+    //     let result_uuid = image_set_info["result_uuid"];
+
+    //     show_modal_message("Preparing Download", 
+    //     `<div style="height: 50px">` +
+    //         `<div id="prep_spreadsheet_message">Preparing spreadsheet...</div>` +
+    //         `<div id="prep_spreadsheet_loader" class="loader"></div>` +
+    //         `<div style="text-align: center; margin-top: 20px"><a class="table_button table_button_hover" id="download_button" style="padding: 10px; border-radius: 30px" hidden>` +
+    //             `<i class="fa-solid fa-file-arrow-down"></i><span style="margin-left: 10px">Download Results</span></a>` +
+    //         `</div>` +
+    //     `</div>`);
+
+    //     $("#modal_close").hide();
+
+    //     $.post($(location).attr('href'),
+    //     {
+    //         action: "create_spreadsheet",
+    //         download_uuid: download_uuid,
+    //         // annotation_version: $("#annotation_version_combo").val()
+    //     },
+        
+    //     function(response, status) {
+    //         $("#prep_spreadsheet_loader").hide();
+    //         $("#modal_close").show();
+
+    //         if (response.error) {
+    //             $("#modal_head_text").html("Error");
+    //             $("#prep_spreadsheet_message").html("An error occurred while generating the results file.");
+
+    //         }
+    //         else {
+    //             $("#modal_head_text").html("Ready For Download");
+    //             $("#prep_spreadsheet_message").html("Your results file has been created. Click the button to download the results.");
+    //             $("#download_button").show();
     
-                download_uuid = response.download_uuid;
+    //             download_uuid = response.download_uuid;
 
-                let download_path = get_CC_PATH() + "/download/" + 
-                                    username + "/" +
-                                    farm_name + "/" + 
-                                    field_name + "/" + 
-                                    mission_date + "/" +
-                                    result_uuid + "/" + 
-                                    download_uuid;
-
-
-                $("#download_button").attr("href", download_path);
+    //             let download_path = get_CC_PATH() + "/download/" + 
+    //                                 username + "/" +
+    //                                 farm_name + "/" + 
+    //                                 field_name + "/" + 
+    //                                 mission_date + "/" +
+    //                                 result_uuid + "/" + 
+    //                                 download_uuid;
 
 
-                let close_timeout_handler = setTimeout(function() {
-                    $("#modal_close").click();
-                }, 3600 * 1000);
+    //             $("#download_button").attr("href", download_path);
 
-                $("#modal_close").click(function() {
-                    clearTimeout(close_timeout_handler);
-                    close_modal();
-                });
 
-            }
+    //             let close_timeout_handler = setTimeout(function() {
+    //                 $("#modal_close").click();
+    //             }, 3600 * 1000);
 
-        });
-    })
+    //             $("#modal_close").click(function() {
+    //                 clearTimeout(close_timeout_handler);
+    //                 close_modal();
+    //             });
+
+    //         }
+
+    //     });
+    // })
 
 
     $("#result_name").text(data["request"]["results_name"]);
@@ -909,18 +1096,20 @@ $(document).ready(function() {
     cur_view = "image";
 
     if (can_calculate_density(metadata, camera_specs)) {
+        if (metadata["is_ortho"] === "yes" || Object.keys(annotations).length >= 3) {
 
-        $("#view_button_container").show();
+            $("#view_button_container").show();
 
-        $("#view_button").click(function() {
+            $("#view_button").click(function() {
 
-            if (cur_view == "image") {
-                show_map();
-            }
-            else {
-                show_image(cur_img_name);
-            }
-        });
+                if (cur_view == "image") {
+                    show_map();
+                }
+                else {
+                    show_image(cur_img_name);
+                }
+            });
+        }
     }    
     
 

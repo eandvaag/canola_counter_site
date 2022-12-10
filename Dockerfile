@@ -44,6 +44,7 @@ RUN sed -i 's/policy domain="resource" name="disk" value="1GiB"/policy domain="r
 
 RUN apt update && apt install -y libgdal-dev gdal-bin
 RUN export gdal_ver=`gdalinfo --version | perl -a -e 'if ($_ =~ /.*\s+(\d+\.\d+\.\d+)/) { print "$1"; }'` && export max_ver=`pip index versions pygdal 2>/dev/null | grep -i 'Available versions' | perl -a -e '@fields=split(",",$_); $max = -1; foreach $field (@fields) { if ($field =~ /($ENV{'gdal_ver'}(\S+))/) { if ($2 > $max) { $max = $2; $max_ver = $1; } } } print "$max_ver\n";'` && pip3 install pygdal==$max_ver
+RUN apt update && apt install -y libvips-tools
 
 ARG CACHEBUST=1
 FROM build1 AS build2
