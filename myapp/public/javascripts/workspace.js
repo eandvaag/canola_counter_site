@@ -4627,26 +4627,26 @@ function confirmed_auto_select_model() {
         num_annotations += annotations[image_name]["boxes"].length;
     }
     if (num_annotations < 10) {
-        show_modal_message(`Error`, `A minimum of 10 objects must be annotated before auto-selection can be performed.`);
+        show_modal_message(`Error`, `A minimum of 10 objects must be annotated before auto-selection can be performed. Remember to click 'Save All Changes' to send your annotations to the server.`);
     }
     else {
 
         $.post($(location).attr('href'),
         {
             action: "auto_select_model",
-            annotations: JSON.stringify(annotations),
+            // annotations: JSON.stringify(annotations),
             //excess_green_record: JSON.stringify(excess_green_record),
-            is_public: metadata["is_public"],
+            // is_public: metadata["is_public"],
             //train_num_increased: train_num_increased ? "True" : "False"
             //num_training_regions_increased: new_training_regions > 0 ? "yes" : "no",
-            object_name: metadata["object_name"]
+            // object_name: metadata["object_name"]
         },
         
         function(response, status) {
             
             if (response.error) {
                 //create_image_set_table();
-                show_modal_message("Error", "An error while submitting the auto-select request: " + response.message);
+                show_modal_message("Error", response.message);
             }
             else {
                 close_modal();

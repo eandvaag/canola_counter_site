@@ -1857,10 +1857,22 @@ exports.post_workspace = function(req, res, next) {
     // }
     if (action === "auto_select_model") {
 
-        let annotations_path = path.join(image_set_dir, "annotations", "annotations.json");
-        let annotations_backup_path = path.join(image_set_dir, "annotations", "backup_annotations.json");
-        let annotations = JSON.parse(req.body.annotations);
-        console.log("got annotations", annotations);
+        // let annotations_path = path.join(image_set_dir, "annotations", "annotations.json");
+        // let annotations_backup_path = path.join(image_set_dir, "annotations", "backup_annotations.json");
+        // let annotations = JSON.parse(req.body.annotations);
+        // console.log("got annotations", annotations);
+
+        let annotations_dir = path.join(image_set_dir, "annotations");
+        let annotations_path = path.join(annotations_dir, "annotations.json");
+        let annotations;
+        try {
+            annotations = JSON.parse(fs.readFileSync(annotations_path, 'utf8'));
+        }
+        catch (error) {
+            console.log(error);
+            return res.redirect(process.env.CC_PATH);
+        }
+
 
         let num_annotations = 0;
         for (let image_name of Object.keys(annotations)) {
@@ -1868,68 +1880,68 @@ exports.post_workspace = function(req, res, next) {
         }
 
         if (num_annotations < 10) {
-            response.message = "A minimum of 10 objects must be annotated before auto-selection can be performed.";
+            response.message = "A minimum of 10 objects must be annotated before auto-selection can be performed. Remember to click 'Save All Changes' to send your annotations to the server.";
             response.error = true;
             return res.json(response);
         }
 
 
-        fs.rename(annotations_path, annotations_backup_path, (error) => {
-            if (error) {
-                response.message = "Failed to write backup annotations file.";
-                response.error = true;
-                return res.json(response);
-            }
+        // fs.rename(annotations_path, annotations_backup_path, (error) => {
+        //     if (error) {
+        //         response.message = "Failed to write backup annotations file.";
+        //         response.error = true;
+        //         return res.json(response);
+        //     }
         
-            try {
-                fs.writeFileSync(annotations_path, req.body.annotations);
-            }
-            catch (error) {
-                response.message = "Failed to write annotations.";
-                response.error = true;
-                return res.json(response);
-            }
+        //     try {
+        //         fs.writeFileSync(annotations_path, req.body.annotations);
+        //     }
+        //     catch (error) {
+        //         response.message = "Failed to write annotations.";
+        //         response.error = true;
+        //         return res.json(response);
+        //     }
 
 
-            let auto_select_req_path = path.join(image_set_dir, "model", "auto_select_request.json");
+        let auto_select_req_path = path.join(image_set_dir, "model", "auto_select_request.json");
 
-            // let switch_request = {
-            //     "auto": true
-            // };
-            
-            // let request = {
-            //     "farm_name": farm_name,
-            //     "field_name": field_name,
-            //     "mission_date": mission_date
-            // };
-            // let request_uuid = uuidv4().toString();
-            
-            // let request_path = path.join(USR_REQUESTS_ROOT, "restart",
-                                        //  request_uuid + ".json");
-            try {
-                fs.writeFileSync(auto_select_req_path, JSON.stringify({}));
-            }
-            catch (error) {
-                console.log(error);
-                response.message = "Failed to create auto-select request.";
-                response.error = true;
-                return res.json(response);
-            }
-            let scheduler_request = {
-                "username": req.session.user.username,
-                "farm_name": farm_name,
-                "field_name": field_name,
-                "mission_date": mission_date,
-                "request_type": "auto_select" //"restart"
-            };
-            notify_scheduler(scheduler_request);
-
-
-            response.error = false;
+        // let switch_request = {
+        //     "auto": true
+        // };
+        
+        // let request = {
+        //     "farm_name": farm_name,
+        //     "field_name": field_name,
+        //     "mission_date": mission_date
+        // };
+        // let request_uuid = uuidv4().toString();
+        
+        // let request_path = path.join(USR_REQUESTS_ROOT, "restart",
+                                    //  request_uuid + ".json");
+        try {
+            fs.writeFileSync(auto_select_req_path, JSON.stringify({}));
+        }
+        catch (error) {
+            console.log(error);
+            response.message = "Failed to create auto-select request.";
+            response.error = true;
             return res.json(response);
+        }
+        let scheduler_request = {
+            "username": req.session.user.username,
+            "farm_name": farm_name,
+            "field_name": field_name,
+            "mission_date": mission_date,
+            "request_type": "auto_select" //"restart"
+        };
+        notify_scheduler(scheduler_request);
 
 
-        });
+        response.error = false;
+        return res.json(response);
+
+
+        // });
     }
     else if (action === "save_annotations") {
         console.log("saving annotations");
