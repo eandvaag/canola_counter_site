@@ -41,6 +41,9 @@ const camera_mutex = new Mutex();
 
 const MAX_EXTENSIONLESS_FILENAME_LENGTH = 100;
 const valid_extensions = [".jpg", ".JPG", ".png", ".PNG", ".tif", ".TIF"];
+
+const MODEL_NAME_FORMAT = /[\s `!@#$%^&*()+\=\[\]{};':"\\|,<>\/?~]/;
+
 /*
 exports.sessionChecker = function(req, res, next) {
     if (req.session.user && req.cookies.user_sid) {
@@ -2940,11 +2943,11 @@ function remove_image_set(username, farm_name, field_name, mission_date) {
     console.log("mission_date", mission_date);
 
     if ((username === "" || farm_name === "") || (field_name === "" || mission_date === "")) {
-        return;
+        throw "Empty string argument provided";
     }
 
     if ((username == null || farm_name == null) || (field_name == null || mission_date == null)) {
-        return;
+        throw "Null argument provided";
     }
 
     let farm_dir = path.join(USR_DATA_ROOT, username, "image_sets", farm_name);
@@ -2953,20 +2956,20 @@ function remove_image_set(username, farm_name, field_name, mission_date) {
 
     if (fs.existsSync(mission_dir)) {
         console.log("removing mission_dir", mission_dir);
-        fs.rmSync(mission_dir, { recursive: true, force: true });
+        fs.rmSync(mission_dir, { recursive: true, force: false });
     }
     if (fs.existsSync(field_dir)) {
         let missions = get_subdirs(field_dir);
         if (missions.length == 0) {
             console.log("removing field_dir", field_dir);
-            fs.rmSync(field_dir, { recursive: true, force: true });
+            fs.rmSync(field_dir, { recursive: true, force: false });
         }
     }
     if (fs.existsSync(farm_dir)) {
         let fields = get_subdirs(farm_dir);
         if (fields.length == 0) {
             console.log("removing farm_dir", farm_dir);
-            fs.rmSync(farm_dir, { recursive: true, force: true });
+            fs.rmSync(farm_dir, { recursive: true, force: false });
         }
     }
 }
@@ -3626,6 +3629,24 @@ exports.post_home = function(req, res, next) {
         let model_state = req.body.model_state;
         let models_dir = path.join(USR_DATA_ROOT, req.session.user.username, "models");
 
+        if (model_state !== "available" && model_state !== "aborted") {
+            response.message = "Invalid model state provided.";
+            response.error = true;
+            return res.json(response);
+        }
+
+        if (MODEL_NAME_FORMAT.test(model_name)) {
+            response.message = "Model name contains illegal characters.";
+            response.error = true;
+            return res.json(response);
+        }
+
+        if ((model_name.length < 3) || (model_name.length > 50)) {
+            response.message = "Illegal model name length.";
+            response.error = true;
+            return res.json(response);
+        }
+
         let model_path;
         if (model_state === "available") {
             let model_public_path = path.join(models_dir, "available", "public", model_name);
@@ -3635,7 +3656,7 @@ exports.post_home = function(req, res, next) {
                 public_path_exists = fs.existsSync(model_public_path);
             }
             catch (error) {
-                response.message = "Failed to destroy model.";
+                response.message = "Failed to find model.";
                 response.error = true;
                 return res.json(response);
             }
@@ -3651,10 +3672,12 @@ exports.post_home = function(req, res, next) {
         }
 
         try {
-            fs.rmSync(model_path, { recursive: true, force: true });
+            fs.rmSync(model_path, { recursive: true, force: false });
         }
         catch (error) {
-            console.log("Failed to destroy model.");
+            response.message = "Failed to destroy model.";
+            response.error = true;
+            return res.json(response);
         }
 
         response.error = false;
@@ -3954,16 +3977,16 @@ exports.post_home = function(req, res, next) {
             console.log("No annotations found, deleting image set");
 
             try {
-                fs.rmSync(mission_dir, { recursive: true, force: true });
+                fs.rmSync(mission_dir, { recursive: true, force: false });
 
                 let field_dir = path.join(USR_DATA_ROOT, req.session.user.username, "image_sets", farm_name, field_name);
                 let missions = get_subdirs(field_dir);
                 if (missions.length == 0) {
-                    fs.rmSync(field_dir, { recursive: true, force: true });
+                    fs.rmSync(field_dir, { recursive: true, force: false });
                     let farm_dir = path.join(USR_DATA_ROOT, req.session.user.username, "image_sets", farm_name);
                     let fields = get_subdirs(farm_dir);
                     if (fields.length == 0) {
-                        fs.rmSync(farm_dir, { recursive: true, force: true });
+                        fs.rmSync(farm_dir, { recursive: true, force: false });
                     }
                 }
             }
@@ -4138,16 +4161,23 @@ exports.post_home = function(req, res, next) {
         console.log("result_type", result_type);
         console.log("result_id", result_id);
 
+        if (result_id === "" || result_id == null) {
+            response.message = "Cannot destroy result: invalid result identifier provided.";
+            response.error = true;
+            return res.json(response);
+        }
+
         if (result_type === "completed") {
 
             let result_dir = path.join(USR_DATA_ROOT, req.session.user.username, "image_sets",
                                   farm_name, field_name, mission_date, "model", "results", result_id);
 
             try {
-                fs.rmSync(result_dir, { recursive: true, force: true });
+                fs.rmSync(result_dir, { recursive: true, force: false });
             }
             catch (error) {
                 console.log(error);
+                response.message = "Failed to destroy result.";
                 response.error = true;
                 return res.json(response);
             }
@@ -4162,6 +4192,7 @@ exports.post_home = function(req, res, next) {
             }
             catch (error) {
                 console.log(error);
+                response.message = "Failed to destroy result.";
                 response.error = true;
                 return res.json(response);
             }
@@ -4475,11 +4506,17 @@ exports.post_home = function(req, res, next) {
     else if (action === "train") {
 
 
-        let model_name_format = /[\s `!@#$%^&*()+\=\[\]{};':"\\|,<>\/?~]/;
+        
 
         let model_name = req.body.model_name;
-        if (model_name_format.test(model_name)) {
+        if (MODEL_NAME_FORMAT.test(model_name)) {
             response.message = "Model name contains illegal characters.";
+            response.error = true;
+            return res.json(response);
+        }
+
+        if ((model_name.length < 3) || (model_name.length > 50)) {
+            response.message = "Illegal model name length.";
             response.error = true;
             return res.json(response);
         }
@@ -4546,7 +4583,7 @@ exports.post_home = function(req, res, next) {
         }
         catch (error) {
             try {
-                fs.rmSync(pending_model_path, { recursive: true, force: true });
+                fs.rmSync(pending_model_path, { recursive: true, force: false });
             }
             catch (error) {
                 console.log("Failed to remove pending model after error.");
