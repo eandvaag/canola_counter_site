@@ -4271,12 +4271,12 @@ function show_models(show_public_models) {
     },
     function(response, status) {
         if (response.error) {
-            show_modal_message("Error", "An error occurred while fetching the models.");  
+            show_modal_message("Error", response.message); //"An error occurred while fetching the models.");  
         }
         else {
             $("#model_info").empty();
 
-            switch_model_data["models"] = response.models
+            switch_model_data["models"] = response.models;
 
             let models = switch_model_data["models"]; //_logs;
                         //[{"name": "foo", "creator": "erik"}, 
@@ -4518,7 +4518,7 @@ function show_models(show_public_models) {
                 create_models_selection_table();
 
 
-                $("#modal").css("display", "block");
+                
 
 
 
@@ -4594,6 +4594,8 @@ function show_models(show_public_models) {
                     //console.log("radio changed");
                 });*/
             }
+
+            $("#modal").css("display", "block");
 
             $("#submit_model_change").click(function() {
 

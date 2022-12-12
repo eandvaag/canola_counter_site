@@ -2455,6 +2455,7 @@ exports.post_workspace = function(req, res, next) {
         glob(path.join(available_dir, "public", "*"), function(error, public_paths) {
 
             if (error) {
+                response.message = "Failed to retrieve public model listing";
                 response.error = true;
                 return res.json(response);
             }
@@ -2471,6 +2472,7 @@ exports.post_workspace = function(req, res, next) {
 
             glob(path.join(available_dir, "private", "*"), function(error, private_paths) {
                 if (error) {
+                    response.message = "Failed to retrieve private model listing.";
                     response.error = true;
                     return res.json(response);
                 }
@@ -2482,7 +2484,7 @@ exports.post_workspace = function(req, res, next) {
                     public_models = get_valid_models(public_paths, req.session.user.username, farm_name, field_name, mission_date);
                 }
                 catch (error) {
-                    response.message = "Failed to retrieve models.";
+                    response.message = "Failed to retrieve valid public models.";
                     response.error = true;
                     return res.json(response);
                 }
@@ -2494,7 +2496,7 @@ exports.post_workspace = function(req, res, next) {
                     private_models = get_valid_models(private_paths, req.session.user.username, farm_name, field_name, mission_date);
                 }
                 catch (error) {
-                    response.message = "Failed to retrieve models.";
+                    response.message = "Failed to retrieve valid private models.";
                     response.error = true;
                     return res.json(response);
                 }
