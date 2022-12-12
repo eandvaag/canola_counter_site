@@ -1197,24 +1197,24 @@ $(document).ready(function() {
 
 
 
-    let score_handler;
-    $("#score_down").mousedown(function() {
+    // let score_handler;
+    $("#score_down").click(function() {
         lower_slider();
-        score_handler = setInterval(lower_slider, 300);
+        //score_handler = setInterval(lower_slider, 300);
     });
 
-    $("#score_down").mouseup(function() {
-        clearInterval(score_handler);
-    }); 
+    // $("#score_down").mouseup(function() {
+    //     clearInterval(score_handler);
+    // }); 
 
-    $("#score_up").mousedown(function() {
+    $("#score_up").click(function() {
         raise_slider();
-        score_handler = setInterval(raise_slider, 300);
+        //score_handler = setInterval(raise_slider, 300);
     });
 
-    $("#score_up").mouseup(function() {
-        clearInterval(score_handler);
-    });
+    // $("#score_up").mouseup(function() {
+    //     clearInterval(score_handler);
+    // });
 
     $("#next_image_button").click(function() {
         let cur_nav_item = cur_img_name + "/" + cur_region_index;

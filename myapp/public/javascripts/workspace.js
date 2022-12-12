@@ -5680,24 +5680,24 @@ $(document).ready(function() {
     });
 
 
-    let score_handler;
-    $("#score_down").mousedown(function() {
+    //let score_handler;
+    $("#score_down").click(function() {
         lower_slider();
-        score_handler = setInterval(lower_slider, 300);
+        //score_handler = setInterval(lower_slider, 300);
     });
 
-    $("#score_down").mouseup(function() {
-        clearInterval(score_handler);
-    }); 
+    // $("#score_down").mouseup(function() {
+    //     clearInterval(score_handler);
+    // }); 
 
-    $("#score_up").mousedown(function() {
+    $("#score_up").click(function() {
         raise_slider();
-        score_handler = setInterval(raise_slider, 300);
+        //score_handler = setInterval(raise_slider, 300);
     });
 
-    $("#score_up").mouseup(function() {
-        clearInterval(score_handler);
-    });
+    // $("#score_up").mouseup(function() {
+    //     clearInterval(score_handler);
+    // });
 
 
 
@@ -6032,28 +6032,28 @@ $(document).ready(function() {
     }
 
 
-    let threshold_handler;
-    $("#threshold_score_down").off("mousedown");
-    $("#threshold_score_down").mousedown(function() {
+    //let threshold_handler;
+    //$("#threshold_score_down").off("mousedown");
+    $("#threshold_score_down").click(function() {
         lower_threshold_slider();
-        threshold_handler = setInterval(lower_threshold_slider, 300);
+        // threshold_handler = setInterval(lower_threshold_slider, 300);
     });
 
-    $("#threshold_score_down").off("mouseup");
-    $("#threshold_score_down").mouseup(function() {
-        clearInterval(threshold_handler);
-    }); 
+    // $("#threshold_score_down").off("mouseup");
+    // $("#threshold_score_down").mouseup(function() {
+    //     clearInterval(threshold_handler);
+    // }); 
 
-    $("#threshold_score_up").off("mousedown");
-    $("#threshold_score_up").mousedown(function() {
+    // $("#threshold_score_up").off("mousedown");
+    $("#threshold_score_up").click(function() {
         raise_threshold_slider();
-        threshold_handler = setInterval(raise_threshold_slider, 300);
+        // threshold_handler = setInterval(raise_threshold_slider, 300);
     });
 
-    $("#threshold_score_up").off("mouseup");
-    $("#threshold_score_up").mouseup(function() {
-        clearInterval(threshold_handler);
-    });
+    // $("#threshold_score_up").off("mouseup");
+    // $("#threshold_score_up").mouseup(function() {
+    //     clearInterval(threshold_handler);
+    // });
 
     $("#upload_annotations_button").click(function() {
 
