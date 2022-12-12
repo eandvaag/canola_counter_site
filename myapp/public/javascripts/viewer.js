@@ -21,6 +21,7 @@ let dataset_images;
 //let used_for = {};
 let image_to_dzi;
 
+
 let show_bookmarks = false;
 /*
 let image_names = {
@@ -282,95 +283,77 @@ function create_overlays_table() {
 // }
 
 
-function build_map() {
 
-    let sel_interpolation = $("input[type='radio'][name='interpolation']:checked").val();
 
-    let timestamp = new Date().getTime();
+// function fetch_map() {
+    
+//     let sel_interpolation = $("input[name=interpolation_radio]:checked").val();
+//     console.log("fetch_map", sel_interpolation);
+//     let timestamp = new Date().getTime();
             
-    let base = get_CC_PATH() + "/usr/data/" + username + "/image_sets/" + image_set_info["farm_name"] + "/" + 
-                image_set_info["field_name"] + "/" + image_set_info["mission_date"] + "/model/results/" +
-                image_set_info["result_uuid"] + "/maps/" + sel_interpolation;
+//     let base = get_CC_PATH() + "/usr/data/" + username + "/image_sets/" + image_set_info["farm_name"] + "/" + 
+//                 image_set_info["field_name"] + "/" + image_set_info["mission_date"] + "/model/results/" +
+//                 image_set_info["result_uuid"] + "/maps/" + sel_interpolation;
 
-    map_url = base + "_predicted_map.svg?t=" + timestamp;
+//     map_url = base + "_predicted_map.svg?t=" + timestamp;
 
-    let min_max_rec_url = base + "_min_max_rec.json?t=" + timestamp;
-    min_max_rec = get_json(min_max_rec_url);
+//     let min_max_rec_url = base + "_min_max_rec.json?t=" + timestamp;
 
-    draw_map_chart();
+//     $.getJSON(min_max_rec_url, function(data) {
+//         min_max_rec = data;
+//         draw_map_chart();
+//     });
+// }
 
+function build_map() {
+    disable_buttons(["build_map_button"]);
+    $("#build_loader").show();
+    
+    let sel_interpolation = $("input[name=interpolation_radio]:checked").val();
+    let tile_size;
+    if (metadata["is_ortho"] === "yes") {
+        tile_size = $("#tile_size_slider").val();
+    }
+    else {
+        tile_size = "";
+    }
+
+    console.log("tile_size", tile_size);
+
+    $.post($(location).attr('href'),
+    {
+        action: "build_map",
+        interpolation: sel_interpolation,
+        tile_size: tile_size
+    },
+    
+    function(response, status) {
+        $("#build_loader").hide();
+        enable_buttons(["build_map_button"]);
+
+        if (response.error) {
+            show_modal_message("Error", "An error occurred during the generation of the density map.")
+        }
+        else {
+            
+            let timestamp = new Date().getTime();   
+            
+            let base = get_CC_PATH() + "/usr/data/" + username + "/image_sets/" + image_set_info["farm_name"] + "/" + 
+                    image_set_info["field_name"] + "/" + image_set_info["mission_date"] + "/model/results/" +
+                    image_set_info["result_uuid"] + "/maps/" + sel_interpolation;
+
+            map_url = base + "_predicted_map.svg?t=" + timestamp;
+
+            let min_max_rec_url = base + "_min_max_rec.json?t=" + timestamp;
+
+            $.getJSON(min_max_rec_url, function(data) {
+                min_max_rec = data;
+                draw_map_chart(tile_size);
+            });
+        }
+    });
 }
 
-
-
-
-
-
-
-
-
-//     $("#build_loader").show();
-//     //let sel_metric = $("input[type='radio'][name='metric']:checked").val();
-//     let sel_interpolation = $("input[type='radio'][name='interpolation']:checked").val();
-//     //let sel_model = $("input[type='radio'][name='map_model']:checked").val();
-//     let sel_pred_image_status = $("input[type='radio'][name='pred_image_status']:checked").val();
-//     //let comparison_type = $("input[type='radio'][name='comparison_type']:checked").val();
-
-//     //let include_annotated_map = $("input[type='radio'][name='include_annotated_map']:checked").val() === "yes";
-    
-    
-
-//     $.post($(location).attr('href'),
-//     {
-//         action: "build_map",
-//         //metric: sel_metric,
-//         interpolation: sel_interpolation,
-//         //model_uuid: sel_model,
-//         //pred_image_status: sel_pred_image_status,
-//         // annotation_version: $("#annotation_version_combo").val(),
-//         //comparison_type: "side_by_side", //comparison_type
-//         //include_annotated_map: include_annotated_map 
-//         //image_set_data: JSON.stringify(image_set_data)
-//     },
-    
-//     function(response, status) {
-//         $("#build_loader").hide();
-//         enable_buttons(["build_map_button"]);
-
-//         if (response.error) {
-//             show_modal_message("Error", "An error occurred while creating the density map.");
-//         }
-//         else {
-//             //cur_map_model_uuid = sel_model;
-
-//             let timestamp = new Date().getTime();
-            
-//             let base = get_CC_PATH() + "/usr/data/" + username + "/image_sets/" + image_set_info["farm_name"] + "/" + 
-//                         image_set_info["field_name"] + "/" + image_set_info["mission_date"] + "/model/results/" +
-//                         image_set_info["result_uuid"] + "/maps/";
-
-//             // map_url = base + "_annotated_map.svg?t=" + timestamp;
-
-
-//             // if (comparison_type === "diff") {
-//             //     pred_map_url = base + "difference_map.svg?t=" + timestamp;
-//             //     diff_map = true;
-//             // }
-//             // else {
-//             map_url = base + "predicted_map.svg?t=" + timestamp;
-//                 // diff_map = false;
-//             // }
-
-
-//             let min_max_rec_url = base + "min_max_rec.json?t=" + timestamp;
-//             min_max_rec = get_json(min_max_rec_url);
-
-//             draw_map_chart();
-//         }
-//     });
-
-
-// }
 
 function show_map() {
 
@@ -392,6 +375,7 @@ function show_map() {
     
     //create_map_models_radio();
     $("#map_builder_controls_container").show();
+
 
 
     // let num_completed = 0;
@@ -436,21 +420,8 @@ function show_image(image_name) {
 
 
 
-function lower_slider() {
-    let slider_val = parseFloat($("#confidence_slider").val());
-    if (slider_val > 0.25) {
-        slider_val = slider_val - 0.01;
-        $("#confidence_slider").val(slider_val).change();
-    }
-}
 
-function raise_slider() {
-    let slider_val = parseFloat($("#confidence_slider").val());
-    if (slider_val < 0.99) {
-        slider_val = slider_val + 0.01;
-        $("#confidence_slider").val(slider_val).change();
-    }
-}
+
 
 
 function create_viewer() {
@@ -742,23 +713,23 @@ function create_viewer() {
                         (viewer_point_2.y - viewer_point.y)
                     );
                 }
+                viewer.world.getItemAt(0).setClip(
+                    new OpenSeadragon.Rect(
+                        region[1],
+                        region[0],
+                        (region[3] - region[1]),
+                        (region[2] - region[0])
+                    )
+                );
+            }
+
+            if (cur_bounds != null) {
 
 
-                if (cur_bounds != null) {
-                    viewer.world.getItemAt(0).setClip(
-                        new OpenSeadragon.Rect(
-                            region[1],
-                            region[0],
-                            (region[3] - region[1]),
-                            (region[2] - region[0])
-                        )
-                    );
-
-                    withFastOSDAnimation(viewer.viewport, function() {
-                        viewer.viewport.fitBounds(cur_bounds);
-                    });
-                    cur_bounds = null;
-                }
+                withFastOSDAnimation(viewer.viewport, function() {
+                    viewer.viewport.fitBounds(cur_bounds);
+                });
+                cur_bounds = null;
             }
         },
         clearBeforeRedraw: true
@@ -1095,6 +1066,27 @@ $(document).ready(function() {
 
     cur_view = "image";
 
+
+    $("#tile_size_slider").change(function() {
+        let slider_val = Number.parseFloat($("#tile_size_slider").val()).toFixed(2);
+        $("#tile_size_slider_val").html(slider_val + " m");
+    });
+
+    $("#tile_size_slider").on("input", function() {
+        let slider_val = Number.parseFloat($("#tile_size_slider").val()).toFixed(2);
+        $("#tile_size_slider_val").html(slider_val + " m");
+    });
+
+    $("#tile_size_down").click(function() {
+        lower_tile_size_slider();
+    });
+
+    $("#tile_size_up").click(function() {
+        raise_tile_size_slider();
+    });
+
+
+
     if (can_calculate_density(metadata, camera_specs)) {
         if (metadata["is_ortho"] === "yes" || Object.keys(annotations).length >= 3) {
 
@@ -1110,7 +1102,33 @@ $(document).ready(function() {
                 }
             });
         }
-    }    
+
+        if (metadata["is_ortho"] === "yes") {
+            let tile_size_range = calculate_tile_size_slider_range();
+            console.log("tile_size_range", tile_size_range);
+            $("#tile_size_slider").prop("min", tile_size_range[0]);
+            $("#tile_size_slider").prop("max", tile_size_range[1]);
+            $("#tile_size_slider").prop("value", tile_size_range[0]);
+            $("#tile_size_slider_val").html(tile_size_range[0] + " m");
+            $("#map_tile_size_controls").show();
+        }
+        else {
+            $("#map_tile_size_controls").hide();
+        }
+    }  
+
+
+
+    // $("input[name=interpolation_radio]").change(function(e) {
+    //     interpolation_radio_update();
+
+    // });
+    
+
+    // interpolation_radio_update();
+
+
+    //$("input[name=interpolation_radio]").val("linear").change();
     
 
 

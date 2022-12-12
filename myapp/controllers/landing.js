@@ -2307,8 +2307,11 @@ exports.post_workspace = function(req, res, next) {
                 farm_name + " " + field_name + " " + mission_date + " " + predictions_out_path + 
                 " " + maps_dir;
 
-            if (req.body.interpolation == "nearest") {
+            if (req.body.interpolation === "nearest") {
                 rebuild_command = rebuild_command + " -nearest";
+            }
+            if (req.body.tile_size !== "") {
+                rebuild_command = rebuild_command + " -tile_size " + req.body.tile_size;
             }
             console.log(rebuild_command);
             let result = exec(rebuild_command, {shell: "/bin/bash"}, function (error, stdout, stderr) {
@@ -4944,6 +4947,13 @@ exports.get_viewer = function(req, res, next) {
 
         }
 
+        // let maps_exist = ((fpath_exists(path.join(sel_results_dir, "maps", "linear_predicted_map.svg"))) && 
+        //                   (fpath_exists(path.join(sel_results_dir, "maps", "nearest_predicted_map.svg"))));
+
+        // let existing_maps = {};
+        // existing_maps["linear"] = fpath_exists(path.join(sel_results_dir, "maps", "linear_predicted_map.svg"));
+        // existing_maps["nearest"] = fpath_exists(path.join(sel_results_dir, "maps", "nearest_predicted_map.svg"));
+
         let image_set_info = {
             "farm_name": farm_name,
             "field_name": field_name,
@@ -4965,6 +4975,7 @@ exports.get_viewer = function(req, res, next) {
         //data["dzi_dir"] = path.join(process.env.CC_PATH, dzi_images_dir);
         data["dzi_image_paths"] = nat_orderBy.orderBy(dzi_image_paths);
         data["overlay_appearance"] = overlay_appearance;
+        // data["existing_maps"] = existing_maps;
 
         res.render("viewer", {username: req.session.user.username, "data": data});
     }
@@ -5008,6 +5019,9 @@ exports.post_viewer = function(req, res, next) {
 
         if (req.body.interpolation === "nearest") {
             rebuild_command = rebuild_command + " -nearest";
+        }
+        if (req.body.tile_size !== "") {
+            rebuild_command = rebuild_command + " -tile_size " + req.body.tile_size;
         }
         // if (req.body.pred_image_status === "completed") {
         //     rebuild_command = rebuild_command + " -completed_only";
@@ -5076,21 +5090,21 @@ exports.post_viewer = function(req, res, next) {
 
     // }
 
-    else if (action === "prepare_raw_outputs_download") {
+    // else if (action === "prepare_raw_outputs_download") {
 
-        if (file_format === "json") {
+    //     if (file_format === "json") {
 
-        }
-        else if (file_format === "shapefile") {
+    //     }
+    //     else if (file_format === "shapefile") {
 
-        }
-        else {
-            response.error = true;
-            response.message = "Invalid file format specified";
-            return res.json(response);
-        }
+    //     }
+    //     else {
+    //         response.error = true;
+    //         response.message = "Invalid file format specified";
+    //         return res.json(response);
+    //     }
 
-    }
+    // }
     // else if (action === "switch_annotation_version") {
 
     //     let annotation_version = req.body.annotation_version;

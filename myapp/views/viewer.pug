@@ -415,11 +415,11 @@ html
                                                     tr 
                                                         td 
                                                             label(class="custom_radio_container") Linear 
-                                                                input(type="radio" id="interpolation_linear" name="interpolation" value="linear" checked)
+                                                                input(type="radio" name="interpolation_radio" value="linear" checked)
                                                                 span(class="custom_radio")
                                                         td 
                                                             label(class="custom_radio_container") Nearest 
-                                                                input(type="radio" id="interpolation_nearest" name="interpolation" value="nearest")
+                                                                input(type="radio" name="interpolation_radio" value="nearest")
                                                                 span(class="custom_radio")
 
                                                 //br
@@ -457,13 +457,42 @@ html
                                                                 label(class="radio_container") Difference 
                                                                     input(type="radio" name="comparison_type" value="diff")
                                                                     span(class="custom_radio")
+
+                                                br
+                                                div(id="map_tile_size_controls")
+                                                    table
+                                                        tr
+                                                            td
+                                                                div(style="width: 80px; text-align:left; padding-left: 10px" class="header2") Tile Size
+                                                            td(style="width: 100%")
+                                                    table
+                                                        tr
+                                                            td
+                                                                div(style="width: 10px")
+                                                            td
+                                                                button(id="tile_size_down" class="table_button table_button_hover" style="margin: 0px; border-radius: 50px; padding-bottom: 3px; margin-top: -4px;")
+                                                                    i(class="fa-solid fa-circle-chevron-left")
+                                                                    
+                                                            td(style="width: 100%")
+                                                                div(class="slidecontainer" style="width: 100%")
+                                                                    input(type="range" class="slider" id="tile_size_slider" step="0.25"  style="margin: 0px")
+
+                                                            td
+                                                                button(id="tile_size_up" class="table_button table_button_hover" style="margin: 0px; border-radius: 50px; padding-bottom: 3px; margin-top: -4px;")
+                                                                    i(class="fa-solid fa-circle-chevron-right")
+                                                            
+                                                            td
+                                                                div(id="tile_size_slider_val" style="padding: 4px 2px; margin-top: -4px; border-radius: 5px; border: 1px solid white; width: 65px; margin-left: 4px;") 
+                                                            td
+                                                                div(style="width: 10px")
+
                                                 br
                                                 hr(class="panel_line")
                                                 br
                                                 button(style="width: 140px; margin: 0px" id="build_map_button" class="table_button table_button_hover" onclick="build_map()")
-                                                    i(class="fa-regular fa-map" style="padding-right: 10px; color: white")
+                                                    i(class="fa-solid fa-gears" style="padding-right: 10px; color: white")
                                                     |
-                                                    | Fetch Map 
+                                                    | Build Map 
                                                 br
                                                 br
                                                 div(id="build_loader" class="loader" hidden)

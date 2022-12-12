@@ -4,6 +4,8 @@ const MAX_EDGES_DISPLAYED = 30000;
 const MAX_BOXES_DISPLAYED = 30000;
 
 
+const MAX_NUM_TILES = 50000;
+
 let status_color = {
     "all": "#222621",
     "unannotated": "#222621",
@@ -182,19 +184,6 @@ function isNumeric(str) {
            !isNaN(parseFloat(str)) // ...and ensure strings of whitespace fail
 }
 
-function get_json(url) {
-    let json;
-    $.ajax({
-        url: url,
-        async: false,
-        dataType: 'json',
-        success: function (ret_json) {
-            json = ret_json;
-        }
-    });
-    return json;
-}
-
 
 function natsort(arr) {
     let collator = new Intl.Collator(undefined, {numeric: true, sensitivity: 'base'});
@@ -340,6 +329,160 @@ function escapeHtml(unsafe)
       (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
     );
   }
+
+
+function calculate_tile_size_slider_range() {
+
+
+    let image_name = Object.keys(annotations)[0];
+    let image_height_px = metadata["images"][image_name]["height_px"];
+    let image_width_px = metadata["images"][image_name]["width_px"];
+    
+    let make = metadata["camera_info"]["make"];
+    let model = metadata["camera_info"]["model"];
+    let camera_entry = camera_specs[make][model];
+
+    let camera_height = metadata["camera_height"];
+    let sensor_height = camera_entry["sensor_height"];
+    let sensor_width = camera_entry["sensor_width"];
+    let focal_length = camera_entry["focal_length"];
+    let raw_image_height_px = camera_entry["image_height_px"];
+    let raw_image_width_px = camera_entry["image_width_px"];
+
+
+    let gsd_h = (camera_height * sensor_height) / (focal_length * raw_image_height_px);
+    let gsd_w = (camera_height * sensor_width) / (focal_length * raw_image_width_px);
+
+    let gsd = Math.min(gsd_h, gsd_w);
+
+    let image_height_m = image_height_px * gsd;
+    let image_width_m = image_width_px * gsd;
+
+    // let values = [];
+
+    let max_error = 0.25;
+    // let starting_tile_size = 1.0;
+    let i = 0;
+    //let started = false;
+    let starting_tile_size = 100;
+    let min_tile_size = 100;
+
+    while (true) {
+        let tile_size = starting_tile_size - (i  * 0.25);
+        if (tile_size <= 0) {
+            break;
+        }
+        let num_y_tiles = Math.round(image_height_m / tile_size);
+        let num_x_tiles = Math.round(image_width_m / tile_size);
+
+        if ((num_y_tiles * num_x_tiles) < MAX_NUM_TILES) {
+            min_tile_size = tile_size;
+        }
+        i += 1;
+    }
+
+    starting_tile_size = 0;
+    let max_tile_size = 0;
+    i = 0;
+
+    while (true) {
+
+        let tile_size = starting_tile_size + (i * 0.25);
+        if (tile_size >= 100) {
+            break;
+        }
+        let num_y_tiles = Math.round(image_height_m / tile_size);
+        let num_x_tiles = Math.round(image_width_m / tile_size);
+        let tile_height_m = image_height_m / num_y_tiles;
+        let tile_width_m = image_width_m / num_x_tiles;
+        let y_error = Math.abs(tile_height_m - tile_size);
+        let x_error = Math.abs(tile_width_m - tile_size);
+
+        if ((y_error > max_error) || (x_error > max_error)) {
+            break;
+        }
+        max_tile_size = tile_size;
+        i += 1;
+    }
+
+
+    if (max_tile_size - min_tile_size <= 0) {
+        max_tile_size = min_tile_size;
+    }
+
+
+
+
+    // while (true) {
+    //     let tile_size = lowest_tile_size + (i * 0.25);
+    //     let num_y_tiles = Math.round(image_height_m / tile_size);
+    //     let num_x_tiles = Math.round(image_width_m / tile_size);
+
+    //     if (!(started)) {
+    //         if ((num_y_tiles * num_x_tiles) < MAX_NUM_TILES) {
+    //             started = true;
+    //             values.push(tile_size);
+    //         }
+    //     }
+    //     else {
+    //         let tile_height_error = image_height_m / num_y_tiles;
+    //         let tile_width_error = image_width_m / num_x_tiles;
+    //         let y_error = Math.abs(tile_height_error - 1);
+    //         let x_error = Math.abs(tile_width_error - 1);
+
+    //         if ((y_error > max_error) || (x_error > max_error)) {
+    //             break;
+    //         }
+            
+
+    //     }
+
+    // }
+
+    return [min_tile_size, max_tile_size]; //Math.min(values), Math.max(values)];
+
+
+}
+
+
+function lower_slider() {
+    let slider_val = parseFloat($("#confidence_slider").val());
+    if (slider_val > 0.25) {
+        slider_val = slider_val - 0.01;
+        $("#confidence_slider").val(slider_val).change();
+    }
+}
+
+function raise_slider() {
+    let slider_val = parseFloat($("#confidence_slider").val());
+    if (slider_val < 0.99) {
+        slider_val = slider_val + 0.01;
+        $("#confidence_slider").val(slider_val).change();
+    }
+}
+
+function lower_tile_size_slider() {
+    let slider_val = parseFloat($("#tile_size_slider").val());
+    if (slider_val > $("#tile_size_slider").prop("min")) {
+        slider_val = slider_val - 0.25;
+        $("#tile_size_slider").val(slider_val).change();
+    }
+}
+
+function raise_tile_size_slider() {
+    let slider_val = parseFloat($("#tile_size_slider").val());
+    if (slider_val < $("#tile_size_slider").prop("max")) {
+        slider_val = slider_val + 0.25;
+        $("#tile_size_slider").val(slider_val).change();
+    }
+}
+
+
+
+
+
+
+
 
 function can_calculate_density(metadata, camera_specs) {
 
@@ -1025,6 +1168,17 @@ function set_cur_bounds() {
             viewport_bounds[2],
             viewport_bounds[3]
         );
+    }
+    else if (map_zoom_bounds != null) {
+        console.log("map_zoom_bounds is not null", map_zoom_bounds);
+        cur_bounds = new OpenSeadragon.Rect(
+            map_zoom_bounds[0],
+            map_zoom_bounds[1],
+            map_zoom_bounds[2],
+            map_zoom_bounds[3]
+        );
+        map_zoom_bounds = null;
+
     }
     else {
         cur_bounds = null;

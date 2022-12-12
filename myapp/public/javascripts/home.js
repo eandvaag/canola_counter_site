@@ -1066,8 +1066,6 @@ function show_overview() {
 
     
 
-    let annotations = get_json(job_url);
-    metadata = get_json(metadata_url);*/
     /*
     let total_annotations = 0;
     let total_images = 0;
