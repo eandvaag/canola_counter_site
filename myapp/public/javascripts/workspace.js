@@ -4284,7 +4284,7 @@ function show_models(show_public_models) {
                         //  {"name": "baz0-0-0-0", "creator": "erik"}];
             
             if (models.length == 0) {
-                $("#models_info").append(`<tr><td>No Models Found!</td></tr>`);
+                $("#model_info").append(`<table><tr><td>No Models Found!</td></tr></table>`);
             }
             else {
 
