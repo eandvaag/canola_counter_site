@@ -1734,12 +1734,13 @@ function set_overlay_color_css_rules() {
     let fill_rule;
     if (overlay_appearance["style"]["annotation"] === "fillRect") {
         fill_rule = "fill: " + overlay_appearance["colors"]["annotation"] + "55; ";
-        add_css_rule(".a9s-annotationlayer .a9s-annotation.editable:hover .a9s-inner { " + 
-        fill_rule + " }");
     }
     else {
-        fill_rule = "";
+        fill_rule = "fill: none; ";
     }
+    add_css_rule(".a9s-annotationlayer .a9s-annotation.editable:hover .a9s-inner { " + 
+    fill_rule + " }");
+
     add_css_rule(".a9s-annotationlayer .a9s-annotation .a9s-inner { " +
         "stroke: " + overlay_appearance["colors"]["annotation"] + " !important; " +
         fill_rule + 
@@ -1747,12 +1748,13 @@ function set_overlay_color_css_rules() {
 
     if (overlay_appearance["style"]["training_region"] === "fillRect") {
         fill_rule = "fill: " + overlay_appearance["colors"]["training_region"] + "55; ";
-        add_css_rule(".a9s-annotationlayer .a9s-annotation.editable .training_region:hover .a9s-inner { " + 
-        fill_rule + " }");
     }
     else {
-        fill_rule = "";
+        fill_rule = "fill: none; ";
     }
+    add_css_rule(".a9s-annotationlayer .a9s-annotation.editable .training_region:hover .a9s-inner { " + 
+    fill_rule + " }");
+
     add_css_rule(".a9s-annotationlayer .a9s-annotation .training_region .a9s-inner { " + 
         "stroke: " + overlay_appearance["colors"]["training_region"] + " !important; " +
         fill_rule + 
@@ -1765,13 +1767,14 @@ function set_overlay_color_css_rules() {
 
     if (overlay_appearance["style"]["test_region"] === "fillRect") {
         fill_rule = "fill: " + overlay_appearance["colors"]["test_region"] + "55; ";
-        add_css_rule(".a9s-annotationlayer .a9s-annotation.editable .test_region:hover .a9s-inner { " + 
-        fill_rule + " }");
 
     }
     else {
-        fill_rule = "";
+        fill_rule = "fill: none; ";
     }
+    add_css_rule(".a9s-annotationlayer .a9s-annotation.editable .test_region:hover .a9s-inner { " + 
+        fill_rule + " }");
+
     add_css_rule(".a9s-annotationlayer .a9s-annotation .test_region .a9s-inner { " + 
         "stroke: " + overlay_appearance["colors"]["test_region"] + " !important; " +
         fill_rule + 

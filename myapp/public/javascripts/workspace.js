@@ -3329,8 +3329,7 @@ function draw_segmentation() {
     viewer = null;
     //cur_bounds = null;
     let canvas_container_height = $("#seadragon_viewer").height() + "px";
-    console.log(canvas_container_height);
-
+    
     $("#seadragon_viewer").empty();
    /*$("#seadragon_viewer").css("display", "grid");*/
     //console.log($("#seadragon_viewer"));
