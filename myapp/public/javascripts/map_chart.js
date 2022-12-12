@@ -448,9 +448,7 @@ function draw_map_chart(tile_size) {
                 (zoom_region[3] - zoom_region[1]) / image_width_px,
                 ((zoom_region[2] - zoom_region[0]) / image_height_px) * hw_ratio
             ];
-            // console.log("viewport_bounds", viewport_bounds);
 
-            //let zoom_bounds = new OpenSeadragon.Rect(
             map_zoom_bounds = [
                 viewport_bounds[0],
                 viewport_bounds[1],
@@ -462,25 +460,7 @@ function draw_map_chart(tile_size) {
             update_count_combo(true);
             cur_region_index = -1;
             show_image(image_name);
-            // console.log("zoom_bounds", zoom_bounds);
-            // delay(100).then(function() {
-            //     withFastOSDAnimation(viewer.viewport, function() {
-            //         viewer.viewport.fitBounds(zoom_bounds);
-            //     });
-            // });
 
-
-
-
-        
-
-            // console.log(event.pageX + ' , ' + event.pageY);
-            // let offset = $( this ).offset();
-            // let position = $( this ).position();
-
-            
-            console.log("clicked map", image_x, image_y);
-            console.log("tile is", tile_index_x, tile_index_y);
         });
     }
 

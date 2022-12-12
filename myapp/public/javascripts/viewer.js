@@ -318,8 +318,6 @@ function build_map() {
         tile_size = "";
     }
 
-    console.log("tile_size", tile_size);
-
     $.post($(location).attr('href'),
     {
         action: "build_map",
@@ -1105,7 +1103,6 @@ $(document).ready(function() {
 
         if (metadata["is_ortho"] === "yes") {
             let tile_size_range = calculate_tile_size_slider_range();
-            console.log("tile_size_range", tile_size_range);
             $("#tile_size_slider").prop("min", tile_size_range[0]);
             $("#tile_size_slider").prop("max", tile_size_range[1]);
             $("#tile_size_slider").prop("value", tile_size_range[0]);

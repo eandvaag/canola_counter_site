@@ -1170,7 +1170,6 @@ function set_cur_bounds() {
         );
     }
     else if (map_zoom_bounds != null) {
-        console.log("map_zoom_bounds is not null", map_zoom_bounds);
         cur_bounds = new OpenSeadragon.Rect(
             map_zoom_bounds[0],
             map_zoom_bounds[1],
