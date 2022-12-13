@@ -1973,7 +1973,20 @@ input:checked + .small_switch_slider:before {
 	animation: pulse 2s infinite;
 }*/
 
-.blob {
+.dead_blob {
+  background: rgb(237, 10, 10);
+  /*box-shadow: 0 0 0 0 black; /*rgba(255, 255, 255, 1);*/
+  box-shadow: 0px 0px 10px 5px rgb(237, 10, 10);
+
+  border-radius: 50%;
+
+	margin: 10px;
+	height: 12px;
+	width: 12px;
+
+}
+
+.alive_blob {
   background: white;
   box-shadow: 0 0 0 0 rgba(255, 255, 255, 1);
 

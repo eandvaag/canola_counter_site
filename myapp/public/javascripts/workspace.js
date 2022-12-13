@@ -4832,9 +4832,51 @@ function switch_model(model_creator, model_name) {
     });
 }
 
+function user_health_check() {
+    $.post($(location).attr('href'),
+    {
+        action: "health_check"
+    },
+
+    function(response, status) {
+
+        if (response.error) {
+            $("#status_blob").removeClass("alive_blob");
+            $("#status_blob").addClass("dead_blob");
+            show_modal_message("Health Check Failed", response.message);
+        }
+        else {
+            $("#status_blob").removeClass("dead_blob");
+            $("#status_blob").addClass("alive_blob");
+            show_modal_message("Health Check Succeeded", "The backend process is alive.");
+        }
+    });
+}
+
+function health_check() {
+    $.post($(location).attr('href'),
+    {
+        action: "health_check"
+    },
+
+    function(response, status) {
+
+        if (response.error) {
+            $("#status_blob").removeClass("alive_blob");
+            $("#status_blob").addClass("dead_blob");
+        }
+        else {
+            $("#status_blob").removeClass("dead_blob");
+            $("#status_blob").addClass("alive_blob");
+        }
+    });
+}
+
 $(document).ready(function() {
     //window.setInterval(refresh, 90000); // 1.5 minutes
     ask_to_continue_handle = window.setTimeout(ask_to_continue, 7200000); // 2 hours
+    health_check();
+    setInterval(health_check, 60 * 1000); // 1 minute
 
 
    // $("#training_region_radio_container input:checked ~ .custom_radio").css("background-color", "black");
@@ -5172,12 +5214,75 @@ $(document).ready(function() {
                     // status = status + ":"; // + percent_complete + "%"; //": " + num_processed + " / " + num_images;
                     // $("#backend_status").append(`<table><tr><td>${status}</td><td style="text-align: right; width: 45px">${percent_complete}</td></tr></table>`);
                     //<div style="text-align: center">${status}<span style="float: right; color: yellow">${percent_complete}</span></div>`);
-                    $("#backend_status").html(`Predicting: <span style="text-align: right; display: inline-block; width: 45px;">${percent_complete}</span>`);
+                    $("#backend_status").html(`Predicting`); //`Predicting: <span style="text-align: right; display: inline-block; width: 45px;">${percent_complete}</span>`);
+                    $("#backend_status_details").html(percent_complete);
+                }
+                else if ((status === "Fine-Tuning") || (status === "Training")) {
+                    let epochs_since_improvement = update["epochs_since_improvement"];
+                    let epoch_word = "epochs";
+                    if (epochs_since_improvement == 1) {
+                        epoch_word = "epoch";
+                    }
+                    //$("#backend_status").html(`Fine-Tuning: <span style="text-align: right; display: inline-block; width: 360px;">${epochs_since_improvement} epochs since improvement</span>`);
+                    $("#backend_status").html(`Fine-Tuning`);
+                    $("#backend_status_details").html(`${epochs_since_improvement} ${epoch_word} since improvement`);
                 }
                 else {
                     $("#backend_status").html(status);
+                    $("#backend_status_details").html("");
                 }
+
                 $("#backend_update_time").html(date);
+                // let seconds_since_update = update["seconds_since_last_update"];
+                // let time_unit;
+                // let units_since_update;
+                // if (seconds_since_update > 604800) {
+                //     units_since_update = Math.round(seconds_since_update / 604800);
+                //     if (units_since_update == 1) {
+                //         time_unit = "week";
+                //     }
+                //     else {
+                //         time_unit = "weeks";
+                //     }
+                // }
+                // else if (seconds_since_update > 86400) {
+                //     units_since_update = Math.round(seconds_since_update / 86400);
+                //     if (units_since_update == 1) {
+                //         time_unit = "day";
+                //     }
+                //     else {
+                //         time_unit = "days";
+                //     }
+                // }
+                // else if (seconds_since_update > 3600) {
+                //     units_since_update = Math.round(seconds_since_update / 3600);
+                //     if (units_since_update == 1) {
+                //         time_unit = "hour";
+                //     }
+                //     else {
+                //         time_unit = "hours";
+                //     }
+                // }
+                // else if (seconds_since_update > 60) {
+                //     units_since_update = Math.round(seconds_since_update / 60);
+                //     if (units_since_update == 1) {
+                //         time_unit = "minute";
+                //     }
+                //     else {
+                //         time_unit = "minutes";
+                //     }
+                // }
+                // else {
+                //     units_since_update = seconds_since_update;
+                //     if (units_since_update == 1) {
+                //         time_unit = "second";
+                //     }
+                //     else {
+                //         time_unit = "seconds";
+                //     }
+                // }
+                
+                // $("#backend_update_time").html(`${units_since_update} ${time_unit} ago`);
 
                 if (update_is_for_this_set) {
                     $("#backend_details").css("opacity", 1.0);

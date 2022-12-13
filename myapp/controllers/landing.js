@@ -1855,7 +1855,181 @@ exports.post_workspace = function(req, res, next) {
     //     response.error = false;
     //     return res.json(response);
     // }
-    if (action === "auto_select_model") {
+
+    if (action === "health_check") {
+        let options = {
+            hostname: process.env.CC_IP, //'172.16.1.75', //71',
+            port: parseInt(process.env.CC_PY_PORT), //8110,
+            path: process.env.CC_PATH + '/health_request',
+            requestTimeout: 5 * 1000,
+            method: 'POST',
+            // headers: {
+            //     'Content-Type': 'application/json',
+            //     'Content-Length': data.length
+            // }
+        };
+        response.error = true;
+
+
+        let req = http.request(options, health_res => {
+            //console.log(`statusCode: ${res.statusCode}`);
+            if (health_res.statusCode !== 200) {
+                response.error = true;
+                response.message = "Response status code is: " + health_res.statusCode;
+                return res.json(response);
+            }
+            let raw_data = '';
+            health_res.on("data", (chunk) => { raw_data += chunk; });
+            health_res.on('end', () => {
+                try {
+                    const parsed_data = JSON.parse(raw_data);
+                    // console.log("parsed_data", parsed_data);
+                    if ((!("message" in parsed_data)) || (parsed_data["message"] !== "alive")) {
+                        response.error = true;
+                        response.message = "Got unexpected health response from server";
+                        return res.json(response);
+                    }
+                    response.error = false;
+                    return res.json(response);
+                }
+                catch (error) {
+                    console.log(error);
+                    response.error = true;
+                    response.message = "Failed to parse server's response";
+                    return res.json(response);
+                }
+            });
+        });
+    
+        req.on("error", error => {
+            console.log(error);
+            if (error.code === "ECONNREFUSED") {
+                response.message = "Failed to connect to the server."
+            }
+            else {
+                response.message = error.message;
+            }
+            response.error = true;
+            return res.json(response);
+        });
+
+        req.on('timeout', () => {
+            console.log("request timed out");
+            response.error = true;
+            response.message = "The health check request timed out.";
+            return res.json(response);
+        });
+    
+        //req.write(data);
+        req.end();
+
+
+
+
+
+
+
+/*
+
+        http.request(options, (health_res) => {
+            console.log("health_res", health_res);
+            const { status_code } = health_res.statusCode;
+            console.log("health_res status code", status_code);
+            const contentType = health_res.headers['content-type'];
+
+            if (status_code !== 200) {
+                response.error = true;
+                response.message = "Response status code is: " + status_code;
+                health_res.resume();
+                return res.json(response);
+            }
+            if (!/^application\/json/.test(contentType)) {
+                response.error = true;
+                response.message = "Server did not return JSON response.";
+                health_res.resume();
+                return res.json(response);
+            }
+
+            health_res.setEncoding('utf8');
+            let raw_data = '';
+            health_res.on('data', (chunk) => { raw_data += chunk; });
+            health_res.on('end', () => {
+                try {
+                    const parsed_data = JSON.parse(raw_data);
+                    console.log("parsed_data", parsed_data);
+                    response.error = false;
+                    return res.json(response);
+                }
+                catch (error) {
+                    console.log(error);
+                    response.error = true;
+                    response.message = "Failed to parse server's response";
+                    return res.json(response);
+                }
+            });
+        }).on('error', (error) => {
+            console.log(error);
+            response.error = true;
+            response.message = error.message;
+            return res.json(response);
+        }).on('timeout', () => {
+            console.log("request timed out");
+            response.error = false;
+            response.timeout = true;
+            return res.json(response);
+        });*/
+
+
+        //let data = JSON.stringify(request);
+        // let data = JSON.stringify({
+        //     username: username,
+        //     farm_name: farm_name,
+        //     field_name: field_name,
+        //     mission_date: mission_date,
+        //     request_type: request_type
+        // });
+
+        // let options = {
+        //     hostname: process.env.CC_IP, //'172.16.1.75', //71',
+        //     port: parseInt(process.env.CC_PY_PORT), //8110,
+        //     path: process.env.CC_PATH + '/health_request',
+        //     method: 'GET',
+        //     // headers: {
+        //     //     'Content-Type': 'application/json',
+        //     //     'Content-Length': data.length
+        //     // },
+        //     requestTimeout: 5 * 1000
+        // };
+
+        // let req = http.request(options, res => {
+        //     console.log(`statusCode: ${res.statusCode}`);
+
+        //     res.on("data", d => {
+        //         console.log(d);
+        //         //process.stdout.write(d);
+        //     });
+        // });
+
+        // req.on("error", error => {
+        //     console.log(error);
+        //     response.error = true;
+        //     return res.json(response);
+        // });
+
+        // req.on("timeout", () => {
+        //     req.destroy();
+        //     response.error = false;
+        //     response.no_response = true;
+        //     return res.json(response);
+            
+        // });
+
+        // //req.write(data);
+        // req.end();
+
+
+    }
+    else if (action === "auto_select_model") {
 
         // let annotations_path = path.join(image_set_dir, "annotations", "annotations.json");
         // let annotations_backup_path = path.join(image_set_dir, "annotations", "backup_annotations.json");

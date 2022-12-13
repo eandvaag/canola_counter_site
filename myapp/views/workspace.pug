@@ -440,13 +440,16 @@ html
                                                             td(style="width: 100%")
                                                             td
                                                                 div(style="width: 30px")
-                                                                    div(class="blob")
+                                                                    //div(class="dead_blob")
+                                                                    //i(class="fa-solid fa-heart" style="font-size 12px; color: red;")
+                                                                    div(id="status_blob" onclick="user_health_check()" style="cursor: pointer")
 
 
-                                                    div(style="height: 115px; border: 1px solid white; border-radius: 10px")
+                                                    div(style="height: 130px; border: 1px solid white; border-radius: 10px")
                                                         div(id="backend_details")
                                                             div(style="height: 10px")
                                                             div(id="backend_status")
+                                                            div(id="backend_status_details" style="font-size: 13px; height: 15px")
                                                             div(style="height: 5px")
                                                             table(class="transparent_table" style="font-size: 14px")
 
@@ -476,8 +479,12 @@ html
                                                             td(style="text-align: right")
                                                                 h(class="header2" style="width: 90px; font-size: 14px") Last Update
 
-                                                            td(style="width: 100%; font-size: 14px")
+                                                            td(style="width: 100%; font-size: 14px; text-align: left; padding-left: 15px;")
                                                                 h(id="backend_update_time")
+
+                                                            //td
+                                                            //    button(class="table_button table_button_hover" style="font-size: 14px; border-radius: 30px;" onclick="health_check()")
+                                                            //        i(class="fa-solid fa-heart-pulse")
 
 
                                                     hr(class="panel_line")
@@ -485,7 +492,7 @@ html
 
                                                     //div(style="height: 35px")
 
-                                                    table(class="transparent_table")
+                                                    table
                                                         tr
                                                             td(style="text-align: left")
                                                                 h(class="header2" style="width: 170px") Request Predictions
@@ -530,7 +537,7 @@ html
 
                                                     hr(class="panel_line")
 
-                                                    table(class="transparent_table")
+                                                    table
                                                         tr
                                                             td(style="text-align: left")
                                                                 h(class="header2" style="width: 170px") Annotations
