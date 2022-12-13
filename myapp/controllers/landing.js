@@ -1802,7 +1802,7 @@ exports.post_annotations_upload = function(req, res, next) {
 
 exports.post_workspace = function(req, res, next) {
 
-    console.log("post_workspace");
+    //console.log("post_workspace");
 
     let response = {};
 
@@ -2123,7 +2123,7 @@ exports.post_workspace = function(req, res, next) {
         let annotations_path = path.join(image_set_dir, "annotations", "annotations.json");
         let annotations_backup_path = path.join(image_set_dir, "annotations", "backup_annotations.json");
         let annotations = JSON.parse(req.body.annotations);
-        console.log("got annotations", annotations);
+        //console.log("got annotations", annotations);
         fs.rename(annotations_path, annotations_backup_path, (error) => {
             if (error) {
                 response.message = "Failed to write backup annotations file.";
@@ -3452,12 +3452,12 @@ exports.post_image_set_upload = async function(req, res, next) {
         first = false;
         last = false;
         queued_filenames = req.body.queued_filenames[0].split(",");
-        console.log("queued_filenames", queued_filenames);
+        //console.log("queued_filenames", queued_filenames);
         camera_height = req.body.camera_height[0];
         let num_sent;
         for (let i = 0; i < req.body.num_sent.length; i++) {
             num_sent = parseInt(req.body.num_sent[i])
-            console.log("num_sent", num_sent);
+            //console.log("num_sent", num_sent);
             if (num_sent == 1) {
                 first = true;
             }

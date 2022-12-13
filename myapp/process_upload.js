@@ -164,13 +164,12 @@ async function process_upload(username, farm_name, field_name, mission_date, obj
             }
             catch (error) {
                 console.log("error while running identify command");
-                // console.log("error", error);
-                console.log("error.status", error.status);  
+                console.log(error); 
                 write_and_notify(upload_status_path, {"status": "failed", "error": "At least one image is not a 3-channel RGB image."}, notify_data);
                 return;
             }
 
-            console.log("exit code is non-zero"); //, result);
+            //console.log("exit code is non-zero"); //, result);
             // write_and_notify(upload_status_path, {"status": "failed", "error": "At least one image is not a 3-channel RGB image."}, notify_data);
             // return;
 
