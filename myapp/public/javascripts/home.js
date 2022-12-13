@@ -1333,10 +1333,14 @@ function create_result_entry(result) {
     }
     else if (aborted) {
         $("#aborted_results_table").append(template);
+        //let error_message = HttpUtility.JavaScriptStringEncode(result["error_message"]);
+        let view_error_message_button_id = "view_error_message_button_" + result["result_uuid"];
 
         $("#" + main_result_container_id).append(
             `<button class="std-button std-button-hover" style="font-size: 16px; width: 190px; height: 50px; border-radius: 100px" ` +
-                `onclick="show_modal_message('Error Message', \`${result["error_message"]}\`)">`+
+                //`onclick="show_modal_message('Error Message', \`${result["error_message"]}\`)">`+
+                //`onclick="show_modal_message('Error Message', '${error_message}')">`+
+                `id="${view_error_message_button_id}">`+
                // `<span>` +
                     `<i class="fa-solid fa-triangle-exclamation" style="margin-right:8px"></i>View Error Message` +
                // `</span>` +
@@ -1348,6 +1352,11 @@ function create_result_entry(result) {
                 `<i class="fa-regular fa-circle-xmark" style="margin-right: 14px"></i><div style="display: inline-block; text-align: left; width: 100px">Destroy Result</div>` +
             `</button>`
         );
+        $("#" + view_error_message_button_id).click(function() {
+            show_modal_message("Error Message", result["error_message"]);
+        });
+
+
     }
     else {
         $("#pending_results_table").append(template);

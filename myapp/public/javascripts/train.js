@@ -590,6 +590,8 @@ function create_model_entry(model_log, model_status) {
     }
     else if (model_status === "aborted") {
 
+        let view_error_message_button_id = row_uuid + "_view_error_message_button";
+
         $("#" + destroy_button_container_id).append(
             `<button class="x-button x-button-hover"` +
                 `onclick="destroy_model_request('available', '${model_name}')"  style="width: 180px; font-size: 14px; padding: 3px;">` +//<i class="fa-regular fa-circle-xmark"></i></button>`
@@ -603,10 +605,15 @@ function create_model_entry(model_log, model_status) {
         $("#" + error_button_container_id).append(
 
             `<button class="std-button std-button-hover"` +
-                `onclick="show_modal_message('Error Message', \`${model_log["error_message"]}\`)" style="width: 180px; font-size: 14px; padding: 3px;">` +//<i class="fa-regular fa-circle-xmark"></i></button>`
+                `id="${view_error_message_button_id}" style="width: 180px; font-size: 14px; padding: 3px;">` +
+                //`onclick="show_modal_message('Error Message', \`${model_log["error_message"]}\`)" style="width: 180px; font-size: 14px; padding: 3px;">` +//<i class="fa-regular fa-circle-xmark"></i></button>`
                 `<i class="fa-solid fa-triangle-exclamation" style="margin-right: 14px"></i><div style="display: inline-block; text-align: left; width: 130px">View Error Message</div>` +
             `</button>`
         );
+
+        $("#" + view_error_message_button_id).click(function() {
+            show_modal_message("Error Message", model_log["error_message"]);
+        });
     }
     else {
         $("#" + destroy_button_container_id).append(
