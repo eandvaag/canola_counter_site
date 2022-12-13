@@ -1348,7 +1348,7 @@ function create_result_entry(result) {
         );
         $("#" + destroy_button_container_id).append(
             `<button class="x-button x-button-hover" style="width: 160px; font-size: 14px; padding: 3px;" ` +
-                    `onclick="delete_result_request('completed', '${result["request_uuid"]}')">` +
+                    `onclick="delete_result_request('aborted', '${result["request_uuid"]}')">` +
                 `<i class="fa-regular fa-circle-xmark" style="margin-right: 14px"></i><div style="display: inline-block; text-align: left; width: 100px">Destroy Result</div>` +
             `</button>`
         );
