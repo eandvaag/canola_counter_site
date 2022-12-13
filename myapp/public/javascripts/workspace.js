@@ -5224,7 +5224,7 @@ $(document).ready(function() {
                         epoch_word = "epoch";
                     }
                     //$("#backend_status").html(`Fine-Tuning: <span style="text-align: right; display: inline-block; width: 360px;">${epochs_since_improvement} epochs since improvement</span>`);
-                    $("#backend_status").html(`Fine-Tuning`);
+                    $("#backend_status").html(status);
                     $("#backend_status_details").html(`${epochs_since_improvement} ${epoch_word} since improvement`);
                 }
                 else {
