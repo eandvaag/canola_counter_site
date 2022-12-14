@@ -274,16 +274,22 @@ function draw_map_chart(tile_size) {
     
 
     if (map_url !== null) {
+        let object_name = metadata["object_name"];
+        let pieces = object_name.split("_");
+        let cap_pieces = pieces.map(capitalizeFirstLetter);
+        cap_pieces[cap_pieces.length - 1] = cap_pieces[cap_pieces.length - 1] + "s";
+        let objects_str = cap_pieces.join(" ");
+
 
         chart.selectAll("text")
-             .data(["Number of Predicted Seedlings Per Square Metre"])
+             .data(["Number of Predicted " + objects_str + " Per Square Metre"])
              .enter()
              .append("text")
              .attr("x", chart_width / 2)
              .attr("y", margin / 2)
              .attr("alignment-baseline", "central")
              .attr("text-anchor", "middle")
-             .attr("font-size", "20px")
+             .attr("font-size", "18px")
              .text(function(d) {
                  return d;
              });
