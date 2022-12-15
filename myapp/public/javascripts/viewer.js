@@ -374,6 +374,8 @@ function show_map() {
     //create_map_models_radio();
     $("#map_builder_controls_container").show();
 
+    draw_map_chart();
+
 
 
     // let num_completed = 0;
@@ -1145,6 +1147,7 @@ $(document).ready(function() {
     set_score_chart_data();
     draw_count_chart();
     draw_score_chart();
+    //draw_map_chart();
 
     show_image(cur_img_name);
 

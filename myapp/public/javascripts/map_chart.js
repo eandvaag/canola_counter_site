@@ -101,7 +101,18 @@ function draw_map_chart(tile_size) {
     }
 
     let max_image_height = ($("#seadragon_viewer").height() - 4) - (2 * margin);
-    let max_image_width = ($("#map_view_container").width() - (2 * $("#map_builder_controls_container").width())) - (2 * margin); //($("#seadragon_viewer").width() - 4) - (2 * margin);
+    let max_image_width;
+    if ($("#image_view_container").is(":visible")) {
+        // console.log("image_view_container is visible");
+        // console.log($("#image_view_container").width());
+        // console.log($("#left_panel").width());
+        max_image_width = ($("#image_view_container").width() - (2 * $("#left_panel").width())) - (2 * margin); //($("#seadragon_viewer").width() - 4) - (2 * margin);
+    }
+    else {
+        // console.log("image_view_container is not visible");
+        max_image_width = ($("#map_view_container").width() - (2 * $("#map_builder_controls_container").width())) - (2 * margin); //($("#seadragon_viewer").width() - 4) - (2 * margin);
+    }
+    
 
     let image_height = max_image_height;
     let image_width = image_height * ratio;
@@ -380,95 +391,99 @@ function draw_map_chart(tile_size) {
             });
 
         }
-    }
 
-    if (metadata["is_ortho"] === "yes") {
-        $("#svg_map").css("cursor", "pointer");
-        $("#svg_map").click(function(event) {
 
-            let image_x = event.pageX - $(this).offset().left;
-            let image_y = event.pageY - $(this).offset().top;
-            event.stopPropagation();
-
-            let image_name = Object.keys(annotations)[0];
-            let image_height_px = metadata["images"][image_name]["height_px"];
-            let image_width_px = metadata["images"][image_name]["width_px"];
+        if (metadata["is_ortho"] === "yes") {
+            $("#svg_map").css("cursor", "pointer");
+            $("#svg_map").click(function(event) {
+    
+                let image_x = event.pageX - $(this).offset().left;
+                let image_y = event.pageY - $(this).offset().top;
+                event.stopPropagation();
+    
+                let image_name = Object.keys(annotations)[0];
+                let image_height_px = metadata["images"][image_name]["height_px"];
+                let image_width_px = metadata["images"][image_name]["width_px"];
+                
+                let make = metadata["camera_info"]["make"];
+                let model = metadata["camera_info"]["model"];
+                let camera_entry = camera_specs[make][model];
             
-            let make = metadata["camera_info"]["make"];
-            let model = metadata["camera_info"]["model"];
-            let camera_entry = camera_specs[make][model];
-        
-            let camera_height = metadata["camera_height"];
-            let sensor_height = camera_entry["sensor_height"];
-            let sensor_width = camera_entry["sensor_width"];
-            let focal_length = camera_entry["focal_length"];
-            let raw_image_height_px = camera_entry["image_height_px"];
-            let raw_image_width_px = camera_entry["image_width_px"];
-        
-        
-            let gsd_h = (camera_height * sensor_height) / (focal_length * raw_image_height_px);
-            let gsd_w = (camera_height * sensor_width) / (focal_length * raw_image_width_px);
-        
-            let gsd = Math.min(gsd_h, gsd_w);
-        
-            let image_height_m = image_height_px * gsd;
-            let image_width_m = image_width_px * gsd;
+                let camera_height = metadata["camera_height"];
+                let sensor_height = camera_entry["sensor_height"];
+                let sensor_width = camera_entry["sensor_width"];
+                let focal_length = camera_entry["focal_length"];
+                let raw_image_height_px = camera_entry["image_height_px"];
+                let raw_image_width_px = camera_entry["image_width_px"];
+            
+            
+                let gsd_h = (camera_height * sensor_height) / (focal_length * raw_image_height_px);
+                let gsd_w = (camera_height * sensor_width) / (focal_length * raw_image_width_px);
+            
+                let gsd = Math.min(gsd_h, gsd_w);
+            
+                let image_height_m = image_height_px * gsd;
+                let image_width_m = image_width_px * gsd;
+    
+                let num_y_tiles = Math.round(image_height_m / tile_size);
+                let num_x_tiles = Math.round(image_width_m / tile_size);
+    
+                let tile_height_m = image_height_m / num_y_tiles;
+                let tile_width_m = image_width_m / num_x_tiles;
+    
+                let tile_height_svg = ((chart_height - 2 * margin) / image_height_m) * tile_height_m;
+                let tile_index_y = Math.floor(image_y / tile_height_svg);
+    
+                let tile_width_svg = ((chart_width - 2 * margin) / image_width_m) * tile_width_m;
+                let tile_index_x = Math.floor(image_x / tile_width_svg);
+    
+                let tile_width_px = image_width_px / num_x_tiles;
+                let tile_height_px = image_height_px / num_y_tiles;
+    
+                let zoom_region = [
+                    Math.round(tile_index_y * tile_height_px),
+                    Math.round(tile_index_x * tile_width_px),
+                    Math.round((tile_index_y + 1) * tile_height_px),
+                    Math.round((tile_index_x + 1) * tile_width_px),
+                ];
+    
+                $("#navigation_dropdown").val("images");
+                $("#active_layer_table").css("opacity", 1.0);
+                $("input:radio[name=edit_layer_radio]").prop("disabled", false);
+                $("#show_segmentation_button").show();
+    
+    
+    
+                // let content_size = viewer.world.getItemAt(0).getContentSize();
+                // let image_w = content_size.x;
+                // let image_h = content_size.y;
+    
+                let hw_ratio = image_height_px / image_width_px;
+                let viewport_bounds = [
+                    zoom_region[1] / image_width_px,
+                    (zoom_region[0] / image_height_px) * hw_ratio,
+                    (zoom_region[3] - zoom_region[1]) / image_width_px,
+                    ((zoom_region[2] - zoom_region[0]) / image_height_px) * hw_ratio
+                ];
+    
+                map_zoom_bounds = [
+                    viewport_bounds[0],
+                    viewport_bounds[1],
+                    viewport_bounds[2],
+                    viewport_bounds[3]
+                ];
+    
+                create_navigation_table();
+                update_count_combo(true);
+                cur_region_index = -1;
+                show_image(image_name);
+    
+            });
+        }
 
-            let num_y_tiles = Math.round(image_height_m / tile_size);
-            let num_x_tiles = Math.round(image_width_m / tile_size);
 
-            let tile_height_m = image_height_m / num_y_tiles;
-            let tile_width_m = image_width_m / num_x_tiles;
-
-            let tile_height_svg = ((chart_height - 2 * margin) / image_height_m) * tile_height_m;
-            let tile_index_y = Math.floor(image_y / tile_height_svg);
-
-            let tile_width_svg = ((chart_width - 2 * margin) / image_width_m) * tile_width_m;
-            let tile_index_x = Math.floor(image_x / tile_width_svg);
-
-            let tile_width_px = image_width_px / num_x_tiles;
-            let tile_height_px = image_height_px / num_y_tiles;
-
-            let zoom_region = [
-                Math.round(tile_index_y * tile_height_px),
-                Math.round(tile_index_x * tile_width_px),
-                Math.round((tile_index_y + 1) * tile_height_px),
-                Math.round((tile_index_x + 1) * tile_width_px),
-            ];
-
-            $("#navigation_dropdown").val("images");
-            $("#active_layer_table").css("opacity", 1.0);
-            $("input:radio[name=edit_layer_radio]").prop("disabled", false);
-            $("#show_segmentation_button").show();
-
-
-
-            // let content_size = viewer.world.getItemAt(0).getContentSize();
-            // let image_w = content_size.x;
-            // let image_h = content_size.y;
-
-            let hw_ratio = image_height_px / image_width_px;
-            let viewport_bounds = [
-                zoom_region[1] / image_width_px,
-                (zoom_region[0] / image_height_px) * hw_ratio,
-                (zoom_region[3] - zoom_region[1]) / image_width_px,
-                ((zoom_region[2] - zoom_region[0]) / image_height_px) * hw_ratio
-            ];
-
-            map_zoom_bounds = [
-                viewport_bounds[0],
-                viewport_bounds[1],
-                viewport_bounds[2],
-                viewport_bounds[3]
-            ];
-
-            create_navigation_table();
-            update_count_combo(true);
-            cur_region_index = -1;
-            show_image(image_name);
-
-        });
     }
+
 
 
 

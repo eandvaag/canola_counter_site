@@ -2251,7 +2251,7 @@ function show_map() {
         $("#insufficient_annotation_container").show();
     }
 
-    //draw_map_chart();
+    draw_map_chart();
 }
 
 
@@ -5479,11 +5479,12 @@ $(document).ready(function() {
     draw_count_chart();
     draw_score_chart();
 
+
     //draw_ground_cover_chart();
     
-    if (metadata["is_ortho"] === "yes") {
-        $("#image_sugggestion_container").hide();
-    }
+    // if (metadata["is_ortho"] === "yes") {
+    //     $("#image_sugggestion_container").hide();
+    // }
     // if (metadata["is_ortho"] === "no") {
     //     draw_ground_cover_chart();
     // }
