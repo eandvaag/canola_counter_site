@@ -162,10 +162,14 @@ let keydown_handler = async function(e) {
 
             if (cur_edit_layer === "training_region") {
                 locked_training_regions[cur_img_name].splice(selected_annotation_index, 1);
+                update_region_name();
+                create_navigation_table();
             }
-
-            
-            if ((cur_edit_layer === "annotation") && (sel_box_array.length == 0)) {
+            else if (cur_edit_layer === "test_region") {
+                update_region_name();
+                create_navigation_table();
+            }
+            else if ((cur_edit_layer === "annotation") && (sel_box_array.length == 0)) {
                 annotations[cur_img_name]["source"] = "NA";
                 //annotations[cur_img_name]["predictions_used_as_annotations"] = false;
             }

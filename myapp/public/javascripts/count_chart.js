@@ -397,7 +397,7 @@ function draw_count_chart() {
 
     let tip_mouseover = function(d) {
         let cur_nav_item = cur_img_name + "/" + cur_region_index;
-        let metric = $("#chart_combo").val();
+        //let metric = $("#chart_combo").val();
         let disp_val = count_chart_data[cur_nav_item][d];
         if (!(Number.isInteger(disp_val))) { //metric !== "Count") {
             disp_val = disp_val.toFixed(2);

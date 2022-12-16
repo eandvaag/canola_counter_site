@@ -26,8 +26,8 @@ function show_ridgeline_modal() {
              `</td>` +
              `<td>` +
                  `<select id="ridgeline_sort_combo" style="width: 200px; margin-left: 10px" class="nonfixed_dropdown">` +
-                     `<option value="image_name">Image Name</option>` +
-                     `<option value="quality_score">Quality Score</option>` +
+                    `<option value="quality_score" selected>Quality Score</option>` +
+                    `<option value="image_name">Image Name</option>` +
                  `</select>` +
              `</td>` +
          `</tr>` +
@@ -36,7 +36,9 @@ function show_ridgeline_modal() {
      `<div style="width: 850px; text-align: center">` +
  
          `<div style="width: 800px; height: 500px" class="scrollable_area">` +
-             `<div id="ridgeline_chart" style="margin: 0 auto; border: none; width: 775px; height: 450px"></div>` +
+             `<div id="ridgeline_chart" style="margin: 0 auto; border: none; width: 775px; height: 450px">` +
+                // `<div id="ridgeline_chart_tooltip" class="tooltip" style="z-index: 10"></div>` +
+             `</div>` +
          `</div>` +
      `</div>` 
      , modal_width=850, display=true); //false);
@@ -420,6 +422,12 @@ function draw_ridgeline_chart() {
     
     //);
 
+    // let max_num_predictions = 0;
+    // for (let image_name of Object.keys(predictions)) {
+    //     if (predictions[image_name]["boxes"].length > max_num_predictions) {
+    //         max_num_predictions = predictions[image_name]["boxes"].length;
+    //     }
+    // }
 
 
     //console.log("max_density", max_density);
@@ -474,6 +482,10 @@ function draw_ridgeline_chart() {
             return d.density;
         })
         .attr("fill", overlay_appearance["colors"]["prediction"])
+        // .attr("opacity", function(d, i) {
+        //     //console.log(d.image_name);
+        //     return range_map(predictions[image_names[i]]["boxes"].length, 0, max_num_predictions, 0.5, 1.0);
+        // })
         .attr("stroke", "white")
         .attr("stroke-width", 1)
         .attr("d", //function(d, i) {
@@ -489,8 +501,8 @@ function draw_ridgeline_chart() {
         //.attr("opacity", 0.8);
         .attr("cursor", "pointer")
         .on("mouseover", handleMouseOver)
+        // .on("mousemove", handleMouseMove)
         .on("mouseout", handleMouseOut)
-
         .on("click", function(d, i) {
             //console.log("click", d, i);
             $("#navigation_dropdown").val("images").change();
@@ -498,13 +510,31 @@ function draw_ridgeline_chart() {
             close_modal();
          });
 
+    
+    // let tooltip = d3.select("#ridgeline_chart_tooltip");
+
 
     function handleMouseOver(d, i) {
         d3.select(this).attr("fill", "white");
 
+        // let html = "No. Predictions: " + predictions[image_names[i]]["boxes"].length;
+        // console.log(html);
+        // tooltip.html(html)
+        //         .style("opacity", 1.0);
+
     }
+
+    // function handleMouseMove(d) {
+    //     tooltip.style("left", (d3.event.pageX+20) + "px")
+    //            .style("top", (d3.event.pageY) + "px");
+    //     //d3.select(this).style("cursor", "default"); 
+
+    // }
+
+
     function handleMouseOut(d, i) {
         d3.select(this).attr("fill", overlay_appearance["colors"]["prediction"]);
+        // tooltip.style("opacity", 0);
 
     }
 
