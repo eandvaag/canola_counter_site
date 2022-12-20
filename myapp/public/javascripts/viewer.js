@@ -413,7 +413,7 @@ function show_image(image_name) {
     $("#map_view_container").hide();
     $("#image_view_container").show();
 
-    set_heights();
+    //set_heights();
     change_image(image_name + "/" + cur_region_index);
     
 }
@@ -760,20 +760,36 @@ function create_viewer() {
 
 
 
-function set_heights() {
-    let max_height = 0;
-    for (let image_name of Object.keys(annotations)) {
-        $("#image_name").html(image_name);
-        let table_height = $("#image_name_table").height();
-        if (table_height > max_height) {
-            max_height = table_height;
-        };
-    }
-    $("#image_name_table").height(max_height);
-    $("#navigation_table_container").height(523 - max_height);
-    //$("#navigation_table_container").height(550 - max_height);
-}
+// function set_heights() {
+//     let max_height = 0;
+//     for (let image_name of Object.keys(annotations)) {
+//         $("#image_name").html(image_name);
+//         let table_height = $("#image_name_table").height();
+//         if (table_height > max_height) {
+//             max_height = table_height;
+//         };
+//     }
+//     $("#image_name_table").height(max_height);
+//     $("#navigation_table_container").height(523 - max_height);
+//     //$("#navigation_table_container").height(550 - max_height);
+// }
 
+function resize_window() {
+    console.log("resize");
+    let new_viewer_height = window.innerHeight - $("#header_table").height() - 100;
+    console.log(new_viewer_height);
+    $("#seadragon_viewer").height(new_viewer_height);
+    $("#chart_container").height(new_viewer_height);
+    let image_name_table_height = $("#image_name_table").height();
+    console.log(image_name_table_height);
+    let new_navigation_table_container_height = new_viewer_height - image_name_table_height - 195;
+    console.log(new_navigation_table_container_height);
+    let min_navigation_table_height = 510;
+    if (new_navigation_table_container_height < min_navigation_table_height) {
+        new_navigation_table_container_height = min_navigation_table_height;
+    }
+    $("#navigation_table_container").height(new_navigation_table_container_height);
+}
 
 
 
@@ -792,7 +808,8 @@ $(document).ready(function() {
     dzi_image_paths = data["dzi_image_paths"];
     overlay_appearance = data["overlay_appearance"];
 
-
+    set_heights();
+    resize_window();
     // for (let image_status of Object.keys(status_color)) {
     //     let color = status_color[image_status];
     //     let text = status_to_text[image_status];
@@ -1352,3 +1369,6 @@ $(document).ready(function() {
 
 });
 
+$(window).resize(function() {
+    resize_window();
+});

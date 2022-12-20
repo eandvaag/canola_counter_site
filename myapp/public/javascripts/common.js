@@ -1962,3 +1962,21 @@ function set_overlay_color_css_rules() {
 
 
 }
+
+
+function set_heights() {
+    $("#image_view_container").show();
+    let max_height = 0;
+    for (let image_name of Object.keys(annotations)) {
+        $("#image_name").html(image_name);
+        let table_height = $("#image_name_table").height();
+        if (table_height > max_height) {
+            max_height = table_height;
+        };
+    }
+    $("#image_name_table").height(max_height);
+    console.log("max_height", max_height);
+    //$("#navigation_table_container").height(396 - max_height);
+    //$("#navigation_table_container").height($("#seadragon_viewer").height() - max_height - 355);
+}
+

@@ -69,17 +69,19 @@ html
 
             div(id="body")
 
-                br
-                br
+                //br
+                //br
+                div(style="height: 16px")
 
-                div(class="grid-container-1")
+                div(class="main_container" style="padding-top: 2px")
 
 
-                    div(class="half-round-item-1")
+                    div
+                        //(class="half-round-item-1")
 
-                        table(class="transparent_table")
+                        table
                             tr
-                                td
+                                td(style="padding: 0px")
                                     div(style="width: 140px; text-align: left")
                                         button(style="width: 100px; margin: 0px" id="help_button" class="table_button table_button_hover")
                                             i(id="help_icon" class="fa-solid fa-circle-info" style="padding-right: 8px; color: white") 
@@ -88,7 +90,7 @@ html
                                 td(style="width:100%")
                                     h(id="image_set_name" class="header2" style="font-size: 22px; text-align: center; white-space: pre-wrap; color: white")
                                 
-                                td
+                                td(style="padding: 0px")
                                     div(style="width: 140px")
                                         div(id="view_button_container" style="width: 140px;" hidden)
                                             button(style="width: 140px; margin: 0px;" id="view_button" class="table_button table_button_hover")
@@ -362,7 +364,7 @@ html
                                                                             div(id="model_name")
 
 
-                                                            table(class="transparent_table" style="font-size: 14px")
+                                                            table(style="font-size: 14px")
 
                                                                 tr
                                                                     td(style="text-align: right")
@@ -552,6 +554,9 @@ html
                                                         i(class="fa-solid fa-file-arrow-down" style="padding-right: 5px")
                                                         | 
                                                         | Download
+
+                                                    div(style="height: 5px")
+                                                    hr(class="panel_line")
                                                     //-
                                                         hr
 
@@ -683,7 +688,8 @@ html
                                                                 td
                                                                     div(id="confidence_slider_val" style="margin-left: 2px; padding: 4px 2px; margin-top: -4px; border-radius: 5px; border: 1px solid white; width: 55px") > 0.50
 
-
+                                                        div(style="height: 5px")
+                                                        hr(class="panel_line")
                                             
                                                 div(id="segmentation_panel" hidden)
 
@@ -750,7 +756,8 @@ html
                                                     div(style="height: 10px")
                                                     button(id="apply_threshold_to_all_button" class="std-button std-button-hover" style="font-size: 14px; padding: 4px; width: 280px") Apply Current Threshold To All Images
 
-
+                                                    div(style="height: 5px")
+                                                    hr(class="panel_line")
 
 
                                                     //-

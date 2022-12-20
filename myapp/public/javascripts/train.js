@@ -920,7 +920,7 @@ function create_image_set_list() {
                     let image_set_details = create_image_set_details_table(username, farm_name, field_name, mission_date);
 
                     $("#available_image_sets").append(
-                        `<tr style="border-bottom: 1px solid white; border-color: #4c6645;">` + 
+                        `<tr style="border-bottom: 1px solid #4c6645">` + 
                             //`<td style="padding: 6px 0px"><div style="margin: 0px 8px; width: ${object_col_width};" class="object_entry">${object_name}</div></td>` +
                             //`<td>`+
                             //    `<div class="table_entry" style="text-align: left; width: ${username_col_width}">${username}</div>` +

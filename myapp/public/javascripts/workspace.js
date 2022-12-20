@@ -2270,7 +2270,6 @@ function show_image(image_name) {
     $("#map_view_container").hide();
     $("#image_view_container").show();
 
-    set_heights();
 
 
     change_image(image_name + "/" + cur_region_index);
@@ -4689,18 +4688,7 @@ function change_model() {
     show_models(false);
 }
 
-function set_heights() {
-    let max_height = 0;
-    for (let image_name of Object.keys(annotations)) {
-        $("#image_name").html(image_name);
-        let table_height = $("#image_name_table").height();
-        if (table_height > max_height) {
-            max_height = table_height;
-        };
-    }
-    $("#image_name_table").height(max_height);
-    $("#navigation_table_container").height(396 - max_height);
-}
+
 
 function add_prediction_buttons() {
     let navigation_type = $('#navigation_dropdown').val();
@@ -4877,16 +4865,6 @@ function health_check() {
 }
 
 $(document).ready(function() {
-    //window.setInterval(refresh, 90000); // 1.5 minutes
-    ask_to_continue_handle = window.setTimeout(ask_to_continue, 7200000); // 2 hours
-    health_check();
-    setInterval(health_check, 60 * 1000); // 1 minute
-
-
-   // $("#training_region_radio_container input:checked ~ .custom_radio").css("background-color", "black");
-
-   //.custom_radio_container input:checked ~ .custom_radio.spec_black
-    //$(".custom_radio_container").css("background-color", "black"); //"#809c79");
 
     image_set_info = data["image_set_info"];
     dzi_image_paths = data["dzi_image_paths"];
@@ -4901,6 +4879,21 @@ $(document).ready(function() {
     excess_green_record = data["excess_green_record"];
     predictions = data["predictions"];
     overlay_appearance = data["overlay_appearance"];
+
+    //window.setInterval(refresh, 90000); // 1.5 minutes
+    ask_to_continue_handle = window.setTimeout(ask_to_continue, 7200000); // 2 hours
+    health_check();
+    setInterval(health_check, 60 * 1000); // 1 minute
+
+    set_heights();
+    resize_window();
+
+   // $("#training_region_radio_container input:checked ~ .custom_radio").css("background-color", "black");
+
+   //.custom_radio_container input:checked ~ .custom_radio.spec_black
+    //$(".custom_radio_container").css("background-color", "black"); //"#809c79");
+
+
     set_overlay_color_css_rules();
 
     // if (metadata["is_ortho"] === "yes") {
@@ -6672,6 +6665,7 @@ function download_annotations() {
         }
     });
 
+
 }
 
 function update_apply_current_threshold_to_all_images_button() {
@@ -6693,5 +6687,25 @@ function excess_green_values_are_all_the_same() {
     return true;
 }
 
+function resize_window() {
+    console.log("resize");
+    let new_viewer_height = window.innerHeight - $("#header_table").height() - 100;
+    console.log(new_viewer_height);
+    $("#seadragon_viewer").height(new_viewer_height);
+    $("#chart_container").height(new_viewer_height);
+    let image_name_table_height = $("#image_name_table").height();
+    console.log(image_name_table_height);
+    let new_navigation_table_container_height = new_viewer_height - image_name_table_height - 320;
+    console.log(new_navigation_table_container_height);
+    let min_navigation_table_height = 310;
+    if (new_navigation_table_container_height < min_navigation_table_height) {
+        new_navigation_table_container_height = min_navigation_table_height;
+    }
+    $("#navigation_table_container").height(new_navigation_table_container_height);
+}
 
 
+
+$(window).resize(function() {
+    resize_window();
+});

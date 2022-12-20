@@ -1,22 +1,22 @@
 doctype html
 
 html
-    head
-        meta(name="viewport" content="width=device-width, initial-scale=1")
-        link(rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css")
-    body
-        div(id="header"  style="background-color: #2a3829")
-            table(class="transparent_table")
-                tr
-                    td
-                        div(style="width: 320px")
-                            a(href=process.env.CC_PATH + "/home/" + username style="font-size: 22px; margin: 0px 5px" class="table_button table_button_hover") Canola Counter
-                    td(style="width:100%")
+    //- head
+    //-     meta(name="viewport" content="width=device-width, initial-scale=1")
+    //-     link(rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css")
+    //- body
+    //-     //div(id="header"  style="background-color: #2a3829")
+    table(id="header_table" style="background-color: #2a3829; margin: -8px; padding: 8px 0px;")
+        tr
+            td
+                div(style="width: 320px")
+                    a(href=process.env.CC_PATH + "/home/" + username style="font-size: 22px; margin: 0px 5px" class="table_button table_button_hover") Canola Counter
+            td(style="width: 100%")
 
-                    td
-                        div(style="font-weight: bold; margin-right:15px") #{username} 
-                    td
-                        div(style="width: 100px")
-                            a(href=process.env.CC_PATH + "/logout" class="table_button table_button_hover") Log Out
+            td
+                div(style="font-weight: bold; margin-right:15px") #{username} 
+            td
+                div(style="width: 80px")
+                    a(href=process.env.CC_PATH + "/logout" class="table_button table_button_hover") Log Out
 
-            hr
+    hr(class="panel_line")
