@@ -1005,6 +1005,7 @@ function show_overview() {
         
         
             if ((make === "") || (model === "")) {
+                let no_metadata_width = "410px";
         
                 //$("#bottom_right").append(`<table id="missing_specs_table"></table>`);
         
@@ -1014,7 +1015,7 @@ function show_overview() {
         
         
                 $("#camera_specs_table").append(`<tr>` +
-                    `<td><div>Metadata could not be extracted.</div></td>` +
+                    `<td><div style="width: ${no_metadata_width}">Metadata could not be extracted.</div></td>` +
                     `</tr>`);
                 // $("#camera_specs_table").append(`<tr>` +
                 //     `<td style="height: 10px"></td>` +

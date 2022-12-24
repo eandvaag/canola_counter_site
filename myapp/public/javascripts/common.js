@@ -1790,26 +1790,9 @@ function apply_front_end_appearance_change() {
     //set_count_chart_data();
     //set_score_chart_data();
 
+    update_region_name();
     create_navigation_table();
-    let navigation_type = $("#navigation_dropdown").val();
-    $("#region_name").empty();
-    if (navigation_type === "training_regions" || navigation_type === "test_regions") {
 
-        let disp_region_index = cur_region_index + 1;
-        let region_color;
-        if (navigation_type === "training_regions") {
-            region_color = overlay_appearance["colors"]["training_region"];
-        }
-        else {
-            region_color = overlay_appearance["colors"]["test_region"];
-        }
-
-        $("#region_name").append(
-            `<div style="width: 75px; background-color: ${region_color}; margin: 0px 2px; color: black; border: none" class="object_entry">` +
-            `Region ` + disp_region_index +
-            `</div>`
-        );
-    }
     draw_count_chart();
     draw_score_chart();
     draw_map_chart();
