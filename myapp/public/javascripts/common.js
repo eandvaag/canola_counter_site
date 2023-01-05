@@ -1985,7 +1985,6 @@ function set_heights() {
         };
     }
     $("#image_name_table").height(max_height);
-    console.log("max_height", max_height);
     //$("#navigation_table_container").height(396 - max_height);
     //$("#navigation_table_container").height($("#seadragon_viewer").height() - max_height - 355);
 }
