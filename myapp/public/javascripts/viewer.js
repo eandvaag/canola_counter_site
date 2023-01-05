@@ -50,6 +50,7 @@ let voronoi_data = {
     "prediction": null
 };
 
+let gsd;
 
 
 
@@ -731,6 +732,58 @@ function create_viewer() {
                 });
                 cur_bounds = null;
             }
+            
+            if (gsd !== null) {
+                let cur_zoom = viewer.viewport.viewportToImageZoom(viewer.viewport.getZoom(true));
+                let measure_width = Math.max(50, 0.08 * container_size.x); //Math.min(100, 0)
+                let measure_width_m = (gsd / cur_zoom) * measure_width;
+                let unit;
+                let measure_width_metric;
+                if (measure_width_m < 1) {
+                    measure_width_metric = measure_width_m * 100;
+                    unit = "cm";
+                }
+                else {
+                    measure_width_metric = measure_width_m;
+                    unit = "m";
+                }
+                let measure_width_text = (Math.ceil(measure_width_metric * 100) / 100).toFixed(2) + " " + unit;
+
+
+                overlay.context2d().fillStyle = "rgb(255, 255, 255, 0.7)";
+                overlay.context2d().fillRect(
+                    container_size.x - measure_width - 20,
+                    container_size.y - 30,
+                    measure_width + 20,
+                    30
+                );
+                overlay.context2d().fillStyle = "black";
+                overlay.context2d().fillRect(
+                    container_size.x - measure_width - 10,
+                    container_size.y - 8,
+                    measure_width,
+                    2
+                );
+                overlay.context2d().fillRect(
+                    container_size.x - measure_width - 10,
+                    container_size.y - 10,
+                    1,
+                    4
+                );
+                overlay.context2d().fillRect(
+                    container_size.x - 10,
+                    container_size.y - 10,
+                    1,
+                    4
+                );
+
+                overlay.context2d().fillText(measure_width_text, 
+                    container_size.x - measure_width - 10,
+                    container_size.y - 15
+                );
+            }
+
+
         },
         clearBeforeRedraw: true
     });
@@ -810,6 +863,10 @@ $(document).ready(function() {
 
     set_heights();
     resize_window();
+
+    if ((can_calculate_density(metadata, camera_specs))) {
+        gsd = get_gsd();
+    }
     // for (let image_status of Object.keys(status_color)) {
     //     let color = status_color[image_status];
     //     let text = status_to_text[image_status];

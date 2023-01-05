@@ -64,7 +64,7 @@ let annotations_dropzone;
 let voronoi_data = {};
 
 
-
+let gsd;
 
 
 // let overlay_colors = [
@@ -702,8 +702,27 @@ function create_anno() {
         formatter: formatter
     });
 
+    // anno.on('clickAnnotation', function(annotation, element) {
+    //     console.log("clickAnnotation");
+    // });
+
+    anno.on('cancelSelected', function(selection) {
+        console.log("cancelSelected", selection, anno.getSelected());
+        // anno.clearAnnotations();
+        // selected_annotation_index = -1;
+        // selected_annotation = null;
+        anno.updateSelected(selection, true);
+        //viewer.raiseEvent('update-viewport');
+        //anno.updateSelected(selected_annotation, true);
+        //anno.updateAnnotation(selected); //clearAnnotations();
+        //viewer.raiseEvent('')
+        //viewer.raiseEvent('canvas-click'); //update-viewport');
+    });
 
     anno.on('createAnnotation', function(annotation) {
+        //anno.on('createSelection', function(annotation) {
+
+        console.log("createAnnotation");
 
         //annotations[cur_img_name]["annotations"] = anno.getAnnotations();
         //annotation
@@ -745,6 +764,7 @@ function create_anno() {
             Math.round(px_lst[1] + px_lst[3]),
             Math.round(px_lst[0] + px_lst[2])
         ];
+
 
         //let edit_layer = $('input[name=edit_layer_radio]:checked').val();
 
@@ -914,10 +934,6 @@ function create_anno() {
         anno.saveSelected();
         //await anno.updateSelected(selection, true);
 
-
-
-
-
         
     });
 
@@ -933,6 +949,8 @@ function create_anno() {
     });*/
 
     anno.on('updateAnnotation', async function(annotation, previous) {
+
+        console.log("updateAnnotation");
 
         let px_str = annotation.target.selector.value;
         let updated_px_str = resize_px_str(px_str);
@@ -1130,7 +1148,7 @@ function create_viewer(viewer_id) {
         //     set_cur_bounds();
         // },
         onRedraw: function() {
-            //console.log("onRedraw", selected_annotation_index, cur_edit_layer);
+            //console.log("onRedraw", selected_annotation_index, selected_annotation); //cur_edit_layer);
 
             let navigation_type = $("#navigation_dropdown").val();
         
@@ -1519,6 +1537,57 @@ function create_viewer(viewer_id) {
                 cur_bounds = null;
             }
 
+            if (gsd !== null) {
+                let cur_zoom = viewer.viewport.viewportToImageZoom(viewer.viewport.getZoom(true));
+                let measure_width = Math.max(50, 0.08 * container_size.x); //Math.min(100, 0)
+                let measure_width_m = (gsd / cur_zoom) * measure_width;
+                let unit;
+                let measure_width_metric;
+                if (measure_width_m < 1) {
+                    measure_width_metric = measure_width_m * 100;
+                    unit = "cm";
+                }
+                else {
+                    measure_width_metric = measure_width_m;
+                    unit = "m";
+                }
+                let measure_width_text = (Math.ceil(measure_width_metric * 100) / 100).toFixed(2) + " " + unit;
+
+
+                overlay.context2d().fillStyle = "rgb(255, 255, 255, 0.7)";
+                overlay.context2d().fillRect(
+                    container_size.x - measure_width - 20,
+                    container_size.y - 30,
+                    measure_width + 20,
+                    30
+                );
+                overlay.context2d().fillStyle = "black";
+                overlay.context2d().fillRect(
+                    container_size.x - measure_width - 10,
+                    container_size.y - 8,
+                    measure_width,
+                    2
+                );
+                overlay.context2d().fillRect(
+                    container_size.x - measure_width - 10,
+                    container_size.y - 10,
+                    1,
+                    4
+                );
+                overlay.context2d().fillRect(
+                    container_size.x - 10,
+                    container_size.y - 10,
+                    1,
+                    4
+                );
+
+                overlay.context2d().fillText(measure_width_text, 
+                    container_size.x - measure_width - 10,
+                    container_size.y - 15
+                );
+            }
+
+
 
                 // let top_left = viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(bounds[1], bounds[0]));
                 // let bot_right = viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(bounds[3], bounds[2]));
@@ -1867,11 +1936,362 @@ function create_viewer(viewer_id) {
     // $("#seadragon_viewer").keydown(function(e) {
     //     keydown_handler(e);
     // });
+
+
+
+
+    // $("#seadragon_viewer").click(function(event) {
+    //     console.log("SEADRAGON CLICK", selected_annotation, selected_annotation_index, anno.getAnnotations(), anno.getSelected());
+    //     if (selected_annotation_index != -1) {
+    //         console.log("REMOVING ANNOTATIONS");
+    //         //anno.clearAnnotations();
+    //         //viewer.raiseEvent('update-viewport');
+    //     }
+    // });
+
+
+    // $("#seadragon_viewer").click(function(event) {
+    //     console.log("SEADRAGON CLICK");
+    //     let image_x = event.pageX - $(this).offset().left;
+    //     let image_y = event.pageY - $(this).offset().top;
+
+    //     if (cur_panel === "annotation") {
+
+
+    //         //console.log("canvas-click");
+
+    //         //console.log("getting selected");
+    //         //let selected = anno.getSelected();
+    //         //console.log("got selected", selected);
+    //         //if (selected == null) {
+
+    //         /*
+    //         if (selected_annotation != null) {
+    //             anno.updateSelected(selected_annotation, true);
+    //         }*/
+    //         if (selected_annotation_index == -1) {
+    //             //console.log("IF", selected_annotation_index, selected_annotation);
+
+    //             //delay(1).then(() => anno.clearAnnotations());
+    //             //let selected = anno.getSelected();
+
+    //             /*
+    //             if (selected_annotation_index != -1) {
+    //                 let selected = anno.getSelected();
+    //                 let px_str = selected.target.selector.value;
+    //                 let updated_px_str = resize_px_str(px_str);
+    //                 updated_px_str = updated_px_str.substring(11);
+    //                 let px_lst = updated_px_str.split(",").map(x => parseFloat(x));
+    //                 annotations[cur_img_name]["boxes"][selected_annotation_index] = [px_lst[1], px_lst[0], px_lst[1] + px_lst[3], px_lst[0] + px_lst[2]];
+
+    //             }
+                
+    //             */
+    //             //if (selected != null) {
+    //             //    anno.updateSelected(selected, true);
+    //             //await anno.updateSelected(selection);
+    //             //anno.saveSelected();
+    //             //anno.cancelSelected();
+    //             //}
+
+    //             //let edit_layer = $('input[name=edit_layer_radio]:checked').val();
+    //             //console.log("edit_layer", edit_layer);
+
+
+    //             anno.clearAnnotations();
+
+    //             let annotation_uuid = null;
+
+   
+
+    //             //let webPoint = event.position;
+
+    //             //console.log("webPoint", webPoint);
+    //             let webPoint = new OpenSeadragon.Point(image_x, image_y);
+    //             let viewportPoint = viewer.viewport.pointFromPixel(webPoint);
+    //             let imagePoint = viewer.viewport.viewportToImageCoordinates(viewportPoint);
+    //             //overlay.clear();
+
+    //             //let prev_annotation_index = selected_annotation_index;
+    //             selected_annotation_index = -1;
+    //             //selected_annotation_index = -1;
+
+    //             let inside_box = false;
+    //             let candidate_box_areas = [];
+    //             let candidate_box_indices = [];
+    //             let sel_box_array;
+    //             if (cur_edit_layer === "annotation") {
+    //                 sel_box_array = annotations[cur_img_name]["boxes"];
+    //             }
+    //             else if (cur_edit_layer === "training_region") {
+    //                 sel_box_array = annotations[cur_img_name]["training_regions"];
+    //             }
+    //             else {
+    //                 sel_box_array = annotations[cur_img_name]["test_regions"];
+    //             }
+
+    //             for (let i = 0; i < sel_box_array.length; i++) {//annotations[cur_img_name]["boxes"].length; i++) {
+
+    //                 //let box = annotations[cur_img_name]["boxes"][i];
+    //                 let box = sel_box_array[i];
+    //                 if ((imagePoint.x >= box[1] && imagePoint.x <= box[3]) && (imagePoint.y >= box[0] && imagePoint.y <= box[2])) {
+                        
+
+
+    //                     if ((cur_edit_layer !== "training_region") || (!(locked_training_regions[cur_img_name][i]))) {
+    //                         inside_box = true;
+    //                         //if (i == prev_annotation_index) {
+    //                         //    break;
+    //                         //}
+    //                         //console.log("clicked on a box");
+
+
+    //                         //annotations[cur_img_name]["boxes"].splice(i, 1);
+
+    //                         let box_area = (box[3] - box[1]) * (box[2] - box[0]);
+
+    //                         candidate_box_areas.push(box_area);
+    //                         //selected_annotation_index = i;
+    //                         candidate_box_indices.push(i);
+    //                     }
+
+    //                     //anno.addAnnotation(annotation);
+    //                     //anno.createAnnotation(annotation);
+    //                     //anno.saveSelected();
+    //                     //await anno.updateSelected(annotation);
+    //                     //anno.selectAnnotation(annotation_uuid);
+    //                     //let sel_annotation = anno.getSelected();
+
+    //                     //anno.selectAnnotation(annotation_uuid);
+
+
+    //                     //anno.selectAnnotation(annotation_uuid);
+    //                     //console.log("sel_annotation", sel_annotation);
+    //                     //anno.selectAnnotation(annotation_uuid);
+    //                     //break;
+                        
+
+    //                 }
+    //             }
+
+    //             if (candidate_box_indices.length > 0) {
+    //                 selected_annotation_index = candidate_box_indices[argMin(candidate_box_areas)];
+    //             }
+    //             //console.log("prev, selected", prev_annotation_index, selected_annotation_index);
+
+    //             //if (selected != null && !(inside_box)) {
+    //             //    console.log("RETURNING");
+    //             //    return;
+    //             //}
+
+    //             //viewer.raiseEvent('update-viewport');
+    //             //console.log("update-viewport finished");
+
+
+    //             if (inside_box) { // && (selected_annotation_index != prev_annotation_index)) {
+    //                 let box = sel_box_array[selected_annotation_index];
+
+    //                 if (cur_edit_layer === "annotation") {
+    //                     for (let i = 0; i < annotations[cur_img_name]["training_regions"].length; i++) {
+    //                         if ((box_intersects_region(box, annotations[cur_img_name]["training_regions"][i])) && (locked_training_regions[cur_img_name][i])) {
+
+    //                             selected_annotation_index = -1;
+    //                             return;
+    //                         }
+    //                     }
+    //                 }
+
+    //                 annotation_uuid = uuidv4();
+    //                 //let box = annotations[cur_img_name]["boxes"][selected_annotation_index];
+                    
+    //                 let box_str = [box[1], box[0], (box[3] - box[1]), (box[2] - box[0])].join(",");
+
+    //                 selected_annotation = {
+    //                     "type": "Annotation",
+    //                     "body": [
+    //                         {
+    //                             type: 'TextualBody',
+    //                             purpose: 'class',
+    //                             value: 'object'
+    //                         }
+    //                     ],
+    //                     "target": {
+    //                         "source": "",
+    //                         "selector": {
+    //                             "type": "FragmentSelector",
+    //                             "conformsTo": "http://www.w3.org/TR/media-frags/",
+    //                             "value": "xywh=pixel:" + box_str
+    //                         }
+    //                     },
+    //                     "@context": "http://www.w3.org/ns/anno.jsonld",
+    //                     "id": annotation_uuid
+    //                 };
+
+
+
+    //                 if (cur_edit_layer === "training_region")  {
+    //                     selected_annotation["body"].push({"value": "training_region", "purpose": "highlighting"});
+    //                 }
+    //                 else if (cur_edit_layer === "test_region") {
+    //                     selected_annotation["body"].push({"value": "test_region", "purpose": "highlighting"});
+    //                 }
+
+    //                 /*
+    //                 const secondFunction = async () => {
+    //                     await anno.addAnnotation(selected_annotation);
+    //                     anno.selectAnnotation(selected_annotation);
+    //                 }
+    //                 secondFunction();
+    //                 */
+    //                 anno.addAnnotation(selected_annotation); //.then(() => anno.selectAnnotation(selected_annotation));
+    //                 //anno.selectAnnotation(selected_annotation);
+
+    //                 delay(10).then(() => anno.selectAnnotation(selected_annotation));
+
+    //                 // let selected = anno.getSelected();
+    //                 // console.log("THERE IS THIS SELECTED", selected);
+    //                 // if (selected == null) {
+    //                 //     anno.selectAnnotation(selected_annotation);
+    //                 // }
+    //                 //anno.selectAnnotation(selected_annotation)
+    //                 //anno.selectAnnotation(the_thing);
+                    
+    //                 //delay(1).then(() => anno.selectAnnotation(selected_annotation));
+
+    //                 // add_the_annotation(annotation);
+                    
+    //                 //anno.selectAnnotation(annotation_uuid);
+                
+
+    //             }
+    //             viewer.raiseEvent('update-viewport');
+    //             /*
+    //             if (inside_box) {
+    //                 console.log("SELECTING AN ANNOTATION", selected_annotation);
+    //                 anno.selectAnnotation(selected_annotation)
+    //                 //delay(1).then(() => anno.selectAnnotation(selected_annotation));
+    //             }*/
+    //         //}
+
+
+    //         //}
+
+            
+    //         //else {
+    //             //anno.clearAnnotations();
+    //             //selected_annotation_index = -1;
+    //             //viewer.raiseEvent('update-viewport');
+
+    //         //}
+    //         //else {
+    //             //anno.clearAnnotations();
+    //             //selected_annotation_index = -1;
+    //             //viewer.raiseEvent('update-viewport');
+    //         }
+    //     //     else {
+    //     //         //console.log("ELSE", selected_annotation_index, selected_annotation);
+    //     //         //let cur_selected = anno.getSelected();
+    //     //         //anno.updateSelected(selected_annotation, true);
+                
+    //     //         let cur_selected = anno.getSelected();
+    //     //         if (cur_selected == null) {
+    //     //             let webPoint = event.position;
+    //     //             let viewportPoint = viewer.viewport.pointFromPixel(webPoint);
+    //     //             let imagePoint = viewer.viewport.viewportToImageCoordinates(viewportPoint);
+
+    //     //             let px_str = selected_annotation.target.selector.value;
+    //     //             px_str = px_str.substring(11);
+    //     //             let px_lst = px_str.split(",").map(x => parseFloat(x));
+    //     //             let box = [
+    //     //                 Math.round(px_lst[1]), 
+    //     //                 Math.round(px_lst[0]), 
+    //     //                 Math.round(px_lst[1] + px_lst[3]), 
+    //     //                 Math.round(px_lst[0] + px_lst[2])
+    //     //             ];
+
+    //     //             if ((imagePoint.x >= box[1] && imagePoint.x <= box[3]) && (imagePoint.y >= box[0] && imagePoint.y <= box[2])) {
+    //     //                 anno.clearAnnotations();
+    //     //                 anno.addAnnotation(selected_annotation);
+    //     //                 delay(10).then(() => anno.selectAnnotation(selected_annotation));
+    //     //                 //anno.selectAnnotation(selected_annotation);
+    //     //             }
+    //     //             else {
+    //     //                 selected_annotation_index = -1;
+    //     //                 selected_annotation = null;
+    //     //                 anno.clearAnnotations();
+    //     //                 viewer.raiseEvent('update-viewport');
+    
+    //     //             }
+
+    //     //         }
+    //     //         else {
+    //     //             anno.updateSelected(selected_annotation, true);
+    //     //         }
+
+    //     //     }
+    //     // }
+
+
+
+
+
+
+
+    //     }
+
+
+
+
+
+
+
+
+
+    // });
+    // // $("body").mousedown(function(event) { 
+    // //     //event.stopPropagation();
+    // //     if (cur_panel === "annotation") {
+    // //         delay(100).then(() => {
+    // //             console.log("seadragon click", anno.getAnnotations().length, anno.getSelected());
+    // //             //if ((anno.getAnnotations().length > 0) && (anno.getSelected() == null)) {
+    // //             //    console.log("CLEAR ANNOTATIONS");
+    // //             //let sel_annotation = anno.selectAnnotation(anno.getAnnotations()[0]);
+    // //             //let cur_selected = anno.getSelected();
+    // //             if (anno.getSelected() == null) {
+    // //                 //console.log("UPDATE SELECTED");
+    // //                 anno.updateSelected(anno.getAnnotations()[0], true);
+    // //             }
+    // //             //anno.getAnnotations();
+    // //             //viewer.raiseEvent('update-viewport');
+    // //                 // selected_annotation = null;
+    // //                 // selected_annotation_index = -1;
+    // //                 // viewer.raiseEvent('update-viewport');
+    // //             //}
+    // //         });
+
+    // //     }
+    // // });
+
+    // // viewer.addHandler('canvas-drag', function(event) {
+    // //     console.log("canvas-drag");
+    // // });
+
     
     viewer.addHandler('canvas-click', function(event) {
+
+    //$("#seadragon_viewer").click(function(event) { 
+        console.log("canvas-click");
+        //let image_x = event.pageX - $(this).offset().left;
+        //let image_y = event.pageY - $(this).offset().top;
+        //event.stopPropagation();
+    
+
         // The canvas-click event gives us a position in web coordinates.
 
         if (cur_panel === "annotation") {
+
+
+            //console.log("canvas-click");
 
             //console.log("getting selected");
             //let selected = anno.getSelected();
@@ -1883,6 +2303,7 @@ function create_viewer(viewer_id) {
                 anno.updateSelected(selected_annotation, true);
             }*/
             if (selected_annotation_index == -1) {
+                //console.log("IF", selected_annotation_index, selected_annotation);
 
                 //delay(1).then(() => anno.clearAnnotations());
                 //let selected = anno.getSelected();
@@ -1910,12 +2331,16 @@ function create_viewer(viewer_id) {
                 //console.log("edit_layer", edit_layer);
 
 
-                anno.clearAnnotations();
+                
 
                 let annotation_uuid = null;
+
+   
+
                 let webPoint = event.position;
 
                 //console.log("webPoint", webPoint);
+                //let webPoint = new OpenSeadragon.Point(image_x, image_y);
                 let viewportPoint = viewer.viewport.pointFromPixel(webPoint);
                 let imagePoint = viewer.viewport.viewportToImageCoordinates(viewportPoint);
                 //overlay.clear();
@@ -2051,10 +2476,23 @@ function create_viewer(viewer_id) {
                     }
                     secondFunction();
                     */
+                    anno.clearAnnotations();
                     anno.addAnnotation(selected_annotation); //.then(() => anno.selectAnnotation(selected_annotation));
-                    //anno.selectAnnotation(selected_annotation);
+                    // if (anno.getSelected() == null) {
+                    //     anno.selectAnnotation(selected_annotation);
+                    // }
+                    delay(10).then(() => {
+                        // sometimes the annotation is selected, but sometimes it isn't?? if not selected, select it now.
+                        if (anno.getSelected() == null) {
+                            anno.selectAnnotation(selected_annotation);
+                        }
+                    });
 
-                    delay(10).then(() => anno.selectAnnotation(selected_annotation));
+                    // delay(10).then(() => {
+                    //     anno.selectAnnotation(selected_annotation);
+                    //     //viewer.raiseEvent('update-viewport');
+                    // });
+                    //anno.selectAnnotation(selected_annotation);
 
                     // let selected = anno.getSelected();
                     // console.log("THERE IS THIS SELECTED", selected);
@@ -2097,6 +2535,10 @@ function create_viewer(viewer_id) {
                 //viewer.raiseEvent('update-viewport');
             }
             else {
+                //console.log("ELSE", selected_annotation_index, selected_annotation);
+                //let cur_selected = anno.getSelected();
+                //anno.updateSelected(selected_annotation, true);
+                
                 let cur_selected = anno.getSelected();
                 if (cur_selected == null) {
                     let webPoint = event.position;
@@ -2136,6 +2578,298 @@ function create_viewer(viewer_id) {
         }
 
     });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+    // viewer.addHandler('canvas-click2', function(event) {
+    //     // The canvas-click event gives us a position in web coordinates.
+
+    //     if (cur_panel === "annotation") {
+
+    //         //console.log("getting selected");
+    //         //let selected = anno.getSelected();
+    //         //console.log("got selected", selected);
+    //         //if (selected == null) {
+
+    //         /*
+    //         if (selected_annotation != null) {
+    //             anno.updateSelected(selected_annotation, true);
+    //         }*/
+    //         if (selected_annotation_index == -1) {
+
+    //             //delay(1).then(() => anno.clearAnnotations());
+    //             //let selected = anno.getSelected();
+
+    //             /*
+    //             if (selected_annotation_index != -1) {
+    //                 let selected = anno.getSelected();
+    //                 let px_str = selected.target.selector.value;
+    //                 let updated_px_str = resize_px_str(px_str);
+    //                 updated_px_str = updated_px_str.substring(11);
+    //                 let px_lst = updated_px_str.split(",").map(x => parseFloat(x));
+    //                 annotations[cur_img_name]["boxes"][selected_annotation_index] = [px_lst[1], px_lst[0], px_lst[1] + px_lst[3], px_lst[0] + px_lst[2]];
+
+    //             }
+                
+    //             */
+    //             //if (selected != null) {
+    //             //    anno.updateSelected(selected, true);
+    //             //await anno.updateSelected(selection);
+    //             //anno.saveSelected();
+    //             //anno.cancelSelected();
+    //             //}
+
+    //             //let edit_layer = $('input[name=edit_layer_radio]:checked').val();
+    //             //console.log("edit_layer", edit_layer);
+
+
+    //             anno.clearAnnotations();
+
+    //             let annotation_uuid = null;
+    //             let webPoint = event.position;
+
+    //             //console.log("webPoint", webPoint);
+    //             let viewportPoint = viewer.viewport.pointFromPixel(webPoint);
+    //             let imagePoint = viewer.viewport.viewportToImageCoordinates(viewportPoint);
+    //             //overlay.clear();
+
+    //             //let prev_annotation_index = selected_annotation_index;
+    //             selected_annotation_index = -1;
+    //             //selected_annotation_index = -1;
+
+    //             let inside_box = false;
+    //             let candidate_box_areas = [];
+    //             let candidate_box_indices = [];
+    //             let sel_box_array;
+    //             if (cur_edit_layer === "annotation") {
+    //                 sel_box_array = annotations[cur_img_name]["boxes"];
+    //             }
+    //             else if (cur_edit_layer === "training_region") {
+    //                 sel_box_array = annotations[cur_img_name]["training_regions"];
+    //             }
+    //             else {
+    //                 sel_box_array = annotations[cur_img_name]["test_regions"];
+    //             }
+
+    //             for (let i = 0; i < sel_box_array.length; i++) {//annotations[cur_img_name]["boxes"].length; i++) {
+
+    //                 //let box = annotations[cur_img_name]["boxes"][i];
+    //                 let box = sel_box_array[i];
+    //                 if ((imagePoint.x >= box[1] && imagePoint.x <= box[3]) && (imagePoint.y >= box[0] && imagePoint.y <= box[2])) {
+                        
+
+
+    //                     if ((cur_edit_layer !== "training_region") || (!(locked_training_regions[cur_img_name][i]))) {
+    //                         inside_box = true;
+    //                         //if (i == prev_annotation_index) {
+    //                         //    break;
+    //                         //}
+    //                         //console.log("clicked on a box");
+
+
+    //                         //annotations[cur_img_name]["boxes"].splice(i, 1);
+
+    //                         let box_area = (box[3] - box[1]) * (box[2] - box[0]);
+
+    //                         candidate_box_areas.push(box_area);
+    //                         //selected_annotation_index = i;
+    //                         candidate_box_indices.push(i);
+    //                     }
+
+    //                     //anno.addAnnotation(annotation);
+    //                     //anno.createAnnotation(annotation);
+    //                     //anno.saveSelected();
+    //                     //await anno.updateSelected(annotation);
+    //                     //anno.selectAnnotation(annotation_uuid);
+    //                     //let sel_annotation = anno.getSelected();
+
+    //                     //anno.selectAnnotation(annotation_uuid);
+
+
+    //                     //anno.selectAnnotation(annotation_uuid);
+    //                     //console.log("sel_annotation", sel_annotation);
+    //                     //anno.selectAnnotation(annotation_uuid);
+    //                     //break;
+                        
+
+    //                 }
+    //             }
+
+    //             if (candidate_box_indices.length > 0) {
+    //                 selected_annotation_index = candidate_box_indices[argMin(candidate_box_areas)];
+    //             }
+    //             //console.log("prev, selected", prev_annotation_index, selected_annotation_index);
+
+    //             //if (selected != null && !(inside_box)) {
+    //             //    console.log("RETURNING");
+    //             //    return;
+    //             //}
+
+    //             //viewer.raiseEvent('update-viewport');
+    //             //console.log("update-viewport finished");
+
+
+    //             if (inside_box) { // && (selected_annotation_index != prev_annotation_index)) {
+    //                 let box = sel_box_array[selected_annotation_index];
+
+    //                 if (cur_edit_layer === "annotation") {
+    //                     for (let i = 0; i < annotations[cur_img_name]["training_regions"].length; i++) {
+    //                         if ((box_intersects_region(box, annotations[cur_img_name]["training_regions"][i])) && (locked_training_regions[cur_img_name][i])) {
+
+    //                             selected_annotation_index = -1;
+    //                             return;
+    //                         }
+    //                     }
+    //                 }
+
+    //                 annotation_uuid = uuidv4();
+    //                 //let box = annotations[cur_img_name]["boxes"][selected_annotation_index];
+                    
+    //                 let box_str = [box[1], box[0], (box[3] - box[1]), (box[2] - box[0])].join(",");
+
+    //                 selected_annotation = {
+    //                     "type": "Annotation",
+    //                     "body": [
+    //                         {
+    //                             type: 'TextualBody',
+    //                             purpose: 'class',
+    //                             value: 'object'
+    //                         }
+    //                     ],
+    //                     "target": {
+    //                         "source": "",
+    //                         "selector": {
+    //                             "type": "FragmentSelector",
+    //                             "conformsTo": "http://www.w3.org/TR/media-frags/",
+    //                             "value": "xywh=pixel:" + box_str
+    //                         }
+    //                     },
+    //                     "@context": "http://www.w3.org/ns/anno.jsonld",
+    //                     "id": annotation_uuid
+    //                 };
+
+
+
+    //                 if (cur_edit_layer === "training_region")  {
+    //                     selected_annotation["body"].push({"value": "training_region", "purpose": "highlighting"});
+    //                 }
+    //                 else if (cur_edit_layer === "test_region") {
+    //                     selected_annotation["body"].push({"value": "test_region", "purpose": "highlighting"});
+    //                 }
+
+    //                 /*
+    //                 const secondFunction = async () => {
+    //                     await anno.addAnnotation(selected_annotation);
+    //                     anno.selectAnnotation(selected_annotation);
+    //                 }
+    //                 secondFunction();
+    //                 */
+    //                 anno.addAnnotation(selected_annotation); //.then(() => anno.selectAnnotation(selected_annotation));
+    //                 //anno.selectAnnotation(selected_annotation);
+
+    //                 delay(10).then(() => anno.selectAnnotation(selected_annotation));
+
+    //                 // let selected = anno.getSelected();
+    //                 // console.log("THERE IS THIS SELECTED", selected);
+    //                 // if (selected == null) {
+    //                 //     anno.selectAnnotation(selected_annotation);
+    //                 // }
+    //                 //anno.selectAnnotation(selected_annotation)
+    //                 //anno.selectAnnotation(the_thing);
+                    
+    //                 //delay(1).then(() => anno.selectAnnotation(selected_annotation));
+
+    //                 // add_the_annotation(annotation);
+                    
+    //                 //anno.selectAnnotation(annotation_uuid);
+                
+
+    //             }
+    //             viewer.raiseEvent('update-viewport');
+    //             /*
+    //             if (inside_box) {
+    //                 console.log("SELECTING AN ANNOTATION", selected_annotation);
+    //                 anno.selectAnnotation(selected_annotation)
+    //                 //delay(1).then(() => anno.selectAnnotation(selected_annotation));
+    //             }*/
+    //         //}
+
+
+    //         //}
+
+            
+    //         //else {
+    //             //anno.clearAnnotations();
+    //             //selected_annotation_index = -1;
+    //             //viewer.raiseEvent('update-viewport');
+
+    //         //}
+    //         //else {
+    //             //anno.clearAnnotations();
+    //             //selected_annotation_index = -1;
+    //             //viewer.raiseEvent('update-viewport');
+    //         }
+    //         else {
+    //             let cur_selected = anno.getSelected();
+    //             if (cur_selected == null) {
+    //                 let webPoint = event.position;
+    //                 let viewportPoint = viewer.viewport.pointFromPixel(webPoint);
+    //                 let imagePoint = viewer.viewport.viewportToImageCoordinates(viewportPoint);
+
+    //                 let px_str = selected_annotation.target.selector.value;
+    //                 px_str = px_str.substring(11);
+    //                 let px_lst = px_str.split(",").map(x => parseFloat(x));
+    //                 let box = [
+    //                     Math.round(px_lst[1]), 
+    //                     Math.round(px_lst[0]), 
+    //                     Math.round(px_lst[1] + px_lst[3]), 
+    //                     Math.round(px_lst[0] + px_lst[2])
+    //                 ];
+
+    //                 if ((imagePoint.x >= box[1] && imagePoint.x <= box[3]) && (imagePoint.y >= box[0] && imagePoint.y <= box[2])) {
+    //                     anno.clearAnnotations();
+    //                     anno.addAnnotation(selected_annotation);
+    //                     delay(10).then(() => anno.selectAnnotation(selected_annotation));
+    //                     //anno.selectAnnotation(selected_annotation);
+    //                 }
+    //                 else {
+    //                     selected_annotation_index = -1;
+    //                     selected_annotation = null;
+    //                     anno.clearAnnotations();
+    //                     viewer.raiseEvent('update-viewport');
+    
+    //                 }
+
+    //             }
+    //             else {
+    //                 anno.updateSelected(selected_annotation, true);
+    //             }
+
+    //         }
+    //     }
+
+    // });
 }
 
 // function function1(callback) {
@@ -2625,8 +3359,8 @@ function show_annotation(change_image=false) {
 
     //create_viewer_and_anno("seadragon_viewer");
     viewer.zoomPerScroll = 1.2;
-    anno.readOnly = false; //annotations[cur_img_name]["status"] === "completed_for_training";
-
+    anno.readOnly = false; //false; //annotations[cur_img_name]["status"] === "completed_for_training";
+    //anno.disableSelect = true;
 
 /*
     let navigation_type = $("#navigation_dropdown").val();
@@ -4975,6 +5709,10 @@ $(document).ready(function() {
         }
     }
 
+    if ((can_calculate_density(metadata, camera_specs))) {
+        gsd = get_gsd();
+    }
+
     // }
     // else {
     //     //$("#image_set_navigation").show();
@@ -6600,6 +7338,37 @@ $(document).ready(function() {
             keydown_handler(e);
         }
     });
+    // $("body").mouseup(function(e) {
+    //     let cur_selected = anno.getSelected();
+    //     if (cur_selected == null) {
+    //         viewer.raiseEvent('canvas-click');
+    //     }
+    //     //viewer.raiseEvent('canvas-click');
+    // });
+    //     console.log("mouseup");
+    //     //let cur_selected = anno.getSelected();
+    //     // console.log(cur_selected, selected_annotation_index);
+    //     delay(10).then(() => {
+    //         let cur_selected = anno.getSelected();
+    //         if (cur_selected == null) {
+            
+    //             selected_annotation_index = -1;
+    //             selected_annotation = null;
+    //             anno.clearAnnotations();
+    //             viewer.raiseEvent('update-viewport');
+    //         }
+    //     });
+
+
+
+
+    //     // if (selected_annotation_index != -1) {
+    //     //     anno.updateSelected(selected_annotation, true);
+    //     // }
+    //     //selected_annotation = null;
+    //     //selected_annotation_index = -1;
+    // });
+
 
     $("#image_visible_switch").change(function() {
         viewer.raiseEvent('update-viewport');
@@ -6688,15 +7457,15 @@ function excess_green_values_are_all_the_same() {
 }
 
 function resize_window() {
-    console.log("resize");
+    //console.log("resize");
     let new_viewer_height = window.innerHeight - $("#header_table").height() - 100;
     console.log(new_viewer_height);
     $("#seadragon_viewer").height(new_viewer_height);
     $("#chart_container").height(new_viewer_height);
     let image_name_table_height = $("#image_name_table").height();
-    console.log(image_name_table_height);
+    //console.log(image_name_table_height);
     let new_navigation_table_container_height = new_viewer_height - image_name_table_height - 320;
-    console.log(new_navigation_table_container_height);
+    //console.log(new_navigation_table_container_height);
     let min_navigation_table_height = 310;
     if (new_navigation_table_container_height < min_navigation_table_height) {
         new_navigation_table_container_height = min_navigation_table_height;

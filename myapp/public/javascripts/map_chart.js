@@ -400,11 +400,15 @@ function draw_map_chart(tile_size) {
                 let image_x = event.pageX - $(this).offset().left;
                 let image_y = event.pageY - $(this).offset().top;
                 event.stopPropagation();
-    
+
+                // if ((can_calculate_density(metadata, camera_specs)) && (gsd == null)) {
+                //     gsd = get_gsd();
+                // }
+                
                 let image_name = Object.keys(annotations)[0];
                 let image_height_px = metadata["images"][image_name]["height_px"];
                 let image_width_px = metadata["images"][image_name]["width_px"];
-                
+                /*
                 let make = metadata["camera_info"]["make"];
                 let model = metadata["camera_info"]["model"];
                 let camera_entry = camera_specs[make][model];
@@ -417,10 +421,10 @@ function draw_map_chart(tile_size) {
                 let raw_image_width_px = camera_entry["image_width_px"];
             
             
-                let gsd_h = (camera_height * sensor_height) / (focal_length * raw_image_height_px);
+                let gsd_h = (camera_height * sensor_heidght) / (focal_length * raw_image_height_px);
                 let gsd_w = (camera_height * sensor_width) / (focal_length * raw_image_width_px);
             
-                let gsd = Math.min(gsd_h, gsd_w);
+                let gsd = Math.min(gsd_h, gsd_w);*/
             
                 let image_height_m = image_height_px * gsd;
                 let image_width_m = image_width_px * gsd;

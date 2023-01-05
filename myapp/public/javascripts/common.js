@@ -331,12 +331,12 @@ function escapeHtml(unsafe)
   }
 
 
-function calculate_tile_size_slider_range() {
+function get_gsd() {
+    // let image_name = Object.keys(annotations)[0];
+    // let image_height_px = metadata["images"][image_name]["height_px"];
+    // let image_width_px = metadata["images"][image_name]["width_px"];
 
 
-    let image_name = Object.keys(annotations)[0];
-    let image_height_px = metadata["images"][image_name]["height_px"];
-    let image_width_px = metadata["images"][image_name]["width_px"];
     
     let make = metadata["camera_info"]["make"];
     let model = metadata["camera_info"]["model"];
@@ -349,11 +349,38 @@ function calculate_tile_size_slider_range() {
     let raw_image_height_px = camera_entry["image_height_px"];
     let raw_image_width_px = camera_entry["image_width_px"];
 
-
     let gsd_h = (camera_height * sensor_height) / (focal_length * raw_image_height_px);
     let gsd_w = (camera_height * sensor_width) / (focal_length * raw_image_width_px);
 
-    let gsd = Math.min(gsd_h, gsd_w);
+    return Math.min(gsd_h, gsd_w);
+
+}
+
+function calculate_tile_size_slider_range() {
+
+    // if (gsd == null) {
+    //     set_gsd();
+    // }
+    let image_name = Object.keys(annotations)[0];
+    let image_height_px = metadata["images"][image_name]["height_px"];
+    let image_width_px = metadata["images"][image_name]["width_px"];
+    
+    // let make = metadata["camera_info"]["make"];
+    // let model = metadata["camera_info"]["model"];
+    // let camera_entry = camera_specs[make][model];
+
+    // let camera_height = metadata["camera_height"];
+    // let sensor_height = camera_entry["sensor_height"];
+    // let sensor_width = camera_entry["sensor_width"];
+    // let focal_length = camera_entry["focal_length"];
+    // let raw_image_height_px = camera_entry["image_height_px"];
+    // let raw_image_width_px = camera_entry["image_width_px"];
+
+
+    // let gsd_h = (camera_height * sensor_height) / (focal_length * raw_image_height_px);
+    // let gsd_w = (camera_height * sensor_width) / (focal_length * raw_image_width_px);
+
+    // let gsd = Math.min(gsd_h, gsd_w);
 
     let image_height_m = image_height_px * gsd;
     let image_width_m = image_width_px * gsd;

@@ -16,20 +16,22 @@ function set_count_chart_data() {
 
     let metric = $("#chart_combo").val();
 
-    let sensor_height;
-    let sensor_width;
-    let focal_length;
-    let camera_height;
-    if (metric == "Count Per Square Metre") {
-        let make = metadata["camera_info"]["make"];
-        let model = metadata["camera_info"]["model"];
+    // let sensor_height;
+    // let sensor_width;
+    // let focal_length;
+    // let camera_height;
+    // if (metric == "Count Per Square Metre") {
+    //     let make = metadata["camera_info"]["make"];
+    //     let model = metadata["camera_info"]["model"];
 
-        let camera_entry = camera_specs[make][model];
-        sensor_height = camera_entry["sensor_height"];
-        sensor_width = camera_entry["sensor_width"];
-        focal_length = camera_entry["focal_length"];
-        camera_height = metadata["camera_height"];
-    }
+    //     let camera_entry = camera_specs[make][model];
+    //     sensor_height = camera_entry["sensor_height"];
+    //     sensor_width = camera_entry["sensor_width"];
+    //     focal_length = camera_entry["focal_length"];
+    //     camera_height = metadata["camera_height"];
+    // }
+
+
 
     /*
     let annotated_count;
@@ -135,10 +137,10 @@ function set_count_chart_data() {
                 if (metric == "Count Per Square Metre") {
 
 
-                    let gsd_h = (camera_height * sensor_height) / (focal_length * metadata["images"][image_name]["height_px"]);
-                    let gsd_w = (camera_height * sensor_width) / (focal_length * metadata["images"][image_name]["width_px"]);     
+                    // let gsd_h = (camera_height * sensor_height) / (focal_length * metadata["images"][image_name]["height_px"]);
+                    // let gsd_w = (camera_height * sensor_width) / (focal_length * metadata["images"][image_name]["width_px"]);     
                     
-                    let gsd = Math.min(gsd_h, gsd_w);
+                    // let gsd = Math.min(gsd_h, gsd_w);
 
                     let image_height_m = metadata["images"][image_name]["height_px"] * gsd;
                     let image_width_m = metadata["images"][image_name]["width_px"] * gsd;
