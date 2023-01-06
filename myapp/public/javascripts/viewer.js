@@ -50,7 +50,7 @@ let voronoi_data = {
     "prediction": null
 };
 
-let gsd;
+let gsd = null;
 
 
 

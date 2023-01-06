@@ -64,7 +64,7 @@ let annotations_dropzone;
 let voronoi_data = {};
 
 
-let gsd;
+let gsd = null;
 
 
 // let overlay_colors = [
@@ -950,7 +950,7 @@ function create_anno() {
 
     anno.on('updateAnnotation', async function(annotation, previous) {
 
-        console.log("updateAnnotation");
+        //console.log("updateAnnotation");
 
         let px_str = annotation.target.selector.value;
         let updated_px_str = resize_px_str(px_str);
@@ -1537,7 +1537,7 @@ function create_viewer(viewer_id) {
                 cur_bounds = null;
             }
 
-            if (gsd !== null) {
+            if (gsd != null) {
                 let cur_zoom = viewer.viewport.viewportToImageZoom(viewer.viewport.getZoom(true));
                 let measure_width = Math.max(50, 0.08 * container_size.x); //Math.min(100, 0)
                 let measure_width_m = (gsd / cur_zoom) * measure_width;
