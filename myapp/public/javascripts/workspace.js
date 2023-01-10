@@ -4830,7 +4830,7 @@ function add_prediction_buttons() {
     let predicting = cur_backend_status.substring(0, "Predicting".length) == "Predicting";
 
 
-    if (model_unassigned || predicting) {
+    if (predicting) { //(model_unassigned || predicting) {
         disable_std_buttons(["predict_single_button", "predict_all_button"]);
     }
     else {
@@ -4839,52 +4839,62 @@ function add_prediction_buttons() {
 
     $("#predict_single_button").click(function() {
         // console.log("clicked predict_single_button");
-        let navigation_type = $('#navigation_dropdown').val();
-        let image_list;
-        let region_list;
-        if (navigation_type === "images") {
-            let image_width = metadata["images"][cur_img_name]["width_px"];
-            let image_height = metadata["images"][cur_img_name]["height_px"];
-            image_list = [cur_img_name];
-            region_list = [[[0, 0, image_height, image_width]]];
+        if (model_unassigned) {
+            show_modal_message("No Model Selected", "A model must be selected before predictions can be generated.");
         }
         else {
-            image_list = [cur_img_name];
-            let region = annotations[cur_img_name][navigation_type][cur_region_index];
-            region_list = [[region]];
-        }
+            let navigation_type = $('#navigation_dropdown').val();
+            let image_list;
+            let region_list;
+            if (navigation_type === "images") {
+                let image_width = metadata["images"][cur_img_name]["width_px"];
+                let image_height = metadata["images"][cur_img_name]["height_px"];
+                image_list = [cur_img_name];
+                region_list = [[[0, 0, image_height, image_width]]];
+            }
+            else {
+                image_list = [cur_img_name];
+                let region = annotations[cur_img_name][navigation_type][cur_region_index];
+                region_list = [[region]];
+            }
 
-        submit_prediction_request_confirmed(JSON.stringify(image_list), JSON.stringify(region_list), false);
+            submit_prediction_request_confirmed(JSON.stringify(image_list), JSON.stringify(region_list), false);
+        }
     });
 
     $("#predict_all_button").click(function() {
-        let navigation_type = $('#navigation_dropdown').val();
-        let image_list = [];
-        let region_list = [];
-        if (navigation_type === "images") {
-            for (let image_name of Object.keys(annotations)) {
-                let image_width = metadata["images"][image_name]["width_px"];
-                let image_height = metadata["images"][image_name]["height_px"];
-                image_list.push(image_name);
-                region_list.push([[0, 0, image_height, image_width]]);
-            }
+        if (model_unassigned) {
+            show_modal_message("No Model Selected", "A model must be selected before predictions can be generated.");
         }
         else {
-            for (let image_name of Object.keys(annotations)) {
-                let image_region_list = [];
-                for (let region_key of ["training_regions", "test_regions"]) {
-                    for (let region of annotations[image_name][region_key]) {
-                        image_region_list.push(region);
-                    }
-                }
-                if (image_region_list.length > 0) {
+            let navigation_type = $('#navigation_dropdown').val();
+            let image_list = [];
+            let region_list = [];
+            if (navigation_type === "images") {
+                for (let image_name of Object.keys(annotations)) {
+                    let image_width = metadata["images"][image_name]["width_px"];
+                    let image_height = metadata["images"][image_name]["height_px"];
                     image_list.push(image_name);
-                    region_list.push(image_region_list)
+                    region_list.push([[0, 0, image_height, image_width]]);
                 }
             }
+            else {
+                for (let image_name of Object.keys(annotations)) {
+                    let image_region_list = [];
+                    for (let region_key of ["training_regions", "test_regions"]) {
+                        for (let region of annotations[image_name][region_key]) {
+                            image_region_list.push(region);
+                        }
+                    }
+                    if (image_region_list.length > 0) {
+                        image_list.push(image_name);
+                        region_list.push(image_region_list)
+                    }
+                }
+            }
+            
+            submit_prediction_request_confirmed(JSON.stringify(image_list), JSON.stringify(region_list), false);
         }
-        
-        submit_prediction_request_confirmed(JSON.stringify(image_list), JSON.stringify(region_list), false);
     });
 
 }
@@ -5227,7 +5237,7 @@ $(document).ready(function() {
             }
         }
 
-        if (update["outstanding_prediction_requests"] === "True" || model_unassigned) {
+        if (update["outstanding_prediction_requests"] === "True") { //|| model_unassigned) {
             disable_std_buttons(["request_result_button", "predict_single_button", "predict_all_button"]);
         }
         else {
@@ -5777,17 +5787,22 @@ $(document).ready(function() {
     })
 
     $("#request_result_button").click(function() {
-        let image_list = [];
-        let region_list = [];
-        for (let image_name of Object.keys(annotations)) {
-            image_list.push(image_name);
-            let image_height = metadata["images"][image_name]["height_px"];
-            let image_width = metadata["images"][image_name]["width_px"];
-            region_list.push([[0, 0, image_height, image_width]]);
+        if (model_unassigned) {
+            show_modal_message("No Model Selected", "A model must be selected before predictions can be generated.");
         }
+        else {
+            let image_list = [];
+            let region_list = [];
+            for (let image_name of Object.keys(annotations)) {
+                image_list.push(image_name);
+                let image_height = metadata["images"][image_name]["height_px"];
+                let image_width = metadata["images"][image_name]["width_px"];
+                region_list.push([[0, 0, image_height, image_width]]);
+            }
 
 
-        submit_prediction_request(JSON.stringify(image_list), JSON.stringify(region_list));
+            submit_prediction_request(JSON.stringify(image_list), JSON.stringify(region_list));
+        }
     });
 
 
