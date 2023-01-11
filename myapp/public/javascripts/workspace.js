@@ -254,6 +254,8 @@ let keydown_handler = async function(e) {
                 
 
                 update_navigation_dropdown();
+                update_region_name();
+                create_navigation_table();
 
                 $("#save_icon").css("color", "#ed452b");
 
