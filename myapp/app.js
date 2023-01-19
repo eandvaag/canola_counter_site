@@ -77,4 +77,10 @@ app.use(function(err, req, res, next) {
   res.redirect(process.env.CC_PATH);
 });
 
+
+// app.use((req, res, next) => {
+//   res.set('Cache-Control', 'no-store')
+//   next()
+// })
+
 module.exports = app;

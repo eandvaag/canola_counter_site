@@ -1012,7 +1012,7 @@ function results_comment_is_valid(results_comment) {
     return true;
 }
 
-function get_valid_models(model_paths, username, farm_name, field_name, mission_date) {
+function get_models(model_paths, username, farm_name, field_name, mission_date) {
 
     let models = [];
     for (let model_path of model_paths) {
@@ -1021,20 +1021,22 @@ function get_valid_models(model_paths, username, farm_name, field_name, mission_
 
 
 
-        let valid = true;
+        let image_set_used_to_train_model = false;
         for (let image_set of log["image_sets"]) {
-            if ((image_set["username"] == username && image_set["farm_name"] == farm_name) &&
-                (image_set["field_name"] == field_name && image_set["mission_date"] == mission_date)) {
-                    valid = false;
+            if ((image_set["username"] === username && image_set["farm_name"] === farm_name) &&
+                (image_set["field_name"] === field_name && image_set["mission_date"] === mission_date)) {
+                    image_set_used_to_train_model = true;
+                    break;
             }
         }
-        if (valid) {
-            models.push({
-                "model_creator": log["model_creator"],
-                "model_name": log["model_name"],
-                "model_object": log["model_object"]
-            });
-        }
+        //if (valid) {
+        models.push({
+            "model_creator": log["model_creator"],
+            "model_name": log["model_name"],
+            "model_object": log["model_object"],
+            "image_set_used_to_train_model": image_set_used_to_train_model
+        });
+        //}
         // if (valid) {
         //     model_logs.push(log);
         // }
@@ -2554,7 +2556,7 @@ exports.post_workspace = function(req, res, next) {
         response.error = false;
         return res.json(response);
     } */
-    else if (action === "fetch_public_models") {
+    else if (action === "fetch_models") {
         //let model_logs = [];
         let models = [];
         glob(path.join(USR_DATA_ROOT, "*"), function(error, usr_dirs) {
@@ -2564,7 +2566,57 @@ exports.post_workspace = function(req, res, next) {
             }
             for (let i = 0; i < usr_dirs.length; i++) {
                 let public_models_dir = path.join(usr_dirs[i], "models", "available", "public");
+                let private_models_dir = path.join(usr_dirs[i], "models", "available", "private");
 
+
+                glob(path.join(public_models_dir, "*"), function(error, public_paths) {
+
+                    if (error) {
+                        response.message = "Failed to retrieve public model listing";
+                        response.error = true;
+                        return res.json(response);
+                    }
+        
+                    glob(path.join(private_models_dir, "*"), function(error, private_paths) {
+                        if (error) {
+                            response.message = "Failed to retrieve private model listing.";
+                            response.error = true;
+                            return res.json(response);
+                        }
+
+                        let cur_models;
+                        try {
+                            cur_models = get_models(public_paths, req.session.user.username, farm_name, field_name, mission_date);
+                        }
+                        catch (error) {
+                            response.message = "Failed to retrieve models.";
+                            response.error = true;
+                            return res.json(response);
+                        }
+    
+                        models = models.concat(cur_models);
+
+                        if (path.basename(usr_dirs[i]) === req.session.user.username) {
+
+                            try {
+                                cur_models = get_models(private_paths, req.session.user.username, farm_name, field_name, mission_date);
+                            }
+                            catch (error) {
+                                response.message = "Failed to retrieve models.";
+                                response.error = true;
+                                return res.json(response);
+                            }
+        
+                            models = models.concat(cur_models);
+
+                        }
+
+
+
+
+
+
+/*
                 glob(path.join(public_models_dir, "*"), function(error, public_paths) {
                     if (error) {
                         response.error = true;
@@ -2573,7 +2625,7 @@ exports.post_workspace = function(req, res, next) {
 
                     let cur_models;
                     try {
-                        cur_models = get_valid_models(public_paths, req.session.user.username, farm_name, field_name, mission_date);
+                        cur_models = get_models(public_paths, req.session.user.username, farm_name, field_name, mission_date);
                     }
                     catch (error) {
                         response.message = "Failed to retrieve models.";
@@ -2581,7 +2633,7 @@ exports.post_workspace = function(req, res, next) {
                         return res.json(response);
                     }
 
-                    models = models.concat(cur_models);
+                    models = models.concat(cur_models);*/
 
                     /*
                     for (let public_path of public_paths) {
@@ -2611,103 +2663,106 @@ exports.post_workspace = function(req, res, next) {
                     }*/
                     
 
-                    if (i == usr_dirs.length-1) {
-                        response.error = false;
-                        response.models = nat_orderBy.orderBy(models, 
-                            [v => v.model_creator, v => v.model_name], 
-                            ['asc', 'asc']);
-                        //models;
-                        return res.json(response);
-                    }
+                        if (i == usr_dirs.length-1) {
+                            response.error = false;
+                            response.models = nat_orderBy.orderBy(models, 
+                                [v => v.model_creator, v => v.model_name], 
+                                ['asc', 'asc']);
+                            //models;
+                            return res.json(response);
+                        }
+/*
+                });*/
 
+                    });
                 });
             }
         });
     }
-    else if (action === "fetch_my_models") {
+//     else if (action === "fetch_my_models") {
 
-        let available_dir = path.join(USR_DATA_ROOT, req.session.user.username, "models", 
-                                        "available");
+//         let available_dir = path.join(USR_DATA_ROOT, req.session.user.username, "models", 
+//                                         "available");
 
-        glob(path.join(available_dir, "public", "*"), function(error, public_paths) {
+//         glob(path.join(available_dir, "public", "*"), function(error, public_paths) {
 
-            if (error) {
-                response.message = "Failed to retrieve public model listing";
-                response.error = true;
-                return res.json(response);
-            }
-/*
-            for (let pending_path of pending_paths) {
-                try {
-                    response.pending_results.push(JSON.parse(fs.readFileSync(pending_path, 'utf8')));
-                }
-                catch (error) {
-                    response.error = true;
-                    return res.json(response);
-                }
-            }*/
+//             if (error) {
+//                 response.message = "Failed to retrieve public model listing";
+//                 response.error = true;
+//                 return res.json(response);
+//             }
+// /*
+//             for (let pending_path of pending_paths) {
+//                 try {
+//                     response.pending_results.push(JSON.parse(fs.readFileSync(pending_path, 'utf8')));
+//                 }
+//                 catch (error) {
+//                     response.error = true;
+//                     return res.json(response);
+//                 }
+//             }*/
 
-            glob(path.join(available_dir, "private", "*"), function(error, private_paths) {
-                if (error) {
-                    response.message = "Failed to retrieve private model listing.";
-                    response.error = true;
-                    return res.json(response);
-                }
+//             glob(path.join(available_dir, "private", "*"), function(error, private_paths) {
+//                 if (error) {
+//                     response.message = "Failed to retrieve private model listing.";
+//                     response.error = true;
+//                     return res.json(response);
+//                 }
 
-                let models = [];
+//                 let models = [];
 
-                let public_models;
-                try {
-                    public_models = get_valid_models(public_paths, req.session.user.username, farm_name, field_name, mission_date);
-                }
-                catch (error) {
-                    response.message = "Failed to retrieve valid public models.";
-                    response.error = true;
-                    return res.json(response);
-                }
+//                 let public_models;
+//                 try {
+//                     public_models = get_models(public_paths, req.session.user.username, farm_name, field_name, mission_date);
+//                 }
+//                 catch (error) {
+//                     response.message = "Failed to retrieve valid public models.";
+//                     response.error = true;
+//                     return res.json(response);
+//                 }
 
-                models = models.concat(public_models);
+//                 models = models.concat(public_models);
 
-                let private_models;
-                try {
-                    private_models = get_valid_models(private_paths, req.session.user.username, farm_name, field_name, mission_date);
-                }
-                catch (error) {
-                    response.message = "Failed to retrieve valid private models.";
-                    response.error = true;
-                    return res.json(response);
-                }
+//                 let private_models;
+//                 try {
+//                     private_models = get_models(private_paths, req.session.user.username, farm_name, field_name, mission_date);
+//                 }
+//                 catch (error) {
+//                     response.message = "Failed to retrieve valid private models.";
+//                     response.error = true;
+//                     return res.json(response);
+//                 }
 
-                models = models.concat(private_models);
+//                 models = models.concat(private_models);
 
 
-                /*
-                for (let public_path of public_paths) {
-                    models.push({
-                        "name": path.basename(public_path),
-                        "creator": req.session.user.username
-                    });
-                }
-                for (let private_path of private_paths) {
-                    models.push({
-                        "name": path.basename(private_path),
-                        "creator": req.session.user.username
-                    });
-                }*/
+//                 /*
+//                 for (let public_path of public_paths) {
+//                     models.push({
+//                         "name": path.basename(public_path),
+//                         "creator": req.session.user.username
+//                     });
+//                 }
+//                 for (let private_path of private_paths) {
+//                     models.push({
+//                         "name": path.basename(private_path),
+//                         "creator": req.session.user.username
+//                     });
+//                 }*/
 
                 
 
-                response.models = nat_orderBy.orderBy(models, [v => v.model_name], ['asc']);
-                response.error = false;
-                return res.json(response);
+//                 response.models = nat_orderBy.orderBy(models, [v => v.model_name], ['asc']);
+//                 response.error = false;
+//                 return res.json(response);
 
 
-            });
-        });
+//             });
+//         });
 
 
 
-    }
+//     }
     else if (action === "inspect_model") {
         let model_creator = req.body.model_creator;
         let model_name = req.body.model_name;
@@ -3069,7 +3124,38 @@ exports.post_workspace = function(req, res, next) {
         response.error = false;
         return res.json(response);
     }
-    
+
+    else if (action === "switch_to_random_model") {
+        let switch_req_path = path.join(image_set_dir, "model", "switch_request.json");
+
+        let switch_request = {
+            "model_creator": "",
+            "model_name": "random_weights",
+            // "auto": false
+        };
+
+        try {
+            fs.writeFileSync(switch_req_path, JSON.stringify(switch_request));
+        }
+        catch (error) {
+            console.log(error);
+            response.message = "Failed to create switch request.";
+            response.error = true;
+            return res.json(response);
+        }
+        let scheduler_request = {
+            "username": req.session.user.username,
+            "farm_name": farm_name,
+            "field_name": field_name,
+            "mission_date": mission_date,
+            "request_type": "switch" //"restart"
+        };
+        notify_scheduler(scheduler_request); //req.session.user.username, farm_name, field_name, mission_date, "restart")
+
+        response.error = false;
+        return res.json(response);
+
+    }
     else if (action === "switch_model") {
 
         let model_creator = req.body.model_creator;
@@ -4146,8 +4232,29 @@ exports.post_home = function(req, res, next) {
             annotations = JSON.parse(fs.readFileSync(annotations_path, 'utf8'));
         }
         catch (error) {
-            response.message = "Failed to read annotations file";
-            response.error = true;
+            console.log("Annotations file does not exist. Removing image set.");
+            try {
+                fs.rmSync(mission_dir, { recursive: true, force: false });
+
+                let field_dir = path.join(USR_DATA_ROOT, req.session.user.username, "image_sets", farm_name, field_name);
+                let missions = get_subdirs(field_dir);
+                if (missions.length == 0) {
+                    fs.rmSync(field_dir, { recursive: true, force: false });
+                    let farm_dir = path.join(USR_DATA_ROOT, req.session.user.username, "image_sets", farm_name);
+                    let fields = get_subdirs(farm_dir);
+                    if (fields.length == 0) {
+                        fs.rmSync(farm_dir, { recursive: true, force: false });
+                    }
+                }
+            }
+            catch (error) {
+                console.log(error);
+                response.error = true;
+                response.message = "An error occurred while deleting the image set: " + error.toString();
+                return res.json(response);
+            }
+            response.error = false;
+            response.redirect = process.env.CC_PATH + "/home/" + req.session.user.username;
             return res.json(response);
         }
 
@@ -4708,6 +4815,12 @@ exports.post_home = function(req, res, next) {
 
         if ((model_name.length < 3) || (model_name.length > 50)) {
             response.message = "Illegal model name length.";
+            response.error = true;
+            return res.json(response);
+        }
+
+        if (model_name === "random_weights") {
+            response.message = "Illegal model name.";
             response.error = true;
             return res.json(response);
         }

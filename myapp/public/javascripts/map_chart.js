@@ -1,3 +1,6 @@
+
+let map_chart_tile_size;
+
 let saddlebrown = [139,  69,  19];
 let greenyellow = [173, 255,  47];
 let wheat = [245, 222, 179];
@@ -15,7 +18,7 @@ function color_map(num, min_num, max_num, c1, c2) {
 }
 
 
-function draw_map_chart(tile_size) {
+function draw_map_chart() {
 
     let margin = 110;
     let circle_data = [];
@@ -429,8 +432,8 @@ function draw_map_chart(tile_size) {
                 let image_height_m = image_height_px * gsd;
                 let image_width_m = image_width_px * gsd;
     
-                let num_y_tiles = Math.round(image_height_m / tile_size);
-                let num_x_tiles = Math.round(image_width_m / tile_size);
+                let num_y_tiles = Math.round(image_height_m / map_chart_tile_size);
+                let num_x_tiles = Math.round(image_width_m / map_chart_tile_size);
     
                 let tile_height_m = image_height_m / num_y_tiles;
                 let tile_width_m = image_width_m / num_x_tiles;

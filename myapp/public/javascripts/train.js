@@ -101,6 +101,10 @@ function train_form_is_complete() {
         if (model_name_format.test(input_val)) {
             return false;
         }
+
+        if (model_name === "random_weights") {
+            return false;
+        }
     }
     if (added_image_sets.length == 0) {
         return false;

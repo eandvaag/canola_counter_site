@@ -280,9 +280,7 @@ function update_sensor() {
 
     return true;
 }
-function delay(time) {
-    return new Promise(resolve => setTimeout(resolve, time));
-}
+
 function edit_metadata(make, model) {
 
     /*
@@ -1854,17 +1852,23 @@ function initialize_browse() {
     $("#mission_combo").empty();
     $("#image_set_container").empty();
 
+
+    // $("#farm_combo").append(
+    //     `<option disabled selected value></option>`
+    // );
     for (let farm_name of natsort(Object.keys(image_sets_data))) {
         $("#farm_combo").append($('<option>', {
             value: farm_name,
             text: farm_name
         }));
     }
-    $("#farm_combo").prop("selectedIndex", -1);
-
+    // console.log("initialize_browse")
+    
+    // console.log($("#farm_combo").val());
 
 
     $("#farm_combo").change(function() {
+        console.log("farm_combo change")
 
         let farm_name = $(this).val();
 
@@ -1882,6 +1886,7 @@ function initialize_browse() {
     });
 
     $("#field_combo").change(function() {
+        console.log("field_change")
 
         let farm_name = $("#farm_combo").val();
         let field_name = $(this).val();
@@ -1898,6 +1903,17 @@ function initialize_browse() {
         $("#mission_combo").val($("#mission_combo:first").val()).change();
     });
 
+    //$("#farm_combo").prop("val", "HELLO WORLD");
+    // $("#farm_combo").append($('<option>', {
+    //     value: "HELLO WORLD",
+    //     text: "HELLO WORLD"
+    // }));
+    // $("#farm_combo").val("HELLO WORLD");
+    // $("#field_combo").prop("selectedIndex", -1);
+    $("#farm_combo").prop("selectedIndex", -1);
+    $("#farm_combo").prop("selected", "selected");
+    //$("#farm_combo").prop("selectedIndex", -1);
+
 }
 
 
@@ -1910,6 +1926,10 @@ $(document).ready(function() {
     objects = data["objects"];
     available_image_sets = data["available_image_sets"];
     overlay_appearance = data["overlay_appearance"];
+
+    initialize_browse();
+    initialize_upload();
+    initialize_train();
 
     let socket = io(
     "", {
@@ -1984,9 +2004,7 @@ $(document).ready(function() {
         close_modal();
     });
 */
-    initialize_browse();
-    initialize_upload();
-    initialize_train();
+
     //initialize_train_baseline();
 
 });

@@ -60,9 +60,7 @@ let rgb_ctx;
 
 let annotations_dropzone;
 
-
 let voronoi_data = {};
-
 
 let gsd = null;
 
@@ -2257,12 +2255,12 @@ function build_map() {
     $("#build_loader").show();
 
     let sel_interpolation = $("input[type='radio'][name='interpolation']:checked").val();
-    let tile_size;
+
     if (metadata["is_ortho"] === "yes") {
-        tile_size = $("#tile_size_slider").val();
+        map_chart_tile_size = $("#tile_size_slider").val();
     }
     else {
-        tile_size = "";
+        map_chart_tile_size = "";
     }
 
 
@@ -2270,7 +2268,7 @@ function build_map() {
     {
         action: "build_map",
         interpolation: sel_interpolation,
-        tile_size: tile_size
+        tile_size: map_chart_tile_size
     },
     
     function(response, status) {
@@ -2293,7 +2291,7 @@ function build_map() {
 
             $.getJSON(min_max_rec_url, function(data) {
                 min_max_rec = data;
-                draw_map_chart(tile_size);
+                draw_map_chart();
             });
         }
     });
@@ -4245,6 +4243,7 @@ function get_filtered_model_list() {
     return filtered_models;
 }
 
+
 function create_models_selection_table() {
     $("#models_table").empty();
     let filtered_models = get_filtered_model_list();
@@ -4255,10 +4254,33 @@ function create_models_selection_table() {
         let model_object = model["model_object"];
         let model_details_table = create_model_details_table(model_creator, model_name);
         let button_id = model_creator + "." + model_name;
+        let warn_icon;
+        if (model["image_set_used_to_train_model"]) {
+            warn_icon = //`<div style="color: yellow; border: 1px solid white; border-radius: 100%; padding: 4px 5px"><i class="fa-solid fa-triangle-exclamation"></i></div>`;
+        
+            `<div style="width: 35px">` +
+                `<div style="margin: 0 auto; width: 26px; height: 26px; color: yellow; border: 1px solid white; border-radius: 100%;">` +
+                //`<div style="color: yellow; border: 1px solid white; border-radius: 100%; padding: 4px 5px">` +
+                    `<i class="fa-solid fa-triangle-exclamation" style="font-size: 15px; margin-left: 5px; margin-top: 4px;"></i>` +
+                    //`<span class="std_tooltiptext" style="width: 300px; text-align: left">This model was trained on data from the current image set.</span>` +
+                `</div>` +
+            `</div>`;
+        
+            // `<td><div class="table_entry std_tooltip" style="background-color: ${image_color}; cursor: default; position: relative; width: ${image_status_col_width}; border: 1px solid white">${abbreviated_status}` +
+            // `<span class="std_tooltiptext">${image_status}</span></div></td>` +
+
+            // `<td><div class="table_entry std_tooltip" style="margin: 0px 1px; background-color: ${image_color}; cursor: default; position: relative; width: ${image_status_col_width}; border: 1px solid white">${abbreviated_status}</div></td>` +
+        
+        
+        
+        }
+        else {
+            warn_icon = `<div style="width: 35px"></div>`;
+        }
         $("#models_table").append(
             `<tr style="border-bottom: 1px solid white; border-color: #4c6645;">` + 
                 `<td>` +
-                    `<div class="table_entry" style="width: 300px; text-align: left;">${model_details_table}</div>` +
+                    `<div class="table_entry" style="width: 330px; text-align: left;">${model_details_table}</div>` +
                 `</td>` +
                 `<td>` +
                     `<div style="width: 5px"></div>` +
@@ -4266,6 +4288,7 @@ function create_models_selection_table() {
                 `<td>` +
                     `<div style="width: 180px" class="object_entry">${model_object}</div>` +
                 `</td>` +
+
                 `<td style="width: 100%">` +
                     //`<div style="width: 100%"></div>` +
                 `</td>` +
@@ -4306,6 +4329,17 @@ function create_models_selection_table() {
                 `<td>` +
                     `<div style="width: 5px"></div>` +
                 `</td>` +
+                `<td>` +
+                    warn_icon +
+                    //`<div style="width: 100%"></div>` +
+                `</td>` +
+                // `<td>` +
+                //     `<div style="width: 5px"></div>` +
+                // `</td>` +
+
+                `<td>` +
+                    `<div style="width: 5px"></div>` +
+                `</td>` +
 
 
 
@@ -4332,7 +4366,42 @@ function select_model(model_creator, model_name) {
     enable_std_buttons(["submit_model_change"]);
 }
 
-function show_models(show_public_models) {
+
+function set_model_weights_to_random() {
+
+    $.post($(location).attr("href"),
+    {
+        action: "switch_to_random_model"
+    },
+    function(response, status) {
+
+        if (response.error) {
+            show_modal_message(`Error`, response.message);
+        }
+        else {
+            waiting_for_model_switch = true;
+            //num_training_images = 0;
+            show_modal_message(`Please Wait`, 
+            `<div id="switch_anno_message">Switching models...</div><div id="switch_anno_loader" class="loader"></div>`);
+            $("#modal_close").hide();
+            /*
+            $("#modal_close").hide();
+            $("#model_name").html(new_model_name);
+            $("#model_fully_trained").html("Yes");
+            $("#model_fine_tuned").html("No");
+            $("#train_block_text").html("No");
+            $("#train_block_switch").prop('disabled', false);
+            $("#train_block_label").css("opacity", 1);
+            $("#train_block_slider").css("cursor", "pointer");
+            $("#train_block_switch").prop("checked", false);*/
+
+            //close_modal();
+        }
+    });
+
+}
+
+function show_models() {
 
     switch_model_data["models"] = [];
     switch_model_data["selected_model"] = {
@@ -4340,14 +4409,16 @@ function show_models(show_public_models) {
         "model_name": null
     };
 
-    if (show_public_models) {
-        $("#show_my_models").removeClass("tab-btn-active");
-        $("#show_public_models").addClass("tab-btn-active");
-    }
-    else {
-        $("#show_my_models").addClass("tab-btn-active");
-        $("#show_public_models").removeClass("tab-btn-active");
-    }
+    // if (show_public_models) {
+    //     $("#show_my_models").removeClass("tab-btn-active");
+    //     $("#show_public_models").addClass("tab-btn-active");
+    //     $("#show_options").removeClass("tab-btn-active");
+    // }
+    // else {
+    //     $("#show_my_models").addClass("tab-btn-active");
+    //     $("#show_public_models").removeClass("tab-btn-active");
+    //     $("#show_options").removeClass("tab-btn-active");
+    // }
     $("#model_info").empty();
     $("#model_info").append(`<div class="loader"></div>`);
 
@@ -4355,17 +4426,17 @@ function show_models(show_public_models) {
     let model_creator_col_width = "150px";
     let details_col_width = "100px";
     let details_button_width = "80px";
-    let action;
-    if (show_public_models) {
-        action = "fetch_public_models";
-    }
-    else {
-        action = "fetch_my_models";
-    }
+    // let action;
+    // if (show_public_models) {
+    //     action = "fetch_public_models";
+    // }
+    // else {
+    //     action = "fetch_my_models";
+    // }
 
     $.post($(location).attr("href"),
     {
-        action: action,
+        action: "fetch_models",
     },
     function(response, status) {
         if (response.error) {
@@ -4429,14 +4500,14 @@ function show_models(show_public_models) {
                                     `</tr>` +
                                     `<tr>` +
                                         `<td>` +
-                                            `<div style="border: 1px solid white; border-radius: 10px; padding: 10px">` +
+                                            `<div style="height: 100px; border: 1px solid white; border-radius: 10px; padding: 10px">` +
                                                 `<table id="filter_table"></table>` +
                                             `</div>` +
                                         `</td>` +
                                     `</tr>` +
                                     `<tr>` +
                                         `<td>` +
-                                            `<div style="height: 15px"></div>` +
+                                            `<div style="height: 5px"></div>` +
                                         `</td>` +
                                     `</tr>` +
                                     `<tr>` +
@@ -4446,11 +4517,29 @@ function show_models(show_public_models) {
                                     `</tr>` +
                                     `<tr>` +
                                         `<td>` +
-                                            `<div style="border: 1px solid white; border-radius: 10px; padding: 10px">` +
+                                            `<div style="height: 100px; border: 1px solid white; border-radius: 10px; padding: 10px">` +
                                                 `<table id="sort_table"></table>` +
                                             `</div>` +
                                         `</td>` +
                                     `</tr>` +
+                                    `<tr>` +
+                                        `<td>` +
+                                            `<div style="height: 25px"></div>` +
+                                        `</td>` +
+                                    `</tr>` +                                    
+                                    `<tr>` +
+                                        `<td>` +
+                                            `<div style="height: 75px; border: 1px solid white; border-radius: 10px; padding: 10px">` +
+                                                `<div style="display: inline; color: yellow; border: 1px solid white; border-radius: 100%; padding: 3px 4px">` +
+                                                    `<i class="fa-solid fa-triangle-exclamation" style="font-size: 15px"></i>` +
+                                                `</div>` +
+                                                `<div style="margin-left: 5px; line-height: 1.6; display: inline; font-size: 11px"> This symbol indicates that the model was trained with data from the current image set. Be aware that test data from this image set may have been used during model training.` +
+                                                //`<span class="std_tooltiptext" style="width: 300px; text-align: left">This model was trained on data from the current image set.</span>` +
+                                                `</div>` +
+                                            `</div>` +
+                                        `</td>` +
+                                    `</tr>` +
+
                                 `</table>` +
                             `</td>` +
                             `<td>` +
@@ -4472,6 +4561,8 @@ function show_models(show_public_models) {
                     "model_name": [],
                     "model_creator": []
                 };
+                let default_creator = "-- All --";
+                let default_object = "-- All --";
                 for (let model of models) {
                     
                     let model_name = model["model_name"];
@@ -4482,28 +4573,35 @@ function show_models(show_public_models) {
                     filter_values["model_creator"].push(model_creator);
                     filter_values["model_object"].push(model_object);
 
+                    if (model_object === metadata["object_name"]) { 
+                        default_object = model_object;
+                        if (model_creator === username) {
+                            default_creator = model_creator;
+                        }
+                    }
+
                 }
 
                 //valid_filter_values["model_name"] = natsort([... new Set(values)]);
-                switch_model_data["filter_options"]
-                if (action === "fetch_my_models") {
-                    switch_model_data["filter_options"] = {
-                        "model_object": "Model Object",
-                        "model_name": "Model Name"
-                    };
-                    switch_model_data["sort_options"] = ["model_object", "model_name"];
+                // switch_model_data["filter_options"]
+                // if (action === "fetch_my_models") {
+                //     switch_model_data["filter_options"] = {
+                //         "model_object": "Model Object",
+                //         "model_name": "Model Name"
+                //     };
+                //     switch_model_data["sort_options"] = ["model_object", "model_name"];
 
 
-                }
-                else {
-                    switch_model_data["filter_options"] = {
-                        "model_object": "Model Object",
-                        "model_creator": "Model Creator",
-                        "model_name": "Model Name"
-                    };
-                    switch_model_data["sort_options"] = ["model_object", "model_creator", "model_name"];
+                // }
+                // else {
+                switch_model_data["filter_options"] = {
+                    "model_object": "Model Object",
+                    "model_creator": "Model Creator",
+                    "model_name": "Model Name"
+                };
+                switch_model_data["sort_options"] = ["model_object", "model_creator", "model_name"];
 
-                }
+                // }
 
                 for (let i = 0; i < switch_model_data["sort_options"].length; i++) {
 
@@ -4567,6 +4665,7 @@ function show_models(show_public_models) {
 
                 //console.log(filter_values);
                 //console.log(switch_model_data["filter_options"]);
+
                 for (let key of Object.keys(switch_model_data["filter_options"])) {
 
                     let disp_text = switch_model_data["filter_options"][key];
@@ -4600,17 +4699,27 @@ function show_models(show_public_models) {
                         }));
                     }
 
-                    if (key === "model_object" && unique_filter_values.includes(metadata["object_name"])) {
-                        $("#" + select_id).val(metadata["object_name"]);
-                    }
-                    else {
-                        $("#" + select_id).prop("selectedIndex", 0);
-                    }
+                    // if (key === "model_object" && unique_filter_values.includes(metadata["object_name"])) {
+                    //     $("#" + select_id).val(metadata["object_name"]);
+                    // }
+                    // else {
+                    //     $("#" + select_id).prop("selectedIndex", 0);
+                    // }
+
+                    // if (key === "model_creator" && unique_filter_values.includes(username)) {
+                    //     $("#" + select_id).val(username);
+                    // }
+                    // else {
+                    //     $("#" + select_id).prop("selectedIndex", 0);
+                    // }
 
                     $("#" + select_id).change(function() {
                         create_models_selection_table();
                     });
                 }
+
+                $("#model_object_filter").val(default_object);
+                $("#model_creator_filter").val(default_creator);
 
 
                 create_models_selection_table();
@@ -4762,25 +4871,52 @@ function confirmed_auto_select_model() {
 function change_model() {
     show_modal_message(
         `Select Model`,
-        `<div style="border: 1px solid white; height: 500px">` +
+        `<div style="height: 500px">` +
             //`<div style="width: 100%">` +
-            `<div>` + 
-                `<ul class="nav">` +
-                    `<li id="show_my_models" class="nav tab-btn-active" style="width: 150px" onclick="show_models(false)">` +
-                        `<a class="nav">My Models` +
-                            //`<i class="fa-solid fa-pen-to-square"></i>` +
-                        `</a>` +
-                    `</li>` +
+            // `<div>` + 
+            //     `<ul class="nav">` +
+            //         `<li id="show_my_models" class="nav tab-btn-active" style="width: 150px" onclick="show_models(false)">` +
+            //             `<a class="nav">My Models` +
+            //                 //`<i class="fa-solid fa-pen-to-square"></i>` +
+            //             `</a>` +
+            //         `</li>` +
 
-                    `<li id="show_public_models" class="nav" style="width: 150px" onclick="show_models(true)">` +
-                        `<a class="nav">Public Models` +
-                            //`<i class="fa-solid fa-pen-to-square"></i>` +
-                        `</a>` +
-                    `</li>` +
-                `</ul>` +
-            `</div>` +
+            //         `<li id="show_public_models" class="nav" style="width: 150px" onclick="show_models(true)">` +
+            //             `<a class="nav">Public Models` +
+            //                 //`<i class="fa-solid fa-pen-to-square"></i>` +
+            //             `</a>` +
+            //         `</li>` +
+
+            //         `<li id="show_options" class="nav" style="width: 150px" onclick="show_other_models()">` +
+            //         `<a class="nav">Options` +
+            //             //`<i class="fa-solid fa-pen-to-square"></i>` +
+            //         `</a>` +
+            //     `</li>` +
+            //     `</ul>` +
+            // `</div>` +
             //`</div>` +
-            `<div style="height: 50px"></div>` +
+            `<div style="height: 35px">` +
+                `<table>` +
+                    // `<tr>` +
+                    //     `<td style="height: 5px"><td>` +
+                    // `</tr>` +           
+                    `<tr>` +
+                        `<td style="width: 100%">` +
+
+                        `</td>` +
+                        `<td>` +
+                            `<button onclick="set_model_weights_to_random()" class="std-button std-button-hover" style="width: 145px; font-size: 13px; border-radius: 5px;">` +
+                                `<i class="fa-solid fa-dice" style="margin-right: 5px"></i>` +
+                                    `Set Model Weights To Random Values` +
+                                //`</i>` +
+                            `</button>` +
+                        `</td>` +
+                        `<td>` +
+                            `<div style="width: 5px"></div>` +
+                        `</td>` +
+                    `</tr>` +
+                `</table>` +
+            `</div>` +
             `<div id="model_info">` +
                 
             `</div>` +
@@ -4788,7 +4924,7 @@ function change_model() {
 
     , modal_width=1200, display=false);
 
-    show_models(false);
+    show_models();
 }
 
 
@@ -4819,25 +4955,38 @@ function add_prediction_buttons() {
     $("#predict_container").empty();
     if (multiple) {
         $("#predict_container").append(
-            `<button id="predict_single_button" class="std-button" style="opacity: 0.5; cursor: default; font-size: 16px; width: 130px; border-radius: 30px 0px 0px 30px" disabled>${single_text}</button>` +
-            `<button id="predict_all_button" class="std-button" style="opacity: 0.5; cursor: default; font-size: 16px; width: 130px; border-radius: 0px 30px 30px 0px; border-left: none" disabled>${all_text}</button>`
+            `<button id="predict_single_button" class="std-button" style="font-size: 16px; width: 130px; border-radius: 30px 0px 0px 30px">${single_text}</button>` +
+            `<button id="predict_all_button" class="std-button" style="font-size: 16px; width: 130px; border-radius: 0px 30px 30px 0px; border-left: none">${all_text}</button>`
         );
     }
     else {
         $("#predict_container").append(
-            `<button id="predict_single_button" class="std-button" style="opacity: 0.5; cursor: default; font-size: 16px; width: 260px" disabled>${single_text}</button>` 
+            `<button id="predict_single_button" class="std-button" style="font-size: 16px; width: 260px">${single_text}</button>` 
         );
     }
-    let cur_backend_status = $("#backend_status").html();
-    let predicting = cur_backend_status.substring(0, "Predicting".length) == "Predicting";
+    // let cur_backend_status = $("#backend_status").html();
+    // let predicting = cur_backend_status.substring(0, "Predicting".length) == "Predicting";
+    // let cur_backend_username = $("#backend_username").html();
+    // let cur_backend_farm_name = $("#backend_farm_name").html();
+    // let cur_backend_field_name = $("#backend_field_name").html();
+    // let cur_backend_mission_date = $("#backend_mission_date").html();
 
+    // if (((((predicting && (cur_backend_username === username)) && 
+    //                   (cur_backend_farm_name === farm_name)) &&
+    //                   (cur_backend_field_name === field_name)) &&
+    //                   (cur_backend_mission_date === mission_date))) {
+    //     disable_std_buttons(["predict_single_button", "predict_all_button"]);
+    // }
+    // else {
+    //     enable_std_buttons(["predict_single_button", "predict_all_button"]);
+    // }
 
-    if (predicting) { //(model_unassigned || predicting) {
-        disable_std_buttons(["predict_single_button", "predict_all_button"]);
-    }
-    else {
-        enable_std_buttons(["predict_single_button", "predict_all_button"]);
-    }
+    // if (predicting) { //(model_unassigned || predicting) {
+    //     disable_std_buttons(["predict_single_button", "predict_all_button"]);
+    // }
+    // else {
+    //     enable_std_buttons(["predict_single_button", "predict_all_button"]);
+    // }
 
     $("#predict_single_button").click(function() {
         // console.log("clicked predict_single_button");
@@ -5137,6 +5286,8 @@ $(document).ready(function() {
 
     socket.on("image_set_status_change", function(update) {
 
+        //console.log(update);
+
         if (update["auto_select_request"] === "True") {
             disable_std_buttons(["auto_select_button"]);
         }
@@ -5292,6 +5443,7 @@ $(document).ready(function() {
     });
 
     socket.on("scheduler_status_change", function(update) {
+        
         //console.log("update", update);
 
         let update_timestamp = parseInt(update["timestamp"]);
@@ -5313,23 +5465,30 @@ $(document).ready(function() {
             if (display_statuses.includes(status)) {
                 //$("#backend_status").empty();
                 if (status === "Predicting") {
-                    //let num_processed = parseInt(update["num_processed"]);
-                    //let num_images = parseInt(update["num_images"]);
-                    let percent_complete = (update["percent_complete"]) + "%";
-                    /*
-                    let percent_complete_length = percent_complete.length;
-                    console.log(percent_complete_length);
-                    if (percent_complete_length == 1) {
-                        percent_complete = "  " + percent_complete;
-                    }
-                    else if (percent_complete_length == 2) {
-                        percent_complete = " " + percent_complete;
-                    }*/
-                    // status = status + ":"; // + percent_complete + "%"; //": " + num_processed + " / " + num_images;
-                    // $("#backend_status").append(`<table><tr><td>${status}</td><td style="text-align: right; width: 45px">${percent_complete}</td></tr></table>`);
-                    //<div style="text-align: center">${status}<span style="float: right; color: yellow">${percent_complete}</span></div>`);
+                    //console.log(update);
                     $("#backend_status").html(`Predicting`); //`Predicting: <span style="text-align: right; display: inline-block; width: 45px;">${percent_complete}</span>`);
-                    $("#backend_status_details").html(percent_complete);
+                    if ("percent_complete" in update) {
+                        //let num_processed = parseInt(update["num_processed"]);
+                        //let num_images = parseInt(update["num_images"]);
+                        let percent_complete = (update["percent_complete"]) + "%";
+                        /*
+                        let percent_complete_length = percent_complete.length;
+                        console.log(percent_complete_length);
+                        if (percent_complete_length == 1) {
+                            percent_complete = "  " + percent_complete;
+                        }
+                        else if (percent_complete_length == 2) {
+                            percent_complete = " " + percent_complete;
+                        }*/
+                        // status = status + ":"; // + percent_complete + "%"; //": " + num_processed + " / " + num_images;
+                        // $("#backend_status").append(`<table><tr><td>${status}</td><td style="text-align: right; width: 45px">${percent_complete}</td></tr></table>`);
+                        //<div style="text-align: center">${status}<span style="float: right; color: yellow">${percent_complete}</span></div>`);
+                        
+                        $("#backend_status_details").html(percent_complete);
+                    }
+                    else if ("Saving Predictions" in update) {
+                        $("#backend_status_details").html("Saving Predictions");
+                    }
                 }
                 else if ((status === "Fine-Tuning") || (status === "Training")) {
                     let epochs_since_improvement = update["epochs_since_improvement"];

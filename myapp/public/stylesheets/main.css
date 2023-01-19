@@ -1970,8 +1970,8 @@ input:checked + .small_switch_slider:before {
   /* Position the tooltip */
   position: absolute;
   z-index: 1;
-  top: -1px;
-  left: 115%;
+  /* top: -1px;
+  left: 115%; */
 
 }
 
@@ -1979,9 +1979,23 @@ input:checked + .small_switch_slider:before {
 .std_tooltip:hover .std_tooltiptext {
   visibility: visible;
 }
+/* .std_tooltip .std_tooltiptext {
+  top: -5px;
+  left: 105%;
+} */
 
-
-
+.tooltip2 {
+  text-decoration:none;
+  position:relative;
+}
+.tooltip2 span {
+  display:none;
+}
+.tooltip2:hover span {
+  display:block;
+  position:fixed;
+  overflow:hidden;
+}
 
 .annotation_guide {
   background: rgba(255, 0, 0, 0.08);

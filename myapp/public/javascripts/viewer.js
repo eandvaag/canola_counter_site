@@ -311,19 +311,19 @@ function build_map() {
     $("#build_loader").show();
     
     let sel_interpolation = $("input[name=interpolation_radio]:checked").val();
-    let tile_size;
+
     if (metadata["is_ortho"] === "yes") {
-        tile_size = $("#tile_size_slider").val();
+        map_chart_tile_size = $("#tile_size_slider").val();
     }
     else {
-        tile_size = "";
+        map_chart_tile_size = "";
     }
 
     $.post($(location).attr('href'),
     {
         action: "build_map",
         interpolation: sel_interpolation,
-        tile_size: tile_size
+        tile_size: map_chart_tile_size
     },
     
     function(response, status) {
@@ -347,7 +347,7 @@ function build_map() {
 
             $.getJSON(min_max_rec_url, function(data) {
                 min_max_rec = data;
-                draw_map_chart(tile_size);
+                draw_map_chart();
             });
         }
     });
@@ -828,15 +828,15 @@ function create_viewer() {
 // }
 
 function resize_window() {
-    console.log("resize");
+    //console.log("resize");
     let new_viewer_height = window.innerHeight - $("#header_table").height() - 100;
-    console.log(new_viewer_height);
+    //console.log(new_viewer_height);
     $("#seadragon_viewer").height(new_viewer_height);
     $("#chart_container").height(new_viewer_height);
     let image_name_table_height = $("#image_name_table").height();
-    console.log(image_name_table_height);
+    //console.log(image_name_table_height);
     let new_navigation_table_container_height = new_viewer_height - image_name_table_height - 195;
-    console.log(new_navigation_table_container_height);
+    //console.log(new_navigation_table_container_height);
     let min_navigation_table_height = 510;
     if (new_navigation_table_container_height < min_navigation_table_height) {
         new_navigation_table_container_height = min_navigation_table_height;

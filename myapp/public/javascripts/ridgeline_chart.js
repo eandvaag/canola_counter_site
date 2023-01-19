@@ -412,7 +412,6 @@ function draw_ridgeline_chart() {
             .range([0, height])
             .paddingInner(1);
 
-
     ridgeline_chart_y_axis = ridgeline_svg.append("g")
         .attr("class", "y axis")
         
@@ -434,9 +433,6 @@ function draw_ridgeline_chart() {
     ridgeline_yScale = d3.scaleLinear()
                         .domain([0, max_density]) //max_scores_length * 0.001])
                         .range([min_row_spacing*1.5, 0]);
-
-    //console.log("all_density", all_density);
-
 
 
     //$("#ridgeline_loader").remove();
@@ -475,6 +471,7 @@ function draw_ridgeline_chart() {
         .data(all_density)
         .enter()
         .append("path")
+        .attr("class", "chart_area")
         .attr("transform", function(d) {
             return ("translate(0," + (yName(d.image_name) - (1.5*min_row_spacing)) + ")" );
         })
@@ -513,9 +510,55 @@ function draw_ridgeline_chart() {
     
     // let tooltip = d3.select("#ridgeline_chart_tooltip");
 
+    ridgeline_svg.selectAll(".y.axis .tick").style("cursor", "pointer");
+    ridgeline_svg.selectAll(".y.axis .tick").on("mouseover", function(d, i) { 
+        ridgeline_svg.selectAll(".chart_area")
+        .filter(function(e, j) { return i == j; })
+        .attr("fill", "white");
+        //$(tick_element).children('text').css("font-weight", "normal");
+        //$(chart_element).css("fill", "white");
+        //d3.select(this).attr("fill", "white");
+        $(this).children('text').css("font-weight", "bold"); 
+    });
+    ridgeline_svg.selectAll(".y.axis .tick").on("mouseout", function(d, i) { 
+        ridgeline_svg.selectAll(".chart_area")
+        .filter(function(e, j) { return i == j; })
+        .attr("fill", overlay_appearance["colors"]["prediction"]);
+        
+        
+        $(this).children('text').css("font-weight", "normal"); 
+    });
+    ridgeline_svg.selectAll(".y.axis .tick").on("click", function(d, i) { 
+        $("#navigation_dropdown").val("images").change();
+        change_image(image_names[i] + "/-1");
+        close_modal();
+    });
+        
+    //     console.log(d, i); });
+    //console.log("all_density", all_density);
+
+
+
 
     function handleMouseOver(d, i) {
         d3.select(this).attr("fill", "white");
+
+        // ridgeline_svg.selectAll(".y.axis .tick")
+        // .filter(function(e, j) { return i == j; })
+        // .attr("font-weight", "bold");
+
+        let tick_element = ridgeline_svg.selectAll(".y.axis .tick")._groups[0][i];
+        $(tick_element).children('text').css("font-weight", "bold");
+        // console.log(ridgeline_svg.selectAll(".y.axis .tick")._groups[0][i]);
+        //children('text').css("font-weight", "bold");
+
+        // ridgeline_svg.selectAll(".y.axis .tick").
+
+
+
+        // ridgeline_chart.selectAll("text")
+        //     .filter(function(d){ return image_names[i]==d;} )
+        //     .text("test");
 
         // let html = "No. Predictions: " + predictions[image_names[i]]["boxes"].length;
         // console.log(html);
@@ -534,6 +577,12 @@ function draw_ridgeline_chart() {
 
     function handleMouseOut(d, i) {
         d3.select(this).attr("fill", overlay_appearance["colors"]["prediction"]);
+
+        // ridgeline_svg.selectAll(".y.axis .tick")
+        // .filter(function(e, j) { return i == j; })
+        // .attr("font-weight", "normal");
+        let tick_element = ridgeline_svg.selectAll(".y.axis .tick")._groups[0][i];
+        $(tick_element).children('text').css("font-weight", "normal");
         // tooltip.style("opacity", 0);
 
     }
