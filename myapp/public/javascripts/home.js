@@ -1862,13 +1862,10 @@ function initialize_browse() {
             text: farm_name
         }));
     }
-    // console.log("initialize_browse")
     
     // console.log($("#farm_combo").val());
 
-
     $("#farm_combo").change(function() {
-        console.log("farm_combo change")
 
         let farm_name = $(this).val();
 
@@ -1885,8 +1882,8 @@ function initialize_browse() {
         $("#field_combo").val($("#field_combo:first").val()).change();
     });
 
+
     $("#field_combo").change(function() {
-        console.log("field_change")
 
         let farm_name = $("#farm_combo").val();
         let field_name = $(this).val();
@@ -1903,21 +1900,41 @@ function initialize_browse() {
         $("#mission_combo").val($("#mission_combo:first").val()).change();
     });
 
+
+
     //$("#farm_combo").prop("val", "HELLO WORLD");
     // $("#farm_combo").append($('<option>', {
     //     value: "HELLO WORLD",
     //     text: "HELLO WORLD"
     // }));
     // $("#farm_combo").val("HELLO WORLD");
-    // $("#field_combo").prop("selectedIndex", -1);
+    //$("#field_combo").prop("selectedIndex", -1);
     $("#farm_combo").prop("selectedIndex", -1);
-    $("#farm_combo").prop("selected", "selected");
+    //$("#farm_combo").prop("selected", "selected");
     //$("#farm_combo").prop("selectedIndex", -1);
 
 }
 
 
+// function reset_options() {
+//     //$("#farm_combo").prop("selectedIndex", -1); //document.getElementById('MySelect').options.length = 0;
+//     $("#farm_combo").prop("selectedIndex", -1);
+//     $("#field_combo").prop("selectedIndex", -1);
+//     $("#mission_combo").prop("selectedIndex", -1);
+//     //document.getElementById('farm_combo').options.length = 0;
+//     //document.getElementById('field_combo').options.length = 0;
+//     //document.getElementById('mission_combo').options.length = 0;
+//     return true;
+// }
+
 $(document).ready(function() {
+
+    // $("select").each(function () {
+    //     $(this).val($(this).find('option[selected]').val());
+    // });
+    // $("#farm_combo").val($("#farm_combo").find('option[selected]').val());
+    // $("#field_combo").val($("#field_combo").find('option[selected]').val());
+    // $("#mission_combo").val($("#mission_combo").find('option[selected]').val());
 
     // let socket = io();
 

@@ -136,17 +136,30 @@ exports.post_sign_in = function(req, res, next) {
 }
 
 
-function get_subdirs(dir) {
-    let subdirs = [];
+function get_subdirnames(dir) {
+    let subdirnames = [];
     let list = fs.readdirSync(dir);
     list.forEach(function(file) {
         let fpath = path.join(dir, file);
         let stat = fs.statSync(fpath);
         if (stat && stat.isDirectory()) {
-            subdirs.push(file);
+            subdirnames.push(file);
         }
     });
-    return subdirs;
+    return subdirnames;
+}
+
+function get_subdirpaths(dir) {
+    let subdirpaths = [];
+    let list = fs.readdirSync(dir);
+    list.forEach(function(file) {
+        let fpath = path.join(dir, file);
+        let stat = fs.statSync(fpath);
+        if (stat && stat.isDirectory()) {
+            subdirpaths.push(fpath);
+        }
+    });
+    return subdirpaths;
 }
 
 function fpath_exists(fpath) {
@@ -171,10 +184,9 @@ exports.get_home = function(req, res, next) {
         let image_sets_root = path.join(USR_DATA_ROOT, req.session.user.username, "image_sets");
         let farm_names;
         try {
-           farm_names = get_subdirs(image_sets_root);
+           farm_names = get_subdirnames(image_sets_root);
         }
         catch (error) {
-            console.log("error while fetching subdirectories", error);
             return res.redirect(process.env.CC_PATH);
         }
 
@@ -191,11 +203,11 @@ exports.get_home = function(req, res, next) {
         for (let farm_name of farm_names) {
             
             let farm_root = path.join(image_sets_root, farm_name);
-            let field_names = get_subdirs(farm_root);
+            let field_names = get_subdirnames(farm_root);
 
             for (let field_name of field_names) {
                 let field_root = path.join(farm_root, field_name);
-                let mission_dates = get_subdirs(field_root);
+                let mission_dates = get_subdirnames(field_root);
                 
                 for (let mission_date of mission_dates) {
                     let mission_root = path.join(field_root, mission_date);
@@ -2559,6 +2571,77 @@ exports.post_workspace = function(req, res, next) {
     else if (action === "fetch_models") {
         //let model_logs = [];
         let models = [];
+        let usr_dirs;
+        try {
+           usr_dirs = get_subdirpaths(USR_DATA_ROOT);
+        }
+        catch (error) {
+            response.message = "Failed to retrieve models.";
+            response.error = true;
+            return res.json(response);
+        }
+
+        for (let usr_dir of usr_dirs) {
+            let public_models_dir = path.join(usr_dir, "models", "available", "public");
+
+            let public_dirs;
+            try {
+                public_dirs = get_subdirpaths(public_models_dir);
+            }
+            catch (error) {
+                response.message = "Failed to retrieve models.";
+                response.error = true;
+                return res.json(response);
+            }
+
+            let cur_models;
+            try {
+                cur_models = get_models(public_dirs, req.session.user.username, farm_name, field_name, mission_date);
+            }
+            catch (error) {
+                response.message = "Failed to retrieve models.";
+                response.error = true;
+                return res.json(response);
+            }
+
+            models = models.concat(cur_models);
+
+            if (path.basename(usr_dir) === req.session.user.username) {
+
+                let private_models_dir = path.join(usr_dir, "models", "available", "private");
+
+                let private_dirs;
+                try {
+                    private_dirs = get_subdirpaths(private_models_dir);
+                }
+                catch (error) {
+                    response.message = "Failed to retrieve models.";
+                    response.error = true;
+                    return res.json(response);
+                }
+
+                try {
+                    cur_models = get_models(private_dirs, req.session.user.username, farm_name, field_name, mission_date);
+                }
+                catch (error) {
+                    response.message = "Failed to retrieve models.";
+                    response.error = true;
+                    return res.json(response);
+                }
+
+                models = models.concat(cur_models);
+            }
+
+        }
+
+        response.error = false;
+        response.models = nat_orderBy.orderBy(models, 
+            [v => v.model_creator, v => v.model_name], 
+            ['asc', 'asc']);
+        return res.json(response);
+        /*
+
+
         glob(path.join(USR_DATA_ROOT, "*"), function(error, usr_dirs) {
             if (error) {
                 response.error = true;
@@ -2612,7 +2695,7 @@ exports.post_workspace = function(req, res, next) {
                         }
 
 
-
+*/
 
 
 
@@ -2663,22 +2746,22 @@ exports.post_workspace = function(req, res, next) {
                     }*/
                     
 
-                        if (i == usr_dirs.length-1) {
-                            response.error = false;
-                            response.models = nat_orderBy.orderBy(models, 
-                                [v => v.model_creator, v => v.model_name], 
-                                ['asc', 'asc']);
-                            //models;
-                            return res.json(response);
-                        }
+                        // if (i == usr_dirs.length-1) {
+                        //     response.error = false;
+                        //     response.models = nat_orderBy.orderBy(models, 
+                        //         [v => v.model_creator, v => v.model_name], 
+                        //         ['asc', 'asc']);
+                        //     //models;
+                        //     return res.json(response);
+                        // }
 /*
                 });*/
 
-                    });
-                });
-            }
-        });
-    }
+    //                 });
+    //             });
+    //         }
+    //     });
+    // }
 //     else if (action === "fetch_my_models") {
 
 //         let available_dir = path.join(USR_DATA_ROOT, req.session.user.username, "models", 
@@ -2761,8 +2844,7 @@ exports.post_workspace = function(req, res, next) {
 //         });
 
 
-
-//     }
+    }
     else if (action === "inspect_model") {
         let model_creator = req.body.model_creator;
         let model_name = req.body.model_name;
@@ -3236,14 +3318,14 @@ function remove_image_set(username, farm_name, field_name, mission_date) {
         fs.rmSync(mission_dir, { recursive: true, force: false });
     }
     if (fs.existsSync(field_dir)) {
-        let missions = get_subdirs(field_dir);
+        let missions = get_subdirnames(field_dir);
         if (missions.length == 0) {
             console.log("removing field_dir", field_dir);
             fs.rmSync(field_dir, { recursive: true, force: false });
         }
     }
     if (fs.existsSync(farm_dir)) {
-        let fields = get_subdirs(farm_dir);
+        let fields = get_subdirnames(farm_dir);
         if (fields.length == 0) {
             console.log("removing farm_dir", farm_dir);
             fs.rmSync(farm_dir, { recursive: true, force: false });
@@ -4178,6 +4260,18 @@ exports.post_home = function(req, res, next) {
         response.error = false;
         return res.json(response);
     }
+    // else if (action === "rename_image_set") {
+    //     let old_farm_name = req.body.old_farm_name;
+    //     let old_field_name = req.body.old_field_name;
+    //     let old_mission_date = req.body.old_mission_date;
+
+    //     let new_farm_name = req.body.old_farm_name;
+    //     let new_field_name = req.body.old_field_name;
+    //     let new_mission_date = req.body.old_mission_date;
+
+
+
+    // }
     else if (action === "delete_image_set") {
         
         let farm_name = req.body.farm_name;
@@ -4237,11 +4331,11 @@ exports.post_home = function(req, res, next) {
                 fs.rmSync(mission_dir, { recursive: true, force: false });
 
                 let field_dir = path.join(USR_DATA_ROOT, req.session.user.username, "image_sets", farm_name, field_name);
-                let missions = get_subdirs(field_dir);
+                let missions = get_subdirnames(field_dir);
                 if (missions.length == 0) {
                     fs.rmSync(field_dir, { recursive: true, force: false });
                     let farm_dir = path.join(USR_DATA_ROOT, req.session.user.username, "image_sets", farm_name);
-                    let fields = get_subdirs(farm_dir);
+                    let fields = get_subdirnames(farm_dir);
                     if (fields.length == 0) {
                         fs.rmSync(farm_dir, { recursive: true, force: false });
                     }
@@ -4278,11 +4372,11 @@ exports.post_home = function(req, res, next) {
                 fs.rmSync(mission_dir, { recursive: true, force: false });
 
                 let field_dir = path.join(USR_DATA_ROOT, req.session.user.username, "image_sets", farm_name, field_name);
-                let missions = get_subdirs(field_dir);
+                let missions = get_subdirnames(field_dir);
                 if (missions.length == 0) {
                     fs.rmSync(field_dir, { recursive: true, force: false });
                     let farm_dir = path.join(USR_DATA_ROOT, req.session.user.username, "image_sets", farm_name);
-                    let fields = get_subdirs(farm_dir);
+                    let fields = get_subdirnames(farm_dir);
                     if (fields.length == 0) {
                         fs.rmSync(farm_dir, { recursive: true, force: false });
                     }

@@ -1261,9 +1261,9 @@ function update_count_combo(include_viewer_metrics) {
                 "Recall (IoU=.50, conf>.50)",
                 "Accuracy (IoU=.50, conf>.50)",
                 "F1 Score (IoU=.50, conf>.50)",
-                "AP (IoU=.50:.05:.95)",
-                "AP (IoU=.50)",
-                "AP (IoU=.75)"
+                // "AP (IoU=.50:.05:.95)",
+                // "AP (IoU=.50)",
+                // "AP (IoU=.75)"
             ];
             for (let metric_name of metric_names) {
                 $('#chart_combo').append($('<option>', {

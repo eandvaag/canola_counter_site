@@ -4186,7 +4186,7 @@ function get_filtered_model_list() {
     for (let model of switch_model_data["models"]) {
 
         let keep = true;
-        for (let key of Object.keys(switch_model_data["filter_options"])) {
+        for (let filter_option of switch_model_data["filter_options"]) { //key of Object.keys(switch_model_data["filter_options"])) {
             // let comp;
             // if (key === "username") {
             //     comp = username;
@@ -4204,7 +4204,7 @@ function get_filtered_model_list() {
             //     comp = object_name;
             // }
 
-            if ($("#" + key + "_filter").val() == "-- All --" || $("#" + key + "_filter").val() === model[key]) {
+            if ($("#" + filter_option + "_filter").val() == "-- All --" || $("#" + filter_option + "_filter").val() === model[filter_option]) {
                 keep = true;
             }
             else {
@@ -4217,24 +4217,24 @@ function get_filtered_model_list() {
         }
     }
 
-    if (Object.keys(switch_model_data["filter_options"]).length == 2) {
+    //if (switch_model_data["filter_options"].length == 2) {
         let sort_combo_0_val = $("#sort_combo_0").val();
         let sort_combo_1_val = $("#sort_combo_1").val();
         filtered_models.sort(function(a, b) {
             return a[sort_combo_0_val].localeCompare(b[sort_combo_0_val], undefined, {numeric: true, sensitivity: 'base'}) || 
                    a[sort_combo_1_val].localeCompare(b[sort_combo_1_val], undefined, {numeric: true, sensitivity: 'base'});
         });
-    }
-    else {
-        let sort_combo_0_val = $("#sort_combo_0").val();
-        let sort_combo_1_val = $("#sort_combo_1").val();
-        let sort_combo_2_val = $("#sort_combo_2").val();
-        filtered_models.sort(function(a, b) {
-            return a[sort_combo_0_val].localeCompare(b[sort_combo_0_val], undefined, {numeric: true, sensitivity: 'base'}) || 
-                   a[sort_combo_1_val].localeCompare(b[sort_combo_1_val], undefined, {numeric: true, sensitivity: 'base'}) ||
-                   a[sort_combo_2_val].localeCompare(b[sort_combo_2_val], undefined, {numeric: true, sensitivity: 'base'});
-        });
-    }
+    // }
+    // else {
+    //     let sort_combo_0_val = $("#sort_combo_0").val();
+    //     let sort_combo_1_val = $("#sort_combo_1").val();
+    //     let sort_combo_2_val = $("#sort_combo_2").val();
+    //     filtered_models.sort(function(a, b) {
+    //         return a[sort_combo_0_val].localeCompare(b[sort_combo_0_val], undefined, {numeric: true, sensitivity: 'base'}) || 
+    //                a[sort_combo_1_val].localeCompare(b[sort_combo_1_val], undefined, {numeric: true, sensitivity: 'base'}) ||
+    //                a[sort_combo_2_val].localeCompare(b[sort_combo_2_val], undefined, {numeric: true, sensitivity: 'base'});
+    //     });
+    // }
 
 
 
@@ -4443,6 +4443,7 @@ function show_models() {
             show_modal_message("Error", response.message); //"An error occurred while fetching the models.");  
         }
         else {
+            console.log(response);
             $("#model_info").empty();
 
             switch_model_data["models"] = response.models;
@@ -4594,11 +4595,17 @@ function show_models() {
 
                 // }
                 // else {
-                switch_model_data["filter_options"] = {
+                let option_key_to_label = {
                     "model_object": "Model Object",
                     "model_creator": "Model Creator",
                     "model_name": "Model Name"
-                };
+                }
+                switch_model_data["filter_options"] = ["model_object", "model_creator"];
+                // {
+                //     "model_object": "Model Object",
+                //     "model_creator": "Model Creator",
+                //     //"model_name": "Model Name"
+                // };
                 switch_model_data["sort_options"] = ["model_object", "model_creator", "model_name"];
 
                 // }
@@ -4627,7 +4634,7 @@ function show_models() {
                     for (let j = i; j < switch_model_data["sort_options"].length; j++) {
                         $("#" + select_id).append($('<option>', {
                             value: switch_model_data["sort_options"][j],
-                            text: switch_model_data["filter_options"][switch_model_data["sort_options"][j]]
+                            text: option_key_to_label[switch_model_data["sort_options"][j]]
                         }));
                     }
 
@@ -4646,7 +4653,7 @@ function show_models() {
                                 if (!(selected_vals.includes(sort_option))) {
                                     $("#" + next_id).append($('<option>', {
                                         value: sort_option,
-                                        text: switch_model_data["filter_options"][sort_option]
+                                        text: option_key_to_label[sort_option]
                                     }));
                                 }
                             }
@@ -4666,11 +4673,11 @@ function show_models() {
                 //console.log(filter_values);
                 //console.log(switch_model_data["filter_options"]);
 
-                for (let key of Object.keys(switch_model_data["filter_options"])) {
+                for (let filter_option of switch_model_data["filter_options"]) {
 
-                    let disp_text = switch_model_data["filter_options"][key];
+                    let disp_text = option_key_to_label[filter_option]; //switch_model_data["filter_options"][key];
                     //console.log(disp_text);
-                    let select_id = key + "_filter";
+                    let select_id = filter_option + "_filter";
 
                     $("#filter_table").append(
                         `<tr>` +
@@ -4691,7 +4698,7 @@ function show_models() {
                         value: "-- All --",
                         text: "-- All --"
                     }));
-                    let unique_filter_values = natsort([... new Set(filter_values[key])]);
+                    let unique_filter_values = natsort([... new Set(filter_values[filter_option])]);
                     for (let value of unique_filter_values) {
                         $("#" + select_id).append($('<option>', {
                             value: value,
@@ -4717,6 +4724,9 @@ function show_models() {
                         create_models_selection_table();
                     });
                 }
+
+
+
 
                 $("#model_object_filter").val(default_object);
                 $("#model_creator_filter").val(default_creator);
