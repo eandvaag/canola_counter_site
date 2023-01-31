@@ -491,10 +491,10 @@ function create_viewer() {
                         
                 overlay.context2d().fillStyle = "#222621";         
                 overlay.context2d().fillRect(
-                    viewer_point_1.x - 1,
-                    viewer_point_1.y - 1,
-                    (viewer_point_2.x - viewer_point_1.x) + 2,
-                    (viewer_point_2.y - viewer_point_1.y) + 2
+                    viewer_point_1.x - 10,
+                    viewer_point_1.y - 10,
+                    (viewer_point_2.x - viewer_point_1.x) + 20, //2,
+                    (viewer_point_2.y - viewer_point_1.y) + 20//2
                 );
             }
 
