@@ -353,17 +353,17 @@ async function process_upload(username, farm_name, field_name, mission_date, obj
         console.log("camera_height", camera_height);
         let metadata_command = "python ../../plant_detection/src/metadata.py " + mission_dir;
         if (camera_height.length > 0) {
-            if (isNumeric(camera_height)) {
-                let numeric_camera_height = parseFloat(camera_height);
-                if (numeric_camera_height < 0.01 || numeric_camera_height > 1000) {
-                    write_and_notify(upload_status_path, {"status": "failed", "error": "Provided camera height is invalid."}, notify_data);
-                    return;
-                }
-            }
-            else {
-                write_and_notify(upload_status_path, {"status": "failed", "error": "Provided camera height is invalid."}, notify_data);
-                return;
-            }
+            // if (isNumeric(camera_height)) {
+            //     let numeric_camera_height = parseFloat(camera_height);
+            //     if (numeric_camera_height < 0.01 || numeric_camera_height > 1000) {
+            //         write_and_notify(upload_status_path, {"status": "failed", "error": "Provided camera height is invalid."}, notify_data);
+            //         return;
+            //     }
+            // }
+            // else {
+            //     write_and_notify(upload_status_path, {"status": "failed", "error": "Provided camera height is invalid."}, notify_data);
+            //     return;
+            // }
             metadata_command = metadata_command + " --camera_height " + camera_height;
         }
         console.log(metadata_command);
@@ -413,6 +413,8 @@ async function process_upload(username, farm_name, field_name, mission_date, obj
             write_and_notify(upload_status_path, {"status": "failed", "error": error.toString()}, notify_data);
             return;
         }
+
+
 
 
         metadata["is_public"] = is_public;

@@ -44,6 +44,13 @@ const valid_extensions = [".jpg", ".JPG", ".png", ".PNG", ".tif", ".TIF"];
 
 const MODEL_NAME_FORMAT = /[\s `!@#$%^&*()+\=\[\]{};':"\\|,<>\/?~]/;
 
+
+Date.prototype.isValid = function () {
+    // An invalid date object returns NaN for getTime() and NaN is the only
+    // object not strictly equal to itself.
+    return this.getTime() === this.getTime();
+};  
+
 /*
 exports.sessionChecker = function(req, res, next) {
     if (req.session.user && req.cookies.user_sid) {
@@ -3454,13 +3461,68 @@ exports.post_orthomosaic_upload = function(req, res, next) {
         console.log("checking components");
         let id_components = [farm_name, field_name, mission_date];
         for (let id_component of id_components) {
+            if (id_component.length < 3) {
+                delete active_uploads[upload_uuid];
+                return res.status(422).json({
+                    error: "The provided farm name, field name, or mission date is too short."
+                });
+            }
+            if (id_component.length > 20) {
+                delete active_uploads[upload_uuid];
+                return res.status(422).json({
+                    error: "The provided farm name, field name, or mission date is too long."
+                });
+            }
             if (format.test(id_component)) {
                 delete active_uploads[upload_uuid];
                 return res.status(422).json({
-                    error: "The provided farm, field, or mission date contains illegal characters."
+                    error: "The provided farm name, field name, or mission date contains illegal characters."
                 });
             }
         }
+        let date = new Date(mission_date);
+        if (!(date.isValid())) {
+            delete active_uploads[upload_uuid];
+            return res.status(422).json({
+                error: "The provided mission date is invalid."
+            });
+        }
+
+        let objects_path = path.join(USR_SHARED_ROOT, "objects.json");
+        let objects;
+        try {
+            objects = JSON.parse(fs.readFileSync(objects_path, 'utf8'));
+        }
+        catch (error) {
+            console.log(error);
+            res.redirect(process.env.CC_PATH);
+        }
+        if (!(objects["object_names"].includes(object_name))) {
+            delete active_uploads[upload_uuid];
+            return res.status(422).json({
+                error: "The provided object name is not recognized by the system."
+            });
+        }
+
+        if (camera_height.length > 0) {
+            if (isNumeric(camera_height)) {
+                let numeric_camera_height = parseFloat(camera_height);
+                if (numeric_camera_height < 0.01 || numeric_camera_height > 1000) {
+                    delete active_uploads[upload_uuid];
+                    return res.status(422).json({
+                        error: "The provided camera height falls outside of the accepted range."
+                    });
+                }
+            }
+            else {
+                delete active_uploads[upload_uuid];
+                return res.status(422).json({
+                    error: "The provided camera height is invalid."
+                });
+            }
+        }
+
+
         console.log("Making the images directory");
         fs.mkdirSync(images_dir, { recursive: true });
     }
@@ -3795,6 +3857,18 @@ exports.post_image_set_upload = async function(req, res, next) {
         console.log("checking components");
         let id_components = [farm_name, field_name, mission_date];
         for (let id_component of id_components) {
+            if (id_component.length < 3) {
+                delete active_uploads[upload_uuid];
+                return res.status(422).json({
+                    error: "The provided farm name, field name, or mission date is too short."
+                });
+            }
+            if (id_component.length > 20) {
+                delete active_uploads[upload_uuid];
+                return res.status(422).json({
+                    error: "The provided farm name, field name, or mission date is too long."
+                });
+            }
             if (format.test(id_component)) {
                 // if (!sent_response) {
                 //     sent_response = true;
@@ -3806,6 +3880,50 @@ exports.post_image_set_upload = async function(req, res, next) {
                 // }
             }
         }
+        let date = new Date(mission_date);
+        if (!(date.isValid())) {
+            delete active_uploads[upload_uuid];
+            return res.status(422).json({
+                error: "The provided mission date is invalid."
+            });
+        }
+
+
+        let objects_path = path.join(USR_SHARED_ROOT, "objects.json");
+        let objects;
+        try {
+            objects = JSON.parse(fs.readFileSync(objects_path, 'utf8'));
+        }
+        catch (error) {
+            console.log(error);
+            res.redirect(process.env.CC_PATH);
+        }
+        if (!(objects["object_names"].includes(object_name))) {
+            delete active_uploads[upload_uuid];
+            return res.status(422).json({
+                error: "The provided object name is not recognized by the system."
+            });
+        }
+
+        if (camera_height.length > 0) {
+            if (isNumeric(camera_height)) {
+                let numeric_camera_height = parseFloat(camera_height);
+                if (numeric_camera_height < 0.01 || numeric_camera_height > 1000) {
+                    delete active_uploads[upload_uuid];
+                    return res.status(422).json({
+                        error: "The provided camera height falls outside of the accepted range."
+                    });
+                }
+            }
+            else {
+                delete active_uploads[upload_uuid];
+                return res.status(422).json({
+                    error: "The provided camera height is invalid."
+                });
+            }
+        }
+
+
         console.log("Making the images directory");
         fs.mkdirSync(images_dir, { recursive: true });
 

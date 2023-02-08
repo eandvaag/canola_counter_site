@@ -1191,6 +1191,35 @@ textarea {
   pointer-events: none;
   cursor: default;
 }
+/*
+.dz-error-mark svg {
+	font-size: 54px;
+	fill: #fff !important;
+}*/
+
+.dz-remove {
+  /*
+	z-index: 999;
+	position: absolute;
+	display: block;
+	top: 0%;
+	left: 0%;
+	margin-left: -16px;
+	margin-top: -16px;*/
+  color: white;
+  background-color: #802626; /* #570c06; /* #4c6645; /* #2a3829;*/
+  border-radius: 15px;
+}
+
+
+.dropzone .dz-preview .dz-error-message {
+  top: 150px!important;
+}
+/*
+.dz-remove svg {
+	fill: #444;
+	cursor: pointer;
+}*/
 
 /*
 

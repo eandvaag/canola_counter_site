@@ -292,8 +292,8 @@ function edit_metadata(make, model) {
     $("#modal_message").append(`<div style="height: 20px"></div>`);*/
 
 
-    let message = `<div style="color: yellow; text-decoration: underline; text-align: center">WARNING</div>` +
-                  `<div style="text-align: justify">` +
+    let message = `<div style="font-weight: bold">Warning:</div>` +
+                  `<div style="text-align: justify; margin: 0px 20px">` +
                   `Changing a camera's metadata will affect all of the image sets that have been assigned to that camera.</div>` +
                   `<div style="height: 20px"></div>`;
 

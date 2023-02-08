@@ -73,6 +73,17 @@ let predictions_format_sample_text =
 // };
 
 
+Date.prototype.isValid = function () {
+    // An invalid date object returns NaN for getTime() and NaN is the only
+    // object not strictly equal to itself.
+    return this.getTime() === this.getTime();
+};
+
+function has_duplicates(array) {
+    return (new Set(array)).size !== array.length;
+}
+
+
 let default_overlay_appearance = {
     "draw_order": ["training_region", "test_region", "annotation", "prediction"],
     "style": {
