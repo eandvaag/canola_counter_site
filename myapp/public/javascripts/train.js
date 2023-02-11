@@ -102,7 +102,7 @@ function train_form_is_complete() {
             return false;
         }
 
-        if (model_name === "random_weights") {
+        if (input_val === "random_weights") {
             return false;
         }
     }
