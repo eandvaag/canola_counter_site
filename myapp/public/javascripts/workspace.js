@@ -699,14 +699,27 @@ function create_anno() {
         disableEditor: true,
         disableSelect: true, //false, //readOnly,
         readOnly: true, //false, //readOnly,
-        formatter: formatter
+        formatter: formatter,
+        //drawOnSingleClick: true
     });
 
+    // Annotorious.BetterPolygon(anno);
+
+    // anno.removeDrawingTool("rect");
+    // anno.setDrawingTool("polygon");
+
+    //anno.setDrawingTool("rect");
     // anno.on('clickAnnotation', function(annotation, element) {
     //     console.log("clickAnnotation");
     // });
 
+    // anno.on("startSelection", function(point) {
+    //     console.log("startSelection");
+    // });
+
     anno.on('cancelSelected', function(selection) {
+
+        // console.log("cancelSelected")
         //console.log("cancelSelected", selection, anno.getSelected());
         // anno.clearAnnotations();
         // selected_annotation_index = -1;
@@ -722,7 +735,7 @@ function create_anno() {
     anno.on('createAnnotation', function(annotation) {
         //anno.on('createSelection', function(annotation) {
 
-        //console.log("createAnnotation");
+        // console.log("createAnnotation");
 
         //annotations[cur_img_name]["annotations"] = anno.getAnnotations();
         //annotation
@@ -915,6 +928,9 @@ function create_anno() {
 
     anno.on('createSelection', async function(selection) {
 
+        // console.log("createSelection")
+        // console.log(selection)
+
         selection.target.source = window.location.href;
         
         selection.body = [{
@@ -950,7 +966,7 @@ function create_anno() {
 
     anno.on('updateAnnotation', async function(annotation, previous) {
 
-        //console.log("updateAnnotation");
+        // console.log("updateAnnotation");
 
         let px_str = annotation.target.selector.value;
         let updated_px_str = resize_px_str(px_str);
@@ -3246,6 +3262,7 @@ function show_segmentation() {
     //     enable_std_buttons(["apply_threshold_to_all_button"]);
     // }
     update_apply_current_threshold_to_all_images_button();
+    cur_bounds = null;
     $("#enable_pan_button").click();
     //$("#pan_switch").prop("checked", true).change();
 
@@ -3281,6 +3298,7 @@ function show_segmentation() {
 }
 
 function pan_viewport() {
+    // console.log("pan_viewport");
 
     $("#segmentation_loader").hide();
 
@@ -3289,13 +3307,14 @@ function pan_viewport() {
         $("#seadragon_viewer").empty();
         create_viewer("seadragon_viewer");
     }
-
+    overlay.onRedraw = function() {};
     overlay.onOpen = function() {
         //set_cur_bounds();
 
         //console.log("viewer.viewport.getContainerSize()", viewer.viewport.getContainerSize());
         //viewer.viewport.zoomTo(targetZoom, null, true);
         //viewer.viewport.fitBounds(cur_bounds);
+        // console.log("cur_bounds", cur_bounds);
         if (cur_bounds) {
             withFastOSDAnimation(viewer.viewport, function() {
                 viewer.viewport.fitBounds(cur_bounds);
@@ -4443,7 +4462,7 @@ function show_models() {
             show_modal_message("Error", response.message); //"An error occurred while fetching the models.");  
         }
         else {
-            console.log(response);
+            // console.log(response);
             $("#model_info").empty();
 
             switch_model_data["models"] = response.models;
