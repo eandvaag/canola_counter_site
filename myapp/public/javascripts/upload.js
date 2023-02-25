@@ -932,7 +932,7 @@ function initialize_upload() {
             return;
         }
 
-
+        $("#" + handler_name + "_dropzone").animate({ scrollTop: 0 }, "fast");
         //upload_error = null;
         dropzone_handlers[handler_name].options.autoProcessQueue = true;
         dropzone_handlers[handler_name].processQueue();

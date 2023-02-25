@@ -252,20 +252,35 @@ html
                                                 //div(style="height: 5px")
 
                                                 h(class="header2" style="width: 170px; text-align: left; margin-top: -2px") Download
-                                                table
-                                                    tr
-                                                        td
-                                                            a(id="request_metrics_button" class="std-button std-button-hover" style="font-size: 16px; width: 135px") 
+                                                table 
+                                                    tr 
+                                                        td 
+                                                            button(id="view_download_options_button" class="std-button std-button-hover" style="font-size: 16px; width: 215px")
                                                                 i(class="fa-solid fa-file-arrow-down" style="padding-right: 5px")
                                                                 |
-                                                                | Metrics
-                                                        td 
-                                                            div(style="width: 5px")
-                                                        td
-                                                            button(id="request_raw_outputs_button" class="std-button std-button-hover" style="font-size: 16px; width: 135px")
-                                                                i(class="fa-solid fa-file-zipper" style="padding-right: 5px")
-                                                                |
-                                                                | Raw Outputs
+                                                                | View Download Options
+                                                        //-     button(id="request_metrics_button" class="std-button std-button-hover" style="font-size: 14px; width: 80px; border-radius: 50px 0px 0px 50px; margin-right: -3px") Metrics
+
+                                                        //- td
+                                                        //-     button(id="request_raw_outputs_button" class="std-button std-button-hover" style="font-size: 14px; width: 100px; border-radius: 0px; margin: 0px") Raw Outputs
+                                                        
+                                                        //- td
+                                                        //-     button(id="request_voronoi_areas_button" class="std-button std-button-hover" style="font-size: 14px; width: 100px; border-radius: 0px 50px 50px 0px; margin-left: -3px") Voronoi Areas
+
+                                                //- table
+                                                //-     tr
+                                                //-         td
+                                                //-             a(id="request_metrics_button" class="std-button std-button-hover" style="font-size: 16px; width: 135px") 
+                                                //-                 i(class="fa-solid fa-file-arrow-down" style="padding-right: 5px")
+                                                //-                 |
+                                                //-                 | Metrics
+                                                //-         td 
+                                                //-             div(style="width: 5px")
+                                                //-         td
+                                                //-             button(id="request_raw_outputs_button" class="std-button std-button-hover" style="font-size: 16px; width: 135px")
+                                                //-                 i(class="fa-solid fa-file-zipper" style="padding-right: 5px")
+                                                //-                 |
+                                                //-                 | Raw Outputs
 
                                                     //- i(class="fa-solid fa-file-arrow-down" style="padding-right: 5px")
                                                     //- |

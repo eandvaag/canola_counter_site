@@ -846,6 +846,287 @@ function resize_window() {
 
 
 
+function show_download_metrics() {
+
+    $("#metrics_tab").addClass("tab-btn-active");
+    $("#raw_outputs_tab").removeClass("tab-btn-active");
+    $("#voronoi_areas_tab").removeClass("tab-btn-active");
+
+    let metrics_download_path = get_CC_PATH() + 
+                                "/usr/data/" + 
+                                username + 
+                                "/image_sets/" + 
+                                image_set_info["farm_name"] + "/" + 
+                                image_set_info["field_name"] + "/" + 
+                                image_set_info["mission_date"] + 
+                                "/model/results/" + 
+                                image_set_info["result_uuid"] + 
+                                "/metrics.xlsx";
+
+    $("#download_info_area").empty();
+    $("#download_button_area").empty();
+    $("#download_info_area").append(
+
+        // `<table>` +
+            // `<tr style="width: 100%"></td>` +
+
+            // `<tr>` +
+        `<table>` +
+            `<tr>` +
+                `<td>` +
+                    `<div style="height: 70px"></div>` +
+                `</td>` +
+            `</tr>` +
+            `<tr>` +
+                `<td>` +
+                    `<div>An <em>.xlsx</em> file containing metrics is available for download. This file contains three sheets:</div>` +
+                `</td>` +
+            `</tr>` +
+            `<tr>` +
+                `<td>` +
+                    `<div style="height: 5px"></div>` +
+                `</td>` +
+            `</tr>` +
+            `<tr>` +
+                `<td>` +
+                    `<ul>` +
+                    `<li><div style="display: inline-block; width: 80px"><em>Images:</em></div>Metrics for images. Each row contains metrics for one image in the image set.</li>` +
+                    `<br>` +
+                    `<li><div style="display: inline-block; width: 80px"><em>Regions:</em></div>Metrics for regions. Each row contains metrics for one region in the image set.</li>` +
+                    `<br>` +
+                    `<li><div style="display: inline-block; width: 80px"><em>Stats:</em></div>Summary statistics for the entire image set.</li>` +
+                    `</ul>` +
+                `</td>` +
+            `</tr>` +
+            // `<tr>` +
+            //     `<td>` +
+            //         `<div style="height: 30px"></div>` +
+            //     `</td>` +
+            // `</tr>` +
+            // `<tr>` +
+            //     `<td>` +
+            //         `<div style="text-align: center">` +
+            //             `<a class="std-button std-button-hover" style="width: 250px;" href="${metrics_download_path}" download="metrics.xlsx">Download Metrics</a>` +
+            //         `</div>` +
+            //     `</td>` +
+            // `</tr>` +
+
+
+        `</table>`
+
+
+
+
+            // `</tr>` +
+
+            // `<tr style="width: 100%"></td>` +
+
+        // `</table>`
+
+        // `<div style="margin: 0 auto">` +
+        //     `<div>An <em>.xlsx</em> file containing metrics is available for download. This file contains three sheets:` +
+        //     `</div>` +
+        //     `<div style="height: 10px"></div>` +
+        //     `<ul>` +
+        //     `<li><div style="display: inline-block; width: 80px"><em>Images:</em></div>Metrics for images. Each row contains metrics for one image in the image set.</li>` +
+        //     `<br>` +
+        //     `<li><div style="display: inline-block; width: 80px"><em>Regions:</em></div>Metrics for regions. Each row contains metrics for one region in the image set.</li>` +
+        //     `<br>` +
+        //     `<li><div style="display: inline-block; width: 80px"><em>Stats:</em></div>Summary statistics for the entire image set.</li>` +
+        //     `</ul>` +
+
+        //     `<div style="height: 10px"></div>` +
+        //     `<div style="text-align: center">` +
+        //         `<a class="std-button std-button-hover" style="width: 250px;" href="${metrics_download_path}" download="metrics.xlsx">Download Metrics</a>` +
+        //     `</div>` +
+        // `</div>`
+
+    );
+
+    $("#download_button_area").append(
+        `<div style="text-align: center">` +
+            `<a class="std-button std-button-hover" style="width: 280px;" href="${metrics_download_path}" download="metrics.xlsx">` +
+            `<i class="fa-solid fa-file-arrow-down" style="padding-right: 15px"></i>Download Metrics</a>` +
+        `</div>`
+    );
+}
+
+
+function show_download_voronoi_areas() {
+
+    $("#metrics_tab").removeClass("tab-btn-active");
+    $("#raw_outputs_tab").removeClass("tab-btn-active");
+    $("#voronoi_areas_tab").addClass("tab-btn-active");
+
+    let voronoi_areas_download_path = get_CC_PATH() + 
+                                "/usr/data/" + 
+                                username + 
+                                "/image_sets/" + 
+                                image_set_info["farm_name"] + "/" + 
+                                image_set_info["field_name"] + "/" + 
+                                image_set_info["mission_date"] + 
+                                "/model/results/" + 
+                                image_set_info["result_uuid"] + 
+                                "/voronoi_areas.xlsx";
+
+    
+    $("#download_info_area").empty();
+    $("#download_button_area").empty();
+    $("#download_info_area").append(
+        `<table>` +
+            `<tr>` +
+                `<td>` +
+                    `<div style="height: 70px"></div>` +
+                `</td>` +
+            `</tr>` +
+            `<tr>` +
+                `<td style="width: 750px">` +
+                    `<div>An <em>.xlsx</em> file containing voronoi areas is available for download:</div>` +
+                    `<ul>` + 
+
+                    
+                        `<li>"Voronoi areas" are the area values (in square metres) assigned to each object within an image / region according to a Voronoi partition.</li>` +
+                        `<br>` +
+                        `<li> A polygon must be fully contained within the boundaries of the image / region for it to be included (this is done to avoid edge effects).</li>` +
+                        `<br>` +
+                        `<li>The <em>.xlsx</em> file contains two sheets. The first sheet lists the Voronoi areas within each image (each image is a separate column).` +
+                            `The second sheet lists the Voronoi areas within each region (each region is a separate column).</li>` +
+                    `</ul>` +
+                `</td>` +
+            `</tr>` +
+            // `<tr>` +
+            //     `<td>` +
+            //         `<div style="height: 30px"></div>` +
+            //     `</td>` +
+            // `</tr>` +
+            // `<tr>` +
+            //     `<td>` +
+            //         `<div style="text-align: center">` +
+            //             `<a class="std-button std-button-hover" style="width: 300px;" href="${voronoi_areas_download_path}" download="voronoi_areas.xlsx">Download Voronoi Areas</a>` +
+            //         `</div>` +
+            //     `</td>` +
+            // `</tr>` +
+
+
+        `</table>`
+    );
+
+    $("#download_button_area").append(
+        `<div style="text-align: center">` +
+            `<a class="std-button std-button-hover" style="width: 280px;" href="${voronoi_areas_download_path}" download="voronoi_areas.xlsx">` +
+            `<i class="fa-solid fa-file-arrow-down" style="padding-right: 15px"></i>Download Voronoi Areas</a>` +
+        `</div>`
+    );
+}
+
+
+function show_download_raw_outputs() {
+
+    $("#metrics_tab").removeClass("tab-btn-active");
+    $("#raw_outputs_tab").addClass("tab-btn-active");
+    $("#voronoi_areas_tab").removeClass("tab-btn-active");
+
+    let raw_outputs_download_path = get_CC_PATH() + 
+                                "/usr/data/" + 
+                                username + 
+                                "/image_sets/" + 
+                                image_set_info["farm_name"] + "/" + 
+                                image_set_info["field_name"] + "/" + 
+                                image_set_info["mission_date"] + 
+                                "/model/results/" + 
+                                image_set_info["result_uuid"] + 
+                                "/raw_outputs.zip";
+
+    
+    $("#download_info_area").empty();
+    $("#download_button_area").empty();
+    $("#download_info_area").append(
+        `<table>` +
+            `<tr>` +
+                `<td>` +
+                    `<div style="height: 5px"></div>` +
+                `</td>` +
+            `</tr>` +
+            `<tr>` +
+                `<td>` +
+                    `<div>A <em>.zip</em> file containing the raw annotations and predictions (two JSON files) is available for download.</div>` +
+                `</td>` +
+            `</tr>` +
+            `<tr>` +
+                `<td>` +
+                    `<div style="height: 5px"></div>` +
+                `</td>` +
+            `</tr>` +
+            `<tr>` +
+                `<td>` +
+                    `<table>` +
+                        `<tr>` +
+                            `<td>` +
+                                `<h class="header2" style="font-size: 16px">Annotations format:</h>` +
+                            `</td>` +
+                            `<td>` +
+                                `<div style="width: 35px"></div>` +
+                            `</td>` +
+                            `<td>` +
+                                `<h class="header2" style="font-size: 16px">Predictions format:</h>` +
+                            `</td>` +
+                        `</tr>` +
+                        
+                        `<tr>` +
+                            `<td>` +
+                                `<div style="text-align: center; width: 300px;">` +
+                                    `<textarea class="json_text_area" style="width: 300px; margin: 0 auto; height: 270px">${annotations_format_sample_text}</textarea>` +
+                                `</div>` +
+                            `</td>` +
+                            `<td>` +
+                                `<div style="width: 35px"></div>` +
+                            `</td>` +
+                            `<td>` +
+                                `<div style="text-align: center; width: 300px;">` +
+                                    `<textarea class="json_text_area" style="width: 300px; margin: 0 auto; height: 270px">${predictions_format_sample_text}</textarea>` +
+                                `</div>` +
+
+                            `</td>` +
+                        `</tr>` +
+                    `</table>` +
+                `</td>` +
+            `</tr>` +
+            `<tr>` +
+                `<td>` +
+                    `<div>Boxes are encoded with four values (in <span style="font-weight: bold">pixel coordinates</span>): ` +
+                        //`<br>` +
+                        //`<div style="text-align: center">` +
+                            `<span style="margin-left: 4px; font-family: 'Lucida Console', Monaco, monospace;">[ x_min, y_min, x_max, y_max ]</span> ` + 
+                        //`</div>` +
+                    `</div>` +
+                `</td>` +
+            `</tr>` +
+
+            // `<tr>` +
+            //     `<td>` +
+            //         `<div style="height: 30px"></div>` +
+            //     `</td>` +
+            // `</tr>` +
+            // `<tr>` +
+            //     `<td>` +
+            //         `<div style="text-align: center">` +
+            //             `<a class="std-button std-button-hover" style="width: 250px;" href="${raw_outputs_download_path}" download>Download Raw Outputs</a>` +
+            //         `</div>` +
+            //     `</td>` +
+            // `</tr>` +
+
+
+        `</table>`
+    );
+
+    $("#download_button_area").append(
+        `<div style="text-align: center">` +
+            `<a class="std-button std-button-hover" style="width: 280px;" href="${raw_outputs_download_path}" download>`+
+                `<i class="fa-solid fa-file-arrow-down" style="padding-right: 15px"></i>Download Raw Outputs</a>` +
+        `</div>`
+    );
+}
+
 $(document).ready(function() {
     
     image_set_info = data["image_set_info"];
@@ -980,10 +1261,61 @@ $(document).ready(function() {
         //         }
         // });
 
+
     });
+
 
     // let base = get_CC_PATH() + "/usr/data/" + username + "/image_sets/" + image_set_info["farm_name"] + "/" + 
     // image_set_info["field_name"] + "/" + image_set_info["mission_date"] + "/model/results/" +
+
+    $("#view_download_options_button").click(function() {
+        show_modal_message(
+            `Download Options`,
+            `<div style="height: 500px; border: 1px solid white; border-radius: 0px 0px 15px 15px">` +
+                `<div style="width: 100%">` +
+                    `<div>` + 
+                        `<ul class="nav" id="download_nav_list">` +
+                            `<li id="metrics_tab" class="nav tab-btn-active" style="width: 130px" onclick="show_download_metrics()">` +
+                                `<a class="nav">Metrics` +
+                                    //`<i class="fa-solid fa-pen-to-square"></i>` +
+                                `</a>` +
+                            `</li>` +
+        
+                            `<li id="raw_outputs_tab" class="nav" style="width: 130px" onclick="show_download_raw_outputs()">` +
+                                `<a class="nav">Raw Outputs` +
+                                    //`<i class="fa-solid fa-pen-to-square"></i>` +
+                                `</a>` +
+                            `</li>` +
+        
+
+                        `</ul>` +
+                    `</div>` +
+                `</div>` +
+                `<div style="height: 60px"></div>` +
+                `<div id="download_info_area" style="height: 400px"></div>` +
+                `<div id="download_button_area">/div>` +
+            `</div>`
+            
+            , modal_width=1000, display=true
+        );
+
+        if (data["voronoi_areas_exists"]) {
+            $("#download_nav_list").append(
+                `<li id="voronoi_areas_tab" class="nav" style="width: 130px" onclick="show_download_voronoi_areas()">` +
+                    `<a class="nav">Voronoi Areas` +
+                        //`<i class="fa-solid fa-pen-to-square"></i>` +
+                    `</a>` +
+                `</li>`
+            );
+        }
+
+            
+
+        show_download_metrics();
+
+    });
+
+
 
 
     $("#request_metrics_button").click(function() {

@@ -5446,6 +5446,16 @@ exports.get_viewer = function(req, res, next) {
 
         }
 
+        let voronoi_areas_path = path.join(sel_results_dir, "voronoi_areas.xlsx");
+        let voronoi_areas_exists;
+        try {
+            voronoi_areas_exists = fs.existsSync(voronoi_areas_path);
+        }
+        catch (error) {
+            console.log(error);
+            return res.redirect(process.env.CC_PATH);
+        }
+
         // let maps_exist = ((fpath_exists(path.join(sel_results_dir, "maps", "linear_predicted_map.svg"))) && 
         //                   (fpath_exists(path.join(sel_results_dir, "maps", "nearest_predicted_map.svg"))));
 
@@ -5471,6 +5481,8 @@ exports.get_viewer = function(req, res, next) {
         data["excess_green_record"] = excess_green_record;
         data["metrics"] = metrics;
         data["request"] = request;
+        data["voronoi_areas_exists"] = voronoi_areas_exists;
+
         //data["dzi_dir"] = path.join(process.env.CC_PATH, dzi_images_dir);
         data["dzi_image_paths"] = nat_orderBy.orderBy(dzi_image_paths);
         data["overlay_appearance"] = overlay_appearance;
