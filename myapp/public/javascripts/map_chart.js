@@ -401,7 +401,7 @@ function draw_map_chart() {
 
             let legend_y_axis = legend_svg.append("g")
                 .attr("class", "map_legend axis")
-                .attr("transform", "translate(" + 60 + ", 0)");
+                .attr("transform", "translate(" + 70 + ", 0)");
 
             //legend_y_axis.call(d3.axisLeft(legend_yScale).tickValues([0, max_density]).tickFormat(d3.format("d")).tickSize(25));
             //let disp_vmin;
@@ -416,7 +416,7 @@ function draw_map_chart() {
             else {
                 //disp_vmin = "%" + vmin;
                 //disp_vmax = "%" + vmax;
-                custom_tickformat = function(d, i) { return "% " + d; } //.tickFormat((d, i) => ['0.25', '0.5', '0.75', '1'][i]));
+                custom_tickformat = function(d, i) { return "%" + d; } //.tickFormat((d, i) => ['0.25', '0.5', '0.75', '1'][i]));
             }
             legend_y_axis.call(d3.axisLeft(legend_yScale).tickValues([vmin, vmax]).tickFormat(custom_tickformat).tickSize(25));
 
@@ -425,7 +425,7 @@ function draw_map_chart() {
             .enter()
             .append("rect")
             .attr("x", function(d) {
-                return 40;
+                return 50;
             })
             // .attr("y", function(d, i) {
             //     return legend_yScale(((i+1) / num_rects) * max_density);
