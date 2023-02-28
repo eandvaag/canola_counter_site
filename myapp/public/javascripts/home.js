@@ -1374,6 +1374,9 @@ function view_comment(comment) {
 function create_result_entry(result) {
 
     let result_name = result["results_name"];
+    if (get_text_width(result_name, "normal 16px arial") > 250) {
+        result_name = result_name.substring(0, 6) + " ... " + result_name.substring(result_name.length - 6);
+    }
 
     let start_date = timestamp_to_date(result["start_time"]);
     let end_date, aborted_date;

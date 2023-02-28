@@ -107,7 +107,7 @@ html
                                         div(style="width: 280px;")
                                             div(id="left_panel")
 
-                                                div(style="font-size: 20px; height: 20px" id="result_name")
+                                                div(style="font-size: 20px; height: 20px; word-wrap: break-word;" id="result_name")
                                                 div(style="height: 10px")
                                                     hr(class="panel_line")
 
@@ -477,6 +477,31 @@ html
                                                                 label(class="radio_container") Difference 
                                                                     input(type="radio" name="comparison_type" value="diff")
                                                                     span(class="custom_radio")
+
+                                                br
+                                                div(class="header2" style="text-align: left; padding-left: 10px") Interpolated Value 
+                                                div(id="interpolated_value_controls")
+                                                table(style="border: 1px solid white; width: 260px; padding-top: 15px; padding-left: 25px")
+                                                    tr 
+                                                        td 
+                                                            label(class="custom_radio_container") Number of Objects Per Square Metre
+                                                                input(type="radio" name="interpolated_value_radio" value="obj_density" checked)
+                                                                span(class="custom_radio")
+                                                    tr
+                                                        td 
+                                                            label(class="custom_radio_container") Percent Vegetation
+                                                                input(type="radio" name="interpolated_value_radio" value="perc_veg")
+                                                                span(class="custom_radio")
+                                                    tr
+                                                        td 
+                                                            label(class="custom_radio_container") Percent Vegetation and Object
+                                                                input(type="radio" name="interpolated_value_radio" value="perc_veg_obj")
+                                                                span(class="custom_radio")
+                                                    tr
+                                                        td 
+                                                            label(class="custom_radio_container") Percent Vegetation and Non-Object
+                                                                input(type="radio" name="interpolated_value_radio" value="perc_veg_non_obj")
+                                                                span(class="custom_radio") 
 
                                                 br
                                                 div(id="map_tile_size_controls")

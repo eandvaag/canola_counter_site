@@ -2500,7 +2500,7 @@ exports.post_workspace = function(req, res, next) {
             console.log("finished gathering predictions. building map...")
             let rebuild_command = "python ../../plant_detection/src/interpolate.py " + req.session.user.username + " " +
                 farm_name + " " + field_name + " " + mission_date + " " + predictions_out_path + 
-                " " + maps_dir;
+                " " + maps_dir + " obj_density";
 
             if (req.body.interpolation === "nearest") {
                 rebuild_command = rebuild_command + " -nearest";
@@ -5511,6 +5511,8 @@ exports.post_viewer = function(req, res, next) {
 
     if (action == "build_map") {
 
+        let interpolated_value = req.body.interpolated_value;
+
         console.log(farm_name);
         console.log(field_name);
         console.log(mission_date);
@@ -5525,7 +5527,7 @@ exports.post_viewer = function(req, res, next) {
 
         let rebuild_command = "python ../../plant_detection/src/interpolate.py " + req.session.user.username + " " +
             farm_name + " " + field_name + " " + mission_date + " " + predictions_path + 
-            " " + maps_dir;
+            " " + maps_dir + " " + interpolated_value;
         
 
         if (req.body.interpolation === "nearest") {
@@ -5533,6 +5535,10 @@ exports.post_viewer = function(req, res, next) {
         }
         if (req.body.tile_size !== "") {
             rebuild_command = rebuild_command + " -tile_size " + req.body.tile_size;
+        }
+        if (req.body.interpolated_value !== "obj_density") {
+            let vegetation_record_path = path.join(results_dir, "vegetation_record.json");
+            rebuild_command = rebuild_command + " -vegetation_record_path " + vegetation_record_path;
         }
         // if (req.body.pred_image_status === "completed") {
         //     rebuild_command = rebuild_command + " -completed_only";

@@ -312,17 +312,23 @@ function build_map() {
     
     let sel_interpolation = $("input[name=interpolation_radio]:checked").val();
 
+    let map_chart_tile_size;
+    let interpolated_value = "obj_density";
+    let vegetation_record_path = "";
+
     if (metadata["is_ortho"] === "yes") {
         map_chart_tile_size = $("#tile_size_slider").val();
     }
     else {
         map_chart_tile_size = "";
+        interpolated_value = $("input[name=interpolated_value_radio]:checked").val();
     }
 
     $.post($(location).attr('href'),
     {
         action: "build_map",
         interpolation: sel_interpolation,
+        interpolated_value: interpolated_value,
         tile_size: map_chart_tile_size
     },
     
@@ -834,8 +840,10 @@ function resize_window() {
     $("#seadragon_viewer").height(new_viewer_height);
     $("#chart_container").height(new_viewer_height);
     let image_name_table_height = $("#image_name_table").height();
+    let result_name_height = $("#result_name").height();
     //console.log(image_name_table_height);
-    let new_navigation_table_container_height = new_viewer_height - image_name_table_height - 195;
+    let new_navigation_table_container_height = new_viewer_height - image_name_table_height - result_name_height - 175; //195;
+
     //console.log(new_navigation_table_container_height);
     let min_navigation_table_height = 510;
     if (new_navigation_table_container_height < min_navigation_table_height) {
@@ -1142,6 +1150,24 @@ $(document).ready(function() {
     dzi_image_paths = data["dzi_image_paths"];
     overlay_appearance = data["overlay_appearance"];
 
+
+    let disp_result_name = data["request"]["results_name"];
+    let result_text_width = get_text_width(data["request"]["results_name"], "normal 20px arial");
+    //console.log("result_text_width", result_text_width);
+    if (result_text_width > (270*2)) {
+        $("#result_name").css("height", "40px");
+        disp_result_name = disp_result_name.substring(0, 10) + " ... " + disp_result_name.substring(disp_result_name.length-10);
+    }
+    else if (result_text_width > 270) {
+        $("#result_name").css("height", "40px");
+    }
+
+    $("#result_name").text(disp_result_name); //data["request"]["results_name"]);
+
+
+
+
+
     set_heights();
     resize_window();
 
@@ -1433,7 +1459,6 @@ $(document).ready(function() {
     // })
 
 
-    $("#result_name").text(data["request"]["results_name"]);
 
     let farm_name = image_set_info["farm_name"];
     let field_name = image_set_info["field_name"];
@@ -1516,9 +1541,11 @@ $(document).ready(function() {
             $("#tile_size_slider").prop("value", tile_size_range[0]);
             $("#tile_size_slider_val").html(tile_size_range[0] + " m");
             $("#map_tile_size_controls").show();
+            $("#interpolated_value_controls").hide();
         }
         else {
             $("#map_tile_size_controls").hide();
+            $("#interpolated_value_controls").show();
         }
     }  
 

@@ -124,8 +124,16 @@ function draw_map_chart() {
         image_height = image_width * (1 / ratio);
     }
 
-    chart_height = image_height + (2 * margin);
-    chart_width = image_width + (2 * margin);
+    // let image_height = max_image_height;
+    // let image_width = max_image_width;
+
+    chart_height = Math.max(image_height + (2 * margin), 500);
+    chart_width = Math.max(image_width + (2 * margin), 500);
+
+    console.log("chart_height", chart_height);
+    console.log("chart_width", chart_width);
+    // chart_height = max_image_height + (2 * margin);
+    // chart_width = max_image_width + (2 * margin);
  
 
     chart_height = chart_height + "px";
@@ -288,25 +296,65 @@ function draw_map_chart() {
     
 
     if (map_url !== null) {
+        let interpolated_value;
+        if ($("input[name=interpolated_value_radio]").length == 0) {
+            interpolated_value = "obj_density";
+        }
+        else {
+            interpolated_value = $("input[name=interpolated_value_radio]:checked").val();
+        }
+        
+
         let object_name = metadata["object_name"];
         let pieces = object_name.split("_");
         let cap_pieces = pieces.map(capitalizeFirstLetter);
         cap_pieces[cap_pieces.length - 1] = cap_pieces[cap_pieces.length - 1] + "s";
         let objects_str = cap_pieces.join(" ");
 
+        let chart_title, chart_title_2;
+        if (interpolated_value === "obj_density") {
+            chart_title = "Number of Predicted " + objects_str + " Per Square Metre";
+            chart_title_2 = "";
+        }
+        else if (interpolated_value === "perc_veg") {
+            chart_title = "Percentage of Pixels Classified As Vegetation";
+            chart_title_2 = "";
+        }
+        else if (interpolated_value === "perc_veg_obj") {
+            chart_title = "Percentage of Pixels Located Inside";
+            chart_title_2 = "Predicted Boxes and Classified As Vegetation";
+        }
+        else if (interpolated_value === "perc_veg_non_obj") {
+            chart_title = "Percentage of Pixels Located Outside";
+            chart_title_2 = "Predicted Boxes and Classified As Vegetation";
+        }
+
 
         chart.selectAll("text")
-             .data(["Number of Predicted " + objects_str + " Per Square Metre"])
+             .data([chart_title, chart_title_2])
              .enter()
              .append("text")
              .attr("x", chart_width / 2)
-             .attr("y", margin / 2)
+             .attr("y", function(d, i) { return (margin / 2) + (i * 20); })
              .attr("alignment-baseline", "central")
              .attr("text-anchor", "middle")
              .attr("font-size", "18px")
              .text(function(d) {
                  return d;
              });
+/*
+        chart.selectAll("text")
+             .data([chart_title_2])
+             .enter()
+             .append("text")
+             .attr("x", chart_width / 2)
+             .attr("y", (margin / 2))
+             .attr("alignment-baseline", "central")
+             .attr("text-anchor", "middle")
+             .attr("font-size", "18px")
+             .text(function(d) {
+                 return d;
+             });*/
 
         chart.append("svg:image")
             .attr("id", "svg_map")
@@ -356,7 +404,21 @@ function draw_map_chart() {
                 .attr("transform", "translate(" + 60 + ", 0)");
 
             //legend_y_axis.call(d3.axisLeft(legend_yScale).tickValues([0, max_density]).tickFormat(d3.format("d")).tickSize(25));
-            legend_y_axis.call(d3.axisLeft(legend_yScale).tickValues([vmin, vmax]).tickFormat(d3.format("d")).tickSize(25));
+            //let disp_vmin;
+            //let disp_vmax;
+            if (interpolated_value === "obj_density") {
+                //disp_vmin = vmin;
+                //disp_vmax = vmax;
+                custom_tickformat = d3.format("d")
+
+
+            }
+            else {
+                //disp_vmin = "%" + vmin;
+                //disp_vmax = "%" + vmax;
+                custom_tickformat = function(d, i) { return "% " + d; } //.tickFormat((d, i) => ['0.25', '0.5', '0.75', '1'][i]));
+            }
+            legend_y_axis.call(d3.axisLeft(legend_yScale).tickValues([vmin, vmax]).tickFormat(custom_tickformat).tickSize(25));
 
             cmap.selectAll(".rect")
             .data(rects)
