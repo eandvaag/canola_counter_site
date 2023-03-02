@@ -598,7 +598,7 @@ function create_model_entry(model_log, model_status) {
 
         $("#" + destroy_button_container_id).append(
             `<button class="x-button x-button-hover"` +
-                `onclick="destroy_model_request('available', '${model_name}')"  style="width: 180px; font-size: 14px; padding: 3px;">` +//<i class="fa-regular fa-circle-xmark"></i></button>`
+                `onclick="destroy_model_request('aborted', '${model_name}')"  style="width: 180px; font-size: 14px; padding: 3px;">` +//<i class="fa-regular fa-circle-xmark"></i></button>`
 
 
                 `<i class="fa-regular fa-circle-xmark" style="margin-right: 14px"></i><div style="display: inline-block; text-align: left; width: 130px">Destroy Model</div>` +
