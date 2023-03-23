@@ -130,8 +130,8 @@ function draw_map_chart() {
     chart_height = Math.max(image_height + (2 * margin), 500);
     chart_width = Math.max(image_width + (2 * margin), 500);
 
-    console.log("chart_height", chart_height);
-    console.log("chart_width", chart_width);
+    // console.log("chart_height", chart_height);
+    // console.log("chart_width", chart_width);
     // chart_height = max_image_height + (2 * margin);
     // chart_width = max_image_width + (2 * margin);
  
@@ -517,11 +517,14 @@ function draw_map_chart() {
                 ];
     
                 $("#navigation_dropdown").val("images");
-                $("#active_layer_table").css("opacity", 1.0);
-                $("input:radio[name=edit_layer_radio]").prop("disabled", false);
-                $("#show_segmentation_button").show();
-    
-    
+                if (window.location.pathname.split("/")[2] === "workspace") {
+                    $("#active_layer_table").css("opacity", 1.0);
+                    $("input:radio[name=edit_layer_radio]").prop("disabled", false);
+                    $("#show_segmentation_button").show();
+                    if (cur_panel === "segmentation") {
+                        cur_panel = "annotation";
+                    }
+                }
     
                 // let content_size = viewer.world.getItemAt(0).getContentSize();
                 // let image_w = content_size.x;

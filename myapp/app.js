@@ -55,7 +55,7 @@ app.use((req, res, next) => {
     res.clearCookie('user_sid');
   }
   next();
-})
+});
 
 
 // catch 404 and forward to error handler
@@ -76,6 +76,8 @@ app.use(function(err, req, res, next) {
   //res.render('sign_in');
   res.redirect(process.env.CC_PATH);
 });
+
+
 
 
 // app.use((req, res, next) => {

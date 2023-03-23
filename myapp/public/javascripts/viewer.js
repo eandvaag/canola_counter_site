@@ -54,8 +54,6 @@ let voronoi_data = {
 let gsd = null;
 
 
-
-
 function show_metrics_modal() {
 
     let metric_definitions_url = get_CC_PATH() + "/usr/shared/metric_definitions.svg";
@@ -312,9 +310,8 @@ function build_map() {
     
     let sel_interpolation = $("input[name=interpolation_radio]:checked").val();
 
-    let map_chart_tile_size;
+
     let interpolated_value = "obj_density";
-    let vegetation_record_path = "";
 
     if (metadata["is_ortho"] === "yes") {
         map_chart_tile_size = $("#tile_size_slider").val();
