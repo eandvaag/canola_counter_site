@@ -49,13 +49,30 @@ function set_score_chart_data() {
             if (navigation_type === "images") {
                 score_chart_data[cur_img_name]["scores"] = predictions[cur_img_name]["scores"];
             }
+            else if (navigation_type === "regions_of_interest") {
+                score_chart_data[cur_img_name]["scores"] = [];
+                let region = annotations[cur_img_name][navigation_type][cur_region_index];
+                for (let i = 0; i < predictions[cur_img_name]["boxes"].length; i++) {
+                    let box = predictions[cur_img_name]["boxes"][i];
+                    let centre = [(box[0] + box[2]) / 2, (box[1] + box[3]) / 2];
+                    if (point_is_inside_polygon(centre, region)) {
+                        score_chart_data[cur_img_name]["scores"].push(predictions[cur_img_name]["scores"][i]);
+                    }
+                }
+            }
             else {
                 score_chart_data[cur_img_name]["scores"] = [];
                 let region = annotations[cur_img_name][navigation_type][cur_region_index];
                 for (let i = 0; i < predictions[cur_img_name]["boxes"].length; i++) {
-                    if (box_intersects_region(predictions[cur_img_name]["boxes"][i], region)) {
+                    let box = predictions[cur_img_name]["boxes"][i];
+                    let centre = [(box[0] + box[2]) / 2, (box[1] + box[3]) / 2];
+                    if (point_is_inside_box_region(centre, region)) {
                         score_chart_data[cur_img_name]["scores"].push(predictions[cur_img_name]["scores"][i]);
                     }
+
+                    // if (box_intersects_region(predictions[cur_img_name]["boxes"][i], region)) {
+                    //     score_chart_data[cur_img_name]["scores"].push(predictions[cur_img_name]["scores"][i]);
+                    // }
                 }
             }
         }

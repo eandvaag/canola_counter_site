@@ -9,6 +9,8 @@ let queued_filenames;
 let upload_input_format = /[\s `!@#$%^&*()+\=\[\]{};':"\\|,<>\/?~]/;
 
 
+const FILE_FORMAT = /[\s `!@#$%^&*()+\=\[\]{};':"\\|,<>\/?~]/;
+const FARM_FIELD_MISSION_FORMAT = /[\s `!@#$%^&*()+\=\[\]{}.;':"\\|,<>\/?~]/;
 
 
 function clear_form() {
@@ -20,8 +22,9 @@ function clear_form() {
     for (let key of Object.keys(dropzone_handlers)) {
         dropzone_handlers[key].removeAllFiles();
     }
-    disable_x_buttons("remove_image_set_files");
-    disable_x_buttons("remove_orthomosaic_files");
+    disable_x_buttons(["remove_image_set_files"]);
+    disable_x_buttons(["remove_orthomosaic_files"]);
+    disable_std_buttons(["upload_button"]);
 }
 
 /*
@@ -169,7 +172,7 @@ function test_farm_name() {
     if (input_length > 20) {
         return [false, "The provided farm name is too long. 20 characters is the maximum allowed length."];
     }
-    if (upload_input_format.test(input_val)) {
+    if (FARM_FIELD_MISSION_FORMAT.test(input_val)) {
         return [false, "The provided farm name contains invalid characters. White space and most special characters are not allowed."];
     }
     return [true, ""];
@@ -188,7 +191,7 @@ function test_field_name() {
     if (input_length > 20) {
         return [false, "The provided field name is too long. 20 characters is the maximum allowed length."];
     }
-    if (upload_input_format.test(input_val)) {
+    if (FARM_FIELD_MISSION_FORMAT.test(input_val)) {
         return [false, "The provided field name contains invalid characters. White space and most special characters are not allowed."];
     }
     return [true, ""];
@@ -206,7 +209,7 @@ function test_mission_date() {
     if (input_length > 20) {
         return [false, "The provided mission date is too long."];
     }
-    if (upload_input_format.test(input_val)) {
+    if (FARM_FIELD_MISSION_FORMAT.test(input_val)) {
         return [false, "The provided mission date contains invalid characters."];
     }
     let date = new Date(input_val);
@@ -900,7 +903,7 @@ function initialize_upload() {
         }
         if (res[0]) {
             for (let f of dropzone_handlers[handler_name].getQueuedFiles()) {
-                if (upload_input_format.test(f.name)) {
+                if (FILE_FORMAT.test(f.name)) {
                     res = [false, "One or more filenames contains illegal characters. White space and most special characters are not allowed."];
                 }
                 //if (has_duplicates()

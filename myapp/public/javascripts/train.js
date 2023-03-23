@@ -17,7 +17,7 @@ let cur_bounds = {};
 
 let added_image_sets = [];
 
-let model_name_format = /[\s `!@#$%^&*()+\=\[\]{};':"\\|,<>\/?~]/;
+const MODEL_NAME_FORMAT = /[\s `!@#$%^&*()+\=\[\]{}.;':"\\|,<>\/?~]/;
 
 let sort_options = [
     {"text": "Object Name", "value": "object_name"}, 
@@ -98,7 +98,7 @@ function train_form_is_complete() {
             return false;
         }
 
-        if (model_name_format.test(input_val)) {
+        if (MODEL_NAME_FORMAT.test(input_val)) {
             return false;
         }
 
@@ -1053,6 +1053,8 @@ function create_viewer(id_prefix, dzi_image_paths) {
                 let region = regions[id_prefix][viewers[id_prefix].currentPage()];
             
                 let boxes_to_add = {};
+                boxes_to_add["region_of_interest"] = {};
+                boxes_to_add["region_of_interest"]["boxes"] = annotations[id_prefix][cur_img_name]["regions_of_interest"];
                 boxes_to_add["training_region"] = {};
                 boxes_to_add["training_region"]["boxes"] = annotations[id_prefix][cur_img_name]["training_regions"];
                 boxes_to_add["test_region"] = {};
@@ -1083,7 +1085,7 @@ function create_viewer(id_prefix, dzi_image_paths) {
 
                 let draw_order;
                 if (region == null) {
-                    draw_order = ["training_region", "test_region", "annotation"];
+                    draw_order = ["region_of_interest", "training_region", "test_region", "annotation"];
                 }
                 else {
                     draw_order = ["annotation"];
@@ -1101,49 +1103,172 @@ function create_viewer(id_prefix, dzi_image_paths) {
                     overlays[id_prefix].context2d().fillStyle = overlay_appearance["colors"][key] + "55";
                     overlays[id_prefix].context2d().lineWidth = 2;
 
-                    let visible_boxes = [];
-                    for (let i = 0; i < boxes_to_add[key]["boxes"].length; i++) {
 
-                        let box = boxes_to_add[key]["boxes"][i];
 
-                        // let box_width_pct_of_image = (box[3] - box[1]) / overlays[id_prefix].imgWidth;
-                        // let disp_width = (box_width_pct_of_image / viewer_bounds.width) * container_size.x;
-                        // let box_height_pct_of_image = (box[3] - box[1]) / overlays[id_prefix].imgHeight;
-                        // let disp_height = (box_height_pct_of_image / viewer_bounds.height) * container_size.y;
 
-                        // if ((disp_width * disp_height) < 0.5) {
-                        //     continue;
-                        // }
+                    if (key === "region_of_interest") {
 
-                        if (((box[1] < max_x) && (box[3] > min_x)) && ((box[0] < max_y) && (box[2] > min_y))) {
-                            visible_boxes.push(box);
+                        for (let i = 0; i < boxes_to_add["region_of_interest"]["boxes"].length; i++) {
+
+                            let region = boxes_to_add["region_of_interest"]["boxes"][i];
+                            overlays[id_prefix].context2d().beginPath();
+                            for (let j = 0; j < region.length; j++) {
+                                let pt = region[j];
+                    
+                                let viewer_point = viewers[id_prefix].viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(pt[1], pt[0]));
+                                
+                                if (j == 0) {
+                                    overlays[id_prefix].context2d().moveTo(viewer_point.x, viewer_point.y);
+                                }
+                                else {
+                                    overlays[id_prefix].context2d().lineTo(viewer_point.x, viewer_point.y);
+                                }
+                            }
+
+                    
+                            overlays[id_prefix].context2d().closePath();
+                            overlays[id_prefix].context2d().stroke();
+                            if (overlay_appearance["style"][key] == "fillRect") {
+                                overlays[id_prefix].context2d().fill();
+                            }
+                    
                         }
                     }
-                    if (visible_boxes.length <= MAX_BOXES_DISPLAYED) {
-                        for (let box of visible_boxes) {
-                            
-                            let viewer_point = viewers[id_prefix].viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(box[1], box[0]));
-                            let viewer_point_2 = viewers[id_prefix].viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(box[3], box[2]));
-                            
-                            overlays[id_prefix].context2d().strokeRect(
-                                viewer_point.x,// * container_size.x,
-                                viewer_point.y,// * container_size.y,
-                                (viewer_point_2.x - viewer_point.x),// * container_size.x,
-                                (viewer_point_2.y - viewer_point.y)// * container_size.y
-                            );
-                            //}
-                            if (overlay_appearance["style"][key] == "fillRect") {
-                                overlays[id_prefix].context2d().fillRect(
+                    else {
+
+
+                        let visible_boxes = [];
+                        for (let i = 0; i < boxes_to_add[key]["boxes"].length; i++) {
+
+                            let box = boxes_to_add[key]["boxes"][i];
+
+                            // let box_width_pct_of_image = (box[3] - box[1]) / overlays[id_prefix].imgWidth;
+                            // let disp_width = (box_width_pct_of_image / viewer_bounds.width) * container_size.x;
+                            // let box_height_pct_of_image = (box[3] - box[1]) / overlays[id_prefix].imgHeight;
+                            // let disp_height = (box_height_pct_of_image / viewer_bounds.height) * container_size.y;
+
+                            // if ((disp_width * disp_height) < 0.5) {
+                            //     continue;
+                            // }
+
+                            if (((box[1] < max_x) && (box[3] > min_x)) && ((box[0] < max_y) && (box[2] > min_y))) {
+                                visible_boxes.push(box);
+                            }
+                        }
+                        if (visible_boxes.length <= MAX_BOXES_DISPLAYED) {
+                            for (let box of visible_boxes) {
+                                
+                                let viewer_point = viewers[id_prefix].viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(box[1], box[0]));
+                                let viewer_point_2 = viewers[id_prefix].viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(box[3], box[2]));
+                                
+                                overlays[id_prefix].context2d().strokeRect(
                                     viewer_point.x,// * container_size.x,
                                     viewer_point.y,// * container_size.y,
                                     (viewer_point_2.x - viewer_point.x),// * container_size.x,
                                     (viewer_point_2.y - viewer_point.y)// * container_size.y
                                 );
+                                //}
+                                if (overlay_appearance["style"][key] == "fillRect") {
+                                    overlays[id_prefix].context2d().fillRect(
+                                        viewer_point.x,// * container_size.x,
+                                        viewer_point.y,// * container_size.y,
+                                        (viewer_point_2.x - viewer_point.x),// * container_size.x,
+                                        (viewer_point_2.y - viewer_point.y)// * container_size.y
+                                    );
+                                }
                             }
                         }
                     }
                 }
 
+                if (region != null) {
+
+                    //let region = annotations[cur_img_name][navigation_type][cur_region_index];
+
+                    let image_px_width = overlays[id_prefix].imgWidth;
+                    let image_px_height = overlays[id_prefix].imgHeight;
+            
+                    let inner_poly;
+                    let outer_poly = [
+                        [0-1e6, 0-1e6], 
+                        [0-1e6, image_px_width+1e6], 
+                        [image_px_height+1e6, image_px_width+1e6],
+                        [image_px_height+1e6, 0-1e6]
+                    ];
+            
+                    // if (navigation_type === "regions_of_interest") {
+                    //     inner_poly = region;
+                    // }
+                    // else { 
+                    inner_poly = [
+                        [region[0], region[1]],
+                        [region[0], region[3]],
+                        [region[2], region[3]],
+                        [region[2], region[1]]
+                    ];
+                    // }
+            
+                    overlays[id_prefix].context2d().fillStyle = "#222621";
+                    overlays[id_prefix].context2d().beginPath();
+            
+                    for (let poly of [outer_poly, inner_poly]) {
+            
+                        for (let i = 0; i < poly.length+1; i++) {
+                            let pt = poly[(i)%poly.length];
+                            let viewer_point = viewers[id_prefix].viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(pt[1], pt[0]));
+            
+                            if (i == 0) {
+                                overlays[id_prefix].context2d().moveTo(viewer_point.x, viewer_point.y);
+                            }
+                            else {
+                                overlays[id_prefix].context2d().lineTo(viewer_point.x, viewer_point.y);
+                            }
+                        }
+                        overlays[id_prefix].context2d().closePath();
+            
+                    }
+                    overlays[id_prefix].context2d().mozFillRule = "evenodd";
+                    overlays[id_prefix].context2d().fill("evenodd");
+                }
+
+
+
+
+                if (cur_bounds[id_prefix] != null) {
+
+                    if (region != null) {
+            
+                        //let region = annotations[cur_img_name][navigation_type][cur_region_index];
+            
+                        // if (navigation_type === "regions_of_interest") {
+                        //     region = get_bounding_box_for_polygon(region);
+                        // }
+            
+                        viewers[id_prefix].world.getItemAt(0).setClip(
+                            new OpenSeadragon.Rect(
+                                region[1],
+                                region[0],
+                                (region[3] - region[1]),
+                                (region[2] - region[0])
+                            )
+                        );
+                    }
+            
+            
+                    withFastOSDAnimation(viewers[id_prefix].viewport, function() {
+                        viewers[id_prefix].viewport.fitBounds(cur_bounds[id_prefix]);
+                    });
+                    cur_bounds[id_prefix] = null;
+                }
+
+
+
+
+
+
+
+
+                /*
                 
                 // let region = annotations[cur_img_name][navigation_type][cur_region_index];
 
@@ -1152,12 +1277,12 @@ function create_viewer(id_prefix, dzi_image_paths) {
 
                 
                 if (region != null) {
-                    let rects = [
-                        [0, 0, region[0], image_px_width],
-                        [0, region[3], image_px_height, image_px_width],
-                        [region[2], 0, image_px_height, image_px_width],
-                        [0, 0, image_px_height, region[1]]
 
+                    let rects = [
+                        [0-1e6 , 0-1e6, region[0], image_px_width+1e6],
+                        [0-1e6, region[3], image_px_height+1e6, image_px_width+1e6],
+                        [region[2], 0-1e6, image_px_height+1e6, image_px_width+1e6],
+                        [0-1e6, 0-1e6, image_px_height+1e6, region[1]]
                     ];
 
                     // let bounds = annotations[cur_img_name][$("#navigation_dropdown").val()][cur_region_index];
@@ -1208,6 +1333,8 @@ function create_viewer(id_prefix, dzi_image_paths) {
                         //cur_bounds[id_prefix] = null;
                     }
                 }
+
+                */
             }
         },
         clearBeforeRedraw: true
@@ -1541,6 +1668,7 @@ function clear_train_form() {
     $("#model_object_input").prop("selectedIndex", -1);
     $("#added_image_sets").empty();
     $('#model_public').prop('checked', true);
+    disable_std_buttons(["submit_training_request"]);
 }
 
 

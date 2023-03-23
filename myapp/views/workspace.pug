@@ -15,13 +15,14 @@ html
         
         
 
-        script(src=process.env.CC_PATH + "/osd/openseadragon.min.js")
+        script(src=process.env.CC_PATH + "/osd/openseadragon.js")
         script(src=process.env.CC_PATH + "/annotorious/openseadragon-annotorious.min.js")
 
 
         //- link(rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@recogito/annotorious@latest/dist/annotorious.min.css")
-        //-script(src="https://cdn.jsdelivr.net/npm/@recogito/annotorious@latest/dist/annotorious.min.js")
+        //- script(src="https://cdn.jsdelivr.net/npm/@recogito/annotorious@latest/dist/annotorious.min.js")
         //- script(src="https://cdn.jsdelivr.net/npm/@recogito/annotorious-better-polygon@latest/dist/annotorious-better-polygon.js")
+        script(type='text/javascript' src=process.env.CC_PATH + '/javascripts/annotorious-better-polygon.js')
 
         script(src="https://code.jquery.com/jquery-3.6.0.js")
         script(src="https://unpkg.com/dropzone@6.0.0-beta.1/dist/dropzone-min.js")
@@ -38,6 +39,8 @@ html
         script(type='text/javascript' src=process.env.CC_PATH + '/javascripts/modal.js')
         script(type='text/javascript' src=process.env.CC_PATH + '/javascripts/canvas_overlay.js')
         script(type='text/javascript' src=process.env.CC_PATH + '/javascripts/voronoi.js')
+        script(type='text/javascript' src=process.env.CC_PATH + '/javascripts/poly.js')
+
 
     body
         div(id="container")
@@ -187,7 +190,7 @@ html
                                             table
                                                 tr
                                                     td(style="text-align: left")
-                                                        h(class="header2" style="width: 170px") Active Layer
+                                                        h(class="header2" style="width: 170px") Active Edit Layer
                                                     td(style="width: 100%")
                                                     td
                                                         button(class="std-button std-button-hover" style="padding: 2px; font-size: 14px; width: 40px" onclick="show_customize_overlays_modal()")
@@ -206,6 +209,10 @@ html
                                                                 input(type="radio" name="edit_layer_radio" value="annotation" checked)
                                                                 span(class="custom_radio" id="annotation_radio")
 
+                                                            label(class="custom_radio_container" id="region_of_interest_label") Region of Interest
+                                                                input(type="radio" name="edit_layer_radio" value="region_of_interest")
+                                                                span(class="custom_radio" id="region_of_interest_radio")
+
                                                             label(class="custom_radio_container" id="training_region_label") Fine-Tuning Region
                                                                 input(type="radio" name="edit_layer_radio" value="training_region")
                                                                 span(class="custom_radio" id="training_region_radio")
@@ -213,6 +220,7 @@ html
                                                             label(class="custom_radio_container" id="test_region_label") Test Region
                                                                 input(type="radio" name="edit_layer_radio" value="test_region")
                                                                 span(class="custom_radio" id="test_region_radio")
+
                                                     td(style="width: 50%")
 
 

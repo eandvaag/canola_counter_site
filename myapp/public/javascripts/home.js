@@ -132,6 +132,13 @@ function workspace_request() {
             show_modal_message(`Denied`, response.message);
         }
         else {
+            // $("#farm_combo").empty();
+            // $("#field_combo").empty();
+            // $("#mission_combo").empty();
+            // $("#farm_combo").prop("selectedIndex", -1);
+            // $("#field_combo").prop("selectedIndex", -1);
+            // $("#mission_combo").prop("selectedIndex", -1);
+            reset_to_initial_apperance();
             window.location.href = response.redirect;
         }
     });
@@ -776,11 +783,27 @@ function edit_image_set_metadata() {
     });
 }
 
+function reset_to_initial_apperance() {
+    $("#farm_combo").prop("selectedIndex", -1);
+    $("#field_combo").prop("selectedIndex", -1);
+    $("#mission_combo").prop("selectedIndex", -1);
+    $("#image_set_container").empty();
+
+    clear_form();
+    clear_train_form();
+
+    $("#sort_combo_1").val("object_name");
+    let filter_keys = ["username", "farm_name", "field_name", "mission_date", "object_name"];
+    for (let key of filter_keys) {
+        applied_filters[key] = "-- All --";
+    }
+    create_image_set_list();
+
+}
+
 function show_overview() {
 
-    //viewing_results = false;
     viewing["browse"] = "overview";
-
 
     let farm_name = $("#farm_combo").val();
     let field_name = $("#field_combo").val();
@@ -873,6 +896,11 @@ function show_overview() {
             $("#image_stats_table").append(`<tr>` +
                 `<td style="padding: 2px 0px"><div class="table_header2" style="width: ${label_width};">Annotations</div></td>` +
                 `<td><div style="text-align: left; width: ${value_width}; margin-left: 10px">${annotation_info["num_annotations"]}</div></td>` +
+                `</tr>`);
+
+            $("#image_stats_table").append(`<tr>` +
+                `<td style="padding: 2px 0px"><div class="table_header2" style="width: ${label_width};">Regions of Interest</div></td>` +
+                `<td><div style="text-align: left; width: ${value_width}; margin-left: 10px">${annotation_info["num_regions_of_interest"]}</div></td>` +
                 `</tr>`);
 
             $("#image_stats_table").append(`<tr>` +
@@ -1493,15 +1521,15 @@ function create_result_entry(result) {
                            farm_name + "/" + field_name + "/" + mission_date + "/" + result["request_uuid"];
 
         $("#" + main_result_container_id).append(
-            `<a href="${href}">` +
-                `<button class="std-button std-button-hover" style="font-size: 16px; width: 190px; height: 50px; border-radius: 100px">` + //`onclick="view_result('${result["request_uuid"]}')">`+
+            //`<a href="${href}">` +
+                `<button onclick=view_result('${href}') class="std-button std-button-hover" style="font-size: 16px; width: 190px; height: 50px; border-radius: 100px">` + //`onclick="view_result('${result["request_uuid"]}')">`+
                     //`<div style="margin: auto">` +
                     `<span>` +
                         `<i class="fa-regular fa-eye" style="margin-right:8px"></i>View Result` +
                     `</span>` +
                     //`</div>` +
-                `</button>` +
-            `</a>`
+                `</button>` // +
+            //`</a>`
         );
         $("#" + destroy_button_container_id).append(
             `<button class="x-button x-button-hover" style="width: 160px; font-size: 14px; padding: 3px;" ` +
@@ -1549,7 +1577,10 @@ function create_result_entry(result) {
 
 }
 
-
+function view_result(href) {
+    reset_to_initial_apperance();
+    window.location.href = href;
+}
 function show_results(results) {
 
     //viewing_results = true;
@@ -1946,6 +1977,7 @@ $(document).ready(function() {
     objects = data["objects"];
     available_image_sets = data["available_image_sets"];
     overlay_appearance = data["overlay_appearance"];
+
 
     initialize_browse();
     initialize_upload();

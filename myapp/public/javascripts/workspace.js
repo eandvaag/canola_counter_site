@@ -1,4 +1,4 @@
-
+// import BetterPolygon from '@recogito/annotorious-better-polygon';
 
 //let update_time = 0;
 
@@ -10,7 +10,7 @@ let annotations;
 let image_to_dzi;
 let predictions;
 let overlay_appearance;
-
+let tags;
 
 let viewer;
 let anno;
@@ -107,6 +107,9 @@ let keydown_handler = async function(e) {
             if (cur_edit_layer === "annotation") {
                 sel_box_array = annotations[cur_img_name]["boxes"];
             }
+            else if (cur_edit_layer === "region_of_interest") {
+                sel_box_array = annotations[cur_img_name]["regions_of_interest"];
+            }
             else if (cur_edit_layer === "training_region") {
                 sel_box_array = annotations[cur_img_name]["training_regions"];
 
@@ -149,6 +152,48 @@ let keydown_handler = async function(e) {
             //if ((cur_edit_layer !== "training_region") || !(locked_training_regions[selected_annotation_index])) {
 
 
+            if (cur_edit_layer === "region_of_interest") {
+                // let nav_item = cur_img_name + "/" + selected_annotation_index;
+                // for (let tag of Object.keys(tags)) {
+                //     if (nav_item in tags[tag]) {
+                //         delete tags[tag][nav_item];
+                //         if (Object.keys(tags[tag]).length == 0) {
+                //             delete tags[tag];
+                //         }
+                //     }
+                // }
+                // for (let tag of Object.keys(tags)) {
+                //     tags[tag][cur_img_name].splice(selected_annotation_index, 1);
+                // }
+
+                // for (let tag of Object.keys(tags)) {
+                //     for (let image_name of Object.keys(tags[tag])) {
+                //         if (tags[tag][image_name].length == 0)
+                //     }
+                // }
+                for (let tag_name of Object.keys(tags)) {
+                    for (let nav_item of Object.keys(tags[tag_name])) {
+                        let elements = nav_item.split("/");
+                        let iter_region_index = parseInt(elements[1]);
+                        // console.log(nav_item);
+                        // console.log(cur_img_name);
+                        // console.log(selected_annotation_index);
+                        let cur_affected_nav_item = cur_img_name + "/" + selected_annotation_index;
+                        // console.log(cur_affected_nav_item);
+                        if (nav_item === cur_affected_nav_item) {
+                            delete tags[tag_name][nav_item];
+                        }
+                        if (iter_region_index > selected_annotation_index) {
+                            tags[tag_name][elements[0] + "/" + String(elements[1]-1)] = tags[tag_name][nav_item];
+                            delete tags[tag_name][nav_item];
+                        }
+                    }
+                    if (Object.entries(tags[tag_name]).length == 0) {
+                        delete tags[tag_name];
+                    }
+                }
+            }
+
 
 
             sel_box_array.splice(selected_annotation_index, 1);
@@ -158,7 +203,11 @@ let keydown_handler = async function(e) {
             update_navigation_dropdown();
 
 
-            if (cur_edit_layer === "training_region") {
+            if (cur_edit_layer === "region_of_interest") {
+                update_region_name();
+                create_navigation_table();
+            }
+            else if (cur_edit_layer === "training_region") {
                 locked_training_regions[cur_img_name].splice(selected_annotation_index, 1);
                 update_region_name();
                 create_navigation_table();
@@ -271,7 +320,9 @@ let keydown_handler = async function(e) {
 
 
 
-function change_image(cur_nav_item) {
+async function change_image(cur_nav_item) {
+
+    await unselect_selected_annotation();
 
     //let region_text;
     
@@ -491,6 +542,119 @@ function set_cur_img_list() {
 
 
 
+function resize_poly_px_str(px_str) {
+    
+    let img_min_y;
+    let img_min_x;
+    let img_max_y;
+    let img_max_x;
+    // let navigation_type = "images";
+    // if (navigation_type === "images") {
+    let img_dims = viewer.world.getItemAt(0).getContentSize();
+    img_min_y = 0;
+    img_min_x = 0;
+    img_max_y = img_dims.y;
+    img_max_x = img_dims.x;
+    // }
+    // else {
+    //     let img_bounds;
+    //     if (navigation_type === "regions_of_interest") {
+    //         img_bounds = get_bounding_box_for_polygon(poly);
+    //     }
+    //     else {
+    //         img_bounds = annotations[cur_img_name][navigation_type][cur_region_index];
+    //     }
+    //     img_min_y = img_bounds[0];
+    //     img_min_x = img_bounds[1];
+    //     img_max_y = img_bounds[2];
+    //     img_max_x = img_bounds[3];
+    // }
+
+    let start = px_str.indexOf('"');
+    let end = px_str.lastIndexOf('"');
+
+    let coords_str = px_str.substring(start+1, end);
+
+    let less_than_min_y = 0;
+    let more_than_max_y = 0;
+    let less_than_min_x = 0;
+    let more_than_max_x = 0;
+
+    let revised_coords = [];
+    let lst_of_coord_strs = coords_str.split(" ");
+    for (let coord_str of lst_of_coord_strs) {
+        let coords = coord_str.split(",").map(x => parseFloat(x));
+        //console.log("coords", coords);
+
+        if (coords[1] < img_min_y) {
+            less_than_min_y++;
+            //coords[1] = img_min_y;
+        }
+        if (coords[1] > img_max_y) {
+            more_than_max_y++;
+            //coords[1] = img_max_y;
+        }
+        if (coords[0] < img_min_x) {
+            less_than_min_x++;
+            //coords[0] = img_min_x;
+        }
+        if (coords[0] > img_max_x) {
+            more_than_max_x++;
+            //coords[0] = img_max_x;
+        }
+        revised_coords.push([Math.round(coords[0]), Math.round(coords[1])]);
+
+    }
+    let num_coords = revised_coords.length;
+    if ((less_than_min_y == num_coords) ||
+        (more_than_max_y == num_coords) ||
+        (less_than_min_x == num_coords) ||
+        (more_than_max_x == num_coords)) {
+        
+        return "illegal";
+    }
+    else {
+        if (polygon_is_self_intersecting(revised_coords)) {
+            return "illegal";
+        }
+
+        let clip_polygon = [[0, 0], [img_max_x, 0], [img_max_x, img_max_y], [0, img_max_y]];
+        revised_coords = clip_polygons(revised_coords, clip_polygon);
+        //let unique_revised_coords = revised_coords.filter(onlyUnique);
+        //let unique_revised_coords = [...new Set(revised_coords)];
+        let rounded_revised_coords = [];
+        let added_str_coords = [];
+        for (let j = 0; j < revised_coords.length; j++) {
+            let coord = [Math.round(revised_coords[j][0]), Math.round(revised_coords[j][1])];
+            let str_coord = JSON.stringify(coord);
+            if (!(added_str_coords.includes(str_coord))) {
+                rounded_revised_coords.push(coord);
+                added_str_coords.push(str_coord);
+            }
+        }
+        // rounded_revised_coords = revised_coords;
+
+        // let bbox = get_bounding_box_for_polygon(rounded_revised_coords);
+        // if ((bbox[2] - bbox[0] == 0) || (bbox[3] - bbox[1] == 0)) {
+        //     return "illegal";
+        // }
+        if (rounded_revised_coords.length == 0) {
+            return "illegal";
+        }
+
+        if (get_polygon_area(rounded_revised_coords) < 5) {
+            return "illegal";            
+        }
+
+        let revised_coords_str = `<svg><polygon points="${rounded_revised_coords.map(xy => xy.join(',')).join(' ')}"></polygon></svg>`
+        return revised_coords_str;
+    }
+}
+
+
+
+
+
 function resize_px_str(px_str) {
     px_str = px_str.substring(11);
     let px_lst = px_str.split(",").map(x => parseFloat(x));
@@ -516,420 +680,284 @@ function resize_px_str(px_str) {
         img_max_x = img_bounds[3];
     }
 
+    let box_min_x = px_lst[0];
+    let box_min_y = px_lst[1];
+    let box_max_x = px_lst[0] + px_lst[2];
+    let box_max_y = px_lst[1] + px_lst[3];
 
-    let box_min_x = Math.max(px_lst[0], img_min_x);
-    let box_min_y = Math.max(px_lst[1], img_min_y);
+    if ((box_min_x < img_min_x && box_max_x < img_min_x) || 
+        (box_min_x > img_max_x && box_max_x > img_max_x) ||
+        (box_min_y < img_min_y && box_max_y < img_min_y) ||
+        (box_min_y > img_max_y && box_max_y > img_max_y)) {
 
-    let box_max_x = Math.min(px_lst[0] + px_lst[2], img_max_x);
-    let box_max_y = Math.min(px_lst[1] + px_lst[3], img_max_y);
-
-
-    let box_centre_x = (box_max_x + box_min_x) / 2;
-    let box_centre_y = (box_max_y + box_min_y) / 2;
-
-    let box_w = box_max_x - box_min_x;
-    let box_h = box_max_y - box_min_y;
+        return "illegal";
+    }
+    else {
 
 
-    //let min_dim = 1;
-    let max_dim = 800; //1600;
-    // if (box_w < min_dim) {
+        box_min_x = Math.max(box_min_x, img_min_x);
+        box_min_y = Math.max(box_min_y, img_min_y);
 
-    //     let tentative_box_min_x = box_centre_x - Math.floor(min_dim / 2);
-    //     let tentative_box_max_x = box_centre_x + Math.floor(min_dim / 2);
-    //     if (tentative_box_min_x < img_min_x) {
-    //         box_min_x = img_min_x;
-    //         box_max_x = img_min_x + min_dim;
-    //     }
-    //     else if (tentative_box_max_x > img_max_x) {
-    //         box_min_x = (img_max_x) - min_dim;
-    //         box_max_x = img_max_x;
-    //     }
-    //     else {
-    //         box_min_x = tentative_box_min_x;
-    //         box_max_x = tentative_box_max_x;
-    //     }
+        box_max_x = Math.min(box_max_x, img_max_x);
+        box_max_y = Math.min(box_max_y, img_max_y);
+
+
+        let box_centre_x = (box_max_x + box_min_x) / 2;
+        let box_centre_y = (box_max_y + box_min_y) / 2;
+
+        let box_w = box_max_x - box_min_x;
+        let box_h = box_max_y - box_min_y;
+
+
+        //let min_dim = 1;
+        let max_dim = 800; //1600;
+        // if (box_w < min_dim) {
+
+        //     let tentative_box_min_x = box_centre_x - Math.floor(min_dim / 2);
+        //     let tentative_box_max_x = box_centre_x + Math.floor(min_dim / 2);
+        //     if (tentative_box_min_x < img_min_x) {
+        //         box_min_x = img_min_x;
+        //         box_max_x = img_min_x + min_dim;
+        //     }
+        //     else if (tentative_box_max_x > img_max_x) {
+        //         box_min_x = (img_max_x) - min_dim;
+        //         box_max_x = img_max_x;
+        //     }
+        //     else {
+        //         box_min_x = tentative_box_min_x;
+        //         box_max_x = tentative_box_max_x;
+        //     }
+            
+        // }
+
+        if (cur_edit_layer === "annotation") { 
+            if (box_w > max_dim) {
+
+                let tentative_box_min_x = box_centre_x - Math.floor(max_dim / 2);
+                let tentative_box_max_x = box_centre_x + Math.floor(max_dim / 2);
+                if (max_dim > (img_max_x - img_min_x)) {
+                    box_min_x = img_min_x;
+                    box_max_x = img_max_x;
+                }
+                else if (tentative_box_min_x < img_min_x) {
+                    box_min_x = img_min_x;
+                    box_max_x = img_min_x + max_dim;
+                }
+                else if (tentative_box_max_x > img_max_x) {
+                    box_min_x = (img_max_x) - max_dim;
+                    box_max_x = img_max_x;
+                }
+                else {
+                    box_min_x = tentative_box_min_x;
+                    box_max_x = tentative_box_max_x;
+                }
+            }
+        }
+
+
+        // if (box_h < min_dim) {
+        //     let tentative_box_min_y = box_centre_y - Math.floor(min_dim / 2);
+        //     let tentative_box_max_y = box_centre_y + Math.floor(min_dim / 2);
+        //     if (tentative_box_min_y < img_min_y) {
+        //         box_min_y = img_min_y;
+        //         box_max_y = img_min_y + min_dim;
+        //     }
+        //     else if (tentative_box_max_y > img_max_y) {
+        //         box_min_y = (img_max_y) - min_dim;
+        //         box_max_y = img_max_y;
+        //     }
+        //     else {
+        //         box_min_y = tentative_box_min_y;
+        //         box_max_y = tentative_box_max_y;
+        //     }
+        // }
+
+        if (cur_edit_layer === "annotation") { 
+            if (box_h > max_dim) {
+
+                let tentative_box_min_y = box_centre_y - Math.floor(max_dim / 2);
+                let tentative_box_max_y = box_centre_y + Math.floor(max_dim / 2);
+                if (max_dim > (img_max_y - img_min_y)) {
+                    box_min_y = img_min_y;
+                    box_max_y = img_max_y;
+                }
+                else if (tentative_box_min_y < img_min_y) {
+                    box_min_y = img_min_y;
+                    box_max_y = img_min_y + max_dim;
+                }
+                else if (tentative_box_max_y > img_max_y) {
+                    box_min_y = (img_max_y) - max_dim;
+                    box_max_y = img_max_y;
+                }
+                else {
+                    box_min_y = tentative_box_min_y;
+                    box_max_y = tentative_box_max_y;
+                }
+            }
+        }
+
+
+        box_w = box_max_x - box_min_x;
+        box_h = box_max_y - box_min_y;
+
+        let updated_px_str = "xywh=pixel:" + box_min_x + "," + box_min_y +
+                            "," + box_w + "," + box_h;
+
         
-    // }
-
-    if (cur_edit_layer === "annotation") { 
-        if (box_w > max_dim) {
-
-            let tentative_box_min_x = box_centre_x - Math.floor(max_dim / 2);
-            let tentative_box_max_x = box_centre_x + Math.floor(max_dim / 2);
-            if (max_dim > (img_max_x - img_min_x)) {
-                box_min_x = img_min_x;
-                box_max_x = img_max_x;
-            }
-            else if (tentative_box_min_x < img_min_x) {
-                box_min_x = img_min_x;
-                box_max_x = img_min_x + max_dim;
-            }
-            else if (tentative_box_max_x > img_max_x) {
-                box_min_x = (img_max_x) - max_dim;
-                box_max_x = img_max_x;
-            }
-            else {
-                box_min_x = tentative_box_min_x;
-                box_max_x = tentative_box_max_x;
-            }
-        }
+        return updated_px_str;
     }
 
-
-    // if (box_h < min_dim) {
-    //     let tentative_box_min_y = box_centre_y - Math.floor(min_dim / 2);
-    //     let tentative_box_max_y = box_centre_y + Math.floor(min_dim / 2);
-    //     if (tentative_box_min_y < img_min_y) {
-    //         box_min_y = img_min_y;
-    //         box_max_y = img_min_y + min_dim;
-    //     }
-    //     else if (tentative_box_max_y > img_max_y) {
-    //         box_min_y = (img_max_y) - min_dim;
-    //         box_max_y = img_max_y;
-    //     }
-    //     else {
-    //         box_min_y = tentative_box_min_y;
-    //         box_max_y = tentative_box_max_y;
-    //     }
-    // }
-
-    if (cur_edit_layer === "annotation") { 
-        if (box_h > max_dim) {
-
-            let tentative_box_min_y = box_centre_y - Math.floor(max_dim / 2);
-            let tentative_box_max_y = box_centre_y + Math.floor(max_dim / 2);
-            if (max_dim > (img_max_y - img_min_y)) {
-                box_min_y = img_min_y;
-                box_max_y = img_max_y;
-            }
-            else if (tentative_box_min_y < img_min_y) {
-                box_min_y = img_min_y;
-                box_max_y = img_min_y + max_dim;
-            }
-            else if (tentative_box_max_y > img_max_y) {
-                box_min_y = (img_max_y) - max_dim;
-                box_max_y = img_max_y;
-            }
-            else {
-                box_min_y = tentative_box_min_y;
-                box_max_y = tentative_box_max_y;
-            }
-        }
-    }
-
-
-    box_w = box_max_x - box_min_x;
-    box_h = box_max_y - box_min_y;
-
-    let updated_px_str = "xywh=pixel:" + box_min_x + "," + box_min_y +
-                         "," + box_w + "," + box_h;
-
-    return updated_px_str;
 
 }
-
-// function update_image_status() {
-//     let prev_status = annotations[cur_img_name]["status"];
-//     let num_image_annotations = annotations[cur_img_name]["boxes"].length;
-//     let new_status = prev_status;
-//     if (prev_status === "unannotated" && num_image_annotations > 0) {
-//         new_status = "started";
-//     }
-//     else if (prev_status === "started" && num_image_annotations == 0) {
-//         new_status = "unannotated";
-//     }
-//     annotations[cur_img_name]["status"] = new_status;
-// }
-
-// function set_image_status_combo() {
-
-//     let cur_image_status = annotations[cur_img_name]["status"];
-//     let num_annotations = annotations[cur_img_name]["boxes"].length;
-//     let image_status_options;
-//     if ((cur_image_status === "completed_for_training") && (locked_training_images[cur_img_name])) { //training") {
-//         image_status_options = ["completed_for_training"]; //training"];
-//     }
-//     else if (((cur_image_status === "completed_for_training") && (!(locked_training_images[cur_image_name]))) || 
-//                 (cur_image_status === "completed_for_testing")) {
-//         if (num_annotations == 0) {
-//             image_status_options = ["unannotated", "completed_for_training", "completed_for_testing"];
-//         }
-//         else {
-//             image_status_options = ["started", "completed_for_training", "completed_for_testing"];
-//         }
-//     }
-//         /*
-//         if (num_annotations > 0) {
-//             image_status_options = ["started", "completed"];
-//         }
-//         else {
-//             image_status_options = ["unannotated", "completed"];
-//         }*/
-//     else if (cur_image_status === "started") {
-//         image_status_options = ["started", "completed_for_training", "completed_for_testing"];
-//     }
-//     else if (cur_image_status === "unannotated") {
-//         image_status_options = ["unannotated", "completed_for_training", "completed_for_testing"];
-//     }
-
-
-//     $("#status_combo").empty();
-//     $("#status_combo").css("background-color", status_color[cur_image_status]);
-//     for (let image_status of image_status_options) {
-//         let color = status_color[image_status];
-//         let text = status_to_text[image_status];
-//         //$("#status_combo").append(`<option style="background-color: ${color}" value="${image_status}">${image_status}</option>`);
-//         $("#status_combo").append(`<option style="background-color: ${color}" value="${image_status}">${text}</option>`);
-//         /*
-//         $("#status_combo").append($('<option style="background-color: red">', {
-//             value: image_status,
-//             text: image_status
-//         }));*/
-//     }
-//     $("#status_combo").val(cur_image_status);
-// }
-
 
 
 function create_anno() {
 
-
     anno = OpenSeadragon.Annotorious(viewer, {
         disableEditor: true,
-        disableSelect: true, //false, //readOnly,
-        readOnly: true, //false, //readOnly,
+        disableSelect: true,
+        readOnly: true,
         formatter: formatter,
-        //drawOnSingleClick: true
     });
 
-    // Annotorious.BetterPolygon(anno);
+    Annotorious.BetterPolygon(anno);
 
-    // anno.removeDrawingTool("rect");
-    // anno.setDrawingTool("polygon");
-
-    //anno.setDrawingTool("rect");
-    // anno.on('clickAnnotation', function(annotation, element) {
-    //     console.log("clickAnnotation");
-    // });
-
-    // anno.on("startSelection", function(point) {
-    //     console.log("startSelection");
-    // });
+    if (cur_edit_layer === "region_of_interest") {
+        anno.setDrawingTool("polygon");
+    }
+    else {
+        anno.setDrawingTool("rect");
+    }
 
     anno.on('cancelSelected', function(selection) {
-
-        // console.log("cancelSelected")
-        //console.log("cancelSelected", selection, anno.getSelected());
-        // anno.clearAnnotations();
-        // selected_annotation_index = -1;
-        // selected_annotation = null;
         anno.updateSelected(selection, true);
-        //viewer.raiseEvent('update-viewport');
-        //anno.updateSelected(selected_annotation, true);
-        //anno.updateAnnotation(selected); //clearAnnotations();
-        //viewer.raiseEvent('')
-        //viewer.raiseEvent('canvas-click'); //update-viewport');
     });
 
     anno.on('createAnnotation', function(annotation) {
-        //anno.on('createSelection', function(annotation) {
 
-        // console.log("createAnnotation");
-
-        //annotations[cur_img_name]["annotations"] = anno.getAnnotations();
-        //annotation
-
-        // annotations[cur_img_name]["update_time"] = parseInt(new Date().getTime() / 1000);
-
-        /*
-        let box = updated_px_str.split(",");
-
-        annotations[cur_img_name]["boxes"].push([box[1], box[0], box[1] + box[3], box[0] + box[2]]);
-        viewer.raiseEvent('update-viewport');
-        
-*/
         selected_annotation_index = -1
         selected_annotation = null;
 
         
-        let updated_px_str = annotation["target"]["selector"]["value"];
-        updated_px_str = updated_px_str.substring(11);
-        let px_lst = updated_px_str.split(",").map(x => parseFloat(x));
-/*
-        if ($("#add_training_region_button").is(":disabled")) {
-            training_regions.push([
-                parseFloat(px_lst[1].toFixed(2)), 
-                parseFloat(px_lst[0].toFixed(2)), 
-                parseFloat((px_lst[1] + px_lst[3]).toFixed(2)), 
-                parseFloat((px_lst[0] + px_lst[2]).toFixed(2))
-            ]);
-        }*/
+        let px_str = annotation["target"]["selector"]["value"];
 
-        let box = [
-            // parseFloat(px_lst[1].toFixed(2)), 
-            // parseFloat(px_lst[0].toFixed(2)), 
-            // parseFloat((px_lst[1] + px_lst[3]).toFixed(2)), 
-            // parseFloat((px_lst[0] + px_lst[2]).toFixed(2))
+        let box;
+        let illegal_box = false;
+        if (cur_edit_layer === "region_of_interest") {
+            let start = px_str.indexOf('"');
+            let end = px_str.lastIndexOf('"');
 
-            Math.round(px_lst[1]), 
-            Math.round(px_lst[0]), 
-            Math.round(px_lst[1] + px_lst[3]),
-            Math.round(px_lst[0] + px_lst[2])
-        ];
-
-
-        //let edit_layer = $('input[name=edit_layer_radio]:checked').val();
-
-        // let update_save_icon = true;
-        let sel_box_array;
-        if (cur_edit_layer === "annotation") {
-            // let intersects = false;
-            // for (let i = 0; i < annotations[cur_img_name]["training_regions"].length; i++) {
-            //     if ((locked_training_regions[i]) && 
-            //         (box_intersects_region(box, annotations[cur_img_name]["training_regions"][i]))) {
-            //         intersects = true;
-            //         update_save_icon = false;
-            //         break;
-            //     }
-            // }
-            // if (!intersects) {
-            //     annotations[cur_img_name]["boxes"].push(box);
-            // }
-            sel_box_array = annotations[cur_img_name]["boxes"];
-        }
-        else if (cur_edit_layer === "training_region") {
-            //new_training_regions[cur_img_name].push(box);
-            sel_box_array = annotations[cur_img_name]["training_regions"];
-            //annotations[cur_img_name]["training_regions"].push(box);
-            // let num_regions = get_num_regions("training_regions");
-            // if (num_regions == 0) {
-                
-            //     let num_options = $('#navigation_dropdown').children('option').length;
-            //     $("#navigation_dropdown").empty();
-            //     if (num_options == 1) {
-            //         $("#navigation_dropdown").append($("<option></option>").val("images").text("Images"));
-            //         $("#navigation_dropdown").append($("<option></option>").val("training_regions").text("Fine-Tuning Regions"));
-            //     }
-            //     else if (num_options == 2) {
-            //         $("#navigation_dropdown").append($("<option></option>").val("images").text("Images"));
-            //         $("#navigation_dropdown").append($("<option></option>").val("training_regions").text("Fine-Tuning Regions"));
-            //         $("#navigation_dropdown").append($("<option></option>").val("test_regions").text("Test Regions"));
-            //     }
-
-
-            //     //$("#navigation_dropdown").eq(0).before($("<option></option>").val("training_regions").text("Fine-Tuning Regions"));
-            // }
-            
+            let coords_str = px_str.substring(start+1, end);
+            let lst_of_coord_strs = coords_str.split(" ");
+            box = [];
+            for (let coord_str of lst_of_coord_strs) {
+                let coords = coord_str.split(",").map(x => parseFloat(x));
+                box.push([Math.round(coords[1]), Math.round(coords[0])]);
+            }
         }
         else {
-            sel_box_array = annotations[cur_img_name]["test_regions"]
-            //annotations[cur_img_name]["test_regions"].push(box);
+            px_str = px_str.substring(11);
+            let px_lst = px_str.split(",").map(x => parseFloat(x));
 
-            // let num_regions = get_num_regions("test_regions");
-            // if (num_regions == 0) {
-            //     let num_options = $('#navigation_dropdown').children('option').length;
-            //     $("#navigation_dropdown").empty();
-            //     if (num_options == 1) {
-            //         $("#navigation_dropdown").append($("<option></option>").val("images").text("Images"));
-            //         $("#navigation_dropdown").append($("<option></option>").val("test_regions").text("Test Regions"));
-            //     }
-            //     else if (num_options == 2) {
-            //         $("#navigation_dropdown").append($("<option></option>").val("images").text("Images"));
-            //         $("#navigation_dropdown").append($("<option></option>").val("training_regions").text("Fine-Tuning Regions"));
-            //         $("#navigation_dropdown").append($("<option></option>").val("test_regions").text("Test Regions"));
-            //     }
-                  
-            // }
-        }
-
-        let illegal_intersection = false;
-        if (cur_edit_layer === "annotation") {
-            for (let i = 0; i < annotations[cur_img_name]["training_regions"].length; i++) {
-                if ((box_intersects_region(box, annotations[cur_img_name]["training_regions"][i])) && locked_training_regions[cur_img_name][i]) {
-                    illegal_intersection = true;
-                    break;
-                }
-            }
-        }
-        // else if (cur_edit_layer === "test_region") {
-        //     for (let i = 0; i < annotations[cur_img_name]["training_regions"].length; i++) {
-        //         if (box_intersects_region(box, annotations[cur_img_name]["training_regions"][i])) {
-        //             illegal_intersection = true;
-        //             break;
-        //         }
-        //     }
-        // }
-        else if ((cur_edit_layer === "training_region") || (cur_edit_layer === "test_region")) {
-
-                loop1:
-                for (let region_key of ["training_regions", "test_regions"]) {
-                    
-                    if (annotations[cur_img_name][region_key].length >= 99) {
-                        illegal_intersection = true;
-                    }
-
-                    for (let i = 0; i < annotations[cur_img_name][region_key].length; i++) {
-                        if (box_intersects_region(box, annotations[cur_img_name][region_key][i])) {
-                            illegal_intersection = true;
-                            break loop1;
-                        }
-                    }
-                }
-        }
-        if (!(illegal_intersection)) {
-            sel_box_array.push(box);
-            update_navigation_dropdown();
-            if (cur_edit_layer === "training_region") {
-                locked_training_regions[cur_img_name].push(false);
-                update_region_name();
-                create_navigation_table();
-            }
-            else if (cur_edit_layer === "annotation") {
-                if (annotations[cur_img_name]["source"] === "NA") {
-                    annotations[cur_img_name]["source"] = "manually_annotated_from_scratch";
-                }
-                else if (annotations[cur_img_name]["source"] === "unmodified_model_predictions") {
-                    annotations[cur_img_name]["source"] = "edited_model_predictions";
-                }
-                else if (annotations[cur_img_name]["source"] === "uploaded") {
-                    annotations[cur_img_name]["source"] = "uploaded_and_edited";
-                }
-                if (cur_img_name in voronoi_data && "annotation" in voronoi_data[cur_img_name]) {
-                    delete voronoi_data[cur_img_name]["annotation"];
-                }
+            if (px_lst[0] == -1) {
+                illegal_box = true;
             }
             else {
-                update_region_name();
-                create_navigation_table();
+
+                box = [
+                    Math.round(px_lst[1]), 
+                    Math.round(px_lst[0]), 
+                    Math.round(px_lst[1] + px_lst[3]),
+                    Math.round(px_lst[0] + px_lst[2])
+                ];
             }
-            
+        }
+        let sel_box_array;
+        if (cur_edit_layer === "annotation") {
+            sel_box_array = annotations[cur_img_name]["boxes"];
+        }
+        else if (cur_edit_layer == "region_of_interest") {
+            sel_box_array = annotations[cur_img_name]["regions_of_interest"];
+        }
+        else if (cur_edit_layer === "training_region") {
+            sel_box_array = annotations[cur_img_name]["training_regions"];
+        }
+        else {
+            sel_box_array = annotations[cur_img_name]["test_regions"];
+        }
 
+        if (!(illegal_box)) {
+            let illegal_intersection = false;
+            if (cur_edit_layer === "annotation") {
+                for (let i = 0; i < annotations[cur_img_name]["training_regions"].length; i++) {
+                    if ((box_intersects_region(box, annotations[cur_img_name]["training_regions"][i])) && locked_training_regions[cur_img_name][i]) {
+                        illegal_intersection = true;
+                        break;
+                    }
+                }
+            }
+            else if (cur_edit_layer === "region_of_interest") {
+                if (annotations[cur_img_name]["regions_of_interest"].length >= 99) {
+                    illegal_intersection = true;
+                }
 
+                if (polygon_is_self_intersecting(box)) {
+                    illegal_intersection = true;
+                }
+            }
+            else if ((cur_edit_layer === "training_region") || (cur_edit_layer === "test_region")) {
 
+                    loop1:
+                    for (let region_key of ["training_regions", "test_regions"]) {
+                        
+                        if (annotations[cur_img_name][region_key].length >= 99) {
+                            illegal_intersection = true;
+                        }
 
-            $("#save_icon").css("color", "#ed452b");
+                        for (let i = 0; i < annotations[cur_img_name][region_key].length; i++) {
+                            if (box_intersects_region(box, annotations[cur_img_name][region_key][i])) {
+                                illegal_intersection = true;
+                                break loop1;
+                            }
+                        }
+                    }
+            }
+            if (!(illegal_intersection)) {
+                sel_box_array.push(box);
+                update_navigation_dropdown();
+                if (cur_edit_layer === "training_region") {
+                    locked_training_regions[cur_img_name].push(false);
+                    update_region_name();
+                    create_navigation_table();
+                }
+                else if (cur_edit_layer === "annotation") {
+                    if (annotations[cur_img_name]["source"] === "NA") {
+                        annotations[cur_img_name]["source"] = "manually_annotated_from_scratch";
+                    }
+                    else if (annotations[cur_img_name]["source"] === "unmodified_model_predictions") {
+                        annotations[cur_img_name]["source"] = "edited_model_predictions";
+                    }
+                    else if (annotations[cur_img_name]["source"] === "uploaded") {
+                        annotations[cur_img_name]["source"] = "uploaded_and_edited";
+                    }
+                    if (cur_img_name in voronoi_data && "annotation" in voronoi_data[cur_img_name]) {
+                        delete voronoi_data[cur_img_name]["annotation"];
+                    }
+                }
+                else {
+                    update_region_name();
+                    create_navigation_table();
+                }
+
+                $("#save_icon").css("color", "#ed452b");
+            }
         }
 
         anno.clearAnnotations();
         viewer.raiseEvent('update-viewport');
-
-
-
-
-
-        // update_image_status();
-        // set_image_status_combo();
-        // if (update_save_icon) {
-        //     $("#save_icon").css("color", "#ed452b");
-        // }
-        // create_image_set_table();
     });
 
     anno.on('createSelection', async function(selection) {
-
-        // console.log("createSelection")
-        // console.log(selection)
 
         selection.target.source = window.location.href;
         
@@ -940,185 +968,151 @@ function create_anno() {
         }];
 
         let px_str = selection.target.selector.value;
-        let updated_px_str = resize_px_str(px_str);
+        let updated_px_str;
+        if (cur_edit_layer === "region_of_interest") {
+            updated_px_str = resize_poly_px_str(px_str);
+        }
+        else { 
+            updated_px_str = resize_px_str(px_str);
+        }
 
-        selection.target.selector.value = updated_px_str;
+        if (updated_px_str === "illegal") {
+            anno.clearAnnotations();
+        }
 
-        // Make sure to wait before saving!
+        else {
+            selection.target.selector.value = updated_px_str;
 
-        await anno.updateSelected(selection);
-        anno.saveSelected();
-        //await anno.updateSelected(selection, true);
+            // Make sure to wait before saving!
+            await anno.updateSelected(selection);
+            anno.saveSelected();
+        }
 
         
     });
 
-    /*
-    anno.on('cancelSelected', function(selection) {
-        console.log("CANCEL SELECTED", selection);
-        
-        selected_annotation_index = -1
-        selected_annotation = null;
-        anno.clearAnnotations();
-        viewer.raiseEvent('update-viewport');
-
-    });*/
-
     anno.on('updateAnnotation', async function(annotation, previous) {
 
-        // console.log("updateAnnotation");
-
         let px_str = annotation.target.selector.value;
-        let updated_px_str = resize_px_str(px_str);
-
-        annotation.target.selector.value = updated_px_str;
-
-        //await anno.updateSelected(annotation);
-        //anno.saveSelected();
-        //await anno.updateSelected(selection, true);
-
-        //let box = updated_px_str.split(",");
-        updated_px_str = updated_px_str.substring(11);
-        let px_lst = updated_px_str.split(",").map(x => parseFloat(x));
-
-        //annotations[cur_img_name]["boxes"][selected_annotation_index] 
-        let updated_box = [
-            // parseFloat(px_lst[1].toFixed(2)), 
-            // parseFloat(px_lst[0].toFixed(2)), 
-            // parseFloat((px_lst[1] + px_lst[3]).toFixed(2)), 
-            // parseFloat((px_lst[0] + px_lst[2]).toFixed(2)),
-            Math.round(px_lst[1]), 
-            Math.round(px_lst[0]), 
-            Math.round(px_lst[1] + px_lst[3]),
-            Math.round(px_lst[0] + px_lst[2])
-        ];
-
-
-        // let prev_box;
-        
-        //let edit_layer = $('input[name=edit_layer_radio]:checked').val();
-        let sel_box_array;
-        // let update_save_icon = true;
-        if (cur_edit_layer === "annotation") {
-            sel_box_array = annotations[cur_img_name]["boxes"];
-            // prev_box = sel_box_array[selected_annotation_index];
-            // let intersects = false;
-            // for (let i = 0; i < annotations[cur_img_name]["training_regions"].length; i++) {
-            //     if ((locked_training_regions[i]) && 
-            //     (box_intersects_region(updated_box, annotations[cur_img_name]["training_regions"][i]))) {
-            //         intersects = true;
-            //         update_save_icon = false;
-            //         break;
-            //     }
-            // }
-            // if (!intersects) {
-            //     sel_box_array[selected_annotation_index] = updated_box;
-            // }
-            // sel_box_array[selected_annotation_index] = updated_box;
+        let updated_px_str;
+        if (cur_edit_layer === "region_of_interest") {
+            updated_px_str = resize_poly_px_str(px_str);
         }
-        else if (cur_edit_layer === "training_region") {
-            sel_box_array = annotations[cur_img_name]["training_regions"];
-            // prev_box = sel_box_array[selected_annotation_index];
-            // sel_box_array[selected_annotation_index] = updated_box;
-        }
-        else {
-            sel_box_array = annotations[cur_img_name]["test_regions"];
-            // prev_box = sel_box_array[selected_annotation_index];
-            // sel_box_array[selected_annotation_index] = updated_box;
+        else { 
+            updated_px_str = resize_px_str(px_str);
         }
 
-        let illegal_intersection = false;
-        if (cur_edit_layer === "annotation") {
-            for (let i = 0; i < annotations[cur_img_name]["training_regions"].length; i++) {
-                if ((box_intersects_region(updated_box, annotations[cur_img_name]["training_regions"][i])) && locked_training_regions[cur_img_name][i]) {
-                    illegal_intersection = true;
-                    break;
+        if (updated_px_str !== "illegal") {
+
+            annotation.target.selector.value = updated_px_str;
+
+            let updated_box;
+            if (cur_edit_layer === "region_of_interest") {
+                let start = updated_px_str.indexOf('"');
+                let end = updated_px_str.lastIndexOf('"');
+            
+                let coords_str = updated_px_str.substring(start+1, end);
+                let lst_of_coord_strs = coords_str.split(" ");
+                updated_box = [];
+                for (let coord_str of lst_of_coord_strs) {
+                    let coords = coord_str.split(",").map(x => parseFloat(x));
+                    updated_box.push([Math.round(coords[1]), Math.round(coords[0])]);
                 }
+
             }
-        }
-        // else if (cur_edit_layer === "test_region") {
-        //     for (let i = 0; i < annotations[cur_img_name]["training_regions"].length; i++) {
-        //         if ((box_intersects_region(updated_box, annotations[cur_img_name]["training_regions"][i]))) {
-        //             illegal_intersection = true;
-        //             break;
-        //         }
-        //     }
-        // }
-        else if ((cur_edit_layer === "training_region") || (cur_edit_layer === "test_region")) {
-            loop1:
-            for (let region_key of ["training_regions", "test_regions"]) {
-                for (let i = 0; i < annotations[cur_img_name][region_key].length; i++) {
-                    if ((region_key === cur_edit_layer + "s") && (i == selected_annotation_index)) {
-                        continue;
-                    }
-                    if (box_intersects_region(updated_box, annotations[cur_img_name][region_key][i])) {
+            else {
+                updated_px_str = updated_px_str.substring(11);
+                let px_lst = updated_px_str.split(",").map(x => parseFloat(x));
+
+                updated_box = [
+                    Math.round(px_lst[1]), 
+                    Math.round(px_lst[0]), 
+                    Math.round(px_lst[1] + px_lst[3]),
+                    Math.round(px_lst[0] + px_lst[2])
+                ];
+            }
+
+            let sel_box_array;
+            if (cur_edit_layer === "annotation") {
+                sel_box_array = annotations[cur_img_name]["boxes"];
+            }
+            else if (cur_edit_layer === "region_of_interest") {
+                sel_box_array = annotations[cur_img_name]["regions_of_interest"];
+            }
+            else if (cur_edit_layer === "training_region") {
+                sel_box_array = annotations[cur_img_name]["training_regions"];
+            }
+            else {
+                sel_box_array = annotations[cur_img_name]["test_regions"];
+            }
+
+            let illegal_intersection = false;
+            if (cur_edit_layer === "annotation") {
+                for (let i = 0; i < annotations[cur_img_name]["training_regions"].length; i++) {
+                    if ((box_intersects_region(updated_box, annotations[cur_img_name]["training_regions"][i])) && locked_training_regions[cur_img_name][i]) {
                         illegal_intersection = true;
-                        break loop1;
+                        break;
+                    }
+                }
+            }
+            else if (cur_edit_layer === "region_of_interest") {
+                if (polygon_is_self_intersecting(updated_box)) {
+                    illegal_intersection = true;
+                }
+            }
+            else if ((cur_edit_layer === "training_region") || (cur_edit_layer === "test_region")) {
+                loop1:
+                for (let region_key of ["training_regions", "test_regions"]) {
+                    for (let i = 0; i < annotations[cur_img_name][region_key].length; i++) {
+                        if ((region_key === cur_edit_layer + "s") && (i == selected_annotation_index)) {
+                            continue;
+                        }
+                        if (box_intersects_region(updated_box, annotations[cur_img_name][region_key][i])) {
+                            illegal_intersection = true;
+                            break loop1;
+                        }
+                    }
+                }
+            }
+            if (!(illegal_intersection)) {
+                let prev_box = sel_box_array[selected_annotation_index];
+                sel_box_array[selected_annotation_index] = updated_box;
+
+                if (!(arraysEqual(updated_box, prev_box))) {
+                    $("#save_icon").css("color", "#ed452b");
+
+
+                    if (cur_edit_layer === "annotation") {
+                    
+                        if (annotations[cur_img_name]["source"] === "unmodified_model_predictions") {
+                            annotations[cur_img_name]["source"] = "edited_model_predictions";
+                        }
+
+                        if (cur_img_name in voronoi_data && "annotation" in voronoi_data[cur_img_name]) {
+                            delete voronoi_data[cur_img_name]["annotation"];
+                        }
                     }
                 }
             }
         }
-        if (!(illegal_intersection)) {
-            let prev_box = sel_box_array[selected_annotation_index];
-            sel_box_array[selected_annotation_index] = updated_box;
-
-            if (!(arraysEqual(updated_box, prev_box))) {
-                $("#save_icon").css("color", "#ed452b");
-
-
-                if (cur_edit_layer === "annotation") {
-                
-                    if (annotations[cur_img_name]["source"] === "unmodified_model_predictions") {
-                        annotations[cur_img_name]["source"] = "edited_model_predictions";
-                    }
-
-                    if (cur_img_name in voronoi_data && "annotation" in voronoi_data[cur_img_name]) {
-                        delete voronoi_data[cur_img_name]["annotation"];
-                    }
-                }
-
-            }
-            // $("#save_icon").css("color", "#ed452b");
-        }
-
-
-
-        // console.log("update_save_icon", update_save_icon);
-        // if ((update_save_icon) && (!(arraysEqual(updated_box, prev_box)))) {
-        //     $("#save_icon").css("color", "#ed452b");
-        // }
-        
-        //console.log("annotations", annotations);
-
-        //annotations[cur_img_name]["annotations"] = anno.getAnnotations();
-        
-
-        // annotations[cur_img_name]["update_time"] = parseInt(new Date().getTime() / 1000);
 
         selected_annotation_index = -1
         selected_annotation = null;
         anno.clearAnnotations();
         viewer.raiseEvent('update-viewport');
-        //add_annotations();
     });
 
 }
 
-/*
-async function add_the_annotation(selection) {
-    anno.addAnnotation(selection);
-    await anno.updateSelected(selection);
-    anno.saveSelected();
-}*/
-
 
 function anno_and_pred_onRedraw() {
-    //console.log("onRedraw", selected_annotation_index, selected_annotation); //cur_edit_layer);
 
     let navigation_type = $("#navigation_dropdown").val();
 
     let boxes_to_add = {};
     if ((cur_panel === "annotation") || (cur_panel === "prediction")) {
+        boxes_to_add["region_of_interest"] = {};
+        boxes_to_add["region_of_interest"]["boxes"] = annotations[cur_img_name]["regions_of_interest"];
         boxes_to_add["training_region"] = {};
         boxes_to_add["training_region"]["boxes"] = annotations[cur_img_name]["training_regions"];
         boxes_to_add["test_region"] = {};
@@ -1131,21 +1125,13 @@ function anno_and_pred_onRedraw() {
         boxes_to_add["annotation"]["boxes"] = annotations[cur_img_name]["boxes"];
     }
 
-    //console.log("cur_panel", cur_panel);
-    //console.log("cur_img_name", cur_img_name);
-    //console.log("PREDICTIONS", predictions);
-    //console.log($("#predictions").is(":checked"));
-    //console.log("selected_annotation_index", selected_annotation_index);
-    //console.log("selected_annotation", selected_annotation);
-    //console.log("actual selected annotation", anno.getSelected());
-
     if (((cur_panel == "prediction") && (cur_img_name in predictions)) && ($("#prediction").is(":checked"))) {
         boxes_to_add["prediction"] = {};
         boxes_to_add["prediction"]["boxes"] = predictions[cur_img_name]["boxes"];
         boxes_to_add["prediction"]["scores"] = predictions[cur_img_name]["scores"];
     }
-    //console.log("boxes_to_add", boxes_to_add);
-    let slider_val = Number.parseFloat($("#confidence_slider").val()); //.toFixed(2);
+
+    let slider_val = Number.parseFloat($("#confidence_slider").val());
         
     let viewer_bounds = viewer.viewport.getBounds();
     let container_size = viewer.viewport.getContainerSize();
@@ -1158,15 +1144,17 @@ function anno_and_pred_onRedraw() {
     let max_x = min_x + viewport_w;
     let max_y = min_y + viewport_h;
 
-    //console.log("viewer_bounds", viewer_bounds);
     if (cur_region_index != -1) {
+
         let cur_region = annotations[cur_img_name][navigation_type][cur_region_index];
+        if (navigation_type == "regions_of_interest") {
+            cur_region = get_bounding_box_for_polygon(cur_region);
+        }
         min_y = Math.max(min_y, cur_region[0]);
         min_x = Math.max(min_x, cur_region[1]);
         max_y = Math.min(max_y, cur_region[2]);
         max_x = Math.min(max_x, cur_region[3]);
     }
-    //console.log(min_y, min_x, max_y, max_x);
 
     overlay.context2d().font = "14px arial";
 
@@ -1178,10 +1166,10 @@ function anno_and_pred_onRedraw() {
                 
         overlay.context2d().fillStyle = "#222621";         
         overlay.context2d().fillRect(
-            viewer_point_1.x - 10, // - 1,
-            viewer_point_1.y - 10, // - 1,
-            (viewer_point_2.x - viewer_point_1.x) + 20, // + 4, //2,
-            (viewer_point_2.y - viewer_point_1.y) + 20, // + 4 //2
+            viewer_point_1.x - 10,
+            viewer_point_1.y - 10,
+            (viewer_point_2.x - viewer_point_1.x) + 20,
+            (viewer_point_2.y - viewer_point_1.y) + 20,
         );
     }
 
@@ -1237,263 +1225,208 @@ function anno_and_pred_onRedraw() {
         }
     }
 
-
-
-
-
-
-
-
-
-
-
-    let draw_order = overlay_appearance["draw_order"]; //["training_region", "test_region", "annotation", "prediction"];
-    for (let key of draw_order) { //Object.keys(boxes_to_add)) {
-        //console.log("ADDING", key);
+    let draw_order = overlay_appearance["draw_order"];
+    for (let key of draw_order) {
 
         if (!(key in boxes_to_add)) {
             continue;
         }
-
         
-        overlay.context2d().strokeStyle = overlay_appearance["colors"][key]; //"Annotations"]; //"#FF4040";
+        overlay.context2d().strokeStyle = overlay_appearance["colors"][key];
         overlay.context2d().fillStyle = overlay_appearance["colors"][key] + "55";
         overlay.context2d().lineWidth = 2;
 
 
+        if (key === "region_of_interest") {
 
-        //for (let i = 0; i < annotations[cur_img_name]["boxes"].length; i++) {
-        let visible_inds = [];
-        loop1:
-        for (let i = 0; i < boxes_to_add[key]["boxes"].length; i++) {
-            if ((cur_edit_layer === key) && (i == selected_annotation_index)) {
-                continue;
-            }
+            for (let i = 0; i < boxes_to_add["region_of_interest"]["boxes"].length; i++) {
 
-            let box = boxes_to_add[key]["boxes"][i];
-            if (key === "prediction") {
-                let score = boxes_to_add[key]["scores"][i];
-                if (score <= slider_val) {
+                if ((cur_edit_layer === "region_of_interest") && (i == selected_annotation_index)) {
                     continue;
                 }
-            }
+                let region = boxes_to_add["region_of_interest"]["boxes"][i];
 
-            //let box_width_pct_of_image = (box[3] - box[1]) / overlay.imgWidth;
-            //let disp_width = (box_width_pct_of_image / viewer_bounds.width) * container_size.x;
-            //let box_height_pct_of_image = (box[3] - box[1]) / overlay.imgHeight;
-            //let disp_height = (box_height_pct_of_image / viewer_bounds.height) * container_size.y;
-
-            // if ((disp_width * disp_height) < 0.5) {
-            //     continue;
-            // }
-
-            if (((box[1] < max_x) && (box[3] > min_x)) && ((box[0] < max_y) && (box[2] > min_y))) {
-
-                // if (cur_region_index == -1) {
-                visible_inds.push(i);
-                if (visible_inds.length > MAX_BOXES_DISPLAYED) {
-                    break loop1;
-                }
-                // }
-                // else {
-                //     let cur_region = annotations[cur_img_name][navigation_type][cur_region_index];
-                //     if (((box[1] < cur_region[3]) && (box[3] > cur_region[1])) && ((box[0] < cur_region[2]) && (box[2] > cur_region[0]))) {
-                //         visible_inds.push(i);
-                //     }
-                // }
-
-
-
-
-
-                
-                // if (key === "training_region" || key === "test_region") {
-
-                //     overlay.context2d().fillStyle = overlay_colors[key] + "22"; //"#0080C022";
-                //     overlay.context2d().fillRect(
-                //         viewer_point.x,// * container_size.x,
-                //         viewer_point.y,// * container_size.y,
-                //         (viewer_point_2.x - viewer_point.x),// * container_size.x,
-                //         (viewer_point_2.y - viewer_point.y)// * container_size.y
-                //     );
-                // }
-                //console.log("ADDING A BOX!");
-                
-
-            }
-        }
-        //console.log("visible_inds.length", visible_inds.length)
-
-
-
-
-
-        if (visible_inds.length <= MAX_BOXES_DISPLAYED) {
-            for (let ind of visible_inds) {
-                let box = boxes_to_add[key]["boxes"][ind];
-                let viewer_point = viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(box[1], box[0]));
-                let viewer_point_2 = viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(box[3], box[2]));
-
-                overlay.context2d().strokeRect(
-                    viewer_point.x,// * container_size.x,
-                    viewer_point.y,// * container_size.y,
-                    (viewer_point_2.x - viewer_point.x),// * container_size.x,
-                    (viewer_point_2.y - viewer_point.y)// * container_size.y
-                );
-                //}
-                if (overlay_appearance["style"][key] == "fillRect") {
-                    overlay.context2d().fillRect(
-                        viewer_point.x,// * container_size.x,
-                        viewer_point.y,// * container_size.y,
-                        (viewer_point_2.x - viewer_point.x),// * container_size.x,
-                        (viewer_point_2.y - viewer_point.y)// * container_size.y
-                    );
-                }
-            }
-
+                overlay.context2d().beginPath();
+                for (let j = 0; j < region.length; j++) {
+                    let pt = region[j];
         
-
-
-            if ((key === "prediction") && ("prediction" in boxes_to_add) && ($("#scores_switch").is(":checked"))) {
-                for (let ind of visible_inds) {
-
-                    let box = boxes_to_add[key]["boxes"][ind];
-                    let score = boxes_to_add[key]["scores"][ind];
-    
-                    // let box = boxes_to_add["prediction"]["boxes"][i];
-                    // let score = boxes_to_add["prediction"]["scores"][i];
-                    // if (score < slider_val) {
-                    //     continue;
-                    // }
-                
+                    let viewer_point = viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(pt[1], pt[0]));
                     
-                    let box_width_pct_of_image = (box[3] - box[1]) / overlay.imgWidth;
-                    let disp_width = (box_width_pct_of_image / viewer_bounds.width) * container_size.x;
-                    let box_height_pct_of_image = (box[3] - box[1]) / overlay.imgHeight;
-                    let disp_height = (box_height_pct_of_image / viewer_bounds.height) * container_size.y;
+                    if (j == 0) {
+                        overlay.context2d().moveTo(viewer_point.x, viewer_point.y);
+                    }
+                    else {
+                        overlay.context2d().lineTo(viewer_point.x, viewer_point.y);
+                    }
+                }
+        
+                overlay.context2d().closePath();
+                overlay.context2d().stroke();
+                if (overlay_appearance["style"][key] == "fillRect") {
+                    overlay.context2d().fill();
+                }
+        
+            }
+        
+        }
+        else {
 
-                    if ((disp_width * disp_height) < 10) {
+            let visible_inds = [];
+            loop1:
+            for (let i = 0; i < boxes_to_add[key]["boxes"].length; i++) {
+                if ((cur_edit_layer === key) && (i == selected_annotation_index)) {
+                    continue;
+                }
+
+                let box = boxes_to_add[key]["boxes"][i];
+                if (key === "prediction") {
+                    let score = boxes_to_add[key]["scores"][i];
+                    if (score <= slider_val) {
                         continue;
                     }
+                }
 
-                    if (((box[1] < max_x) && (box[3] > min_x)) && ((box[0] < max_y) && (box[2] > min_y))) {
+                if (((box[1] < max_x) && (box[3] > min_x)) && ((box[0] < max_y) && (box[2] > min_y))) {
 
+                    visible_inds.push(i);
+                    if (visible_inds.length > MAX_BOXES_DISPLAYED) {
+                        break loop1;
+                    }
+                }
 
-                        let viewer_point = viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(box[1], box[0]));
-                        //let viewer_point_2 = viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(box[3], box[2]));
+            }
 
-                        //let score_text = score.toFixed(2); //toString().padEnd(4, "0");
-                        let score_text = (Math.ceil(score * 100) / 100).toFixed(2);
-                        // overlay.context2d().fillStyle = "white";
-                        // overlay.context2d().fillRect(
-                        //     box[1] / max_dim,// * container_size.x,
-                        //     box[0] / max_dim,// * container_size.y,
-                        //     (box[3] - box[1]) / max_dim,// * container_size.x,
-                        //     (box[2] - box[0]) / max_dim// * container_size.y
-                        // );
+            if (visible_inds.length <= MAX_BOXES_DISPLAYED) {
+                for (let ind of visible_inds) {
+                    let box = boxes_to_add[key]["boxes"][ind];
+                    let viewer_point = viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(box[1], box[0]));
+                    let viewer_point_2 = viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(box[3], box[2]));
 
-                        // overlay.context2d().font = "bold 0.001em serif";
-                        
-                        // overlay.context2d().fillStyle = "black";
-                        // overlay.context2d().scale(10, 10);
-                        // overlay.context2d().fillText(score_text, 
+                    overlay.context2d().strokeRect(
+                        viewer_point.x,
+                        viewer_point.y,
+                        (viewer_point_2.x - viewer_point.x),
+                        (viewer_point_2.y - viewer_point.y)
+                    );
 
-                        //     box[1] / max_dim, // + 5,// * container_size.x, //text_x,
-                        //     box[0] / max_dim //viewer_point.y - 5// * container_size.y//text_y
-                        // );
-                        
-
-                        overlay.context2d().fillStyle = "white";
+                    if (overlay_appearance["style"][key] == "fillRect") {
                         overlay.context2d().fillRect(
-                                viewer_point.x - 1,// * container_size.x,
-                                viewer_point.y - 20,// * container_size.y,
-                                36, //ctx.measureText(score).width,// * container_size.x,
-                                20// * container_size.y
-                            );
-
-
-
-
-                        overlay.context2d().fillStyle = "black";
-                        overlay.context2d().fillText(score_text, 
-
-                            viewer_point.x + 3,// * container_size.x, //text_x,
-                            viewer_point.y - 5// * container_size.y//text_y
+                            viewer_point.x,
+                            viewer_point.y,
+                            (viewer_point_2.x - viewer_point.x),
+                            (viewer_point_2.y - viewer_point.y)
                         );
                     }
                 }
+
+                if ((key === "prediction") && ("prediction" in boxes_to_add) && ($("#scores_switch").is(":checked"))) {
+                    for (let ind of visible_inds) {
+
+                        let box = boxes_to_add[key]["boxes"][ind];
+                        let score = boxes_to_add[key]["scores"][ind];
+                        
+                        let box_width_pct_of_image = (box[3] - box[1]) / overlay.imgWidth;
+                        let disp_width = (box_width_pct_of_image / viewer_bounds.width) * container_size.x;
+                        let box_height_pct_of_image = (box[3] - box[1]) / overlay.imgHeight;
+                        let disp_height = (box_height_pct_of_image / viewer_bounds.height) * container_size.y;
+
+                        if ((disp_width * disp_height) < 10) {
+                            continue;
+                        }
+
+                        if (((box[1] < max_x) && (box[3] > min_x)) && ((box[0] < max_y) && (box[2] > min_y))) {
+
+                            let viewer_point = viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(box[1], box[0]));
+                            let score_text = (Math.ceil(score * 100) / 100).toFixed(2);
+
+                            overlay.context2d().fillStyle = "white";
+                            overlay.context2d().fillRect(
+                                    viewer_point.x - 1,
+                                    viewer_point.y - 20,
+                                    36,
+                                    20
+                                );
+
+                            overlay.context2d().fillStyle = "black";
+                            overlay.context2d().fillText(score_text, 
+
+                                viewer_point.x + 3,
+                                viewer_point.y - 5
+                            );
+                        }
+                    }
+                }
             }
         }
     }
 
-    
-    
-    //console.log("cur_bounds", cur_bounds);
-    if (navigation_type === "training_regions" || navigation_type === "test_regions") {
+    if ((navigation_type === "regions_of_interest") || (navigation_type === "training_regions" || navigation_type === "test_regions")) {
 
-        //console.log("cur_bounds", cur_bounds);
-        //console.log("viewer_bounds", viewer.viewport.getBounds());
-        // let new_bounds = viewer.viewport.getBounds();
-        // if (!(Object.is(cur_bounds, viewer.viewport.getBounds()))) {
-        // if ((new_bounds.x != cur_bounds.x || new_bounds.y != cur_bounds.y) ||
-            // (new_bounds.width != cur_bounds.width || new_bounds.height != cur_bounds.height)) {
-            //console.log("zooming to region");
-        
-        //console.log("cur_bounds", cur_bounds);
-        //if (cur_bounds != null) {
-            let region = annotations[cur_img_name][navigation_type][cur_region_index];
-            //console.log("bounds", bounds);
-            // let upper_left = viewer.viewport.imageToViewportCoordinates(bounds[1], bounds[0]);
-            // let lower_right = viewer.viewport.imageToViewportCoordinates(bounds[3], bounds[2]);
+        let region = annotations[cur_img_name][navigation_type][cur_region_index];
+        let image_px_width = metadata["images"][cur_img_name]["width_px"];
+        let image_px_height = metadata["images"][cur_img_name]["height_px"];
 
-            let image_px_width = metadata["images"][cur_img_name]["width_px"];
-            let image_px_height = metadata["images"][cur_img_name]["height_px"];
+        let inner_poly;
+        let outer_poly = [
+            [0-1e6, 0-1e6], 
+            [0-1e6, image_px_width+1e6], 
+            [image_px_height+1e6, image_px_width+1e6],
+            [image_px_height+1e6, 0-1e6]
+        ];
 
-
-            let rects = [
-                // [0 -10 , 0 -10, region[0], image_px_width +10],
-                // [0, region[3], image_px_height +10, image_px_width +10],
-                // [region[2], 0 -10, image_px_height +10, image_px_width +10],
-                // [0 -10, 0 -10, image_px_height +10, region[1]]
-                [0 , 0, region[0], image_px_width],
-                [0, region[3], image_px_height, image_px_width],
-                [region[2], 0, image_px_height, image_px_width],
-                [0, 0, image_px_height, region[1]]
+        if (navigation_type === "regions_of_interest") {
+            inner_poly = region;
+        }
+        else { 
+            inner_poly = [
+                [region[0], region[1]],
+                [region[0], region[3]],
+                [region[2], region[3]],
+                [region[2], region[1]]
             ];
+        }
 
-            //let bounds = annotations[cur_img_name][navigation_type][cur_region_index];
+        overlay.context2d().fillStyle = "#222621";
+        overlay.context2d().beginPath();
 
+        for (let poly of [outer_poly, inner_poly]) {
 
-            
-            
-            overlay.context2d().fillStyle = "#222621";
-            for (let rect of rects) {
-                let viewer_point = viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(rect[1], rect[0]));
-                let viewer_point_2 = viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(rect[3], rect[2]));
-                
-                overlay.context2d().fillRect(
-                    viewer_point.x,// * container_size.x,
-                    viewer_point.y,// * container_size.y,
-                    (viewer_point_2.x - viewer_point.x),// * container_size.x,
-                    (viewer_point_2.y - viewer_point.y)// * container_size.y
-                );
+            for (let i = 0; i < poly.length+1; i++) {
+                let pt = poly[(i)%poly.length];
+                let viewer_point = viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(pt[1], pt[0]));
 
+                if (i == 0) {
+                    overlay.context2d().moveTo(viewer_point.x, viewer_point.y);
+                }
+                else {
+                    overlay.context2d().lineTo(viewer_point.x, viewer_point.y);
+                }
             }
+            overlay.context2d().closePath();
 
-        viewer.world.getItemAt(0).setClip(
-            new OpenSeadragon.Rect(
-                region[1],
-                region[0],
-                (region[3] - region[1]),
-                (region[2] - region[0])
-            )
-        );
-
-
-
-        //}
+        }
+        overlay.context2d().mozFillRule = "evenodd";
+        overlay.context2d().fill("evenodd");
     }
     if (cur_bounds != null) {
+
+        if ((navigation_type === "regions_of_interest") || (navigation_type === "training_regions" || navigation_type === "test_regions")) {
+
+            let region = annotations[cur_img_name][navigation_type][cur_region_index];
+
+            if (navigation_type === "regions_of_interest") {
+                region = get_bounding_box_for_polygon(region);
+            }
+
+            viewer.world.getItemAt(0).setClip(
+                new OpenSeadragon.Rect(
+                    region[1],
+                    region[0],
+                    (region[3] - region[1]),
+                    (region[2] - region[0])
+                )
+            );
+        }
 
 
         withFastOSDAnimation(viewer.viewport, function() {
@@ -1504,7 +1437,7 @@ function anno_and_pred_onRedraw() {
 
     if (gsd != null) {
         let cur_zoom = viewer.viewport.viewportToImageZoom(viewer.viewport.getZoom(true));
-        let measure_width = Math.max(50, 0.08 * container_size.x); //Math.min(100, 0)
+        let measure_width = Math.max(50, 0.08 * container_size.x);
         let measure_width_m = (gsd / cur_zoom) * measure_width;
         let unit;
         let measure_width_metric;
@@ -1964,7 +1897,7 @@ function create_viewer(viewer_id) {
 
         // The canvas-click event gives us a position in web coordinates.
 
-        if (cur_panel === "annotation") {
+        if (!(anno.readOnly)) {
 
 
             //console.log("canvas-click");
@@ -2032,6 +1965,9 @@ function create_viewer(viewer_id) {
                 if (cur_edit_layer === "annotation") {
                     sel_box_array = annotations[cur_img_name]["boxes"];
                 }
+                else if (cur_edit_layer === "region_of_interest") {
+                    sel_box_array = annotations[cur_img_name]["regions_of_interest"];
+                }
                 else if (cur_edit_layer === "training_region") {
                     sel_box_array = annotations[cur_img_name]["training_regions"];
                 }
@@ -2039,50 +1975,67 @@ function create_viewer(viewer_id) {
                     sel_box_array = annotations[cur_img_name]["test_regions"];
                 }
 
-                for (let i = 0; i < sel_box_array.length; i++) {//annotations[cur_img_name]["boxes"].length; i++) {
 
-                    //let box = annotations[cur_img_name]["boxes"][i];
-                    let box = sel_box_array[i];
-                    if ((imagePoint.x >= box[1] && imagePoint.x <= box[3]) && (imagePoint.y >= box[0] && imagePoint.y <= box[2])) {
-                        
-
-
-                        if ((cur_edit_layer !== "training_region") || (!(locked_training_regions[cur_img_name][i]))) {
+                if (cur_edit_layer === "region_of_interest") {
+                    for (let i = 0; i < sel_box_array.length; i++) {
+                        let poly = sel_box_array[i];
+                        if (point_is_inside_polygon([imagePoint.y, imagePoint.x], poly)) {
+                            //console.log("inside");
                             inside_box = true;
-                            //if (i == prev_annotation_index) {
-                            //    break;
-                            //}
-                            //console.log("clicked on a box");
-
-
-                            //annotations[cur_img_name]["boxes"].splice(i, 1);
-
-                            let box_area = (box[3] - box[1]) * (box[2] - box[0]);
-
-                            candidate_box_areas.push(box_area);
-                            //selected_annotation_index = i;
+                            let area = get_polygon_area(poly); //get_bounding_box_for_polygon(poly);
+                            //let bbox_area = (bbox[3] - bbox[1]) * (bbox[2] - bbox[0]);
+                            candidate_box_areas.push(area);
                             candidate_box_indices.push(i);
                         }
+                    }
 
-                        //anno.addAnnotation(annotation);
-                        //anno.createAnnotation(annotation);
-                        //anno.saveSelected();
-                        //await anno.updateSelected(annotation);
-                        //anno.selectAnnotation(annotation_uuid);
-                        //let sel_annotation = anno.getSelected();
+                }
+                else {
 
-                        //anno.selectAnnotation(annotation_uuid);
+                    for (let i = 0; i < sel_box_array.length; i++) {//annotations[cur_img_name]["boxes"].length; i++) {
+
+                        //let box = annotations[cur_img_name]["boxes"][i];
+                        let box = sel_box_array[i];
+                        if ((imagePoint.x >= box[1] && imagePoint.x <= box[3]) && (imagePoint.y >= box[0] && imagePoint.y <= box[2])) {
+                            
 
 
-                        //anno.selectAnnotation(annotation_uuid);
-                        //console.log("sel_annotation", sel_annotation);
-                        //anno.selectAnnotation(annotation_uuid);
-                        //break;
-                        
+                            if ((cur_edit_layer !== "training_region") || (!(locked_training_regions[cur_img_name][i]))) {
+                                inside_box = true;
+                                //if (i == prev_annotation_index) {
+                                //    break;
+                                //}
+                                //console.log("clicked on a box");
 
+
+                                //annotations[cur_img_name]["boxes"].splice(i, 1);
+
+                                let box_area = (box[3] - box[1]) * (box[2] - box[0]);
+
+                                candidate_box_areas.push(box_area);
+                                //selected_annotation_index = i;
+                                candidate_box_indices.push(i);
+                            }
+
+                            //anno.addAnnotation(annotation);
+                            //anno.createAnnotation(annotation);
+                            //anno.saveSelected();
+                            //await anno.updateSelected(annotation);
+                            //anno.selectAnnotation(annotation_uuid);
+                            //let sel_annotation = anno.getSelected();
+
+                            //anno.selectAnnotation(annotation_uuid);
+
+
+                            //anno.selectAnnotation(annotation_uuid);
+                            //console.log("sel_annotation", sel_annotation);
+                            //anno.selectAnnotation(annotation_uuid);
+                            //break;
+                            
+
+                        }
                     }
                 }
-
                 if (candidate_box_indices.length > 0) {
                     selected_annotation_index = candidate_box_indices[argMin(candidate_box_areas)];
                 }
@@ -2109,12 +2062,24 @@ function create_viewer(viewer_id) {
                             }
                         }
                     }
-
                     annotation_uuid = uuidv4();
-                    //let box = annotations[cur_img_name]["boxes"][selected_annotation_index];
-                    
-                    let box_str = [box[1], box[0], (box[3] - box[1]), (box[2] - box[0])].join(",");
+                    let box_str;
+                    let selector_type;
+                    if (cur_edit_layer === "region_of_interest") {
+                        let pt_strs = [];
+                        for (let i = 0; i < box.length; i++) {
+                            pt_strs.push(box[i][1] + "," + box[i][0]);
+                        }
+                        box_str = `<svg><polygon points="` + pt_strs.join(" ") + `"></polygon></svg>`;
+                        selector_type = "SvgSelector";
 
+                    }
+                    else {
+                        box_str = [box[1], box[0], (box[3] - box[1]), (box[2] - box[0])].join(",");
+                        box_str = "xywh=pixel:" + box_str;
+                        selector_type = "FragmentSelector";
+
+                    }
                     selected_annotation = {
                         "type": "Annotation",
                         "body": [
@@ -2127,18 +2092,19 @@ function create_viewer(viewer_id) {
                         "target": {
                             "source": "",
                             "selector": {
-                                "type": "FragmentSelector",
+                                "type": selector_type,
                                 "conformsTo": "http://www.w3.org/TR/media-frags/",
-                                "value": "xywh=pixel:" + box_str
+                                "value": box_str
                             }
                         },
                         "@context": "http://www.w3.org/ns/anno.jsonld",
                         "id": annotation_uuid
                     };
 
-
-
-                    if (cur_edit_layer === "training_region")  {
+                    if (cur_edit_layer === "region_of_interest")  {
+                        selected_annotation["body"].push({"value": "region_of_interest", "purpose": "highlighting"});
+                    }
+                    else if (cur_edit_layer === "training_region")  {
                         selected_annotation["body"].push({"value": "training_region", "purpose": "highlighting"});
                     }
                     else if (cur_edit_layer === "test_region") {
@@ -2311,7 +2277,9 @@ function build_map() {
 
 }
 
-function show_map() {
+async function show_map() {
+
+    await unselect_selected_annotation();
 
     cur_bounds = null;
     overlay.onOpen = function() {};
@@ -2426,6 +2394,7 @@ function save_annotations() {
         action: "save_annotations",
         annotations: JSON.stringify(annotations),
         excess_green_record: JSON.stringify(excess_green_record),
+        tags: JSON.stringify(tags),
         is_public: metadata["is_public"],
         //train_num_increased: train_num_increased ? "True" : "False"
         num_training_regions_increased: new_training_regions > 0 ? "yes" : "no",
@@ -2628,6 +2597,28 @@ function confirmed_use_predictions() {
         annotations[cur_img_name]["boxes"] = [];
         region = null;
     }
+    else if (navigation_type == "regions_of_interest") {
+        region = annotations[cur_img_name][navigation_type][cur_region_index];
+        for (let i = 0; i < annotations[cur_img_name]["boxes"].length; i++) {
+            let box = annotations[cur_img_name]["boxes"][i];
+            // let box_poly = [[box[0], box[1]], [box[0], box[3]], [box[2], box[3]], [box[2], box[1]]];
+            // let intersection_poly = clip_polygons(region, box_poly);
+            // if (intersection_poly.length > 0) {
+            //     annotations[cur_img_name]["boxes"].splice(i, 1);
+            // }
+            //let centre = [(box[0] + box[2]) / 2, (box[1] + box[3]) / 2];
+            
+            // not correct, but hopefully close enough
+            if (point_is_inside_polygon([box[0], box[1]], region) ||
+                point_is_inside_polygon([box[0], box[3]], region) ||
+                point_is_inside_polygon([box[2], box[3]], region) ||
+                point_is_inside_polygon([box[2], box[1]], region)
+            ) {
+            //if (point_is_inside_polygon(centre, region)) {
+                annotations[cur_img_name]["boxes"].splice(i, 1);
+            }
+        }
+    }
     else {
         region = annotations[cur_img_name][navigation_type][cur_region_index];
         for (let i = 0; i < annotations[cur_img_name]["boxes"].length; i++) {
@@ -2646,6 +2637,29 @@ function confirmed_use_predictions() {
             if (navigation_type === "images") {
                 annotations[cur_img_name]["boxes"].push(box);
             }
+            else if (navigation_type == "regions_of_interest") {
+                //region = annotations[cur_img_name][navigation_type][cur_region_index];
+                //let box_poly = [[box[0], box[1]], [box[0], box[3]], [box[2], box[3]], [box[2], box[1]]]; //[[box[0], box[1]], [box[0], box[3]], [box[2], box[3]], [box[2], box[1]]];
+                // let box_poly = [[box[0], box[1]], [box[2], box[1]], [box[2], box[3]], [box[0], box[3]]];
+                // region.push(region[0]);
+                // box_poly.push(box_poly[0]);
+                // let intersection_poly = clip_polygons(region, box_poly);
+                // console.log("intersection_poly", intersection_poly);
+                // if (intersection_poly.length > 0) {
+                //     annotations[cur_img_name]["boxes"].push(box);
+                // }
+                //let centre = [(box[0] + box[2]) / 2, (box[1] + box[3]) / 2];
+                //if (point_is_inside_polygon(centre, region)) {
+                if (point_is_inside_polygon([box[0], box[1]], region) ||
+                    point_is_inside_polygon([box[0], box[3]], region) ||
+                    point_is_inside_polygon([box[2], box[3]], region) ||
+                    point_is_inside_polygon([box[2], box[1]], region)
+                ) {
+                    annotations[cur_img_name]["boxes"].push(box);
+                }
+            }
+
+
 
             else {
                 if (box_intersects_region(box, region)) {
@@ -2696,7 +2710,9 @@ function confirmed_use_predictions() {
 }
 
 
-function show_annotation(change_image=false) {
+async function show_annotation(change_image=false) {
+
+    await unselect_selected_annotation();
 
     let prev_panel = cur_panel;
 
@@ -2740,7 +2756,11 @@ function show_annotation(change_image=false) {
 
     //create_viewer_and_anno("seadragon_viewer");
     viewer.zoomPerScroll = 1.2;
-    anno.readOnly = false; //false; //annotations[cur_img_name]["status"] === "completed_for_training";
+
+    let navigation_type = $("#navigation_dropdown").val();
+    anno.readOnly = (navigation_type !== "images");
+
+    //anno.readOnly = false; //false; //annotations[cur_img_name]["status"] === "completed_for_training";
     //anno.disableSelect = true;
 
 /*
@@ -2791,8 +2811,27 @@ function show_annotation(change_image=false) {
 
 }
 
+async function unselect_selected_annotation() {
+    if (selected_annotation != null) {
+        
+        let cur_selected = anno.getSelected();
+        if (cur_selected == null) {
+            anno.clearAnnotations();
+            selected_annotation_index = -1;
+            selected_annotation = null;
+            viewer.raiseEvent('update-viewport');
+        }
+        else {
+            await anno.updateSelected(selected_annotation, true);
+        }
+    }
+}
+
+
 
 async function show_prediction(change_image=false) {
+
+    await unselect_selected_annotation();
 
     // let source_dimensions = viewer.world.getItemAt(0).source.dimensions;
 
@@ -2809,19 +2848,7 @@ async function show_prediction(change_image=false) {
 
     // console.log("CUR BOUNDS", cur_bounds);
 
-    if (selected_annotation != null) {
-        
-        let cur_selected = anno.getSelected();
-        if (cur_selected == null) {
-            anno.clearAnnotations();
-            selected_annotation_index = -1;
-            selected_annotation = null;
-            viewer.raiseEvent('update-viewport');
-        }
-        else {
-            await anno.updateSelected(selected_annotation, true);
-        }
-    }
+
     /*
     else {
         let cur_selected = anno.getSelected();
@@ -3050,7 +3077,9 @@ async function show_prediction(change_image=false) {
 }
 
 
-function show_segmentation() {
+async function show_segmentation() {
+
+    await unselect_selected_annotation();
 
     $("#show_annotation_button").removeClass("tab-btn-active");
     $("#show_prediction_button").removeClass("tab-btn-active");
@@ -3660,8 +3689,13 @@ function show_model_details(model_creator, model_name) {
             //         annotation["body"].push({"value": "COLOR_BRIGHT", "purpose": "highlighting"})
             //     }
             // }
+
+
+            $("#model_select_back_button").show();
+            $("#random_weights_button").hide();
         
             $("#model_info").empty();
+
         /*
             $("#models_table").append(`<tr><td style="width: 200px">` +
                 `<button style="width: 200px" class="std-button std-button-hover" onclick="show_models(${show_public_models})">` +
@@ -3794,6 +3828,8 @@ function show_model_details(model_creator, model_name) {
                     //let region = model_image_set_regions[model_viewer.currentPage()];
                 
                     let boxes_to_add = {};
+                    boxes_to_add["region_of_interest"] = {};
+                    boxes_to_add["region_of_interest"]["boxes"] = annotations[current_image_set_image_name]["regions_of_interest"];
                     boxes_to_add["training_region"] = {};
                     boxes_to_add["training_region"]["boxes"] = annotations[current_image_set_image_name]["training_regions"];
                     boxes_to_add["test_region"] = {};
@@ -3812,7 +3848,7 @@ function show_model_details(model_creator, model_name) {
                     let max_x = min_x + viewport_w;
                     let max_y = min_y + viewport_h;
 
-                    let draw_order = ["training_region", "test_region", "annotation"];
+                    let draw_order = ["region_of_interest", "training_region", "test_region", "annotation"];
                     
                     for (let key of draw_order) { 
                         
@@ -3820,43 +3856,78 @@ function show_model_details(model_creator, model_name) {
                         current_image_set_overlay.context2d().fillStyle = overlay_appearance["colors"][key] + "55";
                         current_image_set_overlay.context2d().lineWidth = 2;
                         //console.log("boxes_to_add", boxes_to_add, key);
-                        let visible_boxes = [];
-                        for (let i = 0; i < boxes_to_add[key]["boxes"].length; i++) {
 
-                            let box = boxes_to_add[key]["boxes"][i];
 
-                            //let box_width_pct_of_image = (box[3] - box[1]) / current_image_set_overlay.imgWidth;
-                            //let disp_width = (box_width_pct_of_image / viewer_bounds.width) * container_size.x;
-                            //let box_height_pct_of_image = (box[3] - box[1]) / current_image_set_overlay.imgHeight;
-                            //let disp_height = (box_height_pct_of_image / viewer_bounds.height) * container_size.y;
 
-                            // if ((disp_width * disp_height) < 0.5) {
-                            //     continue;
-                            // }
+                        if (key === "region_of_interest") {
 
-                            if (((box[1] < max_x) && (box[3] > min_x)) && ((box[0] < max_y) && (box[2] > min_y))) {
-                                visible_boxes.push(box);
+                            for (let i = 0; i < boxes_to_add["region_of_interest"]["boxes"].length; i++) {
+
+                                let region = boxes_to_add["region_of_interest"]["boxes"][i];
+                                current_image_set_overlay.context2d().beginPath();
+                                for (let j = 0; j < region.length; j++) {
+                                    let pt = region[j];
+                        
+                                    let viewer_point = current_image_set_viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(pt[1], pt[0]));
+                                    
+                                    if (j == 0) {
+                                        current_image_set_overlay.context2d().moveTo(viewer_point.x, viewer_point.y);
+                                    }
+                                    else {
+                                        current_image_set_overlay.context2d().lineTo(viewer_point.x, viewer_point.y);
+                                    }
+                                }
+
+                        
+                                current_image_set_overlay.context2d().closePath();
+                                current_image_set_overlay.context2d().stroke();
+                                if (overlay_appearance["style"][key] == "fillRect") {
+                                    current_image_set_overlay.context2d().fill();
+                                }
+                        
                             }
                         }
-                        if (visible_boxes.length <= MAX_BOXES_DISPLAYED) {
-                            for (let box of visible_boxes) {
-                                let viewer_point = current_image_set_viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(box[1], box[0]));
-                                let viewer_point_2 = current_image_set_viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(box[3], box[2]));
-                                
-                                current_image_set_overlay.context2d().strokeRect(
-                                    viewer_point.x,
-                                    viewer_point.y,
-                                    (viewer_point_2.x - viewer_point.x),
-                                    (viewer_point_2.y - viewer_point.y)
-                                );
+                        else {
 
-                                if (overlay_appearance["style"][key] == "fillRect") {
-                                    current_image_set_overlay.context2d().fillRect(
+
+                            let visible_boxes = [];
+                            for (let i = 0; i < boxes_to_add[key]["boxes"].length; i++) {
+
+                                let box = boxes_to_add[key]["boxes"][i];
+
+                                //let box_width_pct_of_image = (box[3] - box[1]) / current_image_set_overlay.imgWidth;
+                                //let disp_width = (box_width_pct_of_image / viewer_bounds.width) * container_size.x;
+                                //let box_height_pct_of_image = (box[3] - box[1]) / current_image_set_overlay.imgHeight;
+                                //let disp_height = (box_height_pct_of_image / viewer_bounds.height) * container_size.y;
+
+                                // if ((disp_width * disp_height) < 0.5) {
+                                //     continue;
+                                // }
+
+                                if (((box[1] < max_x) && (box[3] > min_x)) && ((box[0] < max_y) && (box[2] > min_y))) {
+                                    visible_boxes.push(box);
+                                }
+                            }
+                            if (visible_boxes.length <= MAX_BOXES_DISPLAYED) {
+                                for (let box of visible_boxes) {
+                                    let viewer_point = current_image_set_viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(box[1], box[0]));
+                                    let viewer_point_2 = current_image_set_viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(box[3], box[2]));
+                                    
+                                    current_image_set_overlay.context2d().strokeRect(
                                         viewer_point.x,
                                         viewer_point.y,
                                         (viewer_point_2.x - viewer_point.x),
                                         (viewer_point_2.y - viewer_point.y)
                                     );
+
+                                    if (overlay_appearance["style"][key] == "fillRect") {
+                                        current_image_set_overlay.context2d().fillRect(
+                                            viewer_point.x,
+                                            viewer_point.y,
+                                            (viewer_point_2.x - viewer_point.x),
+                                            (viewer_point_2.y - viewer_point.y)
+                                        );
+                                    }
                                 }
                             }
                         }
@@ -4039,10 +4110,12 @@ function change_image_set(image_set_index) {
                     let region = model_image_set_regions[model_viewer.currentPage()];
                 
                     let boxes_to_add = {};
-                    boxes_to_add["training_region"] = {};
-                    boxes_to_add["training_region"]["boxes"] = model_image_set_annotations[model_image_set_image_name]["training_regions"];
-                    boxes_to_add["test_region"] = {};
-                    boxes_to_add["test_region"]["boxes"] = model_image_set_annotations[model_image_set_image_name]["test_regions"]
+                    // boxes_to_add["region_of_interest"] = {};
+                    // boxes_to_add["region_of_interest"]["boxes"] = model_image_set_annotations[model_image_set_image_name]["regions_of_interest"];
+                    // boxes_to_add["training_region"] = {};
+                    // boxes_to_add["training_region"]["boxes"] = model_image_set_annotations[model_image_set_image_name]["training_regions"];
+                    // boxes_to_add["test_region"] = {};
+                    // boxes_to_add["test_region"]["boxes"] = model_image_set_annotations[model_image_set_image_name]["test_regions"]
                     boxes_to_add["annotation"] = {};
                     boxes_to_add["annotation"]["boxes"] = model_image_set_annotations[model_image_set_image_name]["boxes"];
                         
@@ -4120,41 +4193,54 @@ function change_image_set(image_set_index) {
                         }
                     }
 
-                    
-                    // let region = annotations[cur_img_name][navigation_type][cur_region_index];
-
-                    let image_px_width = model_overlay.imgWidth;
-                    let image_px_height = model_overlay.imgHeight;
-
-                    
                     if (region != null) {
-                        let rects = [
-                            [0, 0, region[0], image_px_width],
-                            [0, region[3], image_px_height, image_px_width],
-                            [region[2], 0, image_px_height, image_px_width],
-                            [0, 0, image_px_height, region[1]]
 
+                        let image_px_width = model_overlay.imgWidth;
+                        let image_px_height = model_overlay.imgHeight;
+                
+                        let inner_poly;
+                        let outer_poly = [
+                            [0-1e6, 0-1e6], 
+                            [0-1e6, image_px_width+1e6], 
+                            [image_px_height+1e6, image_px_width+1e6],
+                            [image_px_height+1e6, 0-1e6]
                         ];
 
-                        // let bounds = annotations[cur_img_name][$("#navigation_dropdown").val()][cur_region_index];
-                        
+                        inner_poly = [
+                            [region[0], region[1]],
+                            [region[0], region[3]],
+                            [region[2], region[3]],
+                            [region[2], region[1]]
+                        ];
+                
                         model_overlay.context2d().fillStyle = "#222621";
-                        for (let rect of rects) {
-                            let viewer_point = model_viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(rect[1], rect[0]));
-                            let viewer_point_2 = model_viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(rect[3], rect[2]));
-                            
-                            model_overlay.context2d().fillRect(
-                                viewer_point.x,
-                                viewer_point.y,
-                                (viewer_point_2.x - viewer_point.x),
-                                (viewer_point_2.y - viewer_point.y)
-                            );
+                        model_overlay.context2d().beginPath();
+                
+                        for (let poly of [outer_poly, inner_poly]) {
+                
+                            for (let i = 0; i < poly.length+1; i++) {
+                                let pt = poly[(i)%poly.length];
+                                let viewer_point = model_viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(pt[1], pt[0]));
+                
+                                if (i == 0) {
+                                    model_overlay.context2d().moveTo(viewer_point.x, viewer_point.y);
+                                }
+                                else {
+                                    model_overlay.context2d().lineTo(viewer_point.x, viewer_point.y);
+                                }
+                            }
+                            model_overlay.context2d().closePath();
+                
                         }
-                    
+                        model_overlay.context2d().mozFillRule = "evenodd";
+                        model_overlay.context2d().fill("evenodd");
+                    }
 
-
-                        if (model_image_set_cur_bounds != null) {
-
+    
+                    if (model_image_set_cur_bounds != null) {
+    
+                        if (region != null) {
+                
                             model_viewer.world.getItemAt(0).setClip(
                                 new OpenSeadragon.Rect(
                                     region[1],
@@ -4163,37 +4249,18 @@ function change_image_set(image_set_index) {
                                     (region[2] - region[0])
                                 )
                             );
-
-                            withFastOSDAnimation(model_viewer.viewport, function() {
-                                model_viewer.viewport.fitBounds(model_image_set_cur_bounds);
-                            });
-
-                            model_image_set_cur_bounds = null;
                         }
+                
+                
+                        withFastOSDAnimation(model_viewer.viewport, function() {
+                            model_viewer.viewport.fitBounds(model_image_set_cur_bounds);
+                        });
+                        model_image_set_cur_bounds = null;
                     }
+
                 },
                 clearBeforeRedraw: true
             });
-
-
-
-            // let model_anno = OpenSeadragon.Annotorious(model_viewer, {
-            //     disableEditor: true,
-            //     disableSelect: true,
-            //     readOnly: true,
-            //     formatter: formatter
-            // });
-
-            // model_viewer.addHandler("open", function(event) {
-            //     let cur_dzi = basename(event.source)
-            //     let cur_image_name = cur_dzi.substring(0, cur_dzi.length - 4);
-            //     //update_inspected_overlays(cur_image_name);
-
-            //     model_anno.clearAnnotations();
-            //     for (let annotation of image_set_annotations[cur_image_name]["annotations"]) {
-            //         model_anno.addAnnotation(annotation);
-            //     }
-            // });
         }
     });
 }
@@ -4421,6 +4488,7 @@ function set_model_weights_to_random() {
 }
 
 function show_models() {
+
 
     switch_model_data["models"] = [];
     switch_model_data["selected_model"] = {
@@ -4930,11 +4998,18 @@ function change_model() {
                     //     `<td style="height: 5px"><td>` +
                     // `</tr>` +           
                     `<tr>` +
+                        `<td>` +
+                            `<button id="model_select_back_button" onclick="change_model()" class="std-button std-button-hover" style="margin-bottom: 10px; margin-left: 10px; width: 100px; font-size: 13px; border-radius: 5px; display: none">` +
+                                    `<i class="fa-solid fa-caret-left" style="margin-right: 5px"></i>` +
+                                    `Back` +
+                                //`</i>` +
+                            `</button>` +
+                            `</td>` +
                         `<td style="width: 100%">` +
 
                         `</td>` +
                         `<td>` +
-                            `<button onclick="set_model_weights_to_random()" class="std-button std-button-hover" style="width: 145px; font-size: 13px; border-radius: 5px;">` +
+                            `<button id="random_weights_button" onclick="set_model_weights_to_random()" class="std-button std-button-hover" style="width: 145px; font-size: 13px; border-radius: 5px;">` +
                                 `<i class="fa-solid fa-dice" style="margin-right: 5px"></i>` +
                                     `Set Model Weights To Random Values` +
                                 //`</i>` +
@@ -4953,32 +5028,33 @@ function change_model() {
 
     , modal_width=1200, display=false);
 
+    $("#model_select_back_button").hide();
+    $("#random_weights_button").show();
+
     show_models();
 }
 
 
 
 function add_prediction_buttons() {
-    let navigation_type = $('#navigation_dropdown').val();
-    let single_text;
-    let all_text;
-    let multiple = false;
-    if (navigation_type === "images") {
-        single_text = "Current Image";
-        all_text = "All Images";
-        multiple = Object.keys(annotations).length > 1;
-    }
-    else {
-        single_text = "Current Region";
-        all_text = "All Regions";
-        let num_regions = 0;
-        for (let image_name of Object.keys(annotations)) {
-            for (let region_key of ["training_regions", "test_regions"]) {
-                num_regions += annotations[image_name][region_key].length;
-            }
-        }
-        multiple = num_regions > 1;
-    }
+    // let navigation_type = $('#navigation_dropdown').val();
+    let single_text = "Current Image";
+    let all_text = "All Images";
+    let multiple = Object.keys(annotations).length > 1;
+    // if (navigation_type === "images") {
+    
+    // }
+    // else {
+    //     single_text = "Current Region";
+    //     all_text = "All Regions";
+    //     let num_regions = 0;
+    //     for (let image_name of Object.keys(annotations)) {
+    //         for (let region_key of ["regions_of_interest", "training_regions", "test_regions"]) {
+    //             num_regions += annotations[image_name][region_key].length;
+    //         }
+    //     }
+    //     multiple = num_regions > 1;
+    // }
 
 
     $("#predict_container").empty();
@@ -5023,20 +5099,20 @@ function add_prediction_buttons() {
             show_modal_message("No Model Selected", "A model must be selected before predictions can be generated.");
         }
         else {
-            let navigation_type = $('#navigation_dropdown').val();
-            let image_list;
-            let region_list;
-            if (navigation_type === "images") {
-                let image_width = metadata["images"][cur_img_name]["width_px"];
-                let image_height = metadata["images"][cur_img_name]["height_px"];
-                image_list = [cur_img_name];
-                region_list = [[[0, 0, image_height, image_width]]];
-            }
-            else {
-                image_list = [cur_img_name];
-                let region = annotations[cur_img_name][navigation_type][cur_region_index];
-                region_list = [[region]];
-            }
+            // let navigation_type = $('#navigation_dropdown').val();
+            // let image_list;d
+            // let region_list;
+            // if (navigation_type === "images") {
+            let image_width = metadata["images"][cur_img_name]["width_px"];
+            let image_height = metadata["images"][cur_img_name]["height_px"];
+            image_list = [cur_img_name];
+            region_list = [[[0, 0, image_height, image_width]]];
+            // }
+            // else {
+            //     image_list = [cur_img_name];
+            //     let region = annotations[cur_img_name][navigation_type][cur_region_index];
+            //     region_list = [[region]];
+            // }
 
             submit_prediction_request_confirmed(JSON.stringify(image_list), JSON.stringify(region_list), false);
         }
@@ -5047,31 +5123,31 @@ function add_prediction_buttons() {
             show_modal_message("No Model Selected", "A model must be selected before predictions can be generated.");
         }
         else {
-            let navigation_type = $('#navigation_dropdown').val();
+            // let navigation_type = $('#navigation_dropdown').val();
             let image_list = [];
             let region_list = [];
-            if (navigation_type === "images") {
-                for (let image_name of Object.keys(annotations)) {
-                    let image_width = metadata["images"][image_name]["width_px"];
-                    let image_height = metadata["images"][image_name]["height_px"];
-                    image_list.push(image_name);
-                    region_list.push([[0, 0, image_height, image_width]]);
-                }
+            // if (navigation_type === "images") {
+            for (let image_name of Object.keys(annotations)) {
+                let image_width = metadata["images"][image_name]["width_px"];
+                let image_height = metadata["images"][image_name]["height_px"];
+                image_list.push(image_name);
+                region_list.push([[0, 0, image_height, image_width]]);
             }
-            else {
-                for (let image_name of Object.keys(annotations)) {
-                    let image_region_list = [];
-                    for (let region_key of ["training_regions", "test_regions"]) {
-                        for (let region of annotations[image_name][region_key]) {
-                            image_region_list.push(region);
-                        }
-                    }
-                    if (image_region_list.length > 0) {
-                        image_list.push(image_name);
-                        region_list.push(image_region_list)
-                    }
-                }
-            }
+            // }
+            // else {
+            //     for (let image_name of Object.keys(annotations)) {
+            //         let image_region_list = [];
+            //         for (let region_key of ["regions_of_interest", "training_regions", "test_regions"]) {
+            //             for (let region of annotations[image_name][region_key]) {
+            //                 image_region_list.push(region);
+            //             }
+            //         }
+            //         if (image_region_list.length > 0) {
+            //             image_list.push(image_name);
+            //             region_list.push(image_region_list)
+            //         }
+            //     }
+            // }
             
             submit_prediction_request_confirmed(JSON.stringify(image_list), JSON.stringify(region_list), false);
         }
@@ -5170,6 +5246,7 @@ $(document).ready(function() {
     excess_green_record = data["excess_green_record"];
     predictions = data["predictions"];
     overlay_appearance = data["overlay_appearance"];
+    tags = data["tags"];
 
     //window.setInterval(refresh, 90000); // 1.5 minutes
     ask_to_continue_handle = window.setTimeout(ask_to_continue, 7200000); // 2 hours
@@ -5472,8 +5549,6 @@ $(document).ready(function() {
     });
 
     socket.on("scheduler_status_change", function(update) {
-        
-        //console.log("update", update);
 
         let update_timestamp = parseInt(update["timestamp"]);
         let update_num = parseInt(update["update_num"]);
@@ -5860,20 +5935,8 @@ $(document).ready(function() {
         window.clearTimeout(ask_to_continue_handle);
         ask_to_continue_handle = window.setTimeout(ask_to_continue, 7200000);
 
-        
-        if (selected_annotation != null) {
-            
-            let cur_selected = anno.getSelected();
-            if (cur_selected == null) {
-                anno.clearAnnotations();
-                selected_annotation_index = -1;
-                selected_annotation = null;
-                viewer.raiseEvent('update-viewport');
-            }
-            else {
-                await anno.updateSelected(selected_annotation, true);
-            }
-        }
+        await unselect_selected_annotation();
+
 
         // if (metadata["is_ortho"] === "yes") {
         let new_training_regions = 0;
@@ -5969,9 +6032,10 @@ $(document).ready(function() {
     $("#help_button").click(function() {
 
         let head = "Help";
-        let message = `<div style="padding: 10px">&#8226; Hold the <span style='border: 1px solid white; font-size: 14px; padding: 5px 10px; margin: 0px 5px'>SHIFT</span> key while dragging the mouse to create a new annotation or region.` +
+        let message = `<div style="padding: 10px">&#8226; Hold the <span style='border: 1px solid white; font-size: 14px; padding: 5px 10px; margin: 0px 5px'>SHIFT</span> key and left mouse button to create a new annotation or region.` +
         `<br><br>&#8226; Click on an existing annotation / region to select it and change its boundaries.` +
         `<br><br>&#8226; Use the <span style='border: 1px solid white; font-size: 14px; padding: 5px 10px; margin: 0px 5px'>DELETE</span> key to remove whichever annotation / region is currently selected.` + 
+        `<br><br>&#8226; When creating a region of interest, double click the left mouse button to complete the region.` +                
         `<br><br>&#8226; If a test region is selected, pressing the <span style='border: 1px solid white; font-size: 16px; padding: 5px 10px; margin: 0px 5px'>m</span> key will change that region into a fine-tuning region.` + 
         `<br><br>&#8226; Don't forget to save your work!</div>`;
         show_modal_message(head, message, modal_width=750);
@@ -6297,30 +6361,20 @@ $(document).ready(function() {
     });
 
     $("input[name=edit_layer_radio]").change(async function(e) {
-        //e.preventDefault();
 
-        /*
-        if (selected_annotation != null) {
-            await anno.updateSelected(selected_annotation, true);
-        }*/
-        if (selected_annotation != null) {
-        
-            let cur_selected = anno.getSelected();
-            if (cur_selected == null) {
-                anno.clearAnnotations();
-                selected_annotation_index = -1;
-                selected_annotation = null;
-                viewer.raiseEvent('update-viewport');
-            }
-            else {
-                await anno.updateSelected(selected_annotation, true);
-            }
-        }
+        await unselect_selected_annotation();
+
 
         cur_edit_layer = $('input[name=edit_layer_radio]:checked').val();
-/*
-        anno.clearAnnotations();
-        viewer.raiseEvent('update-viewport');*/
+
+
+        if (cur_edit_layer === "region_of_interest") {
+            anno.setDrawingTool("polygon");
+        }
+        else {
+            anno.setDrawingTool("rect");
+        }
+
     });
 
 
@@ -6365,18 +6419,19 @@ $(document).ready(function() {
         // }
 
         let navigation_type = $("#navigation_dropdown").val();
-        if (navigation_type === "training_regions" || navigation_type == "test_regions") {
-            $("input:radio[name=edit_layer_radio]").filter("[value=annotation]").prop("checked", true);
+        if ((navigation_type == "regions_of_interest") || (navigation_type === "training_regions" || navigation_type == "test_regions")) {
+            // $("input:radio[name=edit_layer_radio]").filter("[value=annotation]").prop("checked", true);
             $("input:radio[name=edit_layer_radio]").prop("disabled", true);
             // $("#annotation_label").prop("opacity", 0.5);
             // $("#training_region_label").prop("opacity", 0.5);
             // $("#test_region_label").prop("opacity", 0.5);
             $("#active_layer_table").css("opacity", 0.5);
-            $("input:radio[name=edit_layer_radio]").change();
+            // $("input:radio[name=edit_layer_radio]").change();
 
             $("#show_segmentation_button").hide();
             // $("#show_annotation_button").css("width", "148px");
             // $("#show_prediction_button").css("width", "148px");
+
 
 
         }
@@ -6387,6 +6442,7 @@ $(document).ready(function() {
 
 
             $("#show_segmentation_button").show();
+
             // $("#show_annotation_button").css("width", "99px");
             // $("#show_prediction_button").css("width", "98px");
             // $("#show_segmentation_button").css("width", "99px");
@@ -6515,6 +6571,10 @@ $(document).ready(function() {
                         `</li>` +
                         `<br>` +
                         `<br>` +
+                        `<li>All regions of interest must be encoded as lists of x, y coordinate pairs` +
+                        `</li>` +
+                        `<br>` +
+                        `<br>` +
                         `<li>Images that are present in the image set but not found in the uploaded file will be unaffected by the upload process.` +
                         `</li>` +
                         `<br>` +
@@ -6607,7 +6667,7 @@ $(document).ready(function() {
             `<div style="height: 10px"></div>` +
             `<div style="text-align: center">` +
                 `<button style="width: 250px;" class="std-button std-button-hover" id="submit_annotations_button">Upload Annotations</button>` +
-            `</div>`, 850
+            `</div>`, 950
         );
 
         disable_std_buttons(["submit_annotations_button"]);
@@ -6770,12 +6830,16 @@ $(document).ready(function() {
 
                         `<ul>` +
 
-                        `<li>All boxes will be encoded with four values (in <span style="font-weight: bold">pixel coordinates</span>):` +
+                        `<li>All boxes are encoded with four values (in <span style="font-weight: bold">pixel coordinates</span>):` +
                         `<br>` +
                         `<br>` +
                         `<div style="text-align: center">` +
                             `<div style="font-family: 'Lucida Console', Monaco, monospace;">[ x_min, y_min, x_max, y_max ]</div> ` + 
                         `</div>` +
+                        `</li>` +
+                        `<br>` +
+                        `<br>` +
+                        `<li>All regions of interest are encoded as lists of x, y coordinate pairs` +
                         `</li>` +
                         `</ul>` +
                     `</td>` +
@@ -6896,11 +6960,11 @@ $(document).ready(function() {
             //         `</td>` +
             //     `</tr>` +
             // `</table>` +
-            `<div style="height: 10px"></div>` +
+            `<div style="height: 20px"></div>` +
             `<div style="text-align: center">` +
                 `<button style="width: 250px;" class="std-button std-button-hover" onclick="download_annotations()" id="prepare_download_button">Prepare Download</button>` +
             `</div>`
-            , 680
+            , 950 //680
         );
 
     });
@@ -7036,7 +7100,7 @@ function resize_window() {
     $("#chart_container").height(new_viewer_height);
     let image_name_table_height = $("#image_name_table").height();
     //console.log(image_name_table_height);
-    let new_navigation_table_container_height = new_viewer_height - image_name_table_height - 320;
+    let new_navigation_table_container_height = new_viewer_height - image_name_table_height - 345; //370; //345; //20;
     //console.log(new_navigation_table_container_height);
     let min_navigation_table_height = 310;
     if (new_navigation_table_container_height < min_navigation_table_height) {

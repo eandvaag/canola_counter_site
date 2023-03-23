@@ -87,23 +87,102 @@ function set_count_chart_data() {
                 }
             }
         }
+        else if (navigation_type === "regions_of_interest") {
+            for (let image_name of Object.keys(annotations)) {
+                for (let i = 0; i < annotations[image_name]["regions_of_interest"].length; i++) {
+                    let nav_item = image_name + "/" + i;
+                    count_chart_data[nav_item] = {"annotation":  0, "prediction": 0};
+                    for (let j = 0; j < annotations[image_name]["boxes"].length; j++) {
+                        let box = annotations[image_name]["boxes"][j];
+                        let centre = [(box[0] + box[2]) / 2, (box[1] + box[3]) / 2];
+                        if (point_is_inside_polygon(centre, annotations[image_name]["regions_of_interest"][i])) {
+                            count_chart_data[nav_item]["annotation"]++;
+                        }
+                    }
+                    
+                    if (image_name in predictions) {
+                        for (let j = 0; j < predictions[image_name]["boxes"].length; j++) {
+                            if (predictions[image_name]["scores"][j] > slider_val) {
+                                let box = predictions[image_name]["boxes"][j];
+                                let centre = [(box[0] + box[2]) / 2, (box[1] + box[3]) / 2];
+                                if (point_is_inside_polygon(centre, annotations[image_name]["regions_of_interest"][i])) {
+                                    count_chart_data[nav_item]["prediction"]++;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+
+/*
+
+
+
+                    let roi_poly = [];
+                    for (let coord of annotations[image_name]["regions_of_interest"][i]) {
+                        roi_poly.push([coord[1], coord[0]]);
+                    }
+                    let poly_bbox = get_bounding_box_for_polygon(annotations[image_name]["regions_of_interest"][i]);
+
+                    for (let j = 0; j < annotations[image_name]["boxes"].length; j++) {
+                        let box = annotations[image_name]["boxes"][j];
+
+                        if (box_intersects_region(box, poly_bbox)) {
+                            let box_poly = [[box[1], box[0]], [box[3], box[0]], [box[3], box[2]], [box[1], box[2]]];
+                            let clipped_poly = clip_polygons(roi_poly, box_poly);
+                            if (clipped_poly.length > 0) {
+                                count_chart_data[nav_item]["annotation"]++;
+                            }
+                        }
+                    }
+
+                    if (image_name in predictions) {
+                        for (let j = 0; j < predictions[image_name]["boxes"].length; j++) {
+                            if (predictions[image_name]["scores"][j] > slider_val) {
+                                let box = predictions[image_name]["boxes"][j];
+                                if (box_intersects_region(box, poly_bbox)) {
+                                    let box_poly = [[box[1], box[0]], [box[3], box[0]], [box[3], box[2]], [box[1], box[2]]];
+                                    if (clip_polygons(roi_poly, box_poly).length > 0) {
+                                        count_chart_data[nav_item]["prediction"]++;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            */
+        }
         else {
             for (let image_name of Object.keys(annotations)) {
                 for (let i = 0; i < annotations[image_name][navigation_type].length; i++) {
                     let nav_item = image_name + "/" + i;
                     count_chart_data[nav_item] = {"annotation":  0, "prediction": 0};
                     for (let j = 0; j < annotations[image_name]["boxes"].length; j++) {
-                        if (box_intersects_region(annotations[image_name]["boxes"][j], annotations[image_name][navigation_type][i])) {
+                        let box = annotations[image_name]["boxes"][j];
+                        let centre = [(box[0] + box[2]) / 2, (box[1] + box[3]) / 2];
+                        if (point_is_inside_box_region(centre, annotations[image_name][navigation_type][i])) {
                             count_chart_data[nav_item]["annotation"]++;
                         }
+                        // if (box_intersects_region(annotations[image_name]["boxes"][j], annotations[image_name][navigation_type][i])) {
+                        //     count_chart_data[nav_item]["annotation"]++;
+                        // }
                     }
                     if (image_name in predictions) {
                         for (let j = 0; j < predictions[image_name]["boxes"].length; j++) {
-                            if (predictions[image_name]["scores"][j] > slider_val && 
-                                box_intersects_region(predictions[image_name]["boxes"][j], annotations[image_name][navigation_type][i])) {
+                            if (predictions[image_name]["scores"][j] > slider_val) {
+                                let box = predictions[image_name]["boxes"][j];
+                                let centre = [(box[0] + box[2]) / 2, (box[1] + box[3]) / 2];
+                                if (point_is_inside_box_region(centre, annotations[image_name][navigation_type][i])) {
                                     count_chart_data[nav_item]["prediction"]++;
-                                    // console.log(i, predictions[image_name]["boxes"][j]);
+                                }
                             }
+                            // && 
+                            //     box_intersects_region(predictions[image_name]["boxes"][j], annotations[image_name][navigation_type][i])) {
+                            //         count_chart_data[nav_item]["prediction"]++;
+                            //         // console.log(i, predictions[image_name]["boxes"][j]);
+                            // }
                         }
                     }
                 }
@@ -134,18 +213,40 @@ function set_count_chart_data() {
             for (let overlay_name of Object.keys(count_chart_data[nav_item])) {
                 let v = count_chart_data[nav_item][overlay_name];
                 let image_name = nav_item.split("/")[0];
+                let region_index = nav_item.split("/")[1];
                 if (metric == "Count Per Square Metre") {
+                    let area_m2;
+                    if (navigation_type === "images") {
+                        // let nav_item = image_name + "/-1";
 
 
-                    // let gsd_h = (camera_height * sensor_height) / (focal_length * metadata["images"][image_name]["height_px"]);
-                    // let gsd_w = (camera_height * sensor_width) / (focal_length * metadata["images"][image_name]["width_px"]);     
-                    
-                    // let gsd = Math.min(gsd_h, gsd_w);
 
-                    let image_height_m = metadata["images"][image_name]["height_px"] * gsd;
-                    let image_width_m = metadata["images"][image_name]["width_px"] * gsd;
+                        // let gsd_h = (camera_height * sensor_height) / (focal_length * metadata["images"][image_name]["height_px"]);
+                        // let gsd_w = (camera_height * sensor_width) / (focal_length * metadata["images"][image_name]["width_px"]);     
+                        
+                        // let gsd = Math.min(gsd_h, gsd_w);
 
-                    let area_m2 = image_width_m * image_height_m;
+                        let image_height_m = metadata["images"][image_name]["height_px"] * gsd;
+                        let image_width_m = metadata["images"][image_name]["width_px"] * gsd;
+
+                        area_m2 = image_width_m * image_height_m;
+
+                    }
+                    else if (navigation_type === "regions_of_interest") {
+                        let region = annotations[image_name]["regions_of_interest"][region_index];
+                        let area_px = get_polygon_area(region);
+                        let bbox = get_bounding_box_for_polygon(region);
+                        let bbox_area_px = (bbox[2] - bbox[0]) * (bbox[3] - bbox[1]);
+                        console.log("area_px", area_px);
+                        console.log("bbox_area_px", bbox_area_px);
+                        area_m2 = area_px * (gsd ** 2);
+                    }
+                    else {
+                        let region = annotations[image_name][navigation_type][region_index];
+                        let area_px = (region[2] - region[0]) * (region[3] - region[1]);
+                        area_m2 = area_px * (gsd ** 2);
+                    }
+
 
                     v = v / area_m2;
                     v = Math.round((v + Number.EPSILON) * 100) / 100;
@@ -188,25 +289,76 @@ function set_count_chart_data() {
                 }
             }
         }
-        else {
+        // else if (navigation_type === "regions_of_interest") {
+        //     for (let image_name of Object.keys(annotations)) {
+        //         for (let i = 0; i < annotations[image_name]["regions_of_interest"].length; i++) {
+        //             let nav_item = image_name + "/" + i;
+        //             count_chart_data[nav_item] = {"annotation":  0, "prediction": 0};
+        //             let annotated_count = 0;
+        //             for (let j = 0; j < annotations[image_name]["boxes"].length; j++) {
+        //                 let box = annotations[image_name]["boxes"][j];
+        //                 let centre = [(box[0] + box[2]) / 2, (box[1] + box[3]) / 2];
+        //                 if (point_is_inside_polygon(centre, annotations[image_name]["regions_of_interest"][i])) {
+        //                     annotated_count++;
+        //                 }
+        //             }
+                    
+        //             if (image_name in predictions) {
+        //                 let predicted_count = 0;
+        //                 for (let j = 0; j < predictions[image_name]["boxes"].length; j++) {
+        //                     if (predictions[image_name]["scores"][j] > slider_val) {
+        //                         let box = predictions[image_name]["boxes"][j];
+        //                         let centre = [(box[0] + box[2]) / 2, (box[1] + box[3]) / 2];
+        //                         if (point_is_inside_polygon(centre, annotations[image_name]["regions_of_interest"][i])) {
+        //                             predicted_count++;
+        //                         }
+        //                     }
+        //                 }
+
+        //                 if (annotated_count == 0) {
+        //                     count_chart_data[nav_item]["prediction"] = 0;
+        //                 }
+        //                 else {
+        //                     count_chart_data[nav_item]["prediction"] = (Math.abs((predicted_count - annotated_count) / (annotated_count)) * 100);
+        //                 }
+        //             }
+        //             if (count_chart_data[nav_item]["prediction"] > max_count) {
+        //                 max_count = count_chart_data[nav_item]["prediction"];
+        //             }
+        //         }
+        //     }
+
+        // }
+        else if (navigation_type === "training_regions" || navigation_type === "test_regions") {
             for (let image_name of Object.keys(annotations)) {
                 for (let i = 0; i < annotations[image_name][navigation_type].length; i++) {
                     let nav_item = image_name + "/" + i;
                     count_chart_data[nav_item] = {"annotation":  0, "prediction": 0};
                     let annotated_count = 0;
+                    // for (let j = 0; j < annotations[image_name]["boxes"].length; j++) {
+                    //     if (box_intersects_region(annotations[image_name]["boxes"][j], annotations[image_name][navigation_type][i])) {
+                    //         annotated_count++;
+                    //     }
+                    // }
                     for (let j = 0; j < annotations[image_name]["boxes"].length; j++) {
-                        if (box_intersects_region(annotations[image_name]["boxes"][j], annotations[image_name][navigation_type][i])) {
+                        let box = annotations[image_name]["boxes"][j];
+                        let centre = [(box[0] + box[2]) / 2, (box[1] + box[3]) / 2];
+                        if (point_is_inside_box_region(centre, annotations[image_name][navigation_type][i])) {
                             annotated_count++;
                         }
                     }
                     if (image_name in predictions) {
                         let predicted_count = 0;
                         for (let j = 0; j < predictions[image_name]["boxes"].length; j++) {
-                            if (predictions[image_name]["scores"][j] > slider_val && 
-                                box_intersects_region(predictions[image_name]["boxes"][j], annotations[image_name][navigation_type][i])) {
+                            if (predictions[image_name]["scores"][j] > slider_val) {
+                                let box = predictions[image_name]["boxes"][j];
+                                let centre = [(box[0] + box[2]) / 2, (box[1] + box[3]) / 2];
+                                if (point_is_inside_box_region(centre, annotations[image_name][navigation_type][i])) {
                                     predicted_count++;
+                                }
                             }
                         }
+
                         if (annotated_count == 0) {
                             count_chart_data[nav_item]["prediction"] = 0;
                         }
@@ -214,6 +366,22 @@ function set_count_chart_data() {
                             count_chart_data[nav_item]["prediction"] = (Math.abs((predicted_count - annotated_count) / (annotated_count)) * 100);
                         }
                     }
+
+                    // if (image_name in predictions) {
+                    //     let predicted_count = 0;
+                    //     for (let j = 0; j < predictions[image_name]["boxes"].length; j++) {
+                    //         if (predictions[image_name]["scores"][j] > slider_val && 
+                    //             box_intersects_region(predictions[image_name]["boxes"][j], annotations[image_name][navigation_type][i])) {
+                    //                 predicted_count++;
+                    //         }
+                    //     }
+                    //     if (annotated_count == 0) {
+                    //         count_chart_data[nav_item]["prediction"] = 0;
+                    //     }
+                    //     else {
+                    //         count_chart_data[nav_item]["prediction"] = (Math.abs((predicted_count - annotated_count) / (annotated_count)) * 100);
+                    //     }
+                    // }
                     if (count_chart_data[nav_item]["prediction"] > max_count) {
                         max_count = count_chart_data[nav_item]["prediction"];
                     }
@@ -266,19 +434,21 @@ function set_count_chart_data() {
                         region_key = "test_regions";
                     }
 
-                    for (let i = 0; i < annotations[image_name][region_key].length; i++) {
-                        let region = annotations[image_name][region_key][i];
-                        if ((region[0] == 0 && region[1] == 0) && 
-                            (region[2] == image_h && region[3] == image_w)) {
+                    count_chart_data[nav_item]["prediction"] = metrics[metric][image_name][region_key][i];
 
-                            count_chart_data[nav_item]["prediction"] = metrics[metric][image_name][region_key][i];
-                            break;
-                        }
-                    }
+                    // for (let i = 0; i < annotations[image_name][region_key].length; i++) {
+                    //     let region = annotations[image_name][region_key][i];
+                    //     if ((region[0] == 0 && region[1] == 0) && 
+                    //         (region[2] == image_h && region[3] == image_w)) {
+
+                    //         count_chart_data[nav_item]["prediction"] = metrics[metric][image_name][region_key][i];
+                    //         break;
+                    //     }
+                    // }
                 }
             }
         }
-        else {
+        else if (navigation_type === "training_regions" || navigation_type === "test_regions") {
             for (let image_name of Object.keys(annotations)) {
                 for (let i = 0; i < annotations[image_name][navigation_type].length; i++) {
                     let nav_item = image_name + "/" + i;

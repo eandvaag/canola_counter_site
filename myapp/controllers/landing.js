@@ -40,9 +40,13 @@ const camera_mutex = new Mutex();
 
 
 const MAX_EXTENSIONLESS_FILENAME_LENGTH = 100;
-const valid_extensions = [".jpg", ".JPG", ".png", ".PNG", ".tif", ".TIF"];
+//const valid_extensions = [".jpg", ".JPG", ".png", ".PNG", ".tif", ".TIF"];
+const valid_extensions = ["jpg", "JPG", "jpeg", "JPEG", "png", "PNG", "tif", "TIF", "tiff", "TIFF"];
 
-const MODEL_NAME_FORMAT = /[\s `!@#$%^&*()+\=\[\]{};':"\\|,<>\/?~]/;
+
+const FILE_FORMAT = /[\s `!@#$%^&*()+\=\[\]{};':"\\|,<>\/?~]/;
+const FARM_FIELD_MISSION_FORMAT = /[\s `!@#$%^&*()+\=\[\]{}.;':"\\|,<>\/?~]/;
+const MODEL_NAME_FORMAT = /[\s `!@#$%^&*()+\=\[\]{}.;':"\\|,<>\/?~]/;
 
 
 Date.prototype.isValid = function () {
@@ -103,6 +107,11 @@ scheduler.on('error', (error) => {
 exports.get_sign_in = function(req, res, next) {
     res.render('sign_in');
 }
+
+
+// exports.get_test_anno = function(req, res, next) {
+//     res.render('test_anno');
+// }
 
 exports.post_sign_in = function(req, res, next) {
     let response = {};
@@ -400,7 +409,7 @@ exports.post_overlay_appearance_change = function(req, res, next) {
         return res.json(response);
     }
 
-    for (let overlay_key of ["annotation", "prediction", "training_region", "test_region"]) {
+    for (let overlay_key of ["annotation", "prediction", "region_of_interest", "training_region", "test_region"]) {
         if (!(overlay_key in overlay_appearance["colors"])) {
             response.error = true;
             response.message = "Missing overlay key: '" + overlay_key + "'.";
@@ -537,6 +546,19 @@ exports.get_workspace = function(req, res, next) {
                 return res.redirect(process.env.CC_PATH);
             }
 
+            let tags;
+            console.log("getting tags");
+            let tags_path = path.join(image_set_dir, "annotations", "tags.json");
+            
+            try {
+                tags = JSON.parse(fs.readFileSync(tags_path, 'utf8'));
+            }
+            catch (error) {
+                console.log(error);
+                return res.redirect(process.env.CC_PATH);
+            }
+
+
             console.log("getting dzi image paths");
             let dzi_images_dir = path.join(image_set_dir, "dzi_images");
             let dzi_image_paths = [];
@@ -587,12 +609,15 @@ exports.get_workspace = function(req, res, next) {
                 data["dzi_image_paths"] = nat_orderBy.orderBy(dzi_image_paths);
                 data["annotations"] = annotations;
                 data["excess_green_record"] = excess_green_record;
+                data["tags"] = tags;
                 data["camera_specs"] = camera_specs;
                 data["predictions"] = predictions;
                 data["overlay_appearance"] = overlay_appearance;
-                //data["model_status"] = status;
-                res.render("workspace", {username: req.session.user.username, data: data});
 
+                //data["model_status"] = status;
+
+                res.render("workspace", {username: req.session.user.username, data: data});
+                // res.render("test_anno", {username: req.session.user.username, data: data});
 
             });
 /*
@@ -1280,10 +1305,71 @@ exports.post_annotations_upload = function(req, res, next) {
 
         new_annotations[image_name] = {
             "boxes": [],
+            "regions_of_interest": [],
             "training_regions": [],
             "test_regions": [],
             "source": "uploaded"
         };
+
+        if ("regions_of_interest" in annotations[entry_name]) {
+            if (!(Array.isArray(annotations[entry_name]["regions_of_interest"]))) {
+                return res.status(422).json({
+                    error: "The uploaded annotations file contains an invalid value (not an array). Problematic key: " + entry_name + "."
+                });
+            }
+            let num_regions = annotations[entry_name]["regions_of_interest"].length;
+            if (num_regions > 99) {
+                return res.status(422).json({
+                    error: "The uploaded annotations file contains too many regions of interest" +
+                            " for image " + entry_name + ". A maximum of 99 regions of interest " + 
+                            " are allowed per image. " + num_regions + " were provided."
+                });
+            }
+
+            for (let i = 0; i < annotations[entry_name]["regions_of_interest"].length; i++) {
+                let poly = annotations[image_name]["regions_of_interest"][i];
+                
+                if (!(Array.isArray(poly))) {
+                    return res.status(422).json({
+                        error: "The uploaded annotations file contains an invalid polygon (not an array). Problematic key: " + entry_name + "."
+                    });
+                }
+                if (poly.length < 3) {
+                    return res.status(422).json({
+                        error: "The uploaded annotations file contains an invalid polygon (number of points is less than 3). Problematic key: " + entry_name + "."
+                    });
+                }
+
+                let image_w = metadata["images"][image_name]["width_px"];
+                let image_h = metadata["images"][image_name]["height_px"];
+
+                let uploaded_poly = [];
+                for (let pt of poly) {
+                    if (!(Array.isArray(pt))) {
+                        return res.status(422).json({
+                            error: "The uploaded annotations file contains an invalid polygon (at least one point is not an array). Problematic key: " + entry_name + "."
+                        });
+                    }
+                    if (pt.length != 2) {
+                        return res.status(422).json({
+                            error: "The uploaded annotations file contains an invalid polygon (at least one point is not an array of length 2). Problematic key: " + entry_name + "."
+                        });
+                    }
+
+                    if ((pt[0] < 0 || pt[0] > image_w) || (pt[1] < 0 || pt[1] > image_h)) {
+                        return res.status(422).json({
+                            error: "The uploaded annotations file contains a polygon with a point located outside of the image boundaries. Problematic key: " + entry_name + "."
+                        });
+                    }
+
+                    uploaded_poly.push([pt[1], pt[0]]);
+                }
+
+                new_annotations[image_name]["regions_of_interest"].push(
+                    uploaded_poly
+                );
+            }
+        }
 
         for (let annotation_key of ["annotations", "fine_tuning_regions", "test_regions"]) {
             if (!(annotation_key in annotations[entry_name])) {
@@ -1385,7 +1471,7 @@ exports.post_annotations_upload = function(req, res, next) {
 
                 if (((y_min < 0) || (x_min < 0)) || ((y_max > image_h) || (x_max > image_w))) {
                     return res.status(422).json({
-                        error: "The uploaded annotations file contains a box with coordinates outside of the image area. Problematic key: " + entry_name + "."
+                        error: "The uploaded annotations file contains a box with coordinates outside of the image boundaries. Problematic key: " + entry_name + "."
                     });
                     // response.message = "The uploaded annotations file contains a box with coordinates outside of the image area.";
                     // response.error = true;
@@ -1483,6 +1569,9 @@ exports.post_annotations_upload = function(req, res, next) {
                 let internal_annotation_key;
                 if (annotation_key === "annotations") {
                     internal_annotation_key = "boxes";
+                }
+                else if (annotation_key === "regions_of_interest") {
+                    internal_annotation_key = "regions_of_interest";
                 }
                 else if (annotation_key === "fine_tuning_regions") {
                     internal_annotation_key = "training_regions";
@@ -1821,6 +1910,19 @@ exports.post_annotations_upload = function(req, res, next) {
 
 // }
 
+function verify_annotations(annotations) {
+    // TODO
+}
+
+
+function verify_excess_green_record(excess_green_record) {
+    // TODO
+}
+
+function verify_tags(tags) {
+    // TODO
+}
+
 exports.post_workspace = function(req, res, next) {
 
     //console.log("post_workspace");
@@ -2144,6 +2246,14 @@ exports.post_workspace = function(req, res, next) {
         let annotations_path = path.join(image_set_dir, "annotations", "annotations.json");
         let annotations_backup_path = path.join(image_set_dir, "annotations", "backup_annotations.json");
         let annotations = JSON.parse(req.body.annotations);
+        let excess_green_record = JSON.parse(req.body.excess_green_record);
+        let tags = JSON.parse(req.body.tags);
+
+        verify_annotations(annotations);
+        verify_excess_green_record(excess_green_record);
+        verify_tags(tags);
+
+
         //console.log("got annotations", annotations);
         fs.rename(annotations_path, annotations_backup_path, (error) => {
             if (error) {
@@ -2168,6 +2278,16 @@ exports.post_workspace = function(req, res, next) {
             catch (error) {
                 response.error = true;
                 response.message = "Failed to write excess green record.";
+                return res.json(response);
+            }
+
+            let tags_path = path.join(image_set_dir, "annotations", "tags.json");
+            try {
+                fs.writeFileSync(tags_path, req.body.tags);
+            }
+            catch (error) {
+                response.error = true;
+                response.message = "Failed to write tags.";
                 return res.json(response);
             }
 
@@ -2380,6 +2500,21 @@ exports.post_workspace = function(req, res, next) {
         let download_annotations = {};
         for (let image_name of Object.keys(annotations)) {
             download_annotations[image_name] = {};
+
+
+            download_annotations[image_name]["regions_of_interest"] = [];
+            for (let i = 0; i < annotations[image_name]["regions_of_interest"].length; i++) {
+                download_region = [];
+                for (let j = 0; j < annotations[image_name]["regions_of_interest"][i].length; j++) {
+                    let pt = annotations[image_name]["regions_of_interest"][i];
+                    let download_pt = [
+                        pt[1], pt[0]
+                    ];
+                    download_region.push(download_pt);
+                }
+                download_annotations[image_name]["regions_of_interest"].push(download_region);
+            }
+
             for (let annotation_key of ["boxes", "training_regions", "test_regions"]) {
 
                 let external_annotation_key;
@@ -3410,21 +3545,22 @@ exports.post_orthomosaic_upload = function(req, res, next) {
         }
     }
 
-    let format = /[\s `!@#$%^&*()+\=\[\]{};':"\\|,<>\/?~]/;
 
 
 
     
     if (first) {
-        let image_set_extension = filename.substring(filename.length-4);
+        let split_filename = filename.split(".");
+        let image_set_extension = split_filename[split_filename.length-1];
+        //let image_set_extension = filename.substring(filename.length-4);
         if (!(valid_extensions.includes(image_set_extension))) {
             delete active_uploads[upload_uuid];
             return res.status(422).json({
-                error: "The provided file does not have an accepted file extension. (Accepted extensions are '.jpg', '.png', and '.tif')."
+                error: "The provided file does not have an accepted file extension. (Accepted extensions are: '.jpg', '.png', and '.tif')."
             });
         }
 
-        if (format.test(filename)) {
+        if (FILE_FORMAT.test(filename)) {
             delete active_uploads[upload_uuid];
             return res.status(422).json({
                 error: "The provided filename contains illegal characters."
@@ -3441,7 +3577,8 @@ exports.post_orthomosaic_upload = function(req, res, next) {
         //let extension = filename.substring(filename.length-4);
         
 
-        let extensionless_fname = filename.substring(0, filename.length-4);
+        //let extensionless_fname = filename.substring(0, filename.length-4);
+        let extensionless_fname = split_filename[0];
         if (extensionless_fname.length > MAX_EXTENSIONLESS_FILENAME_LENGTH) {
             delete active_uploads[upload_uuid];
             return res.status(422).json({
@@ -3473,7 +3610,7 @@ exports.post_orthomosaic_upload = function(req, res, next) {
                     error: "The provided farm name, field name, or mission date is too long."
                 });
             }
-            if (format.test(id_component)) {
+            if (FARM_FIELD_MISSION_FORMAT.test(id_component)) {
                 delete active_uploads[upload_uuid];
                 return res.status(422).json({
                     error: "The provided farm name, field name, or mission date contains illegal characters."
@@ -3790,7 +3927,7 @@ exports.post_image_set_upload = async function(req, res, next) {
         }
     }
 
-    let format = /[\s `!@#$%^&*()+\=\[\]{};':"\\|,<>\/?~]/;
+    //let format = /[\s `!@#$%^&*()+\=\[\]{};':"\\|,<>\/?~]/;
 
     let image_sets_root = path.join(USR_DATA_ROOT, req.session.user.username, "image_sets");
     let farm_dir = path.join(image_sets_root, farm_name);
@@ -3800,7 +3937,8 @@ exports.post_image_set_upload = async function(req, res, next) {
 
     
     if (first) {
-        let image_set_extension = queued_filenames[0].substring(queued_filenames[0].length-4);
+        let split_filename = queued_filenames[0].split(".");
+        let image_set_extension = split_filename[split_filename.length-1]; // queued_filenames[0].substring(queued_filenames[0].length-4);
         if (!(valid_extensions.includes(image_set_extension))) {
             delete active_uploads[upload_uuid];
             return res.status(422).json({
@@ -3809,7 +3947,7 @@ exports.post_image_set_upload = async function(req, res, next) {
         }
 
         for (let filename of queued_filenames) {
-            if (format.test(filename)) {
+            if (FILE_FORMAT.test(filename)) {
                 delete active_uploads[upload_uuid];
                 return res.status(422).json({
                     error: "One or more provided filenames contains illegal characters."
@@ -3822,8 +3960,9 @@ exports.post_image_set_upload = async function(req, res, next) {
                     error: "At least one filename contains an illegal '.' character."
                 });
             }
-    
-            let extension = filename.substring(filename.length-4);
+
+            let split_filename = filename.split(".");
+            let extension = split_filename[split_filename.length-1];
             
             if (extension !== image_set_extension) {
                 delete active_uploads[upload_uuid];
@@ -3832,7 +3971,8 @@ exports.post_image_set_upload = async function(req, res, next) {
                 });
             }
     
-            let extensionless_fname = filename.substring(0, filename.length-4);
+            //let extensionless_fname = filename.substring(0, filename.length-4);
+            let extensionless_fname = split_filename[0];
             if (extensionless_fname.length > MAX_EXTENSIONLESS_FILENAME_LENGTH) {
                 delete active_uploads[upload_uuid];
                 return res.status(422).json({
@@ -3869,7 +4009,7 @@ exports.post_image_set_upload = async function(req, res, next) {
                     error: "The provided farm name, field name, or mission date is too long."
                 });
             }
-            if (format.test(id_component)) {
+            if (FARM_FIELD_MISSION_FORMAT.test(id_component)) {
                 // if (!sent_response) {
                 //     sent_response = true;
                 // active_uploads[upload_uuid] = "failed";
@@ -4006,7 +4146,9 @@ exports.post_image_set_upload = async function(req, res, next) {
         }
         */
 
-        let extensionless_fname = file.originalname.substring(0, file.originalname.length-4);
+        //let extensionless_fname = file.originalname.substring(0, file.originalname.length-4);
+        let split_filename = file.originalname.split(".");
+        let extensionless_fname = split_filename[0];
         if (extensionless_fname.length > MAX_EXTENSIONLESS_FILENAME_LENGTH) {
             try {
                 remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
@@ -4306,6 +4448,8 @@ exports.post_home = function(req, res, next) {
         }
     }
     else if (action === "get_overview_info") {
+
+        console.log("get_overview_info");
         let farm_name = req.body.farm_name;
         let field_name = req.body.field_name;
         let mission_date = req.body.mission_date;
@@ -4342,11 +4486,13 @@ exports.post_home = function(req, res, next) {
             // "num_completed": 0,
             // "num_started": 0,
             // "num_unannotated": 0
+            "num_regions_of_interest": 0,
             "num_training_regions": 0,
             "num_test_regions": 0
         };
         for (let image_name of Object.keys(annotations)) {
             annotation_info["num_annotations"] += annotations[image_name]["boxes"].length;
+            annotation_info["num_regions_of_interest"] += annotations[image_name]["regions_of_interest"].length;
             annotation_info["num_training_regions"] += annotations[image_name]["training_regions"].length;
             annotation_info["num_test_regions"] += annotations[image_name]["test_regions"].length;
             annotation_info["num_images"]++;
@@ -5427,6 +5573,17 @@ exports.get_viewer = function(req, res, next) {
             console.log(error);
             return res.redirect(process.env.CC_PATH);
         }
+
+        let tags_path = path.join(sel_results_dir, "tags.json");
+        let tags;        
+        try {
+            tags = JSON.parse(fs.readFileSync(tags_path, 'utf8'));
+        }
+        catch (error) {
+            console.log(error);
+            return res.redirect(process.env.CC_PATH);
+        }
+
         let excess_green_record_path = path.join(sel_results_dir, "excess_green_record.json");
         let excess_green_record;
         try {
@@ -5446,10 +5603,10 @@ exports.get_viewer = function(req, res, next) {
 
         }
 
-        let voronoi_areas_path = path.join(sel_results_dir, "voronoi_areas.xlsx");
-        let voronoi_areas_exists;
+        let areas_path = path.join(sel_results_dir, "areas.xlsx");
+        let areas_spreadsheet_exists;
         try {
-            voronoi_areas_exists = fs.existsSync(voronoi_areas_path);
+            areas_spreadsheet_exists = fs.existsSync(areas_path);
         }
         catch (error) {
             console.log(error);
@@ -5481,7 +5638,8 @@ exports.get_viewer = function(req, res, next) {
         data["excess_green_record"] = excess_green_record;
         data["metrics"] = metrics;
         data["request"] = request;
-        data["voronoi_areas_exists"] = voronoi_areas_exists;
+        data["areas_spreadsheet_exists"] = areas_spreadsheet_exists;
+        data["tags"] = tags;
 
         //data["dzi_dir"] = path.join(process.env.CC_PATH, dzi_images_dir);
         data["dzi_image_paths"] = nat_orderBy.orderBy(dzi_image_paths);

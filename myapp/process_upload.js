@@ -154,7 +154,9 @@ async function process_upload(username, farm_name, field_name, mission_date, obj
         let image_names = [];
         for (let image_path of image_paths) {
             let full_image_name = path.basename(image_path);
-            let extensionless_fname = full_image_name.substring(0, full_image_name.length-4);
+            let split_image_name = full_image_name.split(".");
+            let extensionless_fname = split_image_name[0];
+            //let extensionless_fname = full_image_name.substring(0, full_image_name.length-4);
             image_names.push(extensionless_fname);
 
             let identify_command = "identify " + image_path + " | grep sRGB";
@@ -272,6 +274,7 @@ async function process_upload(username, farm_name, field_name, mission_date, obj
             // if (is_ortho === "yes") {
             annotations[image_name] = {
                 "boxes": [],
+                "regions_of_interest": [],
                 "training_regions": [],
                 "test_regions": [],
                 "source": "NA"
@@ -290,6 +293,17 @@ async function process_upload(username, farm_name, field_name, mission_date, obj
         console.log("Writing the annotations file");
         try {
             fs.writeFileSync(annotations_path, JSON.stringify(annotations));
+        }
+        catch (error) {
+            write_and_notify(upload_status_path, {"status": "failed", "error": error.toString()}, notify_data);
+            return;
+        }
+
+
+        let tags = {};
+        let tags_path = path.join(annotations_dir, "tags.json");
+        try {
+            fs.writeFileSync(tags_path, JSON.stringify(tags));
         }
         catch (error) {
             write_and_notify(upload_status_path, {"status": "failed", "error": error.toString()}, notify_data);

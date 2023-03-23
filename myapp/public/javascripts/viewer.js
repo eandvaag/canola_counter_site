@@ -11,6 +11,7 @@ let metrics;
 //let dzi_dir;
 let dzi_image_paths;
 let excess_green_record;
+let tags;
 //let download_uuid = "";
 let overlay_appearance;
 /*
@@ -80,7 +81,6 @@ function show_metrics_modal() {
 
 function change_image(cur_nav_item) {
 
-    let navigation_type = $("#navigation_dropdown").val();
 
     document.getElementById(cur_nav_item + "_row").scrollIntoView({behavior: "smooth"});
 
@@ -454,8 +454,14 @@ function create_viewer() {
             set_cur_bounds();
         },
         onRedraw: function() {
+
+            let navigation_type = $("#navigation_dropdown").val();
         
             let boxes_to_add = {};
+            boxes_to_add["region_of_interest"] = {};
+            boxes_to_add["region_of_interest"]["boxes"] = annotations[cur_img_name]["regions_of_interest"];
+            boxes_to_add["region_of_interest"] = {};
+            boxes_to_add["region_of_interest"]["boxes"] = annotations[cur_img_name]["regions_of_interest"];
             boxes_to_add["training_region"] = {};
             boxes_to_add["training_region"]["boxes"] = annotations[cur_img_name]["training_regions"];
             boxes_to_add["test_region"] = {};
@@ -485,6 +491,18 @@ function create_viewer() {
             let viewport_h = Math.ceil((viewer_bounds.height / hw_ratio) * overlay.imgHeight);
             let max_x = min_x + viewport_w;
             let max_y = min_y + viewport_h;
+
+            if (cur_region_index != -1) {
+
+                let cur_region = annotations[cur_img_name][navigation_type][cur_region_index];
+                if (navigation_type == "regions_of_interest") {
+                    cur_region = get_bounding_box_for_polygon(cur_region);
+                }
+                min_y = Math.max(min_y, cur_region[0]);
+                min_x = Math.max(min_x, cur_region[1]);
+                max_y = Math.min(max_y, cur_region[2]);
+                max_x = Math.min(max_x, cur_region[3]);
+            }
 
             overlay.context2d().font = "14px arial";
 
@@ -568,170 +586,233 @@ function create_viewer() {
                 overlay.context2d().strokeStyle = overlay_appearance["colors"][key];
                 overlay.context2d().fillStyle = overlay_appearance["colors"][key] + "55";
                 overlay.context2d().lineWidth = 2;
-                let visible_inds = [];
 
-                for (let i = 0; i < boxes_to_add[key]["boxes"].length; i++) {
 
-                    let box = boxes_to_add[key]["boxes"][i];
-                    if (key === "prediction") {
-                        let score = boxes_to_add[key]["scores"][i];
-                        if (score <= slider_val) {
-                            continue;
+                if (key === "region_of_interest") {
+
+                    for (let i = 0; i < boxes_to_add["region_of_interest"]["boxes"].length; i++) {
+
+                        let region = boxes_to_add["region_of_interest"]["boxes"][i];
+                        overlay.context2d().beginPath();
+                        for (let j = 0; j < region.length; j++) {
+                            let pt = region[j];
+                
+                            let viewer_point = viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(pt[1], pt[0]));
+                            
+                            if (j == 0) {
+                                overlay.context2d().moveTo(viewer_point.x, viewer_point.y);
+                            }
+                            else {
+                                overlay.context2d().lineTo(viewer_point.x, viewer_point.y);
+                            }
+                        }
+
+                
+                        overlay.context2d().closePath();
+                        overlay.context2d().stroke();
+                        if (overlay_appearance["style"][key] == "fillRect") {
+                            overlay.context2d().fill();
+                        }
+                
+                    }
+                }
+                else {
+
+
+
+
+
+
+
+                    let visible_inds = [];
+
+                    for (let i = 0; i < boxes_to_add[key]["boxes"].length; i++) {
+
+                        let box = boxes_to_add[key]["boxes"][i];
+                        if (key === "prediction") {
+                            let score = boxes_to_add[key]["scores"][i];
+                            if (score <= slider_val) {
+                                continue;
+                            }
+                        }
+
+                        //let box_width_pct_of_image = (box[3] - box[1]) / overlay.imgWidth;
+                        //let disp_width = (box_width_pct_of_image / viewer_bounds.width) * container_size.x;
+                        //let box_height_pct_of_image = (box[3] - box[1]) / overlay.imgHeight;
+                        //let disp_height = (box_height_pct_of_image / viewer_bounds.height) * container_size.y;
+
+                        // if ((disp_width * disp_height) < 0.5) {
+                        //     continue;
+                        // }
+
+                        if (((box[1] < max_x) && (box[3] > min_x)) && ((box[0] < max_y) && (box[2] > min_y))) {
+                            
+                            visible_inds.push(i);
+                            
+                            // let viewer_point = viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(box[1], box[0]));
+                            // let viewer_point_2 = viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(box[3], box[2]));
+
+                            
+                            // overlay.context2d().strokeRect(
+                            //     viewer_point.x,
+                            //     viewer_point.y,
+                            //     (viewer_point_2.x - viewer_point.x),
+                            //     (viewer_point_2.y - viewer_point.y)
+                            // );
                         }
                     }
 
-                    //let box_width_pct_of_image = (box[3] - box[1]) / overlay.imgWidth;
-                    //let disp_width = (box_width_pct_of_image / viewer_bounds.width) * container_size.x;
-                    //let box_height_pct_of_image = (box[3] - box[1]) / overlay.imgHeight;
-                    //let disp_height = (box_height_pct_of_image / viewer_bounds.height) * container_size.y;
+                    if (visible_inds.length <= MAX_BOXES_DISPLAYED) {
+                        for (let ind of visible_inds) {
+                            let box = boxes_to_add[key]["boxes"][ind];
+                            let viewer_point = viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(box[1], box[0]));
+                            let viewer_point_2 = viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(box[3], box[2]));
 
-                    // if ((disp_width * disp_height) < 0.5) {
-                    //     continue;
-                    // }
-
-                    if (((box[1] < max_x) && (box[3] > min_x)) && ((box[0] < max_y) && (box[2] > min_y))) {
-                        
-                        visible_inds.push(i);
-                        
-                        // let viewer_point = viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(box[1], box[0]));
-                        // let viewer_point_2 = viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(box[3], box[2]));
-
-                        
-                        // overlay.context2d().strokeRect(
-                        //     viewer_point.x,
-                        //     viewer_point.y,
-                        //     (viewer_point_2.x - viewer_point.x),
-                        //     (viewer_point_2.y - viewer_point.y)
-                        // );
-                    }
-                }
-
-                if (visible_inds.length <= MAX_BOXES_DISPLAYED) {
-                    for (let ind of visible_inds) {
-                        let box = boxes_to_add[key]["boxes"][ind];
-                        let viewer_point = viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(box[1], box[0]));
-                        let viewer_point_2 = viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(box[3], box[2]));
-
-                        
-                        //if (overlay_appearance["style"][key] == "strokeRect") {
-                        overlay.context2d().strokeRect(
-                            viewer_point.x,// * container_size.x,
-                            viewer_point.y,// * container_size.y,
-                            (viewer_point_2.x - viewer_point.x),// * container_size.x,
-                            (viewer_point_2.y - viewer_point.y)// * container_size.y
-                        );
-                        //}
-                        if (overlay_appearance["style"][key] == "fillRect") {
-                            overlay.context2d().fillRect(
+                            
+                            //if (overlay_appearance["style"][key] == "strokeRect") {
+                            overlay.context2d().strokeRect(
                                 viewer_point.x,// * container_size.x,
                                 viewer_point.y,// * container_size.y,
                                 (viewer_point_2.x - viewer_point.x),// * container_size.x,
                                 (viewer_point_2.y - viewer_point.y)// * container_size.y
                             );
-                        }
-                        //overlay.context2d().strokeRect(
-                        // draw_func(
-                        //     viewer_point.x,// * container_size.x,
-                        //     viewer_point.y,// * container_size.y,
-                        //     (viewer_point_2.x - viewer_point.x),// * container_size.x,
-                        //     (viewer_point_2.y - viewer_point.y)// * container_size.y
-                        // );
-                    }
-
-
-
-
-
-                    if ((key === "prediction") && ("prediction" in boxes_to_add) && ($("#scores_switch").is(":checked"))) {
-                        for (let ind of visible_inds) {
-
-                            let box = boxes_to_add[key]["boxes"][ind];
-                            let score = boxes_to_add[key]["scores"][ind];
-
-                            // if (score < slider_val) {
-                            //     continue;
-                            // }
-                            
-                            let box_width_pct_of_image = (box[3] - box[1]) / overlay.imgWidth;
-                            let disp_width = (box_width_pct_of_image / viewer_bounds.width) * container_size.x;
-                            let box_height_pct_of_image = (box[3] - box[1]) / overlay.imgHeight;
-                            let disp_height = (box_height_pct_of_image / viewer_bounds.height) * container_size.y;
-        
-                            if ((disp_width * disp_height) < 10) {
-                                continue;
-                            }
-        
-                            if (((box[1] < max_x) && (box[3] > min_x)) && ((box[0] < max_y) && (box[2] > min_y))) {
-        
-        
-                                let viewer_point = viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(box[1], box[0]));
-        
-                                //let score_text = score.toFixed(2);
-                                let score_text = (Math.ceil(score * 100) / 100).toFixed(2);
-        
-                                overlay.context2d().fillStyle = "white";
+                            //}
+                            if (overlay_appearance["style"][key] == "fillRect") {
                                 overlay.context2d().fillRect(
-                                        viewer_point.x - 1,
-                                        viewer_point.y - 20,
-                                        36,
-                                        20
-                                    );
-        
-                                overlay.context2d().fillStyle = "black";
-                                overlay.context2d().fillText(score_text, 
-        
-                                    viewer_point.x + 3,
-                                    viewer_point.y - 5
+                                    viewer_point.x,// * container_size.x,
+                                    viewer_point.y,// * container_size.y,
+                                    (viewer_point_2.x - viewer_point.x),// * container_size.x,
+                                    (viewer_point_2.y - viewer_point.y)// * container_size.y
                                 );
                             }
+                            //overlay.context2d().strokeRect(
+                            // draw_func(
+                            //     viewer_point.x,// * container_size.x,
+                            //     viewer_point.y,// * container_size.y,
+                            //     (viewer_point_2.x - viewer_point.x),// * container_size.x,
+                            //     (viewer_point_2.y - viewer_point.y)// * container_size.y
+                            // );
+                        }
+
+
+
+
+
+                        if ((key === "prediction") && ("prediction" in boxes_to_add) && ($("#scores_switch").is(":checked"))) {
+                            for (let ind of visible_inds) {
+
+                                let box = boxes_to_add[key]["boxes"][ind];
+                                let score = boxes_to_add[key]["scores"][ind];
+
+                                // if (score < slider_val) {
+                                //     continue;
+                                // }
+                                
+                                let box_width_pct_of_image = (box[3] - box[1]) / overlay.imgWidth;
+                                let disp_width = (box_width_pct_of_image / viewer_bounds.width) * container_size.x;
+                                let box_height_pct_of_image = (box[3] - box[1]) / overlay.imgHeight;
+                                let disp_height = (box_height_pct_of_image / viewer_bounds.height) * container_size.y;
+            
+                                if ((disp_width * disp_height) < 10) {
+                                    continue;
+                                }
+            
+                                if (((box[1] < max_x) && (box[3] > min_x)) && ((box[0] < max_y) && (box[2] > min_y))) {
+            
+            
+                                    let viewer_point = viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(box[1], box[0]));
+            
+                                    //let score_text = score.toFixed(2);
+                                    let score_text = (Math.ceil(score * 100) / 100).toFixed(2);
+            
+                                    overlay.context2d().fillStyle = "white";
+                                    overlay.context2d().fillRect(
+                                            viewer_point.x - 1,
+                                            viewer_point.y - 20,
+                                            36,
+                                            20
+                                        );
+            
+                                    overlay.context2d().fillStyle = "black";
+                                    overlay.context2d().fillText(score_text, 
+            
+                                        viewer_point.x + 3,
+                                        viewer_point.y - 5
+                                    );
+                                }
+                            }
                         }
                     }
-
                 }
             }
 
-            
-            let navigation_type = $("#navigation_dropdown").val();
-            if (navigation_type === "training_regions" || navigation_type === "test_regions") {
+            if ((navigation_type === "regions_of_interest") || (navigation_type === "training_regions" || navigation_type === "test_regions")) {
 
                 let region = annotations[cur_img_name][navigation_type][cur_region_index];
-
                 let image_px_width = metadata["images"][cur_img_name]["width_px"];
                 let image_px_height = metadata["images"][cur_img_name]["height_px"];
-
-
-                let rects = [
-                    [0, 0, region[0], image_px_width],
-                    [0, region[3], image_px_height, image_px_width],
-                    [region[2], 0, image_px_height, image_px_width],
-                    [0, 0, image_px_height, region[1]]
-
+        
+                let inner_poly;
+                let outer_poly = [
+                    [0-1e6, 0-1e6], 
+                    [0-1e6, image_px_width+1e6], 
+                    [image_px_height+1e6, image_px_width+1e6],
+                    [image_px_height+1e6, 0-1e6]
                 ];
-                
-                overlay.context2d().fillStyle = "#222621";
-                for (let rect of rects) {
-                    let viewer_point = viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(rect[1], rect[0]));
-                    let viewer_point_2 = viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(rect[3], rect[2]));
-                    
-                    overlay.context2d().fillRect(
-                        viewer_point.x,
-                        viewer_point.y,
-                        (viewer_point_2.x - viewer_point.x),
-                        (viewer_point_2.y - viewer_point.y)
-                    );
+        
+                if (navigation_type === "regions_of_interest") {
+                    inner_poly = region;
                 }
-                viewer.world.getItemAt(0).setClip(
-                    new OpenSeadragon.Rect(
-                        region[1],
-                        region[0],
-                        (region[3] - region[1]),
-                        (region[2] - region[0])
-                    )
-                );
+                else { 
+                    inner_poly = [
+                        [region[0], region[1]],
+                        [region[0], region[3]],
+                        [region[2], region[3]],
+                        [region[2], region[1]]
+                    ];
+                }
+        
+                overlay.context2d().fillStyle = "#222621";
+                overlay.context2d().beginPath();
+        
+                for (let poly of [outer_poly, inner_poly]) {
+        
+                    for (let i = 0; i < poly.length+1; i++) {
+                        let pt = poly[(i)%poly.length];
+                        let viewer_point = viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(pt[1], pt[0]));
+        
+                        if (i == 0) {
+                            overlay.context2d().moveTo(viewer_point.x, viewer_point.y);
+                        }
+                        else {
+                            overlay.context2d().lineTo(viewer_point.x, viewer_point.y);
+                        }
+                    }
+                    overlay.context2d().closePath();
+        
+                }
+                overlay.context2d().mozFillRule = "evenodd";
+                overlay.context2d().fill("evenodd");
             }
-
             if (cur_bounds != null) {
 
+                if ((navigation_type === "regions_of_interest") || (navigation_type === "training_regions" || navigation_type === "test_regions")) {
+
+                    let region = annotations[cur_img_name][navigation_type][cur_region_index];
+        
+                    if (navigation_type === "regions_of_interest") {
+                        region = get_bounding_box_for_polygon(region);
+                    }
+        
+                    viewer.world.getItemAt(0).setClip(
+                        new OpenSeadragon.Rect(
+                            region[1],
+                            region[0],
+                            (region[3] - region[1]),
+                            (region[2] - region[0])
+                        )
+                    );
+                }
 
                 withFastOSDAnimation(viewer.viewport, function() {
                     viewer.viewport.fitBounds(cur_bounds);
@@ -858,7 +939,7 @@ function show_download_metrics() {
 
     $("#metrics_tab").addClass("tab-btn-active");
     $("#raw_outputs_tab").removeClass("tab-btn-active");
-    $("#voronoi_areas_tab").removeClass("tab-btn-active");
+    $("#areas_tab").removeClass("tab-btn-active");
 
     let metrics_download_path = get_CC_PATH() + 
                                 "/usr/data/" + 
@@ -892,17 +973,17 @@ function show_download_metrics() {
             `</tr>` +
             `<tr>` +
                 `<td>` +
-                    `<div style="height: 5px"></div>` +
+                    `<div style="height: 35px"></div>` +
                 `</td>` +
             `</tr>` +
             `<tr>` +
                 `<td>` +
-                    `<ul>` +
-                    `<li><div style="display: inline-block; width: 80px"><em>Images:</em></div>Metrics for images. Each row contains metrics for one image in the image set.</li>` +
-                    `<br>` +
-                    `<li><div style="display: inline-block; width: 80px"><em>Regions:</em></div>Metrics for regions. Each row contains metrics for one region in the image set.</li>` +
-                    `<br>` +
-                    `<li><div style="display: inline-block; width: 80px"><em>Stats:</em></div>Summary statistics for the entire image set.</li>` +
+                    `<ul style="list-style-type: none; margin: 0px; padding: 0px">` +
+                        `<li><div style="display: inline-block; width: 100px"><em>Images</em></div>Metrics for images. Each row contains metrics for one image in the image set.</li>` +
+                        `<div style="height: 25px"></div>` +
+                        `<li><div style="display: inline-block; width: 100px"><em>Regions</em></div>Metrics for regions. Each row contains metrics for one region in the image set.</li>` +
+                        `<div style="height: 25px"></div>` +
+                        `<li><div style="display: inline-block; width: 100px"><em>Stats</em></div>Summary statistics for the entire image set.</li>` +
                     `</ul>` +
                 `</td>` +
             `</tr>` +
@@ -960,13 +1041,13 @@ function show_download_metrics() {
 }
 
 
-function show_download_voronoi_areas() {
+function show_download_areas() {
 
     $("#metrics_tab").removeClass("tab-btn-active");
     $("#raw_outputs_tab").removeClass("tab-btn-active");
-    $("#voronoi_areas_tab").addClass("tab-btn-active");
+    $("#areas_tab").addClass("tab-btn-active");
 
-    let voronoi_areas_download_path = get_CC_PATH() + 
+    let areas_download_path = get_CC_PATH() + 
                                 "/usr/data/" + 
                                 username + 
                                 "/image_sets/" + 
@@ -975,7 +1056,7 @@ function show_download_voronoi_areas() {
                                 image_set_info["mission_date"] + 
                                 "/model/results/" + 
                                 image_set_info["result_uuid"] + 
-                                "/voronoi_areas.xlsx";
+                                "/areas.xlsx";
 
     
     $("#download_info_area").empty();
@@ -984,22 +1065,71 @@ function show_download_voronoi_areas() {
         `<table>` +
             `<tr>` +
                 `<td>` +
-                    `<div style="height: 70px"></div>` +
+                    `<div style="height: 20px"></div>` +
                 `</td>` +
             `</tr>` +
             `<tr>` +
-                `<td style="width: 750px">` +
-                    `<div>An <em>.xlsx</em> file containing voronoi areas is available for download:</div>` +
-                    `<ul>` + 
+                `<td style="width: 800px">` +
+                    `<div>An <em>.xlsx</em> file is available for download. The file contains four sheets:</div>` +
+                    `<div style="height: 10px"></div>` +
+                    `<table style="border-spacing: 0px 30px">` +
+                        `<tr>` +
+                            `<td>` +
+                                `<div style="width: 200px"><em>Image Object Areas</em></div>` +
+                            `</td>` +
+                            `<td>` +
+                                `<div>This sheet contains the areas of the predicted bounding boxes (in square metres) for each image.</div>` +
+                            `</td>` +
+                        `</tr>` +
+                        `<tr>` +
+                            `<td>` +
+                                `<div style="width: 200px"><em>Region Object Areas</em></div>` +
+                            `</td>` +
+                            `<td>` +
+                                `<div>This sheet contains the areas of the predicted bounding boxes (in square metres) for each region.</div>` +
+                            `</td>` +
+                        `</tr>` +
+                        `<tr>` +
+                            `<td>` +
+                                `<div style="width: 200px"><em>Image Voronoi Areas</em></div>` +
+                            `</td>` +
+                            `<td>` +
+                                `<div>Voronoi partitions are constructed from the predicted bounding boxes of each image. This sheet contains the areas from the Voronoi partitions (in square metres).</div>` +
+                            `</td>` +
+                        `</tr>` +
+                        `<tr>` +
+                            `<td>` +
+                                `<div style="width: 200px"><em>Region Voronoi Areas</em></div>` +
+                            `</td>` +
+                            `<td>` +
+                                `<div>Voronoi partitions are constructed from the predicted bounding boxes of each region. This sheet contains the areas from the Voronoi partitions (in square metres).</div>` +
+                            `</td>` +
+                        `</tr>` +
 
+
+                    `</table>` +
                     
-                        `<li>"Voronoi areas" are the area values (in square metres) assigned to each object within an image / region according to a Voronoi partition.</li>` +
-                        `<br>` +
-                        `<li> A polygon must be fully contained within the boundaries of the image / region for it to be included (this is done to avoid edge effects).</li>` +
-                        `<br>` +
-                        `<li>The <em>.xlsx</em> file contains two sheets. The first sheet lists the Voronoi areas within each image (each image is a separate column).` +
-                            `The second sheet lists the Voronoi areas within each region (each region is a separate column).</li>` +
+                    // `<ul>` + 
+                    //     `<li><div style="display: inline-block; width: 170px"><em>Image Object Areas:</em></div>This sheet contains the areas of the predicted bounding boxes (in square metres) for each image.</li>` +
+                    //     `<br>` +
+                    //     `<li><div style="display: inline-block; width: 170px"><em>Region Object Areas:</em></div>This sheet contains the areas of the predicted bounding boxes (in square metres) for each region.</li>` +
+                    //     `<br>` +
+                    //     `<li><div style="display: inline-block; width: 170px"><em>Image Voronoi Areas:</em></div>Voronoi partitions are constructed from the predicted bounding boxes of each image. This sheet contains the areas from the Voronoi partitions (in square metres).</li>` +                        
+                    //     `<br>` +
+                    //     `<li><div style="display: inline-block; width: 170px"><em>Region Voronoi Areas:</em></div>Voronoi partitions are constructed from the predicted bounding boxes of each region. This sheet contains the areas from the Voronoi partitions (in square metres).</li>` +        
+                    
+                    //     // `<li>"Voronoi areas" are the area values (in square metres) assigned to each object within an image / region according to a Voronoi partition.</li>` +
+                    //     // `<br>` +
+                    //     // `<li> A polygon must be fully contained within the boundaries of the image / region for it to be included (this is done to avoid edge effects).</li>` +
+                    //     // `<br>` +
+                    //     // `<li>The <em>.xlsx</em> file contains two sheets. The first sheet lists the Voronoi areas within each image (each image is a separate column).` +
+                    //     //     `The second sheet lists the Voronoi areas within each region (each region is a separate column).</li>` +
+                    // `</ul>` +
+                    `<div style="height: 10px"></div>` +
+                    `<ul>` +
+                        `<li><em>Note</em>: For the Voronoi area sheets, only the Voronoi areas that do not touch any boundaries of the image / region are included.</li>` +
                     `</ul>` +
+                    //`<div><em>Note</em>: For the Voronoi area sheets, only the Voronoi areas that do not touch any boundaries of the image / region are included.</div>` +
                 `</td>` +
             `</tr>` +
             // `<tr>` +
@@ -1021,8 +1151,8 @@ function show_download_voronoi_areas() {
 
     $("#download_button_area").append(
         `<div style="text-align: center">` +
-            `<a class="std-button std-button-hover" style="width: 280px;" href="${voronoi_areas_download_path}" download="voronoi_areas.xlsx">` +
-            `<i class="fa-solid fa-file-arrow-down" style="padding-right: 15px"></i>Download Voronoi Areas</a>` +
+            `<a class="std-button std-button-hover" style="width: 280px;" href="${areas_download_path}" download="areas.xlsx">` +
+            `<i class="fa-solid fa-file-arrow-down" style="padding-right: 15px"></i>Download Areas</a>` +
         `</div>`
     );
 }
@@ -1032,7 +1162,7 @@ function show_download_raw_outputs() {
 
     $("#metrics_tab").removeClass("tab-btn-active");
     $("#raw_outputs_tab").addClass("tab-btn-active");
-    $("#voronoi_areas_tab").removeClass("tab-btn-active");
+    $("#areas_tab").removeClass("tab-btn-active");
 
     let raw_outputs_download_path = get_CC_PATH() + 
                                 "/usr/data/" + 
@@ -1101,13 +1231,27 @@ function show_download_raw_outputs() {
             `</tr>` +
             `<tr>` +
                 `<td>` +
-                    `<div>Boxes are encoded with four values (in <span style="font-weight: bold">pixel coordinates</span>): ` +
-                        //`<br>` +
-                        //`<div style="text-align: center">` +
-                            `<span style="margin-left: 4px; font-family: 'Lucida Console', Monaco, monospace;">[ x_min, y_min, x_max, y_max ]</span> ` + 
-                        //`</div>` +
-                    `</div>` +
+                //     `<div>Boxes are encoded with four values (in <span style="font-weight: bold">pixel coordinates</span>): ` +
+                //         //`<br>` +
+                //         //`<div style="text-align: center">` +
+                //             `<span style="margin-left: 4px; font-family: 'Lucida Console', Monaco, monospace;">[ x_min, y_min, x_max, y_max ]</span> ` + 
+                //         //`</div>` +
+                //     `</div>` +
+                // `</td>` +
+                // `<td>` +
+                //     `<div>Regions of interest are encoded as lists of x, y coordinate pairs` +
+                //     `</div>` +
+                    `<ul>` +
+                        `<li>All boxes are encoded with four values (in <span style="font-weight: bold">pixel coordinates</span>):` +
+                        `<span style="font-family: 'Lucida Console', Monaco, monospace;"> [ x_min, y_min, x_max, y_max ]` + 
+                        `</span>` +
+                        `</li>` +
+                        `<br>` +
+                        `<li>All regions of interest are encoded as lists of x, y coordinate pairs` +
+                        `</li>` +
+                    `</ul>` +
                 `</td>` +
+
             `</tr>` +
 
             // `<tr>` +
@@ -1128,6 +1272,7 @@ function show_download_raw_outputs() {
     );
 
     $("#download_button_area").append(
+       // `<div style="height: 50px"></div>` +
         `<div style="text-align: center">` +
             `<a class="std-button std-button-hover" style="width: 280px;" href="${raw_outputs_download_path}" download>`+
                 `<i class="fa-solid fa-file-arrow-down" style="padding-right: 15px"></i>Download Raw Outputs</a>` +
@@ -1141,6 +1286,7 @@ $(document).ready(function() {
     //job_config = data["job_config"];
     //overlays = data["overlays"];
     excess_green_record = data["excess_green_record"];
+    tags = data["tags"];
     annotations = data["annotations"];
     predictions = data["predictions"];
     metadata = data["metadata"];
@@ -1297,7 +1443,7 @@ $(document).ready(function() {
     $("#view_download_options_button").click(function() {
         show_modal_message(
             `Download Options`,
-            `<div style="height: 500px; border: 1px solid white; border-radius: 0px 0px 15px 15px">` +
+            `<div style="height: 550px; border: 1px solid white; border-radius: 0px 0px 15px 15px">` +
                 `<div style="width: 100%">` +
                     `<div>` + 
                         `<ul class="nav" id="download_nav_list">` +
@@ -1318,17 +1464,17 @@ $(document).ready(function() {
                     `</div>` +
                 `</div>` +
                 `<div style="height: 60px"></div>` +
-                `<div id="download_info_area" style="height: 400px"></div>` +
+                `<div id="download_info_area" style="height: 450px"></div>` +
                 `<div id="download_button_area">/div>` +
             `</div>`
             
             , modal_width=1000, display=true
         );
 
-        if (data["voronoi_areas_exists"]) {
+        if (data["areas_spreadsheet_exists"]) {
             $("#download_nav_list").append(
-                `<li id="voronoi_areas_tab" class="nav" style="width: 130px" onclick="show_download_voronoi_areas()">` +
-                    `<a class="nav">Voronoi Areas` +
+                `<li id="areas_tab" class="nav" style="width: 130px" onclick="show_download_areas()">` +
+                    `<a class="nav">Areas` +
                         //`<i class="fa-solid fa-pen-to-square"></i>` +
                     `</a>` +
                 `</li>`
