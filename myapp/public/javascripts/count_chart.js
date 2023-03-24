@@ -235,10 +235,10 @@ function set_count_chart_data() {
                     else if (navigation_type === "regions_of_interest") {
                         let region = annotations[image_name]["regions_of_interest"][region_index];
                         let area_px = get_polygon_area(region);
-                        let bbox = get_bounding_box_for_polygon(region);
-                        let bbox_area_px = (bbox[2] - bbox[0]) * (bbox[3] - bbox[1]);
-                        console.log("area_px", area_px);
-                        console.log("bbox_area_px", bbox_area_px);
+                        // let bbox = get_bounding_box_for_polygon(region);
+                        // let bbox_area_px = (bbox[2] - bbox[0]) * (bbox[3] - bbox[1]);
+                        // console.log("area_px", area_px);
+                        // console.log("bbox_area_px", bbox_area_px);
                         area_m2 = area_px * (gsd ** 2);
                     }
                     else {
@@ -329,7 +329,8 @@ function set_count_chart_data() {
         //     }
 
         // }
-        else if (navigation_type === "training_regions" || navigation_type === "test_regions") {
+        //else if (navigation_type === "training_regions" || navigation_type === "test_regions") {
+        else {
             for (let image_name of Object.keys(annotations)) {
                 for (let i = 0; i < annotations[image_name][navigation_type].length; i++) {
                     let nav_item = image_name + "/" + i;
@@ -340,11 +341,21 @@ function set_count_chart_data() {
                     //         annotated_count++;
                     //     }
                     // }
+
                     for (let j = 0; j < annotations[image_name]["boxes"].length; j++) {
+
                         let box = annotations[image_name]["boxes"][j];
                         let centre = [(box[0] + box[2]) / 2, (box[1] + box[3]) / 2];
-                        if (point_is_inside_box_region(centre, annotations[image_name][navigation_type][i])) {
-                            annotated_count++;
+
+                        if (navigation_type === "regions_of_interest") {
+                            if (point_is_inside_polygon(centre, annotations[image_name][navigation_type][i])) {
+                                annotated_count++;
+                            }
+                        }
+                        else {
+                            if (point_is_inside_box_region(centre, annotations[image_name][navigation_type][i])) {
+                                annotated_count++;
+                            }
                         }
                     }
                     if (image_name in predictions) {
@@ -353,8 +364,15 @@ function set_count_chart_data() {
                             if (predictions[image_name]["scores"][j] > slider_val) {
                                 let box = predictions[image_name]["boxes"][j];
                                 let centre = [(box[0] + box[2]) / 2, (box[1] + box[3]) / 2];
-                                if (point_is_inside_box_region(centre, annotations[image_name][navigation_type][i])) {
-                                    predicted_count++;
+                                if (navigation_type === "regions_of_interest") {
+                                    if (point_is_inside_polygon(centre, annotations[image_name][navigation_type][i])) {
+                                        predicted_count++;
+                                    }
+                                }
+                                else {
+                                    if (point_is_inside_box_region(centre, annotations[image_name][navigation_type][i])) {
+                                        predicted_count++;
+                                    }
                                 }
                             }
                         }
@@ -448,7 +466,7 @@ function set_count_chart_data() {
                 }
             }
         }
-        else if (navigation_type === "training_regions" || navigation_type === "test_regions") {
+        else { //if (navigation_type === "training_regions" || navigation_type === "test_regions") {
             for (let image_name of Object.keys(annotations)) {
                 for (let i = 0; i < annotations[image_name][navigation_type].length; i++) {
                     let nav_item = image_name + "/" + i;

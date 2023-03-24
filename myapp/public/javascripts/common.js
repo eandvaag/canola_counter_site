@@ -1343,8 +1343,7 @@ function update_count_combo(include_viewer_metrics) {
     let fully_annotated = image_is_fully_annotated(annotations, cur_img_name, 
                             metadata["images"][cur_img_name]["width_px"],
                             metadata["images"][cur_img_name]["height_px"])
-    if ((navigation_type === "training_regions" || navigation_type === "test_regions") ||
-        (navigation_type === "images" && fully_annotated)) {
+    if ((navigation_type !== "images") || (fully_annotated)) {
 
         $('#chart_combo').append($('<option>', {
             value: "Percent Count Error",
