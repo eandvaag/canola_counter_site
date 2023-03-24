@@ -1362,6 +1362,14 @@ exports.post_annotations_upload = function(req, res, next) {
                         });
                     }
 
+                    let all_numbers = pt.every(element => { return typeof element === "number"; });
+                    if (!(all_numbers)) {
+                        return res.status(422).json({
+                            error: "The uploaded annotations file contains a polygon coordinate with non-numeric values. Problematic key: " + entry_name + "."
+                        });
+                    }
+
+
                     uploaded_poly.push([pt[1], pt[0]]);
                 }
 
@@ -2504,9 +2512,9 @@ exports.post_workspace = function(req, res, next) {
 
             download_annotations[image_name]["regions_of_interest"] = [];
             for (let i = 0; i < annotations[image_name]["regions_of_interest"].length; i++) {
-                download_region = [];
+                let download_region = [];
                 for (let j = 0; j < annotations[image_name]["regions_of_interest"][i].length; j++) {
-                    let pt = annotations[image_name]["regions_of_interest"][i];
+                    let pt = annotations[image_name]["regions_of_interest"][i][j];
                     let download_pt = [
                         pt[1], pt[0]
                     ];
