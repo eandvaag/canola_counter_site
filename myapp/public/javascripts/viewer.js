@@ -470,7 +470,7 @@ function create_viewer() {
                 boxes_to_add["annotation"]["boxes"] = annotations[cur_img_name]["boxes"];
             }
 
-            if ($("#prediction").is(":checked")) {
+            if ((cur_img_name in predictions) && ($("#prediction").is(":checked"))) {
                 boxes_to_add["prediction"] = {};
                 boxes_to_add["prediction"]["boxes"] = predictions[cur_img_name]["boxes"];
                 boxes_to_add["prediction"]["scores"] = predictions[cur_img_name]["scores"];
@@ -920,7 +920,7 @@ function resize_window() {
     let image_name_table_height = $("#image_name_table").height();
     let result_name_height = $("#result_name").height();
     //console.log(image_name_table_height);
-    let new_navigation_table_container_height = new_viewer_height - image_name_table_height - result_name_height - 175; //195;
+    let new_navigation_table_container_height = new_viewer_height - image_name_table_height - result_name_height - 205; //175; //195;
 
     //console.log(new_navigation_table_container_height);
     let min_navigation_table_height = 510;
@@ -951,6 +951,27 @@ function show_download_metrics() {
 
     $("#download_info_area").empty();
     $("#download_button_area").empty();
+
+    let download_list;
+    if ("regions_only" in request && request["regions_only"]) {
+        download_list = 
+        `<ul style="list-style-type: none; margin: 0px; padding: 0px">` +
+            `<li><div style="display: inline-block; width: 100px"><em>Regions</em></div>Metrics for regions. Each row contains metrics for one region in the image set.</li>` +
+            `<div style="height: 25px"></div>` +
+            `<li><div style="display: inline-block; width: 100px"><em>Stats</em></div>Summary statistics for the entire image set.</li>` +
+        `</ul>`;
+    }
+    else {
+        download_list = 
+        `<ul style="list-style-type: none; margin: 0px; padding: 0px">` +
+            `<li><div style="display: inline-block; width: 100px"><em>Images</em></div>Metrics for images. Each row contains metrics for one image in the image set.</li>` +
+            `<div style="height: 25px"></div>` +
+            `<li><div style="display: inline-block; width: 100px"><em>Regions</em></div>Metrics for regions. Each row contains metrics for one region in the image set.</li>` +
+            `<div style="height: 25px"></div>` +
+            `<li><div style="display: inline-block; width: 100px"><em>Stats</em></div>Summary statistics for the entire image set.</li>` +
+        `</ul>`;
+    }
+
     $("#download_info_area").append(
 
         // `<table>` +
@@ -965,7 +986,7 @@ function show_download_metrics() {
             `</tr>` +
             `<tr>` +
                 `<td>` +
-                    `<div>An <em>.xlsx</em> file containing metrics is available for download. This file contains three sheets:</div>` +
+                    `<div>An <em>.xlsx</em> file containing metrics is available for download. This file contains the following sheets:</div>` +
                 `</td>` +
             `</tr>` +
             `<tr>` +
@@ -975,13 +996,7 @@ function show_download_metrics() {
             `</tr>` +
             `<tr>` +
                 `<td>` +
-                    `<ul style="list-style-type: none; margin: 0px; padding: 0px">` +
-                        `<li><div style="display: inline-block; width: 100px"><em>Images</em></div>Metrics for images. Each row contains metrics for one image in the image set.</li>` +
-                        `<div style="height: 25px"></div>` +
-                        `<li><div style="display: inline-block; width: 100px"><em>Regions</em></div>Metrics for regions. Each row contains metrics for one region in the image set.</li>` +
-                        `<div style="height: 25px"></div>` +
-                        `<li><div style="display: inline-block; width: 100px"><em>Stats</em></div>Summary statistics for the entire image set.</li>` +
-                    `</ul>` +
+                    download_list +
                 `</td>` +
             `</tr>` +
             // `<tr>` +
@@ -1058,6 +1073,37 @@ function show_download_areas() {
     
     $("#download_info_area").empty();
     $("#download_button_area").empty();
+
+    let image_object_areas_entry;
+    let image_voronoi_areas_entry;
+    let voronoi_notice;
+    if ("regions_only" in request && request["regions_only"]) {
+        image_object_areas_entry = ``;
+        image_voronoi_areas_entry = ``;
+        voronoi_notice = `For the Voronoi area sheets, only the Voronoi areas that do not touch the boundaries of the regions are included.`;
+    }
+    else {
+        image_object_areas_entry = 
+        `<tr>` +
+            `<td>` +
+                `<div style="width: 200px"><em>Image Object Areas</em></div>` +
+            `</td>` +
+            `<td>` +
+                `<div>This sheet contains the areas of the predicted bounding boxes (in square metres) for each image.</div>` +
+            `</td>` +
+        `</tr>`;
+        image_voronoi_areas_entry =
+        `<tr>` +
+            `<td>` +
+                `<div style="width: 200px"><em>Image Voronoi Areas</em></div>` +
+            `</td>` +
+            `<td>` +
+                `<div>Voronoi partitions are constructed from the predicted bounding boxes of each image. This sheet contains the areas from the Voronoi partitions (in square metres).</div>` +
+            `</td>` +
+        `</tr>`;
+
+        voronoi_notice = `For the Voronoi area sheets, only the Voronoi areas that do not touch the boundaries of the images / regions are included.`;
+    }
     $("#download_info_area").append(
         `<table>` +
             `<tr>` +
@@ -1067,17 +1113,10 @@ function show_download_areas() {
             `</tr>` +
             `<tr>` +
                 `<td style="width: 800px">` +
-                    `<div>An <em>.xlsx</em> file is available for download. The file contains four sheets:</div>` +
+                    `<div>An <em>.xlsx</em> file is available for download. The file contains the following sheets:</div>` +
                     `<div style="height: 10px"></div>` +
                     `<table style="border-spacing: 0px 30px">` +
-                        `<tr>` +
-                            `<td>` +
-                                `<div style="width: 200px"><em>Image Object Areas</em></div>` +
-                            `</td>` +
-                            `<td>` +
-                                `<div>This sheet contains the areas of the predicted bounding boxes (in square metres) for each image.</div>` +
-                            `</td>` +
-                        `</tr>` +
+                        image_object_areas_entry + 
                         `<tr>` +
                             `<td>` +
                                 `<div style="width: 200px"><em>Region Object Areas</em></div>` +
@@ -1086,14 +1125,7 @@ function show_download_areas() {
                                 `<div>This sheet contains the areas of the predicted bounding boxes (in square metres) for each region.</div>` +
                             `</td>` +
                         `</tr>` +
-                        `<tr>` +
-                            `<td>` +
-                                `<div style="width: 200px"><em>Image Voronoi Areas</em></div>` +
-                            `</td>` +
-                            `<td>` +
-                                `<div>Voronoi partitions are constructed from the predicted bounding boxes of each image. This sheet contains the areas from the Voronoi partitions (in square metres).</div>` +
-                            `</td>` +
-                        `</tr>` +
+                        image_voronoi_areas_entry + 
                         `<tr>` +
                             `<td>` +
                                 `<div style="width: 200px"><em>Region Voronoi Areas</em></div>` +
@@ -1124,7 +1156,7 @@ function show_download_areas() {
                     // `</ul>` +
                     `<div style="height: 10px"></div>` +
                     `<ul>` +
-                        `<li><em>Note</em>: For the Voronoi area sheets, only the Voronoi areas that do not touch any boundaries of the image / region are included.</li>` +
+                        `<li><em>Note</em>: ${voronoi_notice}</li>` +
                     `</ul>` +
                     //`<div><em>Note</em>: For the Voronoi area sheets, only the Voronoi areas that do not touch any boundaries of the image / region are included.</div>` +
                 `</td>` +
@@ -1289,13 +1321,14 @@ $(document).ready(function() {
     metadata = data["metadata"];
     camera_specs = data["camera_specs"];
     metrics = data["metrics"];
+    request = data["request"];
     //dzi_dir = data["dzi_dir"];
     dzi_image_paths = data["dzi_image_paths"];
     overlay_appearance = data["overlay_appearance"];
 
 
-    let disp_result_name = data["request"]["results_name"];
-    let result_text_width = get_text_width(data["request"]["results_name"], "normal 20px arial");
+    let disp_result_name = request["results_name"];
+    let result_text_width = get_text_width(request["results_name"], "normal 20px arial");
     //console.log("result_text_width", result_text_width);
     if (result_text_width > (270*2)) {
         $("#result_name").css("height", "40px");
@@ -1308,7 +1341,26 @@ $(document).ready(function() {
     $("#result_name").text(disp_result_name); //data["request"]["results_name"]);
 
 
+    let result_type;
+    if (request["regions_only"]) {
+        result_type = "Predicted On All Regions";
+    }
+    else {
+        if (metadata["is_ortho"] === "yes") {
+            result_type = "Predicted On Entire Orthomosaic";
+        }
+        else {
+            result_type = "Predicted On All Images";
+        }
+    }
+    $("#result_type").text(result_type);
 
+
+    if (("calculate_vegetation_record" in request) && (!(request["calculate_vegetation_record"]))) {
+        $("#map_perc_veg_row").hide();
+        $("#map_perc_veg_obj_row").hide();
+        $("#map_perc_veg_non_obj_row").hide();
+    }
 
 
     set_heights();

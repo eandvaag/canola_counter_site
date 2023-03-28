@@ -85,9 +85,10 @@ html
                                         button(style="width: 100px" id="help_button" class="table_button table_button_hover")
                                             i(id="help_icon" class="fa-solid fa-circle-info" style="padding-right: 8px; color: white") 
                                             | Help
-                                //td 
-                                //    div(style="width: 140px")
-
+                                td 
+                                    div(style="width: 140px")
+                                        //- div Result Type:
+                                        //-     span(id="result_type")
                                 td(style="width:100%")
                                     h(id="image_set_name" class="header2" style="font-size: 22px; text-align: center; white-space: pre-wrap; color: white")
                                 td(style="padding: 0px")
@@ -109,6 +110,9 @@ html
                                             div(id="left_panel")
 
                                                 div(style="font-size: 20px; height: 20px; word-wrap: break-word;" id="result_name")
+                                                div(style="height: 10px")
+                                                div(style="height: 30px; border: 1px solid white; border-radius: 25px")
+                                                    div(id="result_type" style="color: #ddccbb; margin: 5px")
                                                 div(style="height: 10px")
                                                     hr(class="panel_line")
 
@@ -489,17 +493,17 @@ html
                                                                 label(class="custom_radio_container") Number of Objects Per Square Metre
                                                                     input(type="radio" name="interpolated_value_radio" value="obj_density" checked)
                                                                     span(class="custom_radio")
-                                                        tr
+                                                        tr(id="map_perc_veg_row")
                                                             td 
                                                                 label(class="custom_radio_container") Percent Vegetation
                                                                     input(type="radio" name="interpolated_value_radio" value="perc_veg")
                                                                     span(class="custom_radio")
-                                                        tr
+                                                        tr(id="map_perc_veg_obj_row")
                                                             td 
                                                                 label(class="custom_radio_container") Percent Vegetation and Object
                                                                     input(type="radio" name="interpolated_value_radio" value="perc_veg_obj")
                                                                     span(class="custom_radio")
-                                                        tr
+                                                        tr(id="map_perc_veg_non_obj_row")
                                                             td 
                                                                 label(class="custom_radio_container") Percent Vegetation and Non-Object
                                                                     input(type="radio" name="interpolated_value_radio" value="perc_veg_non_obj")

@@ -158,18 +158,19 @@ async function process_upload(username, farm_name, field_name, mission_date, obj
             let extensionless_fname = split_image_name[0];
             //let extensionless_fname = full_image_name.substring(0, full_image_name.length-4);
             image_names.push(extensionless_fname);
+        }
 
-            let identify_command = "identify " + image_path + " | grep sRGB";
-            //let result;
-            try {
-                execSync(identify_command, {shell: "/bin/bash"});
-            }
-            catch (error) {
-                console.log("error while running identify command");
-                console.log(error); 
-                write_and_notify(upload_status_path, {"status": "failed", "error": "At least one image is not a 3-channel RGB image."}, notify_data);
-                return;
-            }
+            // let identify_command = "identify " + image_path + " | grep sRGB";
+            // //let result;
+            // try {
+            //     execSync(identify_command, {shell: "/bin/bash"});
+            // }
+            // catch (error) {
+            //     console.log("error while running identify command");
+            //     console.log(error); 
+            //     write_and_notify(upload_status_path, {"status": "failed", "error": "At least one image is not a 3-channel RGB image."}, notify_data);
+            //     return;
+            // }
 
             //console.log("exit code is non-zero"); //, result);
             // write_and_notify(upload_status_path, {"status": "failed", "error": "At least one image is not a 3-channel RGB image."}, notify_data);
@@ -177,6 +178,29 @@ async function process_upload(username, farm_name, field_name, mission_date, obj
 
 
 
+        //}
+
+        let check_channels_command = "python ../../plant_detection/src/check_channels.py " + mission_dir + " " + is_ortho;
+        try {
+            execSync(check_channels_command, {shell: "/bin/bash"});
+        }
+        catch (error) {
+            console.log("An error occured while running check_channels.py", error);
+            let error_message;
+            if (error.status == 1) {
+                error_message = "At least one file is not an accepted image type. Accepted image types are JPEGs, PNGs, and TIFFs. Extensions are optional, but must match the underlying file type if they are included.";
+            }
+            else if (error.status == 2) {
+                error_message = "At least one file's extension does not match the true underlying image type. Accepted image types are JPEGs, PNGs, and TIFFs. Extensions are optional, but must match the underlying file type if they are included.";
+            }
+            else if (error.status == 3) {
+                error_message = "At least one image contains an invalid number of channels. Only RGB images can be uploaded (with optional alpha channel).";
+            }
+            else {
+                error_message = "An error occurred while checking the number of channels in each image";
+            }
+            write_and_notify(upload_status_path, {"status": "failed", "error": error_message}, notify_data);
+            return;
         }
 
 
@@ -385,10 +409,18 @@ async function process_upload(username, farm_name, field_name, mission_date, obj
             execSync(metadata_command, {shell: "/bin/bash"});
         }
         catch (error) {
-            console.log(error.stack);
-            console.log('Error code: '+error.code);
-            console.log('Signal received: '+error.signal);  
-            write_and_notify(upload_status_path, {"status": "failed", "error": error.toString()}, notify_data);
+            console.log("Error occured during metadata extraction", error);
+            let error_message;
+            if (error.status == 1) {
+                error_message = "The images in the image set were captured by several different camera types. This is not allowed.";
+            }
+            else if (error.status == 2) {
+                error_message = "The images in the image set were captured by several different camera types. This is not allowed.";
+            }
+            else {
+                error_message = "An error occurred while extracting image metadata.";
+            }
+            write_and_notify(upload_status_path, {"status": "failed", "error": error_message}, notify_data);
             return;
         }
 

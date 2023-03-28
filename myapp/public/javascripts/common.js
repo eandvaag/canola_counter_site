@@ -1416,20 +1416,22 @@ function compute_voronoi(target) {
     let points = [];
 
     if (target === "prediction") {
-        for (let i = 0; i < predictions[cur_img_name]["scores"].length; i++) {
-            if (predictions[cur_img_name]["scores"][i] <= slider_val) {
-                continue;
-            }
-            let box = predictions[cur_img_name]["boxes"][i];
-            let centre_y = (box[0] + box[2]) / 2;
-            let centre_x = (box[1] + box[3]) / 2;
+        if (cur_img_name in predictions) {
+            for (let i = 0; i < predictions[cur_img_name]["scores"].length; i++) {
+                if (predictions[cur_img_name]["scores"][i] <= slider_val) {
+                    continue;
+                }
+                let box = predictions[cur_img_name]["boxes"][i];
+                let centre_y = (box[0] + box[2]) / 2;
+                let centre_x = (box[1] + box[3]) / 2;
 
-            if ((centre_y > bounds_min_y && centre_y < bounds_max_y) &&
-                (centre_x > bounds_min_x && centre_x < bounds_max_x)) {
-                    points.push({
-                        "x": centre_x,
-                        "y": centre_y
-                    });
+                if ((centre_y > bounds_min_y && centre_y < bounds_max_y) &&
+                    (centre_x > bounds_min_x && centre_x < bounds_max_x)) {
+                        points.push({
+                            "x": centre_x,
+                            "y": centre_y
+                        });
+                }
             }
         }
     }

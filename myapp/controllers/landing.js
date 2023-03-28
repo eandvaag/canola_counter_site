@@ -41,7 +41,7 @@ const camera_mutex = new Mutex();
 
 const MAX_EXTENSIONLESS_FILENAME_LENGTH = 100;
 //const valid_extensions = [".jpg", ".JPG", ".png", ".PNG", ".tif", ".TIF"];
-const valid_extensions = ["jpg", "JPG", "jpeg", "JPEG", "png", "PNG", "tif", "TIF", "tiff", "TIFF"];
+const valid_extensions = ["jpg", "JPG", "jpeg", "JPEG", "png", "PNG", "tif", "TIF", "tiff", "TIFF"]; //, "bin"];
 
 
 const FILE_FORMAT = /[\s `!@#$%^&*()+\=\[\]{};':"\\|,<>\/?~]/;
@@ -3078,13 +3078,17 @@ exports.post_workspace = function(req, res, next) {
         let image_names = JSON.parse(req.body.image_names);
         let regions = JSON.parse(req.body.regions)
         let save_result = req.body.save_result === "True";
+        let regions_only = req.body.regions_only === "True";
+        let calculate_vegetation_record = req.body.calculate_vegetation_record === "True";
         let request_uuid = uuidv4().toString();
         let request = {
             "request_uuid": request_uuid,
             "start_time": Math.floor(Date.now() / 1000),
             "image_names": image_names,
             "regions": regions,
-            "save_result": save_result
+            "save_result": save_result,
+            "regions_only": regions_only,
+            "calculate_vegetation_record": calculate_vegetation_record
         };
 
         let request_path;
@@ -3559,14 +3563,14 @@ exports.post_orthomosaic_upload = function(req, res, next) {
     
     if (first) {
         let split_filename = filename.split(".");
-        let image_set_extension = split_filename[split_filename.length-1];
+        // let image_set_extension = split_filename[split_filename.length-1];
         //let image_set_extension = filename.substring(filename.length-4);
-        if (!(valid_extensions.includes(image_set_extension))) {
-            delete active_uploads[upload_uuid];
-            return res.status(422).json({
-                error: "The provided file does not have an accepted file extension. (Accepted extensions are: '.jpg', '.png', and '.tif')."
-            });
-        }
+        // if (!(valid_extensions.includes(image_set_extension))) {
+        //     delete active_uploads[upload_uuid];
+        //     return res.status(422).json({
+        //         error: "The provided file does not have an accepted file extension. (Accepted extensions are: '.jpg', '.png', and '.tif')."
+        //     });
+        // }
 
         if (FILE_FORMAT.test(filename)) {
             delete active_uploads[upload_uuid];
@@ -3575,7 +3579,8 @@ exports.post_orthomosaic_upload = function(req, res, next) {
             });
         }
 
-        if (filename.split(".").length !== 2) {
+        
+        if ((split_filename.length != 1) && (split_filename.length != 2)) {
             delete active_uploads[upload_uuid];
             return res.status(422).json({
                 error: "The provided filename contains an illegal '.' character."
@@ -3799,7 +3804,7 @@ exports.post_orthomosaic_upload = function(req, res, next) {
 // }
 
 
-
+// const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 
 exports.post_image_set_upload = async function(req, res, next) {
@@ -3945,14 +3950,14 @@ exports.post_image_set_upload = async function(req, res, next) {
 
     
     if (first) {
-        let split_filename = queued_filenames[0].split(".");
-        let image_set_extension = split_filename[split_filename.length-1]; // queued_filenames[0].substring(queued_filenames[0].length-4);
-        if (!(valid_extensions.includes(image_set_extension))) {
-            delete active_uploads[upload_uuid];
-            return res.status(422).json({
-                error: "At least one of the provided files does not have an accepted file extension. (Accepted extensions are '.jpg', '.png', and '.tif')."
-            });
-        }
+        // let split_filename = queued_filenames[0].split(".");
+        // let image_set_extension = split_filename[split_filename.length-1]; // queued_filenames[0].substring(queued_filenames[0].length-4);
+        // if (!(valid_extensions.includes(image_set_extension))) {
+        //     delete active_uploads[upload_uuid];
+        //     return res.status(422).json({
+        //         error: "At least one of the provided files does not have an accepted file extension. (Accepted extensions are '.jpg', '.png', and '.tif')."
+        //     });
+        // }
 
         for (let filename of queued_filenames) {
             if (FILE_FORMAT.test(filename)) {
@@ -3961,23 +3966,31 @@ exports.post_image_set_upload = async function(req, res, next) {
                     error: "One or more provided filenames contains illegal characters."
                 });
             }
-    
-            if (filename.split(".").length !== 2) {
+            let split_filename = filename.split(".");
+            if ((split_filename.length != 1) && (split_filename.length != 2)) {
                 delete active_uploads[upload_uuid];
                 return res.status(422).json({
                     error: "At least one filename contains an illegal '.' character."
                 });
-            }
 
-            let split_filename = filename.split(".");
-            let extension = split_filename[split_filename.length-1];
-            
-            if (extension !== image_set_extension) {
-                delete active_uploads[upload_uuid];
-                return res.status(422).json({
-                    error: "All images within an image set must have the same file extension."
-                });
             }
+    
+            // if (filename.split(".").length !== 2) {
+            //     delete active_uploads[upload_uuid];
+            //     return res.status(422).json({
+            //         error: "At least one filename contains an illegal '.' character."
+            //     });
+            // }
+
+            // let split_filename = filename.split(".");
+            // let extension = split_filename[split_filename.length-1];
+            
+            // if (extension !== image_set_extension) {
+            //     delete active_uploads[upload_uuid];
+            //     return res.status(422).json({
+            //         error: "All images within an image set must have the same file extension."
+            //     });
+            // }
     
             //let extensionless_fname = filename.substring(0, filename.length-4);
             let extensionless_fname = split_filename[0];
@@ -4096,24 +4109,28 @@ exports.post_image_set_upload = async function(req, res, next) {
     }
 
     console.log("Writing the image files");
-    for (let file of req.files) {
+    for (let file_index = 0; file_index < req.files.length; file_index++) {
+        let file = req.files[file_index];
+    //for (let file of req.files) {
+        console.log(file);
+        console.log(file.buffer);
 
-        if (!(file.mimetype.startsWith('image/'))) {
-            try {
-                remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
-            }
-            catch (error) {
-                console.log("Failed to remove image set");
-                console.log(error);
-            }
-            // if (!sent_response) {
-            //     sent_response = true;
-            delete active_uploads[upload_uuid];
-            return res.status(422).json({
-                error: "One or more provided files is not an image."
-            });
-            // }
-        }
+        // if (!(file.mimetype.startsWith('image/'))) {
+        //     try {
+        //         remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
+        //     }
+        //     catch (error) {
+        //         console.log("Failed to remove image set");
+        //         console.log(error);
+        //     }
+        //     // if (!sent_response) {
+        //     //     sent_response = true;
+        //     delete active_uploads[upload_uuid];
+        //     return res.status(422).json({
+        //         error: "One or more provided files is not an image."
+        //     });
+        //     // }
+        // }
 
         //gm(file.buffer).depth();
 
@@ -4195,11 +4212,134 @@ exports.post_image_set_upload = async function(req, res, next) {
             });
             // }
         }
+
+        // console.log("waiting 5 seconds before moving");
+        // await delay(5000);
+        // console.log("moving")
+
+        // let rename_command = "mv " + fpath + " " + final_fpath + " && chmod 777 " + final_fpath;
+        // try {
+        //     execSync(rename_command, {shell: "/bin/bash"});
+        // }
+        // catch (error) {
+        //     console.log(error);
+        //     try {
+        //         remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
+        //     }
+        //     catch (error) {
+        //         console.log("Failed to remove image set");
+        //         console.log(error);
+        //     }
+
+        //     delete active_uploads[upload_uuid];
+        //     return res.status(422).json({
+        //         error: "Error occurred when renaming image file."
+        //     });
+        // }
+
+
+
+        // console.log("renaming");
+        // console.log("current fpath: ", fpath);
+        // console.log("final fpath:   ", final_fpath);
+
+        // try {
+        //     fs.renameSync(fpath, final_fpath);
+        // }
+        // catch (error) {
+        //     console.log(error);
+        //     try {
+        //         remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
+        //     }
+        //     catch (error) {
+        //         console.log("Failed to remove image set");
+        //         console.log(error);
+        //     }
+        //     delete active_uploads[upload_uuid];
+        //     return res.status(422).json({
+        //         error: "Error occurred when renaming image file."
+        //     });
+        // }
+
+
+        // fs.writeFile(fpath, file.buffer, null, (error) => {
+        //     if (error) {
+        //         console.log(error);
+        //         try {
+        //             remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
+        //         }
+        //         catch (error) {
+        //             console.log("Failed to remove image set");
+        //             console.log(error);
+        //         }
+
+        //         delete active_uploads[upload_uuid];
+        //         return res.status(422).json({
+        //             error: "Error occurred when writing image file."
+        //         });
+        //     }
+
+        //     fs.rename(fpath, final_fpath, (error) => {
+
+        //         if (error) {
+        //             try {
+        //                 remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
+        //             }
+        //             catch (error) {
+        //                 console.log("Failed to remove image set");
+        //                 console.log(error);
+        //             }
+    
+        //             delete active_uploads[upload_uuid];
+        //             return res.status(422).json({
+        //                 error: "Error occurred when renaming image file."
+        //             });
+
+        //         }
+
+        //         if (file_index == req.files.length-1) {
+        //             if (last) {
+    
+        //                 fork("process_upload.js", 
+        //                 [req.session.user.username, 
+        //                  farm_name, 
+        //                  field_name, 
+        //                  mission_date, 
+        //                  object_name, 
+        //                  camera_height,
+        //                  is_public,
+        //                  "no"]);
+        //                 delete active_uploads[upload_uuid];
+    
+        //             }
+    
+        //             return res.sendStatus(200);
+        //         }
+
+        //     });
+        // });
+
+        // try {
+        //     fs.writeFileSync(fpath, file.buffer);
+        // }
+        // catch (error) {
+        //     console.log(error);
+        //     try {
+        //         remove_image_set(req.session.user.username, farm_name, field_name, mission_date);
+        //     }
+        //     catch (error) {
+        //         console.log("Failed to remove image set");
+        //         console.log(error);
+        //     }
+        //     // if (!sent_response) {
+        //     //     sent_response = true;
+        //     delete active_uploads[upload_uuid];
+        //     return res.status(422).json({
+        //         error: "Error occurred when writing image file."
+        //     });
+        //     // }
+        // }
     }
-
-
-
-
 
     if (last) {
 

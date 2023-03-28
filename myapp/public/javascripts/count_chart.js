@@ -580,7 +580,7 @@ function draw_count_chart() {
 
 
 
-    count_chart_axis.call(d3.axisTop(count_xScale).ticks(chart_width / 100).tickFormat(d3.format("d")));
+    count_chart_axis.call(d3.axisTop(count_xScale).ticks(2).tickFormat(d3.format("d")));
 
 
     let tooltip = d3.select("#count_chart_tooltip");
@@ -669,7 +669,7 @@ function update_count_chart() {
     let cur_nav_item = cur_img_name + "/" + cur_region_index;
 
     count_xScale.domain([0, max_count]);
-    count_chart_axis.transition().duration(250).call(d3.axisTop(count_xScale).ticks(chart_width / 100)); //.tickFormat(d3.format("d")));
+    count_chart_axis.transition().duration(250).call(d3.axisTop(count_xScale).ticks(2)); //.tickFormat(d3.format("d")));
 
     d3.selectAll(".bar")
         .data(Object.keys(count_chart_data[cur_nav_item])) //[sel_class])

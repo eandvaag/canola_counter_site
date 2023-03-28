@@ -1860,7 +1860,7 @@ function show_image_set_details() {
 
         $("#tab_details").append(
             `<br><hr style="width: 100px"><button class="x-button x-button-hover" style="width: 220px; height: 35px;" onclick="delete_request()">`+
-            `<span><i class="fa-regular fa-circle-xmark" style="margin-right:8px"></i>Delete Image Set</span></button>`);
+            `<i class="fa-regular fa-circle-xmark" style="margin-right:8px"></i>Delete Image Set</button>`);
 
     }
     else {

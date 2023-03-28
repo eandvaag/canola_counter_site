@@ -3563,39 +3563,96 @@ function update_results_comment_input() {
     return true;
 }
 
-function submit_prediction_request(image_names_str, regions_str) {
+function submit_result_request() { //submit_prediction_request(image_names_str, regions_str) {
 
+    let at_least_one_region = false;
+    for (let region_key of ["regions_of_interest", "training_regions", "test_regions"]) {
+        for (let image_name of Object.keys(annotations)) {
+            if (annotations[image_name][region_key].length > 0) {
+                at_least_one_region = true;
+                break;
+            }
+        }
+    }
+    let full_image_label;
+    if (metadata["is_ortho"] === "yes") {
+        full_image_label = "Full Orthomosaic";
+    }
+    else {
+        full_image_label = "All Images";
+    }
 
-
-    let left_col_width_px = "160px";
+    let left_col_width_px = "180px";
     show_modal_message("Submit Result Request", 
         `<div>Please confirm your request.` +
         ` Upon completion, your results will be preserved under this image set's` +
         ` <em>Results</em> tab (accessible from the home page).</div>` +
         `<div style="height: 30px"></div>` +
         `<table>` +
-        `<tr>` +
-            `<td>` + 
-                `<div class="table_head" style="width: ${left_col_width_px}; padding-right: 10px">Name</div>` +
-            `</td>` +
-            `<td>` +
-                `<div style="width: 350px">` +
-                    `<input id="results_name_input" class="nonfixed_input" value="My Result">` +
+            `<tr>` +
+                `<td>` + 
+                    `<div class="table_head" style="width: ${left_col_width_px}; padding-right: 10px">Name</div>` +
+                `</td>` +
+                `<td>` +
+                    `<div style="width: 330px">` +
+                        `<input id="results_name_input" class="nonfixed_input" style="width: 100%" value="My Result">` +
+                    `</div>` +
+                `</td>` +
+            `</tr>` +
+            `<tr style="height: 5px">` +
+            `</tr>` +
+            `<tr>` +
+                `<td>` + 
+                    `<div class="table_head" style="width: ${left_col_width_px}; height: 85px; padding-right: 10px">Comment</div>` +
+                `</td>` +
+                `<td>` +
+                    `<div style="width: 330px; height: 85px">` +
+                        `<textarea id="results_comment_input" class="nonfixed_textarea" style="width: 100%" rows="4"></textarea>` +
+                    `</div>` +
+                `</td>` +
+            `</tr>` + 
+            `<tr id="results_region_radio_row">` +
+                `<td>` +
+                    `<div class="table_head" style="width: ${left_col_width_px}; height: 50px; padding-right: 10px">Prediction Target</div>` +
+                `</td>` +
+            // `<tr>` +
+            //     `<td style="width: 50%"></td>` +
+                `<td>` +
+                    `<table style="border: 1px solid grey; width: 330px; height: 50px;" id="result_regions_radio_container">` +
+                        `<tr>` +
+                            `<td style="width: 50%"></td>` +
+                            `<td>` +
+                                `<label class="custom_radio_container" style="width: 160px; padding-left: 25px"> ${full_image_label}` +
+                                    `<input type="radio" name="result_regions_radio" value="images" checked>` +
+                                    `<span class="custom_radio"></span>` +
+                                `</label>` +
+                            `</td>` +
+                            `<td><div style="width: 20px"></div></td>` +
+                            `<td>` +
+                                `<label class="custom_radio_container" style="width: 115px; padding-left: 25px"> All Regions` +
+                                    `<input type="radio" name="result_regions_radio" value="regions">` +
+                                    `<span class="custom_radio"></span>` +
+                                `</label>` +
+                            `</td>` +
+                            `<td style="width: 50%"></td>` +
+                        `</tr>` +
+                    `</table>` +
+                `</td>` +
+                // `<td style="width: 50%"></td>` +
+            `</tr>` +
+            `<tr>` +
+                `<td>` +
+                    `<div class="table_head" style="width: ${left_col_width_px}; padding-right: 10px">Calc. Veg. Coverage</div>` +
+                `</td>` +
+                `<td>` +
+                    `<div style="width: 330px; text-align: left; padding-left: 2px">` +
+                        `<label for="calc_veg_coverage" class="container" style="display: inline; margin-bottom: 20px;">` +
+                            `<input type="checkbox" id="calc_veg_coverage" name="calc_vegetation_coverage" checked>` +
+                            `<span class="checkmark"></span>` +
+                        `</label>` +
+                    `</div>` +
                 `</div>` +
-            `</td>` +
-        `</tr>` +
-        `<tr style="height: 5px">` +
-        `</tr>` +
-        `<tr>` +
-            `<td>` + 
-                `<div class="table_head" style="width: ${left_col_width_px}; height: 100px; padding-right: 10px">Comment</div>` +
-            `</td>` +
-            `<td>` +
-                `<div style="width: 350px; height: 100px">` +
-                    `<textarea id="results_comment_input" class="nonfixed_textarea" rows="4"></textarea>` +
-                `</div>` +
-            `</td>` +
-        `</tr>` + 
+            `</tr>` +
         `</table>` + 
         `<div style="height: 30px"></div>` +
         `<div id="modal_button_container" style="text-align: center">` +
@@ -3605,10 +3662,34 @@ function submit_prediction_request(image_names_str, regions_str) {
         `<button id="cancel_delete" class="std-button std-button-hover" ` +
         `style="width: 200px" onclick="cancel_delete_request()">Cancel</button>` +*/
         
-        );
+        , 750);
+
+    if (!(at_least_one_region)) {
+        // $("input:radio[name=result_regions_radio]").prop("disabled", true);
+        // $("#result_regions_radio_container").css("opacity", 0.5);
+        $("#results_region_radio_row").hide();
+    }
 
     $("#confirm_results_request_button").click(function() {
-        submit_prediction_request_confirmed(image_names_str, regions_str, true);
+
+
+        let result_type_val = $('input[name=result_regions_radio]:checked').val();
+        let result_regions_only = (result_type_val === "regions");
+        let predict_on_images = !(result_regions_only);
+
+        let res = get_image_list_and_region_list_for_predicting_on_all(predict_on_images);
+        let image_list = res[0];
+        let region_list = res[1];
+
+        let calculate_vegetation_record = $("#calc_veg_coverage").is(':checked');
+
+
+        if (region_list.length == 0) {
+            show_modal_message(`Error`, `At least one region must exist before predictions for "all regions" can be requested.`);
+        }
+
+
+        submit_prediction_request_confirmed(image_list, region_list, true, result_regions_only, calculate_vegetation_record);
     });
 
     
@@ -3637,18 +3718,22 @@ function submit_prediction_request(image_names_str, regions_str) {
 
 }
 
-function submit_prediction_request_confirmed(image_names_str, regions_str, save_result) {
+function submit_prediction_request_confirmed(image_list, region_list, save_result, result_regions_only, calculate_vegetation_coverage) {
     // console.log("image_names_str", image_names_str);
     // console.log("regions_str", regions_str);
 
+
     disable_std_buttons(["request_result_button", "predict_single_button", "predict_all_button"]);
+
 
     $.post($(location).attr("href"),
     {
         action: "predict",
-        image_names: image_names_str,
-        regions: regions_str,
+        image_names: JSON.stringify(image_list),
+        regions: JSON.stringify(region_list),
         save_result: save_result ? "True" : "False",
+        regions_only: result_regions_only ? "True" : "False",
+        calculate_vegetation_coverage: calculate_vegetation_coverage ? "True" : "False",
         results_name: $("#results_name_input").val(),
         results_comment: $("#results_comment_input").val()
     },
@@ -5037,36 +5122,37 @@ function change_model() {
 
 
 function add_prediction_buttons() {
-    // let navigation_type = $('#navigation_dropdown').val();
-    let single_text = "Current Image";
-    let all_text = "All Images";
+    let navigation_type = $('#navigation_dropdown').val();
+    let single_text; // = "Current Image";
+    let all_text; // = "All Images";
     let multiple = Object.keys(annotations).length > 1;
-    // if (navigation_type === "images") {
-    
-    // }
-    // else {
-    //     single_text = "Current Region";
-    //     all_text = "All Regions";
-    //     let num_regions = 0;
-    //     for (let image_name of Object.keys(annotations)) {
-    //         for (let region_key of ["regions_of_interest", "training_regions", "test_regions"]) {
-    //             num_regions += annotations[image_name][region_key].length;
-    //         }
-    //     }
-    //     multiple = num_regions > 1;
-    // }
+    if (navigation_type === "images") {
+        single_text = "Current Image";
+        all_text = "All Images";
+    }
+    else {
+        single_text = "Current Region";
+        all_text = "All Regions";
+        let num_regions = 0;
+        for (let image_name of Object.keys(annotations)) {
+            for (let region_key of ["regions_of_interest", "training_regions", "test_regions"]) {
+                num_regions += annotations[image_name][region_key].length;
+            }
+        }
+        multiple = num_regions > 1;
+    }
 
 
     $("#predict_container").empty();
     if (multiple) {
         $("#predict_container").append(
-            `<button id="predict_single_button" class="std-button" style="font-size: 16px; width: 130px; border-radius: 30px 0px 0px 30px">${single_text}</button>` +
-            `<button id="predict_all_button" class="std-button" style="font-size: 16px; width: 130px; border-radius: 0px 30px 30px 0px; border-left: none">${all_text}</button>`
+            `<button id="predict_single_button" class="std-button std-button-hover" style="font-size: 16px; width: 130px; border-radius: 30px 0px 0px 30px">${single_text}</button>` +
+            `<button id="predict_all_button" class="std-button std-button-hover" style="font-size: 16px; width: 130px; border-radius: 0px 30px 30px 0px; border-left: none">${all_text}</button>`
         );
     }
     else {
         $("#predict_container").append(
-            `<button id="predict_single_button" class="std-button" style="font-size: 16px; width: 260px">${single_text}</button>` 
+            `<button id="predict_single_button" class="std-button std-button-hover" style="font-size: 16px; width: 260px">${single_text}</button>` 
         );
     }
     // let cur_backend_status = $("#backend_status").html();
@@ -5099,22 +5185,22 @@ function add_prediction_buttons() {
             show_modal_message("No Model Selected", "A model must be selected before predictions can be generated.");
         }
         else {
-            // let navigation_type = $('#navigation_dropdown').val();
-            // let image_list;d
-            // let region_list;
-            // if (navigation_type === "images") {
-            let image_width = metadata["images"][cur_img_name]["width_px"];
-            let image_height = metadata["images"][cur_img_name]["height_px"];
-            image_list = [cur_img_name];
-            region_list = [[[0, 0, image_height, image_width]]];
-            // }
-            // else {
-            //     image_list = [cur_img_name];
-            //     let region = annotations[cur_img_name][navigation_type][cur_region_index];
-            //     region_list = [[region]];
-            // }
+            let navigation_type = $('#navigation_dropdown').val();
+            let image_list;
+            let region_list;
+            if (navigation_type === "images") {
+                let image_width = metadata["images"][cur_img_name]["width_px"];
+                let image_height = metadata["images"][cur_img_name]["height_px"];
+                image_list = [cur_img_name];
+                region_list = [[[0, 0, image_height, image_width]]];
+            }
+            else {
+                image_list = [cur_img_name];
+                let region = annotations[cur_img_name][navigation_type][cur_region_index];
+                region_list = [[region]];
+            }
 
-            submit_prediction_request_confirmed(JSON.stringify(image_list), JSON.stringify(region_list), false);
+            submit_prediction_request_confirmed(image_list, region_list, false, false, false);
         }
     });
 
@@ -5123,35 +5209,46 @@ function add_prediction_buttons() {
             show_modal_message("No Model Selected", "A model must be selected before predictions can be generated.");
         }
         else {
-            // let navigation_type = $('#navigation_dropdown').val();
-            let image_list = [];
-            let region_list = [];
-            // if (navigation_type === "images") {
-            for (let image_name of Object.keys(annotations)) {
-                let image_width = metadata["images"][image_name]["width_px"];
-                let image_height = metadata["images"][image_name]["height_px"];
-                image_list.push(image_name);
-                region_list.push([[0, 0, image_height, image_width]]);
-            }
-            // }
-            // else {
-            //     for (let image_name of Object.keys(annotations)) {
-            //         let image_region_list = [];
-            //         for (let region_key of ["regions_of_interest", "training_regions", "test_regions"]) {
-            //             for (let region of annotations[image_name][region_key]) {
-            //                 image_region_list.push(region);
-            //             }
-            //         }
-            //         if (image_region_list.length > 0) {
-            //             image_list.push(image_name);
-            //             region_list.push(image_region_list)
-            //         }
-            //     }
-            // }
+            let navigation_type = $('#navigation_dropdown').val();
+            let predict_on_images = navigation_type === "images";
+            let res = get_image_list_and_region_list_for_predicting_on_all(predict_on_images);
+            let image_list = res[0];
+            let region_list = res[1];
             
-            submit_prediction_request_confirmed(JSON.stringify(image_list), JSON.stringify(region_list), false);
+            submit_prediction_request_confirmed(image_list, region_list, false, false, false);
         }
     });
+
+}
+
+function get_image_list_and_region_list_for_predicting_on_all(predict_on_images) {
+
+    let image_list = [];
+    let region_list = [];
+    if (predict_on_images) {
+        for (let image_name of Object.keys(annotations)) {
+            let image_width = metadata["images"][image_name]["width_px"];
+            let image_height = metadata["images"][image_name]["height_px"];
+            image_list.push(image_name);
+            region_list.push([[0, 0, image_height, image_width]]);
+        }
+    }
+    else {
+        for (let image_name of Object.keys(annotations)) {
+            let image_region_list = [];
+            for (let region_key of ["regions_of_interest", "training_regions", "test_regions"]) {
+                for (let region of annotations[image_name][region_key]) {
+                    image_region_list.push(region);
+                }
+            }
+            if (image_region_list.length > 0) {
+                image_list.push(image_name);
+                region_list.push(image_region_list);
+            }
+        }
+    }
+
+    return [image_list, region_list];
 
 }
 
@@ -6056,7 +6153,8 @@ $(document).ready(function() {
             }
 
 
-            submit_prediction_request(JSON.stringify(image_list), JSON.stringify(region_list));
+            //submit_prediction_request(JSON.stringify(image_list), JSON.stringify(region_list));
+            submit_result_request();
         }
     });
 
