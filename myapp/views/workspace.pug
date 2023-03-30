@@ -361,12 +361,14 @@ html
                                                                 //    div(class="blob")
 
 
-                                                    div(style="height: 100px; border: 1px solid white; border-radius: 10px")
-                                                        div(id="model_details")
+                                                    div(style="height: 110px; border: 1px solid white; border-radius: 10px")
+                                                        div(id="no_model_message" style="padding-top: 42px; color: #ddccbb; font-weight: 400" hidden)
+                                                            em No model selected.
+                                                        div(id="model_details" hidden)
                                                             //div(style="height: 10px")
                                                             div(style="height: 10px")
                                                             div(id="model_name")
-                                                            div(style="height: 5px")
+                                                            div(style="height: 10px")
                                                             //-
                                                                 table(class="transparent_table" style="font-size: 14px")
 
@@ -376,35 +378,43 @@ html
                                                                         td(style="text-align: left; padding-left: 12px; width: 100%")
                                                                             div(id="model_name")
 
+                                                            div(style="border: 1px solid white; width: 250px; margin: 0 auto; height: 45px; border-radius: 25px")
+                                                                div(id="regions_fully_fine_tuned_on" style="padding: 5px 15px; font-size: 14px; color: #ddccbb; font-weight: 400")
+
 
                                                             table(style="font-size: 14px")
 
+                                                                //- tr
+                                                                //-     td(style="text-align: right")
+                                                                //-         div(style="color: #ddccbb; font-weight: 400; width: 138px") Fine-Tuned? 
+                                                                //-     td(style="text-align: left; padding-left: 15px;")
+                                                                //-         div(id="model_fine_tuned")                                                   
+
+                                                                //- tr
+                                                                //-     td(style="text-align: right")
+                                                                //-         div(style="color: #ddccbb; font-weight: 400; width: 140px") Fine-Tuning Done? 
+                                                                //-     td(style="text-align: left; padding-left: 15px;")
+                                                                //-         div(id="model_fully_fine_tuned")
+                                                                tr 
+                                                                    td
+                                                                        div(style="height: 3px") 
+                                                                    td
+                                                                        div(style="height: 3px") 
+
                                                                 tr
                                                                     td(style="text-align: right")
-                                                                        div(style="color: #ddccbb; font-weight: 400; width: 140px") Fully Trained? 
-                                                                    td(style="text-align: left; padding-left: 15px;")
-                                                                        div(id="model_fully_trained")
-
-
-                                                                tr
-                                                                    td(style="text-align: right")
-                                                                        div(style="color: #ddccbb; font-weight: 400; width: 140px") Fine-Tuned? 
-                                                                    td(style="text-align: left; padding-left: 15px;")
-                                                                        div(id="model_fine_tuned")
-
-                                                                tr
-                                                                    td(style="text-align: right")
-                                                                        div(style="color: #ddccbb; font-weight: 400; width: 140px") Fine-Tuning Blocked?
+                                                                        div(style="color: #ddccbb; font-weight: 400; width: 138px") Fine-Tuning Blocked?
 
                                                                     td(style="text-align: left; padding-left: 15px;")
-                                                                        div(style="width: 55px")
+                                                                        div(style="width: 55px; display: inline-block")
                                                                             h(id="train_block_text")
 
                                                                     
-                                                                    td(style="width: 100%;")
-                                                                        label(class="small_switch" id="train_block_label")
-                                                                            input(id="train_block_switch" type="checkbox" disabled)
-                                                                            span(class="small_switch_slider round" id="train_block_slider")
+                                                                        //td(style="width: 100%;")
+                                                                        span
+                                                                            label(class="small_switch" id="train_block_label")
+                                                                                input(id="train_block_switch" type="checkbox" disabled)
+                                                                                span(class="small_switch_slider round" id="train_block_slider")
 
 
 
@@ -441,7 +451,7 @@ html
                                                                         span(class="switch_slider round" id="train_block_slider")
                                                     
                                                     div(style="height: 5px")
-                                                    div(id="train_block_message" style="height: 20px; font-size: 14px; color: #ed452b") 
+                                                    div(id="train_block_message" style="height: 10px; font-size: 14px; color: #ed452b") 
                                                     hr(class="panel_line")
 
 

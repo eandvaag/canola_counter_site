@@ -2430,24 +2430,42 @@ function save_annotations() {
             }*/
 
             let num_training_regions = get_num_regions(["training_regions"]);
-            if (model_unassigned) {
-                $("#model_fully_trained").html("---");
-                $("#model_fine_tuned").html("---");
-            }
-            else {
-                //if (model_fully_trained)
-                if (num_training_regions == num_regions_fully_trained_on) {
-                    $("#model_fully_trained").html("Yes");
-                }
-                else {
-                    $("#model_fully_trained").html("No");
-                }
-                if (num_training_regions > 0) {
-                    $("#model_fine_tuned").html("Yes");
-                }
-                else {
-                    $("#model_fine_tuned").html("No");
-                }
+            if (!(model_unassigned)) {
+
+
+                let fully_trained = num_training_regions == num_regions_fully_trained_on;
+                let fine_tuned = num_training_regions > 0;
+                // let updated_fined_tuned_html;
+                // if (fine_tuned) {
+                //     if (fully_trained) {
+                //         updated_fined_tuned_html = `Yes <i style="margin-left: 40px" class="fa-solid fa-check"></i>`;
+                //     }
+                //     else {
+                //         updated_fined_tuned_html = `Yes<i style="margin-left: 40px" class="fa-solid fa-spinner fa-spin"></i>`;
+                //     }
+                // }
+                // else {
+                //     updated_fined_tuned_html = `No`;
+                // }
+                
+                // //if (model_fully_trained)
+                // // if ((num_training_regions == num_regions_fully_trained_on) && (num_training_regions > 0)) {
+                // //     $("#model_fully_fine_tuned").html("Yes");
+                // // }
+                // // else {
+                // //     $("#model_fully_fine_tuned").html("No");
+                // // }
+                // // if (num_training_regions > 0) {
+                // //     $("#model_fine_tuned").html("Yes");
+                // // }
+                // // else {
+                // //     $("#model_fine_tuned").html("No");
+                // // }
+                // if ($("#model_fine_tuned").html() !== updated_fined_tuned_html) {
+                //     $("#model_fine_tuned").html(updated_fined_tuned_html);
+                // }
+
+                $("#regions_fully_fine_tuned_on").html(`Fully trained on <span style="color: white">${num_regions_fully_trained_on}</span> of <span style="color: white">${num_training_regions}</span> available fine-tuning regions.`);
             }
             
             //create_image_set_table();
@@ -4722,8 +4740,8 @@ function show_models() {
                     `</table>`);
                     $("#model_info").append(
                     `<div style="text-align: center;">` +
-                        `<div style="height: 10px"></div>` +
-                        `<button id="submit_model_change" class="std-button std-button-hover" style="width: 240px">Switch to Selected Model</button>` +
+                        `<div style="height: 30px"></div>` +
+                        `<button id="submit_model_change" class="std-button std-button-hover" style="width: 240px">Switch To Selected Model</button>` +
                         `<div style="height: 10px"></div>` +
                         `</div>`);
                 disable_std_buttons(["submit_model_change"]);
@@ -4991,7 +5009,7 @@ function show_models() {
                 
                 let new_model_name = switch_model_data["selected_model"]["model_name"];
                 let new_model_creator = switch_model_data["selected_model"]["model_creator"];
-                switch_model(new_model_creator, new_model_name);
+                possibly_switch_model(new_model_creator, new_model_name);
 
             });
         }
@@ -5250,6 +5268,32 @@ function get_image_list_and_region_list_for_predicting_on_all(predict_on_images)
 
     return [image_list, region_list];
 
+}
+
+
+function possibly_switch_model(model_creator, model_name) {
+    let num_training_regions = get_num_regions("training_regions");
+    if (num_training_regions > 0) {
+        show_modal_message(`Warning! You might lose work!`,
+        `<div>Please note that switching to a new model will cause the following changes to occur:</div>` +
+            `<ul>` +
+                `<li style="margin: 10px 0px">The current model weights will be destroyed and will be replaced with the newly selected model weights. Any fine-tuning work will be lost.` +
+                
+                `<li style="margin: 10px 0px">All fine-tuning regions will be changed to test regions. This allows you to decide which regions will be used to fine-tune the new model. You can change a test region into a fine-tuning region by selecting it and pressing the <span style='border: 1px solid white; font-size: 16px; padding: 0px 5px; margin: 0px 5px'>m</span> key.</li>` +
+            `</ul>` +
+        `<div style="height: 20px"></div>` +
+        `<div id="modal_button_container" style="text-align: center">` +
+            `<button class="std-button std-button-hover" `+
+                    `style="width: 240px" onclick="switch_model('${model_creator}', '${model_name}')">Switch To Selected Model</button>` +
+            `<div style="display: inline-block; width: 10px"></div>` +
+            `<button class="std-button std-button-hover" ` +
+                    `style="width: 150px" onclick="close_modal()">Cancel</button>` +
+        `</div>`, 800
+        );
+    }
+    else {
+        switch_model(model_creator, model_name);
+    }
 }
 
 
@@ -5562,11 +5606,18 @@ $(document).ready(function() {
         $("#model_name").html(model_name);
 
         if (model_unassigned) {
-            $("#model_fully_trained").html("---");
-            $("#model_fine_tuned").html("---");
+            // $("#model_fully_fine_tuned").html("---");
+            $("#model_details").hide();
+            $("#no_model_message").show();
+            //$("#regions_fully_fine_tuned_on").html(``);
+            //$("#regions_fully_fine_tuned_on_container").css("border", "none");
             //disable_std_buttons(["request_result_button", "predict_single_button", "predict_all_button"]);
         }
         else {
+
+            $("#model_details").show();
+            $("#no_model_message").hide();
+
             let fully_trained;
             let fine_tuned;
             //if (metadata["is_ortho"] === "yes") {
@@ -5579,18 +5630,32 @@ $(document).ready(function() {
             //     fully_trained = num_training_images == num_images_fully_trained_on;
             //     fine_tuned = num_training_images > 0;
             // }
-            if (fully_trained) { //num_training_images == num_images_fully_trained_on) {
-                $("#model_fully_trained").html("Yes");
-            }
-            else {
-                $("#model_fully_trained").html("No");
-            }
-            if (fine_tuned) {
-                $("#model_fine_tuned").html("Yes");
-            }
-            else {
-                $("#model_fine_tuned").html("No");
-            }
+            // if (fully_trained && fine_tuned) { //num_training_images == num_images_fully_trained_on) {
+            //     $("#model_fully_fine_tuned").html("Yes");
+            // }
+            // else {
+            //     $("#model_fully_fine_tuned").html("No");
+            // }
+            //let fully_fine_tuned = (fully_trained && fine_tuned);
+
+            // let updated_fined_tuned_html;
+            // if (fine_tuned) {
+            //     if (fully_trained) {
+            //         updated_fined_tuned_html = `Yes <i style="margin-left: 40px" class="fa-solid fa-check"></i>`;
+            //     }
+            //     else {
+            //         updated_fined_tuned_html = `Yes<i style="margin-left: 40px" class="fa-solid fa-spinner fa-spin"></i>`;
+            //     }
+            // }
+            // else {
+            //     updated_fined_tuned_html = `No`;
+            // }
+
+            // if ($("#model_fine_tuned").html() !== updated_fined_tuned_html) {
+            //     $("#model_fine_tuned").html(updated_fined_tuned_html);
+            // }
+
+            $("#regions_fully_fine_tuned_on").html(`Fully trained on <span style="color: white">${num_regions_fully_trained_on}</span> of <span style="color: white">${num_training_regions}</span> available fine-tuning regions.`);
         }
 
         if (update["outstanding_prediction_requests"] === "True") { //|| model_unassigned) {
@@ -5903,7 +5968,7 @@ $(document).ready(function() {
                         `<div style="height: 20px"></div>` +
                         `<div id="modal_button_container" style="text-align: center">` +
                             `<button class="std-button std-button-hover" `+
-                                    `style="width: 240px" onclick="switch_model('${model_creator}', '${model_name}')">Switch to Selected Model</button>` +
+                                    `style="width: 240px" onclick="possibly_switch_model('${model_creator}', '${model_name}')">Switch To Selected Model</button>` +
                             `<div style="display: inline-block; width: 10px"></div>` +
                             `<button class="std-button std-button-hover" ` +
                                     `style="width: 150px" onclick="close_modal()">Cancel</button>` +
