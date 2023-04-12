@@ -3079,7 +3079,7 @@ exports.post_workspace = function(req, res, next) {
         let regions = JSON.parse(req.body.regions)
         let save_result = req.body.save_result === "True";
         let regions_only = req.body.regions_only === "True";
-        let calculate_vegetation_record = req.body.calculate_vegetation_record === "True";
+        let calculate_vegetation_coverage = req.body.calculate_vegetation_coverage === "True";
         let request_uuid = uuidv4().toString();
         let request = {
             "request_uuid": request_uuid,
@@ -3088,7 +3088,7 @@ exports.post_workspace = function(req, res, next) {
             "regions": regions,
             "save_result": save_result,
             "regions_only": regions_only,
-            "calculate_vegetation_record": calculate_vegetation_record
+            "calculate_vegetation_coverage": calculate_vegetation_coverage
         };
 
         let request_path;

@@ -31,9 +31,14 @@ run ./docker-ctl.sh start
 
 Setup
 
-Install npm.
+
+Install node.
 ```
+curl -fsSL https://deb.nodesource.com/setup_14.x | sudo -E bash - &&\
+sudo apt-get install -y nodejs
+
 sudo npm install -g n
+
 sudo n 14.18.1
 ```
 
@@ -63,9 +68,22 @@ In psql (replace 'XXX' with password found in config.json):
 ```
 CREATE DATABASE plant_detection_db;
 CREATE ROLE plant_detection_dbuser WITH PASSWORD 'XXX';
+ALTER ROLE "plant_detection_dbuser" WITH LOGIN;
 ```
 
+Grant permissions to plant_detection_dbuser to create things inside the public schema
+```
+postgres=# \c plant_detection_db 
+plant_detection_db=# GRANT ALL ON SCHEMA public TO plant_detection_dbuser;
+```
+
+
 Run migrations.
+First cd to the myapp directory.
+```
+cd myapp
+```
+
 ```
 npx sequelize-cli db:migrate
 ```
@@ -96,7 +114,10 @@ Edit /etc/ImageMagick-6/policy.xml to allow larger files to be converted.
 <policy domain="resource" name="disk" value="10GiB"/>
 
 
-Install exiftool.
+Install other apt packages.
 ```
 sudo apt install libimage-exiftool-perl
+sudo apt install libvips-tools
+sudo apt install libgdal-dev gdal-bin
 ```
+
