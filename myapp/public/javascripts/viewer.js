@@ -1326,6 +1326,12 @@ $(document).ready(function() {
     dzi_image_paths = data["dzi_image_paths"];
     overlay_appearance = data["overlay_appearance"];
 
+    ask_to_continue_handle = window.setTimeout(ask_to_continue, 7200000); // 2 hours
+    $("body").click(function() {
+        window.clearTimeout(ask_to_continue_handle);
+        ask_to_continue_handle = window.setTimeout(ask_to_continue, 7200000);
+    });
+
 
     let disp_result_name = request["results_name"];
     let result_text_width = get_text_width(request["results_name"], "normal 20px arial");

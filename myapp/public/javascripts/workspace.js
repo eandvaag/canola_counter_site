@@ -20,8 +20,7 @@ let cur_img_name;
 let cur_region_index;
 let cur_nav_list;
 let cur_view;
-let countdown_handle;
-let ask_to_continue_handle;
+
 let cur_update_num = -1;
 //let pending_predictions;
  // = {};
@@ -63,7 +62,8 @@ let annotations_dropzone;
 let voronoi_data = {};
 
 let gsd = null;
-
+let cur_mouse_x;
+let cur_mouse_y;
 
 // let overlay_colors = [
 //     "#0080C0",        
@@ -602,7 +602,7 @@ function resize_poly_px_str(px_str) {
             more_than_max_x++;
             //coords[0] = img_max_x;
         }
-        revised_coords.push([Math.round(coords[0]), Math.round(coords[1])]);
+        revised_coords.push([(coords[0]), (coords[1])]); //[Math.round(coords[0]), Math.round(coords[1])]);
 
     }
     let num_coords = revised_coords.length;
@@ -625,7 +625,7 @@ function resize_poly_px_str(px_str) {
         let rounded_revised_coords = [];
         let added_str_coords = [];
         for (let j = 0; j < revised_coords.length; j++) {
-            let coord = [Math.round(revised_coords[j][0]), Math.round(revised_coords[j][1])];
+            let coord = [(revised_coords[j][0]), (revised_coords[j][1])]; //[Math.round(revised_coords[j][0]), Math.round(revised_coords[j][1])];
             let str_coord = JSON.stringify(coord);
             if (!(added_str_coords.includes(str_coord))) {
                 rounded_revised_coords.push(coord);
@@ -709,26 +709,26 @@ function resize_px_str(px_str) {
         let box_h = box_max_y - box_min_y;
 
 
-        //let min_dim = 1;
+        let min_dim = 1;
         let max_dim = 800; //1600;
-        // if (box_w < min_dim) {
+        if (box_w < min_dim) {
 
-        //     let tentative_box_min_x = box_centre_x - Math.floor(min_dim / 2);
-        //     let tentative_box_max_x = box_centre_x + Math.floor(min_dim / 2);
-        //     if (tentative_box_min_x < img_min_x) {
-        //         box_min_x = img_min_x;
-        //         box_max_x = img_min_x + min_dim;
-        //     }
-        //     else if (tentative_box_max_x > img_max_x) {
-        //         box_min_x = (img_max_x) - min_dim;
-        //         box_max_x = img_max_x;
-        //     }
-        //     else {
-        //         box_min_x = tentative_box_min_x;
-        //         box_max_x = tentative_box_max_x;
-        //     }
+            let tentative_box_min_x = Math.floor(box_min_x); //box_centre_x - Math.floor(min_dim / 2);
+            let tentative_box_max_x = tentative_box_min_x + 1; //box_centre_x + Math.floor(min_dim / 2);
+            if (tentative_box_min_x < img_min_x) {
+                box_min_x = img_min_x;
+                box_max_x = img_min_x + min_dim;
+            }
+            else if (tentative_box_max_x > img_max_x) {
+                box_min_x = (img_max_x) - min_dim;
+                box_max_x = img_max_x;
+            }
+            else {
+                box_min_x = tentative_box_min_x;
+                box_max_x = tentative_box_max_x;
+            }
             
-        // }
+        }
 
         if (cur_edit_layer === "annotation") { 
             if (box_w > max_dim) {
@@ -755,22 +755,22 @@ function resize_px_str(px_str) {
         }
 
 
-        // if (box_h < min_dim) {
-        //     let tentative_box_min_y = box_centre_y - Math.floor(min_dim / 2);
-        //     let tentative_box_max_y = box_centre_y + Math.floor(min_dim / 2);
-        //     if (tentative_box_min_y < img_min_y) {
-        //         box_min_y = img_min_y;
-        //         box_max_y = img_min_y + min_dim;
-        //     }
-        //     else if (tentative_box_max_y > img_max_y) {
-        //         box_min_y = (img_max_y) - min_dim;
-        //         box_max_y = img_max_y;
-        //     }
-        //     else {
-        //         box_min_y = tentative_box_min_y;
-        //         box_max_y = tentative_box_max_y;
-        //     }
-        // }
+        if (box_h < min_dim) {
+            let tentative_box_min_y = Math.floor(box_min_y); //box_centre_y - Math.floor(min_dim / 2);
+            let tentative_box_max_y = tentative_box_min_y + 1; //box_centre_y + Math.floor(min_dim / 2);
+            if (tentative_box_min_y < img_min_y) {
+                box_min_y = img_min_y;
+                box_max_y = img_min_y + min_dim;
+            }
+            else if (tentative_box_max_y > img_max_y) {
+                box_min_y = (img_max_y) - min_dim;
+                box_max_y = img_max_y;
+            }
+            else {
+                box_min_y = tentative_box_min_y;
+                box_max_y = tentative_box_max_y;
+            }
+        }
 
         if (cur_edit_layer === "annotation") { 
             if (box_h > max_dim) {
@@ -818,6 +818,7 @@ function create_anno() {
         disableSelect: true,
         readOnly: true,
         formatter: formatter,
+        //crosshair: true
     });
 
     Annotorious.BetterPolygon(anno);
@@ -852,7 +853,8 @@ function create_anno() {
             box = [];
             for (let coord_str of lst_of_coord_strs) {
                 let coords = coord_str.split(",").map(x => parseFloat(x));
-                box.push([Math.round(coords[1]), Math.round(coords[0])]);
+                //box.push([Math.round(coords[1]), Math.round(coords[0])]);
+                box.push([(coords[1]), (coords[0])]);
             }
         }
         else {
@@ -865,10 +867,14 @@ function create_anno() {
             else {
 
                 box = [
-                    Math.round(px_lst[1]), 
-                    Math.round(px_lst[0]), 
-                    Math.round(px_lst[1] + px_lst[3]),
-                    Math.round(px_lst[0] + px_lst[2])
+                    // Math.round(px_lst[1]), 
+                    // Math.round(px_lst[0]), 
+                    // Math.round(px_lst[1] + px_lst[3]),
+                    // Math.round(px_lst[0] + px_lst[2])
+                    (px_lst[1]), 
+                    (px_lst[0]), 
+                    (px_lst[1] + px_lst[3]),
+                    (px_lst[0] + px_lst[2])
                 ];
             }
         }
@@ -975,7 +981,6 @@ function create_anno() {
         else { 
             updated_px_str = resize_px_str(px_str);
         }
-
         if (updated_px_str === "illegal") {
             anno.clearAnnotations();
         }
@@ -1016,7 +1021,7 @@ function create_anno() {
                 updated_box = [];
                 for (let coord_str of lst_of_coord_strs) {
                     let coords = coord_str.split(",").map(x => parseFloat(x));
-                    updated_box.push([Math.round(coords[1]), Math.round(coords[0])]);
+                    updated_box.push([coords[1], coords[0]]); //[Math.round(coords[1]), Math.round(coords[0])]);
                 }
 
             }
@@ -1025,10 +1030,14 @@ function create_anno() {
                 let px_lst = updated_px_str.split(",").map(x => parseFloat(x));
 
                 updated_box = [
-                    Math.round(px_lst[1]), 
-                    Math.round(px_lst[0]), 
-                    Math.round(px_lst[1] + px_lst[3]),
-                    Math.round(px_lst[0] + px_lst[2])
+                    // Math.round(px_lst[1]), 
+                    // Math.round(px_lst[0]), 
+                    // Math.round(px_lst[1] + px_lst[3]),
+                    // Math.round(px_lst[0] + px_lst[2])
+                    (px_lst[1]), 
+                    (px_lst[0]), 
+                    (px_lst[1] + px_lst[3]),
+                    (px_lst[0] + px_lst[2])
                 ];
             }
 
@@ -1485,6 +1494,29 @@ function anno_and_pred_onRedraw() {
         );
     }
 
+    if (cur_panel === "annotation") {
+        if ((cur_mouse_x != null) && (cur_mouse_y != null)) {
+
+            overlay.context2d().lineWidth = 2;
+            overlay.context2d().strokeStyle = overlay_appearance["colors"][cur_edit_layer];
+            overlay.context2d().beginPath();
+            overlay.context2d().moveTo(0, cur_mouse_y);
+            overlay.context2d().lineTo(overlay._containerWidth, cur_mouse_y);
+            overlay.context2d().stroke();
+            overlay.context2d().closePath();
+
+
+            overlay.context2d().beginPath();
+            overlay.context2d().moveTo(cur_mouse_x, 0);
+            overlay.context2d().lineTo(cur_mouse_x, overlay._containerHeight);
+            overlay.context2d().stroke();
+            overlay.context2d().closePath();
+        }
+    }
+
+
+
+
 
 
         // let top_left = viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(bounds[1], bounds[0]));
@@ -1884,9 +1916,70 @@ function create_viewer(viewer_id) {
 
 
 
+    $("#seadragon_viewer").on("pointermove", function(event) {
+        if (cur_panel === "annotation") {
+            $("#seadragon_viewer").css("cursor", "none");
+            cur_mouse_x = event.offsetX;
+            cur_mouse_y = event.offsetY;
+            overlay.clear();
+            anno_and_pred_onRedraw();
+        }
+        else {
+            $("#seadragon_viewer").css("cursor", "default");
+        }
+    });
+
+    // $("#seadragon_viewer").on("click", function(event) {
+    //     console.log("mousedown");
+
+    //     if (cur_panel === "annotation") {
+    //         $("#seadragon_viewer").css("cursor", "none");
+    //         cur_mouse_x = event.offsetX;
+    //         cur_mouse_y = event.offsetY;
+    //         overlay.clear();
+    //         anno_and_pred_onRedraw();
+    //     }
+    //     else {
+    //         $("#seadragon_viewer").css("cursor", "default");
+    //     }
+    // });
+
+
+
+    // $("#seadragon_viewer").on("mousemove", function(event) {
+    //     console.log("pointermove");
+
+    //     let webPoint = {x: event.offsetX, y: event.offsetY};
+    //     console.log(webPoint);
+    //     // let viewportPoint = viewer.viewport.pointFromPixel(webPoint);
+    //     // let imagePoint = viewer.viewport.viewportToImageCoordinates(viewportPoint);
+
+
+    //     //console.log("webPoint", webPoint);
+    //     //let webPoint = new OpenSeadragon.Point(image_x, image_y);
+    //     // let viewer_point_1 = viewer.viewport.imageToViewerElementCoordinates(
+    //     //     new OpenSeadragon.Point(0, 0));
+    //     // let viewer_point_2 = viewer.viewport.imageToViewerElementCoordinates(
+    //     //         new OpenSeadragon.Point(overlay.imgWidth, overlay.imgHeight));
+
+
+
+    //     // let p1 = viewer.viewport.imageToViewerElementCoordinates(
+    //     //     new OpenSeadragon.Point(0, imagePoint[1]));
+    //     // let p2 = viewer.viewport.imageToViewerElementCoordinates(
+    //     //     new OpenSeadragon.Point(overlay.imgWidth, imagePoint[1]));         
+    //     overlay.context2d().clearRect(0, 0, overlay._containerWidth, overlay.containerHeight);   
+    //     overlay.context2d().beginPath();
+    //     overlay.context2d().moveTo(0, webPoint.y); //p1.x, p1.y);
+    //     overlay.context2d().lineTo(overlay._containerWidth, webPoint.y);
+    //     overlay.context2d().stroke();
+    //     overlay.context2d().closePath();
+    // });
 
     
     viewer.addHandler('canvas-click', function(event) {
+        console.log(event);
+        //console.log("canvas-click");
 
     //$("#seadragon_viewer").click(function(event) { 
         //console.log("canvas-click");
@@ -1947,6 +2040,7 @@ function create_viewer(viewer_id) {
    
 
                 let webPoint = event.position;
+                //console.log(typeof(webPoint));
 
                 //console.log("webPoint", webPoint);
                 //let webPoint = new OpenSeadragon.Point(image_x, image_y);
@@ -2387,6 +2481,31 @@ function save_annotations() {
                 new_training_regions++;
             }
         }
+        for (let key of ["boxes", "training_regions", "test_regions"]) {
+            for (let i = 0; i < annotations[image_name][key].length; i++) {
+                box = annotations[image_name][key][i];
+                annotations[image_name][key][i] = [
+                    Math.round(box[0]),
+                    Math.round(box[1]),
+                    Math.round(box[2]),
+                    Math.round(box[3])
+                ];
+            }
+        }
+        for (let i = 0; i < annotations[image_name]["regions_of_interest"].length; i++) {
+            //let roi = annotations[image_name]["regions_of_interest"][i];
+            for (let j = 0; j < annotations[image_name]["regions_of_interest"][i].length; j++) {
+                annotations[image_name]["regions_of_interest"][i][j] = [
+                    Math.round(annotations[image_name]["regions_of_interest"][i][j][0]), 
+                    Math.round(annotations[image_name]["regions_of_interest"][i][j][1])
+                ];
+            }
+
+        }
+    }
+    if ((cur_panel === "annotation" || cur_panel === "prediction")) {
+        overlay.clear();
+        anno_and_pred_onRedraw();
     }
 
     $.post($(location).attr('href'),
@@ -2538,56 +2657,45 @@ function save_annotations() {
 // }
 
 
-function expired_session() {
-/*
-    if (metadata["is_ortho"] === "yes") {
-        save_annotations_for_ortho();
-    }
-    else {
-        save_annotations_for_image_set();
-    }
-*/
-    window.location.href = get_CC_PATH() + "/home/" + username;
 
-}
 
-function confirmed_continue() {
-    clearInterval(countdown_handle);
-    close_modal();
-    ask_to_continue_handle = window.setTimeout(ask_to_continue, 7200000);
-}
+// function confirmed_continue() {
+//     clearInterval(countdown_handle);
+//     close_modal();
+//     ask_to_continue_handle = window.setTimeout(ask_to_continue, 7200000);
+// }
 
-function ask_to_continue() {
+// function ask_to_continue() {
     
-    $("#modal_head").empty();
-    $("#modal_body").empty();
+//     $("#modal_head").empty();
+//     $("#modal_body").empty();
 
-    $("#modal_head").append(
-        `<p>Refresh Annotation Session</p>`);
+//     $("#modal_head").append(
+//         `<p>Refresh Annotation Session</p>`);
     
 
-    $("#modal_body").append(`<p id="modal_message" align="left">` +
-    `Your annotation session will expire in <span id="countdown_timer">180</span> seconds. Please confirm if you wish to continue annotating.</p>`);
-    let countdown_val = 180;
-    countdown_handle = window.setInterval(function() {
-        countdown_val -= 1;
-        $("#countdown_timer").html(countdown_val);
+//     $("#modal_body").append(`<p id="modal_message" align="left">` +
+//     `Your annotation session will expire in <span id="countdown_timer">180</span> seconds. Please confirm if you wish to continue annotating.</p>`);
+//     let countdown_val = 180;
+//     countdown_handle = window.setInterval(function() {
+//         countdown_val -= 1;
+//         $("#countdown_timer").html(countdown_val);
 
-        if (countdown_val == 0) {
-            clearInterval(countdown_handle);
-            expired_session();
-        }
-    }, 1000);
-
-    
-    $("#modal_body").append(`<div id="modal_button_container">
-        <button id="continue_annotate" class="std-button std-button-hover" `+
-        `style="width: 200px" onclick="confirmed_continue()">Continue Annotating</button>` +
-        `</div>`);
+//         if (countdown_val == 0) {
+//             clearInterval(countdown_handle);
+//             expired_session();
+//         }
+//     }, 1000);
 
     
-    $("#modal").css("display", "block");
-}
+//     $("#modal_body").append(`<div id="modal_button_container">
+//         <button id="continue_annotate" class="std-button std-button-hover" `+
+//         `style="width: 200px" onclick="confirmed_continue()">Continue Annotating</button>` +
+//         `</div>`);
+
+    
+//     $("#modal").css("display", "block");
+// }
 
 /*
 $(window).bind('beforeunload', function(event){
@@ -2764,6 +2872,8 @@ async function show_annotation(change_image=false) {
         set_cur_bounds();
     };
 
+
+
     overlay.onRedraw = anno_and_pred_onRedraw;
 
     // let dzi_image_path = image_to_dzi[cur_img_name];
@@ -2773,6 +2883,8 @@ async function show_annotation(change_image=false) {
 
 
     //create_viewer_and_anno("seadragon_viewer");
+    cur_mouse_x = null;
+    cur_mouse_y = null;
     viewer.zoomPerScroll = 1.2;
 
     let navigation_type = $("#navigation_dropdown").val();
@@ -5391,6 +5503,10 @@ $(document).ready(function() {
 
     //window.setInterval(refresh, 90000); // 1.5 minutes
     ask_to_continue_handle = window.setTimeout(ask_to_continue, 7200000); // 2 hours
+    $("body").click(function() {
+        window.clearTimeout(ask_to_continue_handle);
+        ask_to_continue_handle = window.setTimeout(ask_to_continue, 7200000);
+    });
     health_check();
     setInterval(health_check, 60 * 1000); // 1 minute
 
@@ -6094,8 +6210,8 @@ $(document).ready(function() {
     //show_annotation();
 
     $("#save_button").click(async function() {
-        window.clearTimeout(ask_to_continue_handle);
-        ask_to_continue_handle = window.setTimeout(ask_to_continue, 7200000);
+        // window.clearTimeout(ask_to_continue_handle);
+        // ask_to_continue_handle = window.setTimeout(ask_to_continue, 7200000);
 
         await unselect_selected_annotation();
 
@@ -6538,6 +6654,10 @@ $(document).ready(function() {
             anno.setDrawingTool("rect");
         }
 
+        if (cur_panel === "annotation") {
+            overlay.clear();
+            anno_and_pred_onRedraw();
+        }
     });
 
 

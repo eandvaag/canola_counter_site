@@ -16,8 +16,8 @@ app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'pug');
 
 //app.use('/plant_detection/osd', express.static(__dirname + '/node_modules/openseadragon/build/openseadragon'));
-app.use(process.env.CC_PATH + '/osd', express.static(__dirname + '/external_node_modules/openseadragon')); //_3_0_0'));
-app.use(process.env.CC_PATH + '/annotorious', express.static(__dirname + '/external_node_modules/annotorious')); //_2_7_10'));
+app.use(process.env.CC_PATH + '/osd', express.static(__dirname + '/external_node_modules/openseadragon_3_0_0')); //_3_0_0'));
+app.use(process.env.CC_PATH + '/annotorious', express.static(__dirname + '/external_node_modules/annotorious_2_7_10')); //_2_7_10'));
 
 //app.use('/plant_detection/public/images/favicon.ico', 
 //        favicon(__dirname + '/public/images/favicon.ico'));

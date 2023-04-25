@@ -20,6 +20,21 @@ let metadata;
 global_disabled = false;
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 function delete_request() {
 
     show_modal_message(`Are you sure?`, 
@@ -1978,6 +1993,11 @@ $(document).ready(function() {
     available_image_sets = data["available_image_sets"];
     overlay_appearance = data["overlay_appearance"];
 
+    ask_to_continue_handle = window.setTimeout(ask_to_continue, 7200000); // 2 hours
+    $("body").click(function() {
+        window.clearTimeout(ask_to_continue_handle);
+        ask_to_continue_handle = window.setTimeout(ask_to_continue, 7200000);
+    });
 
     initialize_browse();
     initialize_upload();

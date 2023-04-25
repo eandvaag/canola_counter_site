@@ -59,6 +59,8 @@ function has_duplicates(array) {
 }
 
 
+
+
 let default_overlay_appearance = {
     "draw_order": ["region_of_interest", "training_region", "test_region", "annotation", "prediction"],
     "style": {
@@ -78,6 +80,79 @@ let default_overlay_appearance = {
 };
 
 let new_overlay_appearance;
+
+
+
+let countdown_handle;
+let ask_to_continue_handle;
+
+
+function confirmed_continue() {
+    clearInterval(countdown_handle);
+    close_modal();
+    ask_to_continue_handle = window.setTimeout(ask_to_continue, 7200000);
+}
+
+function expired_session() {
+/*
+    if (metadata["is_ortho"] === "yes") {
+        save_annotations_for_ortho();
+    }
+    else {
+        save_annotations_for_image_set();
+    }
+*/
+    window.location.href = get_CC_PATH(); // + "/home/" + username;
+
+}
+
+function ask_to_continue() {
+    
+    $("#modal_head").empty();
+    $("#modal_body").empty();
+
+    $("#modal_head").append(
+        `<p>Session About To Expire</p>`);
+    
+
+    $("#modal_body").append(`<p id="modal_message" align="left">` +
+    `Your session will expire in <span id="countdown_timer">180</span> seconds due to inactivity. Please confirm if you wish to stay logged in.</p>`);
+    let countdown_val = 180;
+    countdown_handle = window.setInterval(function() {
+        countdown_val -= 1;
+        $("#countdown_timer").html(countdown_val);
+
+        if (countdown_val == 0) {
+            clearInterval(countdown_handle);
+            expired_session();
+        }
+    }, 1000);
+
+    
+    $("#modal_body").append(`<div id="modal_button_container">
+        <button class="std-button std-button-hover" `+
+        `style="width: 200px" onclick="confirmed_continue()">Stay Logged In</button>` +
+        `</div>`);
+
+    
+    $("#modal").css("display", "block");
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 function numberWithCommas(x) {

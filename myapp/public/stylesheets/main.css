@@ -2236,6 +2236,16 @@ input:checked + .small_switch_slider:before {
 }
 
 
+/*.a9s-crosshair line {*/
+.a9s-crosshair line{
+  /*
+  stroke-width:1px;
+  stroke:rgba(0, 0, 0, 0.5);
+  pointer-events:none;
+  vector-effect:non-scaling-stroke;
+  shape-rendering:crispEdges;*/
+  stroke:white;
+}
 
 /*
 [type="checkbox"]:checked,
