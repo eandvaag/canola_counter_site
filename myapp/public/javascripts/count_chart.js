@@ -452,7 +452,7 @@ function set_count_chart_data() {
                         region_key = "test_regions";
                     }
 
-                    count_chart_data[nav_item]["prediction"] = metrics[metric][image_name][region_key][i];
+                    count_chart_data[nav_item]["prediction"] = metrics[metric][image_name][region_key][0];
 
                     // for (let i = 0; i < annotations[image_name][region_key].length; i++) {
                     //     let region = annotations[image_name][region_key][i];
