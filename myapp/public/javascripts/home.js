@@ -20,7 +20,7 @@ let metadata;
 global_disabled = false;
 
 
-
+// let completed_results;
 
 
 
@@ -1417,8 +1417,8 @@ function view_comment(comment) {
 function create_result_entry(result) {
 
     let result_name = result["results_name"];
-    if (get_text_width(result_name, "normal 16px arial") > 250) {
-        result_name = result_name.substring(0, 6) + " ... " + result_name.substring(result_name.length - 6);
+    if (get_text_width(result_name, "normal 16px arial") > 600) {
+        result_name = result_name.substring(0, 24) + " ... " + result_name.substring(result_name.length - 24);
     }
 
     let start_date = timestamp_to_date(result["start_time"]);
@@ -1474,8 +1474,8 @@ function create_result_entry(result) {
         `<tr style="border-bottom: 1px solid #4c6645; height: 70px">` +
             `<td><div style="width: 25px"></div></td>` +   
             `<td>` +
-                `<div class="object_entry" style="font-size: 16px; width: 260px; height: 50px; border-radius: 100px;">` +
-                    `<div style="padding-top: 10px">${result_name}</div>` +
+                `<div class="object_entry" style="text-align: left; font-size: 16px; width: 610px; height: 50px; border-radius: 10px;">` +
+                    `<div style="padding-left: 10px; padding-top: 10px">${result_name}</div>` +
                 `</div>` +
             `</td>` +
 
@@ -1486,7 +1486,7 @@ function create_result_entry(result) {
 
             `</td>` +
             `<td>` +
-                `<div style="width: 120px"></div>` +
+                `<div style="width: 60px"></div>` +
             `</td>` +
             `<td>` +
                 `<table>` +
@@ -1603,8 +1603,8 @@ function show_results(results) {
 
 
     //console.log(results.completed_results);
-    let completed_results = results.completed_results.sort(function(a, b) {
-        return b["start_time"] - a["start_time"];
+    completed_results = results.completed_results.sort(function(a, b) {
+        return b["end_time"] - a["end_time"];
     });
     // let completed_results_container_height = "375px";
     // if (completed_results.length > 1) {
@@ -1643,8 +1643,32 @@ function show_results(results) {
         // `<table id="completed_results" style="height: ${completed_results_container_height}; overflow-y: scroll; width: 1000px; border: 1px solid white"></table>` +
         // `<table class="transparent_table" id="completed_table"></table></div></div>` +
         `<div id="completed_results" hidden>` +
+
             `<div style="height: 90px"></div>` +
-            `<div class="scrollable_area" style="border-radius: 10px; height: ${completed_results_container_height}; width: 1200px; margin: 0 auto; overflow-y: scroll">` +
+
+            `<div style="width: 1450px; margin: 0 auto;">` +
+                `<table>` +
+                    `<tr>` +
+
+                        `<td>` +
+                            `<div style="width: 75px" class="header2">Sort By:</div>` +
+                        `</td>` +
+                        `<td>` +
+                            `<select id="completed_results_sort_dropdown" class="nonfixed_dropdown" style="display: inline-block; width: 200px">` +
+                                `<option value="end_time_desc" selected>Newest First</option>` +
+                                `<option value="end_time_asc">Oldest First</option>` +
+                                `<option value="result_name_desc">Result Name (DESC)</option>` +
+                                `<option value="result_name_asc">Result Name (ASC)</option>` +
+                            `</select>` +
+                        `</td>` +
+                        `<td style="width: 100%">` +
+                        `</td>` +
+
+                    `</tr>` +
+                `</table>` +
+            `</div>`+
+
+            `<div class="scrollable_area" style="border-radius: 10px; height: ${completed_results_container_height}; width: 1450px; margin: 0 auto; overflow-y: scroll">` +
                 `<table id="completed_results_table" style="border-collapse: collapse"></table>` +
             `</div>` +
         `</div>` +
@@ -1652,7 +1676,7 @@ function show_results(results) {
 
         `<div id="pending_results" hidden>` +
             `<div style="height: 90px"></div>` +
-            `<div class="scrollable_area" style="border-radius: 10px; height: ${completed_results_container_height}; width: 1200px; margin: 0 auto; overflow-y: scroll">` +
+            `<div class="scrollable_area" style="border-radius: 10px; height: ${completed_results_container_height}; width: 1450px; margin: 0 auto; overflow-y: scroll">` +
                 `<table id="pending_results_table" style="border-collapse: collapse"></table>` +
             `</div>` +
         `</div>` +
@@ -1660,7 +1684,7 @@ function show_results(results) {
 
         `<div id="aborted_results" hidden>` +
             `<div style="height: 90px"></div>` +
-            `<div class="scrollable_area" style="border-radius: 10px; height: ${completed_results_container_height}; width: 1200px; margin: 0 auto; overflow-y: scroll">` +
+            `<div class="scrollable_area" style="border-radius: 10px; height: ${completed_results_container_height}; width: 1450px; margin: 0 auto; overflow-y: scroll">` +
                 `<table id="aborted_results_table" style="border-collapse: collapse"></table>` +
             `</div>` +
         `</div>`
@@ -1732,8 +1756,39 @@ function show_results(results) {
         $("#completed_results").append(`<div style="height: 120px"></div>`);
         $("#completed_results").append(`<div>No Completed Results Found</div>`);
     }
+
+    $("#completed_results_sort_dropdown").change(function() {
+        let sort_val = $("#completed_results_sort_dropdown").val();
+        let sorted_results;
+        if ((sort_val === "end_time_desc") || (sort_val === "end_time_asc")) {
+            sorted_results = completed_results.sort(function(a, b) {
+                return b["end_time"] - a["end_time"];
+            });
+        }
+        else if ((sort_val === "result_name_desc") || (sort_val === "result_name_asc")) {
+            sorted_results = completed_results.sort(function(a, b) {
+                return a.results_name.localeCompare(b.results_name); //b["results_name"] - a["results_name"];
+            });
+        }
+        if ((sort_val === "end_time_asc") || (sort_val === "result_name_desc")) {
+            sorted_results.reverse();
+        }
+        // completed_results_sort_val = sort_val;
+        //console.log("sorted_results", sorted_results);
+        $("#completed_results_table").empty();
+        for (let result of sorted_results) {
+            create_result_entry(result);
+        }
+
+    });
+
+    // if (completed_results_sort_val == null) {
+    //     completed_results_sort_val = "end_time_desc";
+    // }
+    // $("#completed_results_sort_dropdown").val(completed_results_sort_val).change();
+
     let pending_results = results.pending_results.sort(function(a, b) {
-        return b["start_time"] - a["start_time"];
+        return b["end_time"] - a["end_time"];
     });
     if (pending_results.length > 0) {
         for (let result of pending_results) {
@@ -1758,7 +1813,7 @@ function show_results(results) {
         $("#pending_results").append(`<div>No Pending Results Found</div>`);
     }
     let aborted_results = results.aborted_results.sort(function(a, b) {
-        return b["start_time"] - a["start_time"];
+        return b["end_time"] - a["end_time"];
     });
     if (aborted_results.length > 0) {
         for (let result of aborted_results) {
