@@ -1417,7 +1417,7 @@ function view_comment(comment) {
 function create_result_entry(result) {
 
     let result_name = result["results_name"];
-    if (get_text_width(result_name, "normal 16px arial") > 600) {
+    if (get_text_width(result_name, "normal 12px arial") > 600) {
         result_name = result_name.substring(0, 24) + " ... " + result_name.substring(result_name.length - 24);
     }
 
@@ -1474,7 +1474,7 @@ function create_result_entry(result) {
         `<tr style="border-bottom: 1px solid #4c6645; height: 70px">` +
             `<td><div style="width: 25px"></div></td>` +   
             `<td>` +
-                `<div class="object_entry" style="text-align: left; font-size: 16px; width: 610px; height: 50px; border-radius: 10px;">` +
+                `<div class="object_entry" style="text-align: left; font-size: 12px; width: 610px; height: 50px; border-radius: 10px;">` +
                     `<div style="padding-left: 10px; padding-top: 10px">${result_name}</div>` +
                 `</div>` +
             `</td>` +
