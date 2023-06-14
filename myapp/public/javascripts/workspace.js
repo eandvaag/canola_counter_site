@@ -4200,8 +4200,9 @@ function show_model_details(model_creator, model_name) {
                     //`<td><div class="table_entry">${img_dataset}</div></td>` +
                     `</tr>`);
             }
+            init_model_viewer();
             change_image_set(0);
-        
+            // change_image_set(0);
         }
 
     });
@@ -4209,8 +4210,233 @@ function show_model_details(model_creator, model_name) {
 
 
 }
+
+
+function init_model_viewer() {
+
+    $("#model_viewer").empty();
+    // create_viewer("seadragon_viewer");
+
+
+    model_viewer = OpenSeadragon({
+        id: "model_viewer", //"seadragon_viewer",
+        sequenceMode: true,
+        prefixUrl: get_CC_PATH() + "/osd/images/",
+        //tileSources: model_image_set_dzi_image_paths,
+        showNavigator: false,
+        maxZoomLevel: 1000,
+        zoomPerClick: 1,
+        nextButton: "next_ims_button",
+        previousButton: "prev_ims_button",
+        showNavigationControl: false,
+        //preserveViewport: true,
+        //imageSmoothingEnabled: false
+    });
+
+
+
+
+    model_overlay = model_viewer.canvasOverlay({
+
+
+        onOpen: function() {
+
+            //viewers[id_prefix].world.resetItems();
+            //console.log(viewers[id_prefix].currentPage());
+            let region = model_image_set_regions[model_viewer.currentPage()];
+            if (region != null) {
+
+                let content_size = model_viewer.world.getItemAt(0).getContentSize();
+                let image_w = content_size.x;
+                let image_h = content_size.y;
+                let hw_ratio = image_h / image_w;
+                let viewport_bounds = [
+                    region[1] / image_w,
+                    (region[0] / image_h) * hw_ratio,
+                    (region[3] - region[1]) / image_w,
+                    ((region[2] - region[0]) / image_h) * hw_ratio
+                ];
+                //console.log("viewport_bounds", viewport_bounds);
+            
+                model_image_set_cur_bounds = new OpenSeadragon.Rect(
+                    viewport_bounds[0],
+                    viewport_bounds[1],
+                    viewport_bounds[2],
+                    viewport_bounds[3]
+                );
+            }
+            else {
+                model_image_set_cur_bounds = null;
+            }
+            //viewers[id_prefix].viewport.goHome();;
+
+        },
+        onRedraw: function() {
+            let cur_tiles_url = model_viewer.source.tilesUrl;
+            let basename_url = basename(cur_tiles_url);
+            let model_image_set_image_name = basename_url.substring(0, basename_url.length-6);
+            let region = model_image_set_regions[model_viewer.currentPage()];
+        
+            let boxes_to_add = {};
+            // boxes_to_add["region_of_interest"] = {};
+            // boxes_to_add["region_of_interest"]["boxes"] = model_image_set_annotations[model_image_set_image_name]["regions_of_interest"];
+            // boxes_to_add["training_region"] = {};
+            // boxes_to_add["training_region"]["boxes"] = model_image_set_annotations[model_image_set_image_name]["training_regions"];
+            // boxes_to_add["test_region"] = {};
+            // boxes_to_add["test_region"]["boxes"] = model_image_set_annotations[model_image_set_image_name]["test_regions"]
+            boxes_to_add["annotation"] = {};
+            boxes_to_add["annotation"]["boxes"] = model_image_set_annotations[model_image_set_image_name]["boxes"];
+                
+            let viewer_bounds = model_viewer.viewport.getBounds();
+            let container_size = model_viewer.viewport.getContainerSize();
+
+            let hw_ratio = model_overlay.imgHeight / model_overlay.imgWidth;
+            let min_x = Math.floor(viewer_bounds.x * model_overlay.imgWidth);
+            let min_y = Math.floor((viewer_bounds.y / hw_ratio) * model_overlay.imgHeight);
+            let viewport_w = Math.ceil(viewer_bounds.width * model_overlay.imgWidth);
+            let viewport_h = Math.ceil((viewer_bounds.height / hw_ratio) * model_overlay.imgHeight);
+            let max_x = min_x + viewport_w;
+            let max_y = min_y + viewport_h;
+
+            //if (region != null) {
+            //let cur_region = annotations[cur_img_name][navigation_type][cur_region_index];
+            min_y = Math.max(min_y, region[0]);
+            min_x = Math.max(min_x, region[1]);
+            max_y = Math.min(max_y, region[2]);
+            max_x = Math.min(max_x, region[3]);
+            //}
+
+            let draw_order;
+            //if (region == null) {
+            //    draw_order = ["annotation", "training_region", "test_region"];
+            //}
+            //else {
+            draw_order = ["annotation"];
+            //}
+            for (let key of draw_order) { 
+                
+                model_overlay.context2d().strokeStyle = overlay_appearance["colors"][key];
+                model_overlay.context2d().fillStyle = overlay_appearance["colors"][key] + "55";
+                model_overlay.context2d().lineWidth = 2;
+                //console.log("boxes_to_add", boxes_to_add, key);
+                let visible_boxes = [];
+                for (let i = 0; i < boxes_to_add[key]["boxes"].length; i++) {
+
+                    let box = boxes_to_add[key]["boxes"][i];
+
+                    //let box_width_pct_of_image = (box[3] - box[1]) / model_overlay.imgWidth;
+                    //let disp_width = (box_width_pct_of_image / viewer_bounds.width) * container_size.x;
+                    //let box_height_pct_of_image = (box[3] - box[1]) / model_overlay.imgHeight;
+                    //let disp_height = (box_height_pct_of_image / viewer_bounds.height) * container_size.y;
+
+                    // if ((disp_width * disp_height) < 0.5) {
+                    //     continue;
+                    // }
+
+                    if (((box[1] < max_x) && (box[3] > min_x)) && ((box[0] < max_y) && (box[2] > min_y))) {
+                        visible_boxes.push(box);
+                    }
+                }
+                if (visible_boxes.length <= MAX_BOXES_DISPLAYED) {
+                    for (let box of visible_boxes) {
+                        let viewer_point = model_viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(box[1], box[0]));
+                        let viewer_point_2 = model_viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(box[3], box[2]));
+                        
+                        model_overlay.context2d().strokeRect(
+                            viewer_point.x,
+                            viewer_point.y,
+                            (viewer_point_2.x - viewer_point.x),
+                            (viewer_point_2.y - viewer_point.y)
+                        );
+
+                        if (overlay_appearance["style"][key] == "fillRect") {
+                            model_overlay.context2d().fillRect(
+                                viewer_point.x,
+                                viewer_point.y,
+                                (viewer_point_2.x - viewer_point.x),
+                                (viewer_point_2.y - viewer_point.y)
+                            );
+                        }
+                    }
+                }
+            }
+
+            if (region != null) {
+
+                let image_px_width = model_overlay.imgWidth;
+                let image_px_height = model_overlay.imgHeight;
+        
+                let inner_poly;
+                let outer_poly = [
+                    [0-1e6, 0-1e6], 
+                    [0-1e6, image_px_width+1e6], 
+                    [image_px_height+1e6, image_px_width+1e6],
+                    [image_px_height+1e6, 0-1e6]
+                ];
+
+                inner_poly = [
+                    [region[0], region[1]],
+                    [region[0], region[3]],
+                    [region[2], region[3]],
+                    [region[2], region[1]]
+                ];
+        
+                model_overlay.context2d().fillStyle = "#222621";
+                model_overlay.context2d().beginPath();
+        
+                for (let poly of [outer_poly, inner_poly]) {
+        
+                    for (let i = 0; i < poly.length+1; i++) {
+                        let pt = poly[(i)%poly.length];
+                        let viewer_point = model_viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(pt[1], pt[0]));
+        
+                        if (i == 0) {
+                            model_overlay.context2d().moveTo(viewer_point.x, viewer_point.y);
+                        }
+                        else {
+                            model_overlay.context2d().lineTo(viewer_point.x, viewer_point.y);
+                        }
+                    }
+                    model_overlay.context2d().closePath();
+        
+                }
+                model_overlay.context2d().mozFillRule = "evenodd";
+                model_overlay.context2d().fill("evenodd");
+            }
+
+
+            if (model_image_set_cur_bounds != null) {
+
+                if (region != null) {
+        
+                    model_viewer.world.getItemAt(0).setClip(
+                        new OpenSeadragon.Rect(
+                            region[1],
+                            region[0],
+                            (region[3] - region[1]),
+                            (region[2] - region[0])
+                        )
+                    );
+                }
+        
+        
+                withFastOSDAnimation(model_viewer.viewport, function() {
+                    model_viewer.viewport.fitBounds(model_image_set_cur_bounds);
+                });
+                model_image_set_cur_bounds = null;
+            }
+
+        },
+        clearBeforeRedraw: true
+    });
+}
+let model_viewer;
+let model_overlay;
+let model_image_set_annotations;
+let model_image_set_regions;
+let model_image_set_dzi_image_paths;
+let model_image_set_cur_bounds;
 function change_image_set(image_set_index) {
-    //console.log("text", text);
     let image_set = switch_model_data["inspected_model_log"]["image_sets"][parseInt(image_set_index)];
     $.post($(location).attr("href"),
     {
@@ -4229,15 +4455,12 @@ function change_image_set(image_set_index) {
         }
         else {
 
-            let model_image_set_annotations = response.annotations;
-            let model_image_set_dzi_image_paths = [];
-            // let model_image_names = [];
-            let model_image_set_regions = [];
-            let model_image_set_cur_bounds = null;
+            model_image_set_annotations = response.annotations;
+            model_image_set_dzi_image_paths = [];
+            model_image_set_regions = [];
+            model_image_set_cur_bounds = null;
             for (let image_name of Object.keys(model_image_set_annotations)) {
-                // if (response.annotations[image_name]["training_regions"].length > 0 || response.annotations[image_name]["test_regions"].length > 0) {
-                //     image_names.push(image_name);
-                // }
+
                 for (let region_key of ["training_regions", "test_regions"]) {
                     for (let i = 0; i < model_image_set_annotations[image_name][region_key].length; i++) {
                         model_image_set_dzi_image_paths.push(
@@ -4253,229 +4476,9 @@ function change_image_set(image_set_index) {
                 }
             }
 
+            model_viewer.tileSources = model_image_set_dzi_image_paths;
+            model_viewer.goToPage(0);
 
-            // for (let model_image_name of model_image_names) {
-            //     let dzi_path = get_CC_PATH() + "/usr/data/" + image_set["username"] + "/image_sets/" +
-            //                              image_set["farm_name"] + "/" +
-            //                              image_set["field_name"] + "/" +
-            //                              image_set["mission_date"] + "/" +
-            //                              "dzi_images" + "/" +
-            //                              model_image_name + ".dzi";
-            //     model_dzi_image_paths.push(dzi_path);
-            // }
-
-        
-            $("#model_viewer").empty();
-        
-            let model_viewer = OpenSeadragon({
-                id: "model_viewer", //"seadragon_viewer",
-                sequenceMode: true,
-                prefixUrl: get_CC_PATH() + "/osd/images/",
-                tileSources: model_image_set_dzi_image_paths,
-                showNavigator: false,
-                maxZoomLevel: 1000,
-                zoomPerClick: 1,
-                nextButton: "next_ims_button",
-                previousButton: "prev_ims_button",
-                showNavigationControl: false,
-                //preserveViewport: true,
-                //imageSmoothingEnabled: false
-            });
-
-
-
-            model_overlay = model_viewer.canvasOverlay({
-
-                onOpen: function() {
-
-                    //viewers[id_prefix].world.resetItems();
-                    //console.log(viewers[id_prefix].currentPage());
-                    let region = model_image_set_regions[model_viewer.currentPage()];
-                    if (region != null) {
-
-                        let content_size = model_viewer.world.getItemAt(0).getContentSize();
-                        let image_w = content_size.x;
-                        let image_h = content_size.y;
-                        let hw_ratio = image_h / image_w;
-                        let viewport_bounds = [
-                            region[1] / image_w,
-                            (region[0] / image_h) * hw_ratio,
-                            (region[3] - region[1]) / image_w,
-                            ((region[2] - region[0]) / image_h) * hw_ratio
-                        ];
-                        //console.log("viewport_bounds", viewport_bounds);
-                    
-                        model_image_set_cur_bounds = new OpenSeadragon.Rect(
-                            viewport_bounds[0],
-                            viewport_bounds[1],
-                            viewport_bounds[2],
-                            viewport_bounds[3]
-                        );
-                    }
-                    else {
-                        model_image_set_cur_bounds = null;
-                    }
-                    //viewers[id_prefix].viewport.goHome();;
-
-                },
-                onRedraw: function() {
-                    let cur_tiles_url = model_viewer.source.tilesUrl;
-                    let basename_url = basename(cur_tiles_url);
-                    let model_image_set_image_name = basename_url.substring(0, basename_url.length-6);
-                    let region = model_image_set_regions[model_viewer.currentPage()];
-                
-                    let boxes_to_add = {};
-                    // boxes_to_add["region_of_interest"] = {};
-                    // boxes_to_add["region_of_interest"]["boxes"] = model_image_set_annotations[model_image_set_image_name]["regions_of_interest"];
-                    // boxes_to_add["training_region"] = {};
-                    // boxes_to_add["training_region"]["boxes"] = model_image_set_annotations[model_image_set_image_name]["training_regions"];
-                    // boxes_to_add["test_region"] = {};
-                    // boxes_to_add["test_region"]["boxes"] = model_image_set_annotations[model_image_set_image_name]["test_regions"]
-                    boxes_to_add["annotation"] = {};
-                    boxes_to_add["annotation"]["boxes"] = model_image_set_annotations[model_image_set_image_name]["boxes"];
-                        
-                    let viewer_bounds = model_viewer.viewport.getBounds();
-                    let container_size = model_viewer.viewport.getContainerSize();
-
-                    let hw_ratio = model_overlay.imgHeight / model_overlay.imgWidth;
-                    let min_x = Math.floor(viewer_bounds.x * model_overlay.imgWidth);
-                    let min_y = Math.floor((viewer_bounds.y / hw_ratio) * model_overlay.imgHeight);
-                    let viewport_w = Math.ceil(viewer_bounds.width * model_overlay.imgWidth);
-                    let viewport_h = Math.ceil((viewer_bounds.height / hw_ratio) * model_overlay.imgHeight);
-                    let max_x = min_x + viewport_w;
-                    let max_y = min_y + viewport_h;
-
-                    //if (region != null) {
-                    //let cur_region = annotations[cur_img_name][navigation_type][cur_region_index];
-                    min_y = Math.max(min_y, region[0]);
-                    min_x = Math.max(min_x, region[1]);
-                    max_y = Math.min(max_y, region[2]);
-                    max_x = Math.min(max_x, region[3]);
-                    //}
-
-                    let draw_order;
-                    //if (region == null) {
-                    //    draw_order = ["annotation", "training_region", "test_region"];
-                    //}
-                    //else {
-                    draw_order = ["annotation"];
-                    //}
-                    for (let key of draw_order) { 
-                        
-                        model_overlay.context2d().strokeStyle = overlay_appearance["colors"][key];
-                        model_overlay.context2d().fillStyle = overlay_appearance["colors"][key] + "55";
-                        model_overlay.context2d().lineWidth = 2;
-                        //console.log("boxes_to_add", boxes_to_add, key);
-                        let visible_boxes = [];
-                        for (let i = 0; i < boxes_to_add[key]["boxes"].length; i++) {
-
-                            let box = boxes_to_add[key]["boxes"][i];
-
-                            //let box_width_pct_of_image = (box[3] - box[1]) / model_overlay.imgWidth;
-                            //let disp_width = (box_width_pct_of_image / viewer_bounds.width) * container_size.x;
-                            //let box_height_pct_of_image = (box[3] - box[1]) / model_overlay.imgHeight;
-                            //let disp_height = (box_height_pct_of_image / viewer_bounds.height) * container_size.y;
-
-                            // if ((disp_width * disp_height) < 0.5) {
-                            //     continue;
-                            // }
-
-                            if (((box[1] < max_x) && (box[3] > min_x)) && ((box[0] < max_y) && (box[2] > min_y))) {
-                                visible_boxes.push(box);
-                            }
-                        }
-                        if (visible_boxes.length <= MAX_BOXES_DISPLAYED) {
-                            for (let box of visible_boxes) {
-                                let viewer_point = model_viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(box[1], box[0]));
-                                let viewer_point_2 = model_viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(box[3], box[2]));
-                                
-                                model_overlay.context2d().strokeRect(
-                                    viewer_point.x,
-                                    viewer_point.y,
-                                    (viewer_point_2.x - viewer_point.x),
-                                    (viewer_point_2.y - viewer_point.y)
-                                );
-
-                                if (overlay_appearance["style"][key] == "fillRect") {
-                                    model_overlay.context2d().fillRect(
-                                        viewer_point.x,
-                                        viewer_point.y,
-                                        (viewer_point_2.x - viewer_point.x),
-                                        (viewer_point_2.y - viewer_point.y)
-                                    );
-                                }
-                            }
-                        }
-                    }
-
-                    if (region != null) {
-
-                        let image_px_width = model_overlay.imgWidth;
-                        let image_px_height = model_overlay.imgHeight;
-                
-                        let inner_poly;
-                        let outer_poly = [
-                            [0-1e6, 0-1e6], 
-                            [0-1e6, image_px_width+1e6], 
-                            [image_px_height+1e6, image_px_width+1e6],
-                            [image_px_height+1e6, 0-1e6]
-                        ];
-
-                        inner_poly = [
-                            [region[0], region[1]],
-                            [region[0], region[3]],
-                            [region[2], region[3]],
-                            [region[2], region[1]]
-                        ];
-                
-                        model_overlay.context2d().fillStyle = "#222621";
-                        model_overlay.context2d().beginPath();
-                
-                        for (let poly of [outer_poly, inner_poly]) {
-                
-                            for (let i = 0; i < poly.length+1; i++) {
-                                let pt = poly[(i)%poly.length];
-                                let viewer_point = model_viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(pt[1], pt[0]));
-                
-                                if (i == 0) {
-                                    model_overlay.context2d().moveTo(viewer_point.x, viewer_point.y);
-                                }
-                                else {
-                                    model_overlay.context2d().lineTo(viewer_point.x, viewer_point.y);
-                                }
-                            }
-                            model_overlay.context2d().closePath();
-                
-                        }
-                        model_overlay.context2d().mozFillRule = "evenodd";
-                        model_overlay.context2d().fill("evenodd");
-                    }
-
-    
-                    if (model_image_set_cur_bounds != null) {
-    
-                        if (region != null) {
-                
-                            model_viewer.world.getItemAt(0).setClip(
-                                new OpenSeadragon.Rect(
-                                    region[1],
-                                    region[0],
-                                    (region[3] - region[1]),
-                                    (region[2] - region[0])
-                                )
-                            );
-                        }
-                
-                
-                        withFastOSDAnimation(model_viewer.viewport, function() {
-                            model_viewer.viewport.fitBounds(model_image_set_cur_bounds);
-                        });
-                        model_image_set_cur_bounds = null;
-                    }
-
-                },
-                clearBeforeRedraw: true
-            });
         }
     });
 }
