@@ -383,7 +383,7 @@ function edit_metadata(make, model) {
 
     for (let input_id of ["make_input", "model_input", "sensor_width_input", "sensor_height_input", "focal_length_input", "image_width_px_input", "image_height_px_input"]) {
         $("#" + input_id).on("input", function(e) {
-            console.log("update input");
+            //console.log("update input");
             if (update_make_model() && update_sensor()) {
                 enable_buttons(["camera_update_button"]);
             }

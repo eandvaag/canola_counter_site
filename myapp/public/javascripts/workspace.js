@@ -75,7 +75,11 @@ let cur_mouse_y;
 // ];
 
 
-
+let cur_gridview_tiles;
+let cur_gridview_tile_index;
+let navigator_viewer;
+let navigator_overview;
+let grid_zoomed;
 
 /*
 function set_prediction_overlay_color() {
@@ -672,6 +676,15 @@ function resize_px_str(px_str) {
         img_max_y = img_dims.y;
         img_max_x = img_dims.x;
     }
+    else if (navigation_type == "regions_of_interest") {
+        let region = annotations[cur_img_name][navigation_type][cur_region_index];
+        let poly_bbox = get_bounding_box_for_polygon(region);
+        img_min_y = poly_bbox[0];
+        img_min_x = poly_bbox[1];
+        img_max_y = poly_bbox[2];
+        img_max_x = poly_bbox[3];
+
+    }
     else {
         let img_bounds = annotations[cur_img_name][navigation_type][cur_region_index];
         img_min_y = img_bounds[0];
@@ -685,14 +698,30 @@ function resize_px_str(px_str) {
     let box_max_x = px_lst[0] + px_lst[2];
     let box_max_y = px_lst[1] + px_lst[3];
 
-    if ((box_min_x < img_min_x && box_max_x < img_min_x) || 
-        (box_min_x > img_max_x && box_max_x > img_max_x) ||
-        (box_min_y < img_min_y && box_max_y < img_min_y) ||
-        (box_min_y > img_max_y && box_max_y > img_max_y)) {
 
-        return "illegal";
+    if (navigation_type === "regions_of_interest") {
+        let box_pts = [
+            [box_min_y, box_min_x],
+            [box_min_y, box_max_x],
+            [box_max_y, box_max_x],
+            [box_max_y, box_min_x]
+        ];
+        let region = annotations[cur_img_name][navigation_type][cur_region_index];
+        for (let pt of box_pts) {
+            if (!(point_is_inside_polygon(pt, region))) {
+                return "illegal";
+            }
+        }
     }
     else {
+        if ((box_min_x < img_min_x && box_max_x < img_min_x) || 
+            (box_min_x > img_max_x && box_max_x > img_max_x) ||
+            (box_min_y < img_min_y && box_max_y < img_min_y) ||
+            (box_min_y > img_max_y && box_max_y > img_max_y)) {
+
+            return "illegal";
+        }
+    }
 
 
         box_min_x = Math.max(box_min_x, img_min_x);
@@ -805,7 +834,6 @@ function resize_px_str(px_str) {
 
         
         return updated_px_str;
-    }
 
 
 }
@@ -993,7 +1021,6 @@ function create_anno() {
             anno.saveSelected();
         }
 
-        
     });
 
     anno.on('updateAnnotation', async function(annotation, previous) {
@@ -1370,7 +1397,6 @@ function anno_and_pred_onRedraw() {
     }
 
     if ((navigation_type === "regions_of_interest") || (navigation_type === "training_regions" || navigation_type === "test_regions")) {
-
         let region = annotations[cur_img_name][navigation_type][cur_region_index];
         let image_px_width = metadata["images"][cur_img_name]["width_px"];
         let image_px_height = metadata["images"][cur_img_name]["height_px"];
@@ -1394,6 +1420,7 @@ function anno_and_pred_onRedraw() {
                 [region[2], region[1]]
             ];
         }
+
 
         overlay.context2d().fillStyle = "#222621";
         overlay.context2d().beginPath();
@@ -1514,6 +1541,15 @@ function anno_and_pred_onRedraw() {
         }
     }
 
+    let zoom_level = viewer.viewport.getZoom(true);
+    $("#zoom_level_setting").text(zoom_level.toFixed(2));
+    if (zoom_level < 1.1) {
+        disable_std_buttons(["engage_grid"]);
+    }
+    else {
+        enable_std_buttons(["engage_grid"]);
+    }
+
 
 
 
@@ -1575,6 +1611,37 @@ function anno_and_pred_onRedraw() {
 
 }
 
+// function create_lawnmower_viewer(viewer_id) {
+
+//     lawnmower_viewer = OpenSeadragon({
+//         id: viewer_id, //"seadragon_viewer",
+//         sequenceMode: true,
+//         prefixUrl: get_CC_PATH() + "/osd/images/",
+//         tileSources: dzi_image_paths,
+//         showNavigator: false,
+//         maxZoomLevel: 1000,
+//         zoomPerClick: 1,
+//         nextButton: "next-btn",
+//         previousButton: "prev-btn",
+//         showNavigationControl: false,
+//         //preserveViewport: true,
+//         //homeFillsViewer: true,
+//         //defaultZoomLevel: 1
+//         //preserveViewport: true,
+//         imageSmoothingEnabled: true, //true,
+//         //minZoomLevel: 1,
+//         //maxZoomLevel: 7
+//         //minPixelRatio: 2
+//         //maxZoomPixelRatio: 20
+//         //homeFillsViewer: true
+//         //defaultZoomLevel: 1.1,
+//         //viewportMargins: 20
+//         //navigatorMaintainSizeRatio: true
+//     });
+// }
+
+
+
 function create_viewer(viewer_id) {
 
     //$("#seadragon_viewer").empty();
@@ -1614,11 +1681,14 @@ function create_viewer(viewer_id) {
         //defaultZoomLevel: 1.1,
         //viewportMargins: 20
         //navigatorMaintainSizeRatio: true
+        // showNavigator: true,
+        // navigatorId: "navigator_div",
     });
 
+    viewer.innerTracker.keyDownHandler = null;
+    viewer.innerTracker.keyPressHandler = null;
+    viewer.innerTracker.keyHandler = null;
 
-
-    
     overlay = viewer.canvasOverlay({
         clearBeforeRedraw: true
     });
@@ -1915,14 +1985,18 @@ function create_viewer(viewer_id) {
     // });
 
 
-
     $("#seadragon_viewer").on("pointermove", function(event) {
         if (cur_panel === "annotation") {
             $("#seadragon_viewer").css("cursor", "none");
             cur_mouse_x = event.offsetX;
             cur_mouse_y = event.offsetY;
             overlay.clear();
-            anno_and_pred_onRedraw();
+            if ($("#engaged_grid_controls").is(":visible")) {
+                gridview_onRedraw();
+            }
+            else {
+                anno_and_pred_onRedraw();
+            }
         }
         else {
             $("#seadragon_viewer").css("cursor", "default");
@@ -1978,7 +2052,6 @@ function create_viewer(viewer_id) {
 
     
     viewer.addHandler('canvas-click', function(event) {
-        console.log(event);
         //console.log("canvas-click");
 
     //$("#seadragon_viewer").click(function(event) { 
@@ -2505,7 +2578,12 @@ function save_annotations() {
     }
     if ((cur_panel === "annotation" || cur_panel === "prediction")) {
         overlay.clear();
-        anno_and_pred_onRedraw();
+        if ($("#engaged_grid_controls").is(":visible")) {
+            gridview_onRedraw();
+        }
+        else {
+            anno_and_pred_onRedraw();
+        }
     }
 
     $.post($(location).attr('href'),
@@ -2874,7 +2952,7 @@ async function show_annotation(change_image=false) {
 
 
 
-    overlay.onRedraw = anno_and_pred_onRedraw;
+    
 
     // let dzi_image_path = image_to_dzi[cur_img_name];
     // viewer.open(dzi_image_path);
@@ -2885,10 +2963,26 @@ async function show_annotation(change_image=false) {
     //create_viewer_and_anno("seadragon_viewer");
     cur_mouse_x = null;
     cur_mouse_y = null;
-    viewer.zoomPerScroll = 1.2;
 
-    let navigation_type = $("#navigation_dropdown").val();
-    anno.readOnly = (navigation_type !== "images");
+
+    
+    overlay.onRedraw = anno_and_pred_onRedraw;
+
+    viewer.zoomPerScroll = 1.2;
+    viewer.panHorizontal = true;
+    viewer.panVertical = true;
+
+
+    // let navigation_type = $("#navigation_dropdown").val();
+    //anno.readOnly = (navigation_type !== "images");
+    anno.readOnly = false;
+
+    // if (navigation_type !== "images") {
+    //     disable_std_buttons(["gridview_button"]);
+    // }
+    // else {
+    //     enable_std_buttons(["gridview_button"]);
+    // }
 
     //anno.readOnly = false; //false; //annotations[cur_img_name]["status"] === "completed_for_training";
     //anno.disableSelect = true;
@@ -2937,6 +3031,13 @@ async function show_annotation(change_image=false) {
     //let dzi_image_path = image_to_dzi[cur_img_name];
     //viewer.open(dzi_image_path);
     //viewer.viewport.goHome();
+
+
+
+    if (!($("#control_panel").is(":visible"))) {
+        $("#gridview_button").click();
+    }
+        // if ($("#control_panel").is(":visible")) {
 
 
 }
@@ -3587,14 +3688,14 @@ function draw_segmentation() {
     // console.log("non_zero", non_zero);
     // console.log("num_foreground", num_foreground);
 
-    let percent_vegetation = ((num_foreground / (d_rgb.data.length / 4)) * 100).toFixed(2);
+    // let percent_vegetation = ((num_foreground / (d_rgb.data.length / 4)) * 100).toFixed(2);
     // console.log("percent_vegetation", percent_vegetation);
 
 
     //excess_green_record[cur_img_name]["ground_cover_percentage"] = parseFloat(percent_vegetation);
 
-    let container_width = $("#seadragon_viewer").width();
-    let container_height = $("#seadragon_viewer").height();
+    // let container_width = $("#seadragon_viewer").width();
+    // let container_height = $("#seadragon_viewer").height();
 
     // console.log("container_width, container_height", container_width, container_height);
     rgb_ctx.putImageData(d_rgb, 0, 0);
@@ -5487,6 +5588,48 @@ function health_check() {
     });
 }
 
+
+function create_navigator_viewer() {
+    navigator_viewer = OpenSeadragon({
+        id: "navigator_viewer", //"seadragon_viewer",
+        sequenceMode: true,
+        prefixUrl: get_CC_PATH() + "/osd/images/",
+        tileSources: dzi_image_paths,
+        showNavigator: false,
+        maxZoomLevel: 1000,
+        zoomPerClick: 1,
+        nextButton: "next-btn",
+        previousButton: "prev-btn",
+        showNavigationControl: false,
+        //preserveViewport: true,
+        //homeFillsViewer: true,
+        //defaultZoomLevel: 1
+        //preserveViewport: true,
+        imageSmoothingEnabled: true, //true,
+        //minZoomLevel: 1,
+        //maxZoomLevel: 7
+        //minPixelRatio: 2
+        //maxZoomPixelRatio: 20
+        //homeFillsViewer: true
+        //defaultZoomLevel: 1.1,
+        //viewportMargins: 20
+        //navigatorMaintainSizeRatio: true
+        // showNavigator: true,
+        // navigatorId: "navigator_div",
+
+        zoomPerScroll: 1,
+        panHorizontal: false,
+        panVertical: false
+    });
+
+
+
+    
+    navigator_overlay = navigator_viewer.canvasOverlay({
+        clearBeforeRedraw: true
+    });
+}
+
 $(document).ready(function() {
 
     image_set_info = data["image_set_info"];
@@ -5539,6 +5682,8 @@ $(document).ready(function() {
 
     create_overlays_table();
     //set_prediction_overlay_color();
+
+    create_navigator_viewer();
 
     /*
     pending_predictions = {};
@@ -6309,6 +6454,443 @@ $(document).ready(function() {
     //     //$("#use_for_radio").prop('disabled', false);
     // });
 
+    $("#next_tile_button").click(function() {
+        grid_zoomed = false;
+        //cur_lawnmower_tiles = lawnmower_tiles;
+        if (cur_gridview_tile_index < cur_gridview_tiles.length-1) {
+            cur_gridview_tile_index++;
+        }
+        // let dzi_image_path = image_to_dzi[cur_img_name];
+        viewer.raiseEvent('update-viewport');
+        
+        // viewer.open(dzi_image_path);
+        // cur_lawnmower_tile_index++; // = 0;
+        $("#gridview_info").text(
+            `Current Tile: ${cur_gridview_tile_index+1} / ${cur_gridview_tiles.length}`
+        );
+
+        if (cur_gridview_tile_index == cur_gridview_tiles.length-1) {
+            disable_std_buttons(["next_tile_button"]);
+        }
+
+        enable_std_buttons(["prev_tile_button"]);
+
+
+    });
+
+
+    $("#prev_tile_button").click(function() {
+        grid_zoomed = false;
+        //cur_lawnmower_tiles = lawnmower_tiles;
+        if (cur_gridview_tile_index > 0) {
+            cur_gridview_tile_index--;
+        }
+        // let dzi_image_path = image_to_dzi[cur_img_name];
+        viewer.raiseEvent('update-viewport');
+        // viewer.open(dzi_image_path);
+        // cur_lawnmower_tile_index--; // = 0;
+        $("#gridview_info").text(
+            `Current Tile: ${cur_gridview_tile_index+1} / ${cur_gridview_tiles.length}`
+        );
+
+        if (cur_gridview_tile_index == 0) {
+            disable_std_buttons(["prev_tile_button"]);
+        }
+        enable_std_buttons(["next_tile_button"]);
+
+    });
+
+    $("#exit_gridview_button").click(function() {
+        $("#control_panel").show();
+        $("#gridview_panel").hide();
+
+        // $('#navigation_dropdown').prop("disabled", false);
+        // enable_buttons(["view_button_container"]);
+
+        viewer.zoomPerScroll = 1.2;
+        viewer.panHorizontal = true;
+        viewer.panVertical = true;
+        overlay.onRedraw = anno_and_pred_onRedraw;
+        //viewer.world.resetItems();
+        set_cur_bounds();
+
+        let dzi_image_path = image_to_dzi[cur_img_name];
+        viewer.open(dzi_image_path);
+    })
+
+    $("#gridview_button").click(function() {
+
+
+        $("#control_panel").hide();
+        $("#gridview_panel").show();
+
+        $("#engage_grid").show();
+        $("#disengage_grid").hide();
+        $("#engaged_grid_controls").hide();
+
+    
+        $("#grid_overlap_percent_input").prop("disabled", false);
+        $("#grid_setting_controls").css("opacity", 1.0);
+
+        // $('#navigation_dropdown').prop("disabled", true);
+        //disable_buttons(["view_button_container"]);
+
+    });
+
+    $("#disengage_grid").click(function() {
+        $("#engage_grid").show();
+        $("#disengage_grid").hide();
+        $("#engaged_grid_controls").hide();
+
+        $("#grid_overlap_percent_input").prop("disabled", false);
+        $("#grid_setting_controls").css("opacity", 1.0);
+
+
+        // $('#navigation_dropdown').prop("disabled", false);
+        // enable_buttons(["view_button_container"]);
+
+        viewer.zoomPerScroll = 1.2;
+        viewer.panHorizontal = true;
+        viewer.panVertical = true;
+        overlay.onRedraw = anno_and_pred_onRedraw;
+        //viewer.world.resetItems();
+
+
+        let image_width_px = metadata["images"][cur_img_name]["width_px"];
+        let image_height_px = metadata["images"][cur_img_name]["height_px"];
+
+
+        let cur_tile = cur_gridview_tiles[cur_gridview_tile_index];
+        let hw_ratio = image_height_px / image_width_px;
+        
+        let viewport_bounds = [
+            cur_tile[1] / image_width_px,
+            (cur_tile[0] / image_height_px) * hw_ratio,
+            (cur_tile[3] - cur_tile[1]) / image_width_px,
+            ((cur_tile[2] - cur_tile[0]) / image_height_px) * hw_ratio
+        ];
+
+        // map_zoom_bounds = [
+        //     viewport_bounds[0],
+        //     viewport_bounds[1],
+        //     viewport_bounds[2],
+        //     viewport_bounds[3]
+        // ];
+        cur_bounds = new OpenSeadragon.Rect(
+            viewport_bounds[0],
+            viewport_bounds[1],
+            viewport_bounds[2],
+            viewport_bounds[3]
+        );
+
+
+        let dzi_image_path = image_to_dzi[cur_img_name];
+        viewer.open(dzi_image_path);
+        // withFastOSDAnimation(viewer.viewport, function() {
+        //     viewer.viewport.fitBounds(viewport_bounds);
+        // });
+    
+
+    });
+
+
+    $("#grid_overlap_percent_input").on("input", function(e) {
+        if (update_grid_overlap_percent()) {
+            enable_std_buttons(["engage_grid"]);
+        }
+        else {
+            disable_std_buttons(["engage_grid"]);
+        }
+    });
+
+
+    // $("#zoom_level_setting").on("input", function(e) {
+    //     if (update_zoom_level()) {
+    //         viewer.viewport.zoomTo(parseFloat($("#zoom_level_setting").val()));
+    //     }
+    //     else {
+    //         viewer.viewport.zoomTo(viewer.viewport.getZoom());
+    //     }
+
+    //     // if (update_grid_overlap_percent()) {
+    //     //     enable_std_buttons(["engage_grid"]);
+    //     //     viewer.zoomTo($("#zoom_level_setting").val());
+    //     // }
+    //     // else {
+    //     //     disable_std_buttons(["engage_grid"]);
+    //     // }
+    // });
+
+
+
+
+    $("#engage_grid").click(function() {
+
+        $("#engaged_grid_controls").show();
+
+
+        $("#engage_grid").hide();
+        $("#disengage_grid").show();
+
+        $("#grid_overlap_percent_input").prop("disabled", true);
+        $("#grid_setting_controls").css("opacity", 0.5);
+
+        // disable_buttons(["view_button_container"]);
+
+
+        let viewer_bounds = viewer.viewport.getBounds();
+        // let container_size = viewer.viewport.getContainerSize();
+    
+        let hw_ratio = overlay.imgHeight / overlay.imgWidth;
+        let min_x = Math.floor(viewer_bounds.x * overlay.imgWidth);
+        let min_y = Math.floor((viewer_bounds.y / hw_ratio) * overlay.imgHeight);
+        let viewport_w = Math.ceil(viewer_bounds.width * overlay.imgWidth);
+        let viewport_h = Math.ceil((viewer_bounds.height / hw_ratio) * overlay.imgHeight);
+        let max_x = min_x + viewport_w;
+        let max_y = min_y + viewport_h;
+
+        let tile_w = max_x - min_x;
+        let tile_h = max_y - min_y;
+
+        let tile_size = Math.min(tile_w, tile_h);
+
+        // for (let image_name of Object.keys(annotations)) {
+
+        let region_min_y;
+        let region_min_x;
+        let region_max_y;
+        let region_max_x;
+
+        let navigation_type = $("#navigation_dropdown").val()
+        if (navigation_type === "images") {
+            region_min_y = 0;
+            region_min_x = 0
+            region_max_y = metadata["images"][cur_img_name]["height_px"];
+            region_max_x = metadata["images"][cur_img_name]["width_px"];
+        }
+        else if (navigation_type === "regions_of_interest") {
+            let region = annotations[cur_img_name]["regions_of_interest"][cur_region_index];
+            let region_bbox = get_bounding_box_for_polygon(region);
+            region_min_y = region_bbox[0];
+            region_min_x = region_bbox[1];
+            region_max_y = region_bbox[2];
+            region_max_x = region_bbox[3];
+            // region_w = region_bbox[3] - region_bbox[1];
+            // region_h = region_bbox[2] - region_bbox[0];
+        }
+        else {
+            let region = annotations[cur_img_name][navigation_type][cur_region_index];
+            region_min_y = region[0];
+            region_min_x = region[1];
+            region_max_y = region[2];
+            region_max_x = region[3];
+            // region_w = region[3] - region[1];
+            // region_h = region[2] - region[0];
+        }
+
+        // let image_w = metadata["images"][cur_img_name]["width_px"];
+        // let image_h = metadata["images"][cur_img_name]["height_px"];
+
+
+        let tile_overlap_percent = parseFloat($("#grid_overlap_percent_input").val());
+        let overlap_px = Math.floor(tile_size * tile_overlap_percent);
+
+        // let incr = tile_size - overlap_px;
+        // let w_covered = Math.max(image_w - tile_size, 0);
+        // let num_w_tiles = Math.ceil(w_covered / incr) + 1;
+
+        // let h_covered = Math.max(image_h - tile_size, 0);
+        // let num_h_tiles = Math.ceil(h_covered / incr) + 1;
+
+        // let num_tiles = num_w_tiles * num_h_tiles;
+
+        let subject_polygon = [];
+        if (navigation_type === "regions_of_interest") {
+            let region = annotations[cur_img_name]["regions_of_interest"][cur_region_index];
+            for (let c of region) {
+                subject_polygon.push([c[1], c[0]]);
+            }
+        }
+
+        let gridview_tiles = []
+        let col_covered = false;
+        let tile_min_y = region_min_y; //0;
+        while (!col_covered) {
+            let tile_max_y = tile_min_y + tile_size;
+            // let max_content_y = tile_max_y;
+            if (tile_max_y >= region_max_y) {
+                //max_content_y = region_h;
+                tile_max_y = region_max_y;
+                tile_min_y = tile_max_y - tile_size;
+                col_covered = true;
+            }
+
+            let row_covered = false;
+            let tile_min_x = region_min_x; //0;
+            while (!row_covered) {
+                let tile_max_x = tile_min_x + tile_size;
+                // let max_content_x = tile_max_x;
+                if (tile_max_x >= region_max_x) {
+                    tile_max_x = region_max_x;
+                    tile_min_x = tile_max_x - tile_size;
+                    // max_content_x = image_w;
+                    row_covered = true;
+                }
+
+                let tile = [tile_min_y, tile_min_x, tile_max_y, tile_max_x];
+
+                let add = true;
+                if (navigation_type === "regions_of_interest") {
+
+                    let clip_polygon = [
+                        [tile_min_x, tile_min_y],
+                        [tile_max_x, tile_min_y],
+                        [tile_max_x, tile_max_y],
+                        [tile_min_x, tile_max_y]
+                    ];
+
+                    let clipped_polygon = clip_polygons(subject_polygon, clip_polygon);
+                    if (get_polygon_area(clipped_polygon) == 0) {
+                        add = false;
+                    }
+                }
+
+                    
+
+                //     // let test_region = [];
+                //     let region = annotations[cur_img_name]["regions_of_interest"][cur_region_index];
+                //     // for (let i = 0; i < region.length; i++) {
+                //     //     test_region.push(region[i]);
+                //     // }
+                //     // test_region.push([tile_min_y, tile_min_x]);
+                //     // test_region.push([tile_min_y, tile_max_x]);
+                //     // test_region.push([tile_max_y, tile_max_x]);
+                //     // test_region.push([tile_max_y, tile_min_x]);
+                //     // if (polygon_is_self_intersecting(test_region)) {
+                //     //     add = true;
+                //     // }
+                //     // else {
+                //     //     console.log("not self-intersecting")
+                //     //     add = false;
+                //     // }
+
+                //     let test_tile_poly = [
+                //         [[tile_min_x, tile_min_y], [tile_min_x, tile_max_y]],
+                //         [[tile_min_x, tile_max_y], [tile_max_x, tile_max_y]],
+                //         [[tile_max_x, tile_max_y], [tile_max_x, tile_min_y]],
+                //         [[tile_max_x, tile_min_y], [tile_min_x, tile_min_y]]
+                //     ];
+                //     add = false;
+                //     for (let i = 0; i < region.length; i++) {
+                //         let reg_line_seg = [
+                //             [region[i][1], region[i][0]],
+                //             [region[(i+1)%region.length][1], region[(i+1)%region.length][0]]
+                //         ];
+                //         for (let line_seg of test_tile_poly) {
+                //             if (intersect(line_seg[0], line_seg[1], reg_line_seg[0], reg_line_seg[1])) {
+                //                 add = true;
+                //                 break;
+                //             }
+                //         }
+                //     }
+                //     if (((point_is_inside_polygon([tile_min_y, tile_min_x], region)) &&
+                //         (point_is_inside_polygon([tile_min_y, tile_max_x], region))) &&
+                //         ((point_is_inside_polygon([tile_max_y, tile_max_x], region)) &&
+                //         (point_is_inside_polygon([tile_max_y, tile_min_x], region)))) {
+                //             add = true;
+                //     }
+                // }
+                
+                if (add) {
+                    gridview_tiles.push(tile);
+                }
+
+
+                                
+                tile_min_x += (tile_size - overlap_px);
+
+                
+            }
+
+            tile_min_y += (tile_size - overlap_px);    
+        }
+
+        cur_gridview_tiles = gridview_tiles;
+        cur_gridview_tile_index = 0;
+        // }
+
+
+        // console.log(lawnmower_tiles);
+
+
+        // viewer.world.getItemAt(0).setClip(
+        //     new OpenSeadragon.Rect(
+        //         region[1],
+        //         region[0],
+        //         (region[3] - region[1]),
+        //         (region[2] - region[0])
+        //     )
+        // );
+
+        // zoom_to_tile(lawnmower_tiles[0]);
+
+
+        viewer.zoomPerScroll = 1;
+        viewer.panHorizontal = false;
+        viewer.panVertical = false;
+        //viewer.showNavigator = true;
+        // anno.setDrawingEnabled(true);
+
+
+
+        // $("#gridview_info").text(
+        //     `Current Tile: ${cur_gridview_tile_index[cur_img_name]+1} / ${cur_gridview_tiles[cur_img_name].length}`
+        // );
+
+        // disable_std_buttons(["prev_tile_button"]);
+        // if (cur_gridview_tiles[cur_img_name].length == 1) {
+        //     disable_std_buttons(["next_tile_button"]);
+        // }
+
+        overlay.onOpen = function() {
+
+            // let tile_index = cur_gridview_tiles[cur_img_name][cur_gridview_tile_index[cur_img_name]];
+            $("#gridview_info").text(
+                `Current Tile: ${cur_gridview_tile_index+1} / ${cur_gridview_tiles.length}`
+            );
+
+            if (cur_gridview_tile_index == 0) {
+                disable_std_buttons(["prev_tile_button"]);
+            }
+            else {
+                enable_std_buttons(["prev_tile_button"]);
+            }
+
+            if (cur_gridview_tile_index == cur_gridview_tiles.length - 1) {
+                disable_std_buttons(["next_tile_button"]);
+            }
+            else {
+                enable_std_buttons(["next_tile_button"]);
+            }
+
+            // enable_std_buttons(["next_tile_button"]);
+            // disable_std_buttons(["prev_tile_button"]);
+            // if (cur_gridview_tiles[cur_img_name].length == 1) {
+            //     disable_std_buttons(["next_tile_button"]);
+            // }
+            grid_zoomed = false;
+            navigator_viewer.open(dzi_image_path);
+        }
+
+        overlay.onRedraw = gridview_onRedraw;
+        //viewer.world.resetItems();
+
+        let dzi_image_path = image_to_dzi[cur_img_name];
+        viewer.open(dzi_image_path);
+
+
+
+    });
 
     $("#help_button").click(function() {
 
@@ -6659,7 +7241,12 @@ $(document).ready(function() {
 
         if (cur_panel === "annotation") {
             overlay.clear();
-            anno_and_pred_onRedraw();
+            if ($("#engaged_grid_controls").is(":visible")) {
+                gridview_onRedraw();
+            }
+            else {
+                anno_and_pred_onRedraw();
+            }
         }
     });
 
@@ -6706,7 +7293,7 @@ $(document).ready(function() {
 
         let navigation_type = $("#navigation_dropdown").val();
         if ((navigation_type == "regions_of_interest") || (navigation_type === "training_regions" || navigation_type == "test_regions")) {
-            // $("input:radio[name=edit_layer_radio]").filter("[value=annotation]").prop("checked", true);
+            
             $("input:radio[name=edit_layer_radio]").prop("disabled", true);
             // $("#annotation_label").prop("opacity", 0.5);
             // $("#training_region_label").prop("opacity", 0.5);
@@ -6751,6 +7338,8 @@ $(document).ready(function() {
         else {
             change_image(disp_nav_item);
         }
+
+        $("input:radio[name=edit_layer_radio]").filter("[value=annotation]").prop("checked", true).change();
 
     });
 
@@ -7260,6 +7849,9 @@ $(document).ready(function() {
         if (selected_annotation !== null) {
             keydown_handler(e);
         }
+        else if ($("#engaged_grid_controls").is(":visible")) {
+            grid_keydown_handler(e);
+        }
     });
     // $("body").mouseup(function(e) {
     //     let cur_selected = anno.getSelected();
@@ -7400,3 +7992,657 @@ function resize_window() {
 $(window).resize(function() {
     resize_window();
 });
+
+
+function zoom_to_tile(tile) {
+
+    cur_region = tile;
+
+    
+    
+    // let hw_ratio = overlay.imgHeight / overlay.imgWidth;
+    // let image_w = metadata["images"][cur_img_name]["width_px"];
+    // let image_h = metadata["images"][cur_img_name]["height_px"];
+
+
+
+
+
+
+    // // let region = annotations[cur_img_name][navigation_type][cur_region_index];
+    // let image_px_width = metadata["images"][cur_img_name]["width_px"];
+    // let image_px_height = metadata["images"][cur_img_name]["height_px"];
+
+    // let inner_poly;
+    // let outer_poly = [
+    //     [0-1e6, 0-1e6], 
+    //     [0-1e6, image_px_width+1e6], 
+    //     [image_px_height+1e6, image_px_width+1e6],
+    //     [image_px_height+1e6, 0-1e6]
+    // ];
+
+    // inner_poly = [
+    //     [tile[0], tile[1]],
+    //     [tile[0], tile[3]],
+    //     [tile[2], tile[3]],
+    //     [tile[2], tile[1]]
+    // ];
+
+    // overlay.context2d().fillStyle = "ffffff"; //"#22262155";
+    // overlay.context2d().beginPath();
+
+    // for (let poly of [outer_poly, inner_poly]) {
+
+    //     for (let i = 0; i < poly.length+1; i++) {
+    //         let pt = poly[(i)%poly.length];
+    //         let viewer_point = viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(pt[1], pt[0]));
+
+    //         if (i == 0) {
+    //             overlay.context2d().moveTo(viewer_point.x, viewer_point.y);
+    //         }
+    //         else {
+    //             overlay.context2d().lineTo(viewer_point.x, viewer_point.y);
+    //         }
+    //     }
+    //     overlay.context2d().closePath();
+
+    // }
+    // overlay.context2d().mozFillRule = "evenodd";
+    // overlay.context2d().fill("evenodd");
+
+
+
+
+    // let viewport_bounds = [
+    //     tile[1] / image_w,
+    //     (tile[0] / image_h) * hw_ratio,
+    //     (tile[3] - tile[1]) / image_w,
+    //     ((tile[2] - tile[0]) / image_h) * hw_ratio
+    // ];
+
+    // let zoom_bounds = new OpenSeadragon.Rect(
+    //     viewport_bounds[0],
+    //     viewport_bounds[1],
+    //     viewport_bounds[2],
+    //     viewport_bounds[3]
+    // );
+            
+    // viewer.world.getItemAt(0).setClip(
+    //     new OpenSeadragon.Rect(
+    //         tile[1],
+    //         tile[0],
+    //         (tile[3] - tile[1]),
+    //         (tile[2] - tile[0])
+    //     )
+    // );
+
+    // withFastOSDAnimation(viewer.viewport, function() {
+    //     viewer.viewport.fitBounds(zoom_bounds);
+    // });
+
+
+
+}
+
+
+
+function gridview_onRedraw() {
+
+    let navigation_type = $("#navigation_dropdown").val();
+
+    let boxes_to_add = {};
+
+    boxes_to_add["region_of_interest"] = {};
+    boxes_to_add["region_of_interest"]["boxes"] = annotations[cur_img_name]["regions_of_interest"];
+    boxes_to_add["training_region"] = {};
+    boxes_to_add["training_region"]["boxes"] = annotations[cur_img_name]["training_regions"];
+    boxes_to_add["test_region"] = {};
+    boxes_to_add["test_region"]["boxes"] = annotations[cur_img_name]["test_regions"];
+    boxes_to_add["annotation"] = {};
+    boxes_to_add["annotation"]["boxes"] = annotations[cur_img_name]["boxes"];
+
+        
+    let viewer_bounds = viewer.viewport.getBounds();
+    let container_size = viewer.viewport.getContainerSize();
+
+    let hw_ratio = overlay.imgHeight / overlay.imgWidth;
+    let min_x = Math.floor(viewer_bounds.x * overlay.imgWidth);
+    let min_y = Math.floor((viewer_bounds.y / hw_ratio) * overlay.imgHeight);
+    let viewport_w = Math.ceil(viewer_bounds.width * overlay.imgWidth);
+    let viewport_h = Math.ceil((viewer_bounds.height / hw_ratio) * overlay.imgHeight);
+    let max_x = min_x + viewport_w;
+    let max_y = min_y + viewport_h;
+
+    // if (cur_region_index != -1) {
+
+    //     let cur_region = annotations[cur_img_name][navigation_type][cur_region_index];
+    //     if (navigation_type == "regions_of_interest") {
+    //         cur_region = get_bounding_box_for_polygon(cur_region);
+    //     }
+    //     min_y = Math.max(min_y, cur_region[0]);
+    //     min_x = Math.max(min_x, cur_region[1]);
+    //     max_y = Math.min(max_y, cur_region[2]);
+    //     max_x = Math.min(max_x, cur_region[3]);
+    // }
+    let image_w_px = metadata["images"][cur_img_name]["width_px"];
+    let image_h_px = metadata["images"][cur_img_name]["height_px"];
+
+
+
+    let cur_tile = cur_gridview_tiles[cur_gridview_tile_index];
+
+
+
+    overlay.context2d().font = "14px arial";
+
+
+    let draw_order = overlay_appearance["draw_order"];
+    for (let key of draw_order) {
+
+        if (!(key in boxes_to_add)) {
+            continue;
+        }
+        
+        overlay.context2d().strokeStyle = overlay_appearance["colors"][key];
+        overlay.context2d().fillStyle = overlay_appearance["colors"][key] + "55";
+        overlay.context2d().lineWidth = 2;
+
+
+        if (key === "region_of_interest") {
+
+            for (let i = 0; i < boxes_to_add["region_of_interest"]["boxes"].length; i++) {
+
+                if ((cur_edit_layer === "region_of_interest") && (i == selected_annotation_index)) {
+                    continue;
+                }
+                let region = boxes_to_add["region_of_interest"]["boxes"][i];
+
+                overlay.context2d().beginPath();
+                for (let j = 0; j < region.length; j++) {
+                    let pt = region[j];
+        
+                    let viewer_point = viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(pt[1], pt[0]));
+                    
+                    if (j == 0) {
+                        overlay.context2d().moveTo(viewer_point.x, viewer_point.y);
+                    }
+                    else {
+                        overlay.context2d().lineTo(viewer_point.x, viewer_point.y);
+                    }
+                }
+        
+                overlay.context2d().closePath();
+                overlay.context2d().stroke();
+                if (overlay_appearance["style"][key] == "fillRect") {
+                    overlay.context2d().fill();
+                }
+        
+            }
+        
+        }
+        else {
+
+            let visible_inds = [];
+            loop1:
+            for (let i = 0; i < boxes_to_add[key]["boxes"].length; i++) {
+                if ((cur_edit_layer === key) && (i == selected_annotation_index)) {
+                    continue;
+                }
+
+                let box = boxes_to_add[key]["boxes"][i];
+
+                if (((box[1] < max_x) && (box[3] > min_x)) && ((box[0] < max_y) && (box[2] > min_y))) {
+
+                    visible_inds.push(i);
+                    if (visible_inds.length > MAX_BOXES_DISPLAYED) {
+                        break loop1;
+                    }
+                }
+
+            }
+
+            if (visible_inds.length <= MAX_BOXES_DISPLAYED) {
+                for (let ind of visible_inds) {
+                    let box = boxes_to_add[key]["boxes"][ind];
+                    let viewer_point = viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(box[1], box[0]));
+                    let viewer_point_2 = viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(box[3], box[2]));
+
+                    overlay.context2d().strokeRect(
+                        viewer_point.x,
+                        viewer_point.y,
+                        (viewer_point_2.x - viewer_point.x),
+                        (viewer_point_2.y - viewer_point.y)
+                    );
+
+                    if (overlay_appearance["style"][key] == "fillRect") {
+                        overlay.context2d().fillRect(
+                            viewer_point.x,
+                            viewer_point.y,
+                            (viewer_point_2.x - viewer_point.x),
+                            (viewer_point_2.y - viewer_point.y)
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+
+
+
+    delete boxes_to_add["annotation"];
+    navigator_overlay.clear(); 
+
+    draw_order = overlay_appearance["draw_order"];
+    for (let key of draw_order) {
+
+        if (!(key in boxes_to_add)) {
+            continue;
+        }
+        
+        navigator_overlay.context2d().strokeStyle = overlay_appearance["colors"][key];
+        navigator_overlay.context2d().fillStyle = overlay_appearance["colors"][key] + "55";
+        navigator_overlay.context2d().lineWidth = 2;
+
+
+        if (key === "region_of_interest") {
+
+            for (let i = 0; i < boxes_to_add["region_of_interest"]["boxes"].length; i++) {
+
+                if ((cur_edit_layer === "region_of_interest") && (i == selected_annotation_index)) {
+                    continue;
+                }
+                let region = boxes_to_add["region_of_interest"]["boxes"][i];
+
+                navigator_overlay.context2d().beginPath();
+                for (let j = 0; j < region.length; j++) {
+                    let pt = region[j];
+        
+                    let viewer_point = navigator_viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(pt[1], pt[0]));
+                    
+                    if (j == 0) {
+                        navigator_overlay.context2d().moveTo(viewer_point.x, viewer_point.y);
+                    }
+                    else {
+                        navigator_overlay.context2d().lineTo(viewer_point.x, viewer_point.y);
+                    }
+                }
+        
+                navigator_overlay.context2d().closePath();
+                navigator_overlay.context2d().stroke();
+                if (overlay_appearance["style"][key] == "fillRect") {
+                    navigator_overlay.context2d().fill();
+                }
+        
+            }
+        
+        }
+        else {
+            for (let box of boxes_to_add[key]["boxes"]) {
+                let viewer_point = navigator_viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(box[1], box[0]));
+                let viewer_point_2 = navigator_viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(box[3], box[2]));
+
+                navigator_overlay.context2d().strokeRect(
+                    viewer_point.x,
+                    viewer_point.y,
+                    (viewer_point_2.x - viewer_point.x),
+                    (viewer_point_2.y - viewer_point.y)
+                );
+
+                if (overlay_appearance["style"][key] == "fillRect") {
+                    navigator_overlay.context2d().fillRect(
+                        viewer_point.x,
+                        viewer_point.y,
+                        (viewer_point_2.x - viewer_point.x),
+                        (viewer_point_2.y - viewer_point.y)
+                    );
+                }
+            }
+        }
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+    // if ((navigation_type === "regions_of_interest") || (navigation_type === "training_regions" || navigation_type === "test_regions")) {
+
+    //     let region = annotations[cur_img_name][navigation_type][cur_region_index];
+    //     let image_px_width = metadata["images"][cur_img_name]["width_px"];
+    //     let image_px_height = metadata["images"][cur_img_name]["height_px"];
+
+    let inner_poly;
+    let outer_poly;
+
+    if (navigation_type !== "images") {
+        outer_poly = [
+            [0-1e6, 0-1e6], 
+            [0-1e6, image_w_px+1e6], 
+            [image_h_px+1e6, image_w_px+1e6],
+            [image_h_px+1e6, 0-1e6]
+        ];
+
+        let region = annotations[cur_img_name][navigation_type][cur_region_index];
+
+        if (navigation_type === "regions_of_interest") {
+            inner_poly = region;
+        }
+        else { 
+            inner_poly = [
+                [region[0], region[1]],
+                [region[0], region[3]],
+                [region[2], region[3]],
+                [region[2], region[1]]
+            ];
+        }
+
+        overlay.context2d().fillStyle = "#222621";
+        overlay.context2d().beginPath();
+
+        for (let poly of [outer_poly, inner_poly]) {
+
+            for (let i = 0; i < poly.length+1; i++) {
+                let pt = poly[(i)%poly.length];
+                let viewer_point = viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(pt[1], pt[0]));
+
+                if (i == 0) {
+                    overlay.context2d().moveTo(viewer_point.x, viewer_point.y);
+                }
+                else {
+                    overlay.context2d().lineTo(viewer_point.x, viewer_point.y);
+                }
+            }
+            overlay.context2d().closePath();
+
+        }
+        overlay.context2d().mozFillRule = "evenodd";
+        overlay.context2d().fill("evenodd");
+    }
+
+
+
+
+    outer_poly = [
+        [0-1e6, 0-1e6], 
+        [0-1e6, image_w_px+1e6], 
+        [image_h_px+1e6, image_w_px+1e6],
+        [image_h_px+1e6, 0-1e6]
+    ];
+
+    // if (navigation_type === "regions_of_interest") {
+    //     inner_poly = region;
+    // }
+    // else { 
+    //     inner_poly = [
+    //         [region[0], region[1]],
+    //         [region[0], region[3]],
+    //         [region[2], region[3]],
+    //         [region[2], region[1]]
+    //     ];
+    // }
+    inner_poly = [      
+        [cur_tile[0], cur_tile[1]],
+        [cur_tile[0], cur_tile[3]],
+        [cur_tile[2], cur_tile[3]],
+        [cur_tile[2], cur_tile[1]]
+    ];
+
+    overlay.context2d().fillStyle = "rgb(0, 0, 0, 0.5)"; // "#222621";
+    overlay.context2d().beginPath();
+
+    for (let poly of [outer_poly, inner_poly]) {
+
+        for (let i = 0; i < poly.length+1; i++) {
+            let pt = poly[(i)%poly.length];
+            let viewer_point = viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(pt[1], pt[0]));
+
+            if (i == 0) {
+                overlay.context2d().moveTo(viewer_point.x, viewer_point.y);
+            }
+            else {
+                overlay.context2d().lineTo(viewer_point.x, viewer_point.y);
+            }
+        }
+        overlay.context2d().closePath();
+
+    }
+    overlay.context2d().mozFillRule = "evenodd";
+    overlay.context2d().fill("evenodd");
+
+
+
+
+
+    let border_viewer_point = viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(cur_tile[1], cur_tile[0]));
+    let border_viewer_point_2 = viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(cur_tile[3], cur_tile[2]));
+    overlay.context2d().lineWidth = 1;
+    overlay.context2d().strokeStyle = "rgb(255, 255, 255, 1.0)";
+    overlay.context2d().strokeRect(
+        border_viewer_point.x,
+        border_viewer_point.y,
+        (border_viewer_point_2.x - border_viewer_point.x),
+        (border_viewer_point_2.y - border_viewer_point.y)
+    );
+
+
+
+
+    
+    // let navigator_container_size = navigator_viewer.viewport.getContainerSize();
+    //context2d().clear(); //clearRect(0, 0, navigator_container_size, navigator_container_size); //canvas.width, canvas.height);
+    let viewer_point = navigator_viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(cur_tile[1], cur_tile[0]));
+    let viewer_point_2 = navigator_viewer.viewport.imageToViewerElementCoordinates(new OpenSeadragon.Point(cur_tile[3], cur_tile[2]));
+    navigator_overlay.context2d().lineWidth = 1;
+    navigator_overlay.context2d().strokeStyle = "rgb(255, 255, 255, 1.0)";
+    navigator_overlay.context2d().strokeRect(
+        viewer_point.x,
+        viewer_point.y,
+        (viewer_point_2.x - viewer_point.x),
+        (viewer_point_2.y - viewer_point.y)
+    );
+
+
+
+
+    // }
+    // if (cur_bounds != null) {
+
+    //     if ((navigation_type === "regions_of_interest") || (navigation_type === "training_regions" || navigation_type === "test_regions")) {
+
+    //         let region = annotations[cur_img_name][navigation_type][cur_region_index];
+
+    //         if (navigation_type === "regions_of_interest") {
+    //             region = get_bounding_box_for_polygon(region);
+    //         }
+
+    //         viewer.world.getItemAt(0).setClip(
+    //             new OpenSeadragon.Rect(
+    //                 region[1],
+    //                 region[0],
+    //                 (region[3] - region[1]),
+    //                 (region[2] - region[0])
+    //             )
+    //         );
+    //     }
+
+
+    //     withFastOSDAnimation(viewer.viewport, function() {
+    //         viewer.viewport.fitBounds(cur_bounds);
+    //     });
+    //     cur_bounds = null;
+    // }
+
+
+    let viewport_bounds = [
+        cur_tile[1] / image_w_px,
+        (cur_tile[0] / image_h_px) * hw_ratio,
+        (cur_tile[3] - cur_tile[1]) / image_w_px,
+        ((cur_tile[2] - cur_tile[0]) / image_h_px) * hw_ratio
+    ];
+
+    let zoom_bounds = new OpenSeadragon.Rect(
+        viewport_bounds[0],
+        viewport_bounds[1],
+        viewport_bounds[2],
+        viewport_bounds[3]
+    );
+            
+    if (!(grid_zoomed)) {
+        // viewer.world.getItemAt(0).setClip(
+        //     new OpenSeadragon.Rect(
+        //         cur_tile[1],
+        //         cur_tile[0],
+        //         (cur_tile[3] - cur_tile[1]),
+        //         (cur_tile[2] - cur_tile[0])
+        //     )
+        // );
+        
+        withFastOSDAnimation(viewer.viewport, function() {
+            viewer.viewport.fitBounds(zoom_bounds);
+        });
+
+        grid_zoomed = true;
+    }
+
+
+
+    if (gsd != null) {
+        let cur_zoom = viewer.viewport.viewportToImageZoom(viewer.viewport.getZoom(true));
+        let measure_width = Math.max(50, 0.08 * container_size.x);
+        let measure_width_m = (gsd / cur_zoom) * measure_width;
+        let unit;
+        let measure_width_metric;
+        if (measure_width_m < 1) {
+            measure_width_metric = measure_width_m * 100;
+            unit = "cm";
+        }
+        else {
+            measure_width_metric = measure_width_m;
+            unit = "m";
+        }
+        let measure_width_text = (Math.ceil(measure_width_metric * 100) / 100).toFixed(2) + " " + unit;
+
+
+        overlay.context2d().fillStyle = "rgb(255, 255, 255, 0.7)";
+        overlay.context2d().fillRect(
+            container_size.x - measure_width - 20,
+            container_size.y - 30,
+            measure_width + 20,
+            30
+        );
+        overlay.context2d().fillStyle = "black";
+        overlay.context2d().fillRect(
+            container_size.x - measure_width - 10,
+            container_size.y - 8,
+            measure_width,
+            2
+        );
+        overlay.context2d().fillRect(
+            container_size.x - measure_width - 10,
+            container_size.y - 10,
+            1,
+            4
+        );
+        overlay.context2d().fillRect(
+            container_size.x - 10,
+            container_size.y - 10,
+            1,
+            4
+        );
+
+        overlay.context2d().fillText(measure_width_text, 
+            container_size.x - measure_width - 10,
+            container_size.y - 15
+        );
+    }
+
+    // if (cur_panel === "annotation") {
+    if ((cur_mouse_x != null) && (cur_mouse_y != null)) {
+
+        overlay.context2d().lineWidth = 2;
+        overlay.context2d().strokeStyle = overlay_appearance["colors"][cur_edit_layer];
+        overlay.context2d().beginPath();
+        overlay.context2d().moveTo(0, cur_mouse_y);
+        overlay.context2d().lineTo(overlay._containerWidth, cur_mouse_y);
+        overlay.context2d().stroke();
+        overlay.context2d().closePath();
+
+
+        overlay.context2d().beginPath();
+        overlay.context2d().moveTo(cur_mouse_x, 0);
+        overlay.context2d().lineTo(cur_mouse_x, overlay._containerHeight);
+        overlay.context2d().stroke();
+        overlay.context2d().closePath();
+    }
+    // }
+
+
+
+}
+
+
+function update_grid_overlap_percent() {
+
+    let input_length = ($("#grid_overlap_percent_input").val()).length;
+    if ((input_length < 1) || (input_length > 10)) {
+        return false;
+    }
+    let input_val = $("#grid_overlap_percent_input").val();
+    if (!(isNumeric(input_val))) {
+        return false;
+    }
+    input_val = parseFloat(input_val);
+    if (input_val < 0) {
+        return false;
+    }
+
+    if (input_val > 0.95) {
+        return false;
+    }
+
+    return true;
+
+}
+
+// function update_zoom_level() {
+
+//     let input_length = ($("#zoom_level_setting").val()).length;
+//     if ((input_length < 1) || (input_length > 10)) {
+//         return false;
+//     }
+//     let input_val = $("#zoom_level_setting").val();
+//     if (!(isNumeric(input_val))) {
+//         return false;
+//     }
+//     input_val = parseFloat(input_val);
+//     if (input_val < viewer.viewport.minZoomLevel) {
+//         return false;
+//     }
+
+//     if (input_val > viewer.viewport.maxZoomLevel) {
+//         return false;
+//     }
+
+//     return true;
+
+// }
+
+
+function grid_keydown_handler(e) {
+    if ((e.keyCode == 88) || ((e.keyCode == 39) || (e.keyCode == 32))) {
+        $("#next_tile_button").click();
+    }
+    if ((e.keyCode == 90) || (e.keyCode == 37)) {//(e.keyCode == 32) {
+        $("#prev_tile_button").click();
+    }
+    // if ((e.keyCode == 38) || (e.keyCode == 40)) {//(e.keyCode == 32) {
+    // }
+
+}

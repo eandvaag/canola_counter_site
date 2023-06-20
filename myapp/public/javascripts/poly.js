@@ -160,7 +160,6 @@ function polygon_is_self_intersecting(poly) {
             }
 
             if(intersect(A,B,C,D)) {
-                console.log("self_intersecting", A, B, C, D);
                 return true;
             }
         }
