@@ -81,6 +81,9 @@ let navigator_viewer;
 let navigator_overview;
 let grid_zoomed;
 
+
+let snap_boxes_to_exg = false;
+
 /*
 function set_prediction_overlay_color() {
 
@@ -92,10 +95,48 @@ function set_prediction_overlay_color() {
 }
   */
 
+function update_snap() {
+    if (snap_boxes_to_exg) {
+        console.log("setting background to none");
+        $("#snap_button").css("background-color", "");
+    }
+    else {
+        console.log("setting background to green");
+        $("#snap_button").css("background-color", "#4c6645");
+    }
 
-
+    snap_boxes_to_exg = !(snap_boxes_to_exg);
+}
 
 let keydown_handler = async function(e) {
+    if (e.keyCode == 83) {
+        if (cur_edit_layer === "annotation") {
+            update_snap();
+            // snap_boxes_to_exg = true;
+
+
+        
+            // let px_str = selected_annotation.target.selector.value;
+            // console.log(px_str);
+
+            // snap_box_to_exg(px_str, async function(result) {
+            //     console.log("NEW UPDATED", result);
+
+            //     selected_annotation.target.selector.value = result;
+
+            //     // Make sure to wait before saving!
+            //     await anno.updateSelected(selected_annotation);
+            //     anno.saveSelected();
+
+            // });
+        
+        }
+    }
+}
+
+
+
+let selected_keydown_handler = async function(e) {
 
     if (e.keyCode == 46) {
 
@@ -238,6 +279,8 @@ let keydown_handler = async function(e) {
         }
 
     }
+
+
 
     else if (e.keyCode == 77) {
 
@@ -847,6 +890,7 @@ function create_anno() {
         readOnly: true,
         formatter: formatter,
         //crosshair: true
+        //hotkey: ["Shift", "Alt"]
     });
 
     Annotorious.BetterPolygon(anno);
@@ -1012,13 +1056,31 @@ function create_anno() {
         if (updated_px_str === "illegal") {
             anno.clearAnnotations();
         }
-
         else {
-            selection.target.selector.value = updated_px_str;
+            if (cur_edit_layer === "annotation" && snap_boxes_to_exg) {
 
-            // Make sure to wait before saving!
-            await anno.updateSelected(selection);
-            anno.saveSelected();
+                snap_box_to_exg(updated_px_str, async function(result) {
+                    console.log("NEW UPDATED", result);
+
+                    selection.target.selector.value = result;
+
+                    // Make sure to wait before saving!
+                    await anno.updateSelected(selection);
+                    anno.saveSelected();
+
+                });
+                // updated_px_str = await snap_box_to_exg(updated_px_str);
+                // console.log("NEW UPDATED", updated_px_str);
+            }
+            else {
+
+
+                selection.target.selector.value = updated_px_str;
+
+                // Make sure to wait before saving!
+                await anno.updateSelected(selection);
+                anno.saveSelected();
+            }
         }
 
     });
@@ -3651,6 +3713,347 @@ function segment_viewport() {
     }
     container_height = $("#seadragon_viewer").height();
 }
+
+function snap_box_to_exg(px_str, callback) {
+
+    console.log("(1) snap_box_to_exg", px_str)
+
+    px_str = px_str.substring(11);
+    let px_lst = px_str.split(",").map(x => parseFloat(x));
+    
+
+    let img_min_y;
+    let img_min_x;
+
+    let img_dims = viewer.world.getItemAt(0).getContentSize();
+    // let img_max_y;
+    // let img_max_x;
+    // let navigation_type = $("#navigation_dropdown").val();
+    // if (navigation_type === "images") {
+    //     let img_dims = viewer.world.getItemAt(0).getContentSize();
+    //     img_min_y = 0;
+    //     img_min_x = 0;
+    //     img_max_y = img_dims.y;
+    //     img_max_x = img_dims.x;
+    // }
+    // else if (navigation_type == "regions_of_interest") {
+    //     let region = annotations[cur_img_name][navigation_type][cur_region_index];
+    //     let poly_bbox = get_bounding_box_for_polygon(region);
+    //     img_min_y = poly_bbox[0];
+    //     img_min_x = poly_bbox[1];
+    //     img_max_y = poly_bbox[2];
+    //     img_max_x = poly_bbox[3];
+
+    // }
+    // else {
+    //     let img_bounds = annotations[cur_img_name][navigation_type][cur_region_index];
+    //     img_min_y = img_bounds[0];
+    //     img_min_x = img_bounds[1];
+    //     img_max_y = img_bounds[2];
+    //     img_max_x = img_bounds[3];
+    // }
+
+    let box_min_x = Math.round(px_lst[0]);
+    let box_min_y = Math.round(px_lst[1]);
+    let box_w = Math.round(px_lst[2]);
+    let box_h = Math.round(px_lst[3]);
+
+    let box_max_x = box_min_x + box_w; //px_lst[0] + px_lst[2];
+    let box_max_y = box_min_y + box_h; //px_lst[1] + px_lst[3];
+
+
+    // let start_idx = ( (box_min_y * img_dims.x) + (box_min_x) ) * 4;
+
+    let threshold = excess_green_record[cur_img_name]["sel_val"];
+    let num_foreground = 0;
+    // let non_zero = [];
+    // let min_exg_set = false;
+    // let min_exg_x = box_min_x;
+    // let min_exg_y = box_min_y;
+    // let max_exg_x = box_min_x+1;
+    // let max_exg_y = box_min_y+1;
+
+
+
+    let img = viewer.drawer.canvas.toDataURL("image/png");
+    console.log("img", img);
+    // console.log(img);
+    // console.log(typeof(img));
+    
+    let canvas = document.createElement("canvas");
+    canvas.id = "my_canvas";
+    // canvas.margin = "0px";
+    // canvas.padding = "0px";
+    // let image_canvas = document.createElement("canvas");
+    // let exg_ctx = canvas.getContext("2d");
+    rgb_ctx = canvas.getContext("2d");
+
+    // let container_width = $("#seadragon_viewer").width();
+    // let container_height = $("#seadragon_viewer").height();
+
+
+    let rgb_image = new Image();
+
+    rgb_image.onload = function() {
+
+
+
+        // console.log("rgb_image.data (1)", rgb_image.data);
+
+        //let container_size = viewer.viewport.getContainerSize();
+        container_width = $("#seadragon_viewer").width();
+        container_height = $("#seadragon_viewer").height();
+
+        rgb_ctx.canvas.width = container_width; //box_w; //container_width
+        rgb_ctx.canvas.height = container_height; //box_h; //container_height;
+
+
+        let w = rgb_ctx.canvas.width;
+        let h = rgb_ctx.canvas.height;
+
+        rgb_ctx.drawImage(rgb_image, 0, 0, w, h);  //box_min_x, box_min_y, box_w, box_h); //0, 0, w, h);      // Set image to Canvas context
+        d_rgb = rgb_ctx.getImageData(0, 0, w, h);  // Get image Data from Canvas context
+
+
+
+
+
+
+
+        console.log("d_rgb", d_rgb);
+
+        // box_min_y and box_min_x need to be adjusted --> get min_x, min_y of current viewport and subtract
+
+
+
+    // let tmp_d_rgb = rgb_ctx.getImageData(box_min_x, box_min_y, box_w, box_h);
+
+        // for (let i = box_min_y; i < box_max_y; i++) {
+        //     for (let j = box_min_x; j < box_max_x; j++) {
+        let threshold = excess_green_record[cur_img_name]["sel_val"]; //11; //excess_green_record[cur_img_name]["sel_val"];
+        let foreground_xs = [];
+        let foreground_ys = [];
+        // console.log("box_w, box_h", box_w, box_h);
+        // console.log("w, h", w, h);
+        // for (let i = 0; i < box_h; i++) {
+            // for (let j = 0; j < box_w; j++) {
+
+        // let viewer_bounds = viewer.viewport.getBounds();
+        // // let container_size = viewer.viewport.getContainerSize();
+    
+        // let hw_ratio = overlay.imgHeight / overlay.imgWidth;
+        // let canvas_min_x = Math.floor(viewer_bounds.x * overlay.imgWidth);
+        // let canvas_min_y = Math.floor((viewer_bounds.y / hw_ratio) * overlay.imgHeight);
+
+        // console.log("canvas_min_y, canvas_min_x", canvas_min_y, canvas_min_x);
+
+        let min_viewer_pt = viewer.viewport.imageToViewerElementCoordinates(
+            new OpenSeadragon.Point(box_min_x, box_min_y)
+        );
+        // console.log("min_viewer_pt", min_viewer_pt);
+        let max_viewer_pt = viewer.viewport.imageToViewerElementCoordinates(
+            new OpenSeadragon.Point(box_max_x, box_max_y)
+        );
+
+        let min_canvas_x = Math.round(min_viewer_pt.x);
+        let min_canvas_y = Math.round(min_viewer_pt.y);
+        let max_canvas_x = Math.round(max_viewer_pt.x);
+        let max_canvas_y = Math.round(max_viewer_pt.y);
+
+        console.log("min_canvas_x, min_canvas_y", min_canvas_x, min_canvas_y);
+        console.log("max_canvas_x, max_canvas_y", max_canvas_x, max_canvas_y);
+
+
+        let min_exg_x = max_canvas_x; //box_max_x;
+        let min_exg_y = max_canvas_y; //box_max_y;
+        let max_exg_x = min_canvas_x; //box_min_x;
+        let max_exg_y = min_canvas_y; //box_min_y;
+
+        // let start_y = box_min_y - canvas_min_y;
+        // let start_x = box_min_x - canvas_min_x;
+        // console.log("start_y, start_x", start_y, start_x);
+        // for (let i = start_y; i < start_y + box_h; i++) { //box_min_y; i < box_max_y; i++) {
+        //     for (let j = start_x; j < start_x + box_w; j++) { //box_min_x; j < box_max_x; j++) {
+
+        for (let i = min_canvas_y; i < max_canvas_y; i++) { //box_min_y; i < box_max_y; i++) {
+            for (let j = min_canvas_x; j < max_canvas_x; j++) { //box_min_x; j < box_max_x; j++) {
+
+
+                // let idx = ( (i * box_w) + j ) * 4;
+                // let canvas_i = i - canvas_min_y;
+                // let canvas_j = j - canvas_min_x;
+                let idx = ( (i * w) + j ) * 4;
+                let r_val = d_rgb.data[idx] / 255;
+                let g_val = d_rgb.data[idx+1] / 255;
+                let b_val = d_rgb.data[idx+2] / 255;
+
+
+
+                // if ((r_val != 0 || g_val != 0) || b_val != 0) {
+                //     non_zero.push({"r_val": r_val, "g_val": g_val, "b_val": b_val});
+                // }
+                let exg_val = (2 * g_val) - r_val - b_val;
+                // console.log(idx, exg_val);
+                
+        
+                let is_foreground = exg_val > threshold;
+
+                if (is_foreground) {
+                    // console.log(i, j, idx, exg_val);
+                    foreground_xs.push(j); // + canvas_min_y); //box_min_x + j);
+                    foreground_ys.push(i); // + canvas_min_x); //box_min_y + i);
+
+                    // if ((box_min_x + j) < min_exg_x) {
+                    //     min_exg_x = box_min_x + j;
+                    //     //console.log("updating min_x", )
+                    // }
+                    // if ((box_min_y + i) < min_exg_y) {
+                    //     min_exg_y = box_min_y + i;
+                    // }
+                    // if ((box_min_x + j) > max_exg_x) {
+                    //     max_exg_x = box_min_x + j;
+                    // }
+                    // if ((box_min_y + i) > max_exg_y) {
+                    //     max_exg_y = box_min_y + i;
+                    // }                             
+
+                    if (j < min_exg_x) {
+                        min_exg_x = j;
+                        //console.log("updating min_x", )
+                    }
+                    if (i < min_exg_y) {
+                        min_exg_y = i;
+                    }
+                    if (j > max_exg_x) {
+                        max_exg_x = j;
+                    }
+                    if (i > max_exg_y) {
+                        max_exg_y = i;
+                    }
+
+
+                    // if (!(min_exg_set)) {
+                    //     min_exg_x = box_min_x + j;
+                    //     min_exg_y = box_min_y + i;
+                    //     max_exg_x = box_min_x + j+1;
+                    //     max_exg_y = box_min_y + i+1;
+                    //     min_exg_set = true;
+                    // }
+                    // else {
+
+                    //     if ((box_min_x + j) > max_exg_x) {
+                    //         max_exg_x = box_min_x + j;
+                    //     }
+                    //     if ((box_min_y + i) > max_exg_y) {
+                    //         max_exg_y = box_min_y + i;
+                    //     }
+                    // }
+                }
+            }
+        }
+
+        // console.log(foreground_xs);
+        // console.log(foreground_ys);
+        // console.log(Math.min(foreground_xs))
+
+        // min_exg_x = Math.min.apply(null, foreground_xs);
+        // min_exg_y = Math.min.apply(null, foreground_ys);
+        // max_exg_x = Math.max.apply(null, foreground_xs);
+        // max_exg_y = Math.max.apply(null, foreground_ys);
+
+        if ((min_exg_x >= max_exg_x) || (min_exg_y >= max_exg_y)) {
+            console.log("snap failed, using org coords");
+            box_min_x = px_lst[0];
+            box_min_y = px_lst[1];
+            box_max_x = px_lst[0] + px_lst[2];
+            box_max_y = px_lst[1] + px_lst[3];
+        }
+        else {
+
+            console.log("min_exg_x, min_exg_y", min_exg_x, min_exg_y);
+            console.log("max_exg_x, max_exg_y", max_exg_x, max_exg_y);
+
+            let min_box_pt = viewer.viewport.viewerElementToImageCoordinates(
+                new OpenSeadragon.Point(min_exg_x, min_exg_y)
+            );
+            let max_box_pt = viewer.viewport.viewerElementToImageCoordinates(
+                new OpenSeadragon.Point(max_exg_x, max_exg_y)
+            );
+            console.log("min_box_pt", min_box_pt);
+            console.log("max_box_pt", max_box_pt);
+
+            box_min_x = min_box_pt.x; //min_exg_x;
+            box_min_y = min_box_pt.y; //min_exg_y;
+    
+            box_max_x = max_box_pt.x; //max_exg_x;
+            box_max_y = max_box_pt.y; //max_exg_y;    
+        }
+
+        // if (!(min_exg_set)) {
+        //     console.log("min_exg not set");
+        //     if ((min_exg_x == box_max_x - 1) || (min_exg_y == box_max_y - 1)) {
+        //         console.log("min is now at max border");
+        //     }
+        // }
+
+
+
+
+        // for (let i = start_idx; i < d_rgb.data.length; i += 4) {
+        //     r_val = d_rgb.data[i] / 255;
+        //     g_val = d_rgb.data[i+1] / 255;
+        //     b_val = d_rgb.data[i+2] / 255;
+        //     if ((r_val != 0 || g_val != 0) || b_val != 0) {
+        //         non_zero.push({"r_val": r_val, "g_val": g_val, "b_val": b_val});
+        //     }
+        //     let exg_val = (2 * g_val) - r_val - b_val;
+
+        //     let is_foreground = exg_val > threshold;
+        //     // d_rgb.data[i+3] = is_foreground ? 255 : 30;
+
+        //     // if (is_foreground) {
+        //     //     num_foreground++;
+        //     // }
+            
+        // }
+
+        // for (let i = start_idx; i < d_rgb.data.length; i += 4) {
+
+        // }
+
+
+        box_w = box_max_x - box_min_x;
+        box_h = box_max_y - box_min_y;
+
+        console.log("px_str", px_str);
+        let updated_px_str = "xywh=pixel:" + box_min_x + "," + box_min_y +
+                            "," + box_w + "," + box_h;
+
+
+
+
+        // box_min_x = Math.max(box_min_x, img_min_x);
+        // box_min_y = Math.max(box_min_y, img_min_y);
+
+        // box_max_x = Math.min(box_max_x, img_max_x);
+        // box_max_y = Math.min(box_max_y, img_max_y);
+
+        console.log("(2) snap_box_to_exg", updated_px_str)
+
+        // return updated_px_str;
+        callback(updated_px_str);
+    }
+
+
+
+    rgb_image.src = img; //"/plant_detection/fake_url/image/png";
+
+
+    // return px_str;
+
+
+}
+
 
 function draw_segmentation() {
 
@@ -6895,11 +7298,13 @@ $(document).ready(function() {
     $("#help_button").click(function() {
 
         let head = "Help";
-        let message = `<div style="padding: 10px">&#8226; Hold the <span style='border: 1px solid white; font-size: 14px; padding: 5px 10px; margin: 0px 5px'>SHIFT</span> key and left mouse button to create a new annotation or region.` +
+        let message = `<div style="line-height: 150%; padding: 10px">&#8226; Hold the <span style='border: 1px solid white; font-size: 14px; padding: 5px 10px; margin: 0px 5px'>SHIFT</span> key and left mouse button to create a new annotation or region.` +
         `<br><br>&#8226; Click on an existing annotation / region to select it and change its boundaries.` +
         `<br><br>&#8226; Use the <span style='border: 1px solid white; font-size: 14px; padding: 5px 10px; margin: 0px 5px'>DELETE</span> key to remove whichever annotation / region is currently selected.` + 
         `<br><br>&#8226; When creating a region of interest, double click the left mouse button to complete the region.` +                
         `<br><br>&#8226; If a test region is selected, pressing the <span style='border: 1px solid white; font-size: 16px; padding: 5px 10px; margin: 0px 5px'>m</span> key will change that region into a fine-tuning region.` + 
+        `<br><br>&#8226; Press the  <span style='border: 1px solid white; font-size: 16px; padding: 5px 10px; margin: 0px 5px'>s</span> key to toggle excess green annotation snapping. ` + 
+        ` When active, newly drawn annotations will snap to the boundaries of the current excess green segmentation.` + 
         `<br><br>&#8226; Don't forget to save your work!</div>`;
         show_modal_message(head, message, modal_width=750);
     })
@@ -7847,12 +8252,16 @@ $(document).ready(function() {
 
     $("body").keydown(function(e) {
         if (selected_annotation !== null) {
-            keydown_handler(e);
+            selected_keydown_handler(e);
         }
         else if ($("#engaged_grid_controls").is(":visible")) {
             grid_keydown_handler(e);
         }
+        else {
+            keydown_handler(e);
+        }
     });
+
     // $("body").mouseup(function(e) {
     //     let cur_selected = anno.getSelected();
     //     if (cur_selected == null) {

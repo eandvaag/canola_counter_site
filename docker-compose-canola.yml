@@ -42,7 +42,8 @@ services:
       - container_net
 
     runtime: nvidia
-
+    restart: always
+    
 networks:
   container_net:
     driver: bridge

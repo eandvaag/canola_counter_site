@@ -1549,30 +1549,30 @@ exports.post_annotations_upload = function(req, res, next) {
                     // response.error = true;
                     // return res.json(response);
                 }
-                if (annotation_key == "annotations") {
-                    if (box_height > max_box_dim) {
-                        return res.status(422).json({
-                            error: "At least one uploaded box has a height that is larger than the maximum allowed height. " +
-                                    "(Box height: " + box_height + " " + pixel_text + ". Maximum allowed height: " + max_box_dim + 
-                                    " pixels. Problematic key: " + entry_name + ".)"
-                        });
-                        // response.message = "At least one uploaded box has a height that is larger than the maximum allowed height. " +
-                        //                     "(Box height: " + box_height + ". Maximum allowed height: " + max_box_dim + ".)";
-                        // response.error = true;
-                        // return res.json(response);
-                    }
-                    if (box_width > max_box_dim) {
-                        return res.status(422).json({
-                            error: "At least one uploaded box has a width that is larger than the maximum allowed width. " +
-                                "(Box width: " + box_width + " " + pixel_text + ". Maximum allowed width: " + max_box_dim + 
-                                " pixels. Problematic key: " + entry_name + ".)"
-                        });
-                        // response.message = "At least one uploaded box has a width that is larger than the maximum allowed width. " +
-                        //                     "(Box width: " + box_width + ". Maximum allowed width: " + max_box_dim + ".)";
-                        // response.error = true;
-                        // return res.json(response);
-                    }
-                }
+                // if (annotation_key == "annotations") {
+                //     if (box_height > max_box_dim) {
+                //         return res.status(422).json({
+                //             error: "At least one uploaded box has a height that is larger than the maximum allowed height. " +
+                //                     "(Box height: " + box_height + " " + pixel_text + ". Maximum allowed height: " + max_box_dim + 
+                //                     " pixels. Problematic key: " + entry_name + ".)"
+                //         });
+                //         // response.message = "At least one uploaded box has a height that is larger than the maximum allowed height. " +
+                //         //                     "(Box height: " + box_height + ". Maximum allowed height: " + max_box_dim + ".)";
+                //         // response.error = true;
+                //         // return res.json(response);
+                //     }
+                //     if (box_width > max_box_dim) {
+                //         return res.status(422).json({
+                //             error: "At least one uploaded box has a width that is larger than the maximum allowed width. " +
+                //                 "(Box width: " + box_width + " " + pixel_text + ". Maximum allowed width: " + max_box_dim + 
+                //                 " pixels. Problematic key: " + entry_name + ".)"
+                //         });
+                //         // response.message = "At least one uploaded box has a width that is larger than the maximum allowed width. " +
+                //         //                     "(Box width: " + box_width + ". Maximum allowed width: " + max_box_dim + ".)";
+                //         // response.error = true;
+                //         // return res.json(response);
+                //     }
+                // }
 
                 let internal_annotation_key;
                 if (annotation_key === "annotations") {
@@ -5538,96 +5538,96 @@ exports.get_timeline = function(req, res, next) {
 
 
 
-exports.post_timeline = function(req, res, next) {
+// exports.post_timeline = function(req, res, next) {
 
-    let action = req.body.action;
-    let response = {};
-    if (action === "calculate_mAP") {
+//     let action = req.body.action;
+//     let response = {};
+//     if (action === "calculate_mAP") {
         
-        let farm_name = req.params.farm_name;
-        let field_name = req.params.field_name;
-        let mission_date = req.params.mission_date;
+//         let farm_name = req.params.farm_name;
+//         let field_name = req.params.field_name;
+//         let mission_date = req.params.mission_date;
 
-        let mission_dir = path.join(USR_DATA_ROOT, req.session.user.username, "image_sets", 
-                                    farm_name, field_name, mission_date);
+//         let mission_dir = path.join(USR_DATA_ROOT, req.session.user.username, "image_sets", 
+//                                     farm_name, field_name, mission_date);
 
-        let results_dir = path.join(mission_dir, "model", "results");
-        //let download_uuids = [];
-        let metrics = {};
+//         let results_dir = path.join(mission_dir, "model", "results");
+//         //let download_uuids = [];
+//         let metrics = {};
 
-        glob(path.join(results_dir, "*"), function(error, result_paths) {
-            if (error) {
-                return res.redirect(process.env.CC_PATH);
-            }
-            //for (let i = 0; i < result_paths.length; i++) { 
-            for (let result_path of result_paths) {
+//         glob(path.join(results_dir, "*"), function(error, result_paths) {
+//             if (error) {
+//                 return res.redirect(process.env.CC_PATH);
+//             }
+//             //for (let i = 0; i < result_paths.length; i++) { 
+//             for (let result_path of result_paths) {
 
-                //let result_path = result_paths[i];
+//                 //let result_path = result_paths[i];
 
-                let result_uuid = path.basename(result_path);
+//                 let result_uuid = path.basename(result_path);
 
-        //let results_path = path.join(results_dir, timestamp, "retrieval", download_uuid, "results.csv");
+//         //let results_path = path.join(results_dir, timestamp, "retrieval", download_uuid, "results.csv");
 
-                let download_uuid = uuidv4().toString();
+//                 let download_uuid = uuidv4().toString();
 
-                //console.log("download uuid is", download_uuid);
+//                 //console.log("download uuid is", download_uuid);
                 
 
-                let create_spreadsheet_command = "python ../../plant_detection/src/create_spreadsheet.py " +
-                    req.session.user.username + " " +
-                    farm_name + " " +
-                    field_name + " " + 
-                    mission_date + " " + 
-                    result_uuid + " " +
-                    download_uuid + " " +
-                    "most_recent";
+//                 let create_spreadsheet_command = "python ../../plant_detection/src/create_spreadsheet.py " +
+//                     req.session.user.username + " " +
+//                     farm_name + " " +
+//                     field_name + " " + 
+//                     mission_date + " " + 
+//                     result_uuid + " " +
+//                     download_uuid + " " +
+//                     "most_recent";
 
-                console.log("executing:", create_spreadsheet_command);
+//                 console.log("executing:", create_spreadsheet_command);
         
 
-                exec(create_spreadsheet_command, {shell: "/bin/bash"}, function (error, stdout, stderr) {
-                    if (error) {
-                        console.log(error.stack);
-                        console.log('Error code: '+error.code);
-                        console.log('Signal received: '+error.signal);
-                        response.error = true;
-                        return res.json(response);
-                    }
+//                 exec(create_spreadsheet_command, {shell: "/bin/bash"}, function (error, stdout, stderr) {
+//                     if (error) {
+//                         console.log(error.stack);
+//                         console.log('Error code: '+error.code);
+//                         console.log('Signal received: '+error.signal);
+//                         response.error = true;
+//                         return res.json(response);
+//                     }
 
-                    console.log("finished", create_spreadsheet_command);
-                    console.log("result_path", result_path);
-                    //console.log("timestamp", timestamp);
-                    console.log("download_uuid", download_uuid);
-                    //response.error = false;
-                    //response.download_uuid = download_uuid;
-                    //console.log("returning new download_uuid", download_uuid);
-                    //return res.json(response);
+//                     console.log("finished", create_spreadsheet_command);
+//                     console.log("result_path", result_path);
+//                     //console.log("timestamp", timestamp);
+//                     console.log("download_uuid", download_uuid);
+//                     //response.error = false;
+//                     //response.download_uuid = download_uuid;
+//                     //console.log("returning new download_uuid", download_uuid);
+//                     //return res.json(response);
 
-                    let result_metrics_path = path.join(result_path, "retrieval", download_uuid, "metrics.json");
-                    let result_metrics;
-                    try {
-                        result_metrics = JSON.parse(fs.readFileSync(result_metrics_path, 'utf8'));
-                    }
-                    catch (error) {
-                        console.log(error);
-                        response.error = true;
-                        return res.json(response);
-                    }
+//                     let result_metrics_path = path.join(result_path, "retrieval", download_uuid, "metrics.json");
+//                     let result_metrics;
+//                     try {
+//                         result_metrics = JSON.parse(fs.readFileSync(result_metrics_path, 'utf8'));
+//                     }
+//                     catch (error) {
+//                         console.log(error);
+//                         response.error = true;
+//                         return res.json(response);
+//                     }
 
-                    metrics[timestamp] = result_metrics;
+//                     metrics[timestamp] = result_metrics;
 
 
-                    //download_uuids.push(download_uuid);
-                    if (Object.keys(metrics).length == result_paths.length) {
-                        //response.download_uuids = download_uuids.join(",");
-                        response.metrics = metrics;
-                        return res.json(response);
-                    }
-                });
-            }
-        });
-    }
-}
+//                     //download_uuids.push(download_uuid);
+//                     if (Object.keys(metrics).length == result_paths.length) {
+//                         //response.download_uuids = download_uuids.join(",");
+//                         response.metrics = metrics;
+//                         return res.json(response);
+//                     }
+//                 });
+//             }
+//         });
+//     }
+// }
 
 
 
