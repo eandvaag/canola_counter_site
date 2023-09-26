@@ -109,7 +109,7 @@ function update_snap() {
 }
 
 let keydown_handler = async function(e) {
-    if (e.keyCode == 83) {
+    if ((e.keyCode == 68) || (e.keyCode == 76)) {
         if (cur_edit_layer === "annotation") {
             update_snap();
             // snap_boxes_to_exg = true;
@@ -7303,7 +7303,7 @@ $(document).ready(function() {
         `<br><br>&#8226; Use the <span style='border: 1px solid white; font-size: 14px; padding: 5px 10px; margin: 0px 5px'>DELETE</span> key to remove whichever annotation / region is currently selected.` + 
         `<br><br>&#8226; When creating a region of interest, double click the left mouse button to complete the region.` +                
         `<br><br>&#8226; If a test region is selected, pressing the <span style='border: 1px solid white; font-size: 16px; padding: 5px 10px; margin: 0px 5px'>m</span> key will change that region into a fine-tuning region.` + 
-        `<br><br>&#8226; Press the  <span style='border: 1px solid white; font-size: 16px; padding: 5px 10px; margin: 0px 5px'>s</span> key to toggle excess green annotation snapping. ` + 
+        `<br><br>&#8226; Press the <span style='border: 1px solid white; font-size: 16px; padding: 5px 10px; margin: 0px 5px'>s</span> or <span style='border: 1px solid white; font-size: 16px; padding: 5px 10px; margin: 0px 5px'>l</span> key to toggle excess green annotation snapping. ` + 
         ` When active, newly drawn annotations will snap to the boundaries of the current excess green segmentation.` + 
         `<br><br>&#8226; Don't forget to save your work!</div>`;
         show_modal_message(head, message, modal_width=750);

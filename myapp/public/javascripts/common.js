@@ -804,14 +804,14 @@ function create_regions_summary_element(image_name, region_of_interest_count, tr
     if (bookmark_button) {
         if ("bookmarked" in annotations[image_name] && annotations[image_name]["bookmarked"]) {
             bookmark_element = 
-            `<div class="table_button table_button_hover" style="padding: 0px; margin: 2px; width: 96px; height: 25px; border: 1px solid white; background-color: #4c6645; cursor: pointer; border-radius: 20px 0px 0px 20px;" ` +
+            `<div class="table_button" style="padding: 0px; margin: 2px; width: 96px; height: 25px; border: 1px solid white; background-color: #4c6645; cursor: pointer; border-radius: 20px 0px 0px 20px;" ` +
                 `onclick="bookmark()">` +
                 `<i style="color: white; font-size: 12px; margin-top: 5px" class="fa-regular fa-bookmark"></i><span style="font-size: 13px; padding-left: 7px">Bookmark</span>` +
             `</div>`;
         }
         else {
             bookmark_element = 
-            `<div class="table_button table_button_hover" style="padding: 0px; margin: 2px; width: 96px; height: 25px; border: 1px solid white; background-color: none; cursor: pointer; border-radius: 20px 0px 0px 20px;" ` +
+            `<div class="table_button" style="padding: 0px; margin: 2px; width: 96px; height: 25px; border: 1px solid white; background-color: none; cursor: pointer; border-radius: 20px 0px 0px 20px;" ` +
                 `onclick="bookmark()">` +
                 `<i style="color: white; font-size: 12px; margin-top: 5px" class="fa-regular fa-bookmark"></i><span style="font-size: 13px; padding-left: 7px">Bookmark</span>` +
             `</div>`;
